@@ -1,4 +1,7 @@
+import { useState } from "react";
 import StatCard from "@/components/StatCard";
+import CreateTest from "@/components/CreateTest";
+import EnterScores from "@/components/EnterScores";
 
 const upcomingTests = [
   { name: "Unit Test: Quadratic Equations", cls: "Class 10-A", students: 30, date: "Feb 19, 2025", duration: "45 minutes", marks: "50 marks", inDays: "In 2 days", highlight: true },
@@ -21,6 +24,22 @@ const topicPerf = [
 ];
 
 const TestsExams = () => {
+  const [view, setView] = useState<'list' | 'create' | 'enter-scores'>('list');
+  const [selectedTest, setSelectedTest] = useState<string>("");
+
+  const handleEnterScores = (testName: string) => {
+    setSelectedTest(testName);
+    setView('enter-scores');
+  };
+
+  if (view === 'create') {
+    return <CreateTest onCancel={() => setView('list')} onCreate={() => setView('list')} />;
+  }
+
+  if (view === 'enter-scores') {
+    return <EnterScores testName={selectedTest} onBack={() => setView('list')} />;
+  }
+
   return (
     <div>
       <div className="flex items-start justify-between mb-6">
@@ -28,7 +47,10 @@ const TestsExams = () => {
           <h1 className="page-title">Tests & Exams</h1>
           <p className="page-subtitle">Manage tests, enter scores, and analyze performance.</p>
         </div>
-        <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90">
+        <button 
+          onClick={() => setView('create')}
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+        >
           Create Test
         </button>
       </div>
@@ -60,7 +82,12 @@ const TestsExams = () => {
                 <div className="flex gap-2">
                   {test.highlight ? (
                     <>
-                      <button className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-lg font-medium">Enter Scores</button>
+                      <button 
+                        onClick={() => handleEnterScores(test.name)}
+                        className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-lg font-medium"
+                      >
+                        Enter Scores
+                      </button>
                       <button className="border text-sm px-4 py-1.5 rounded-lg font-medium text-foreground">Edit</button>
                       <button className="border text-sm px-4 py-1.5 rounded-lg font-medium text-foreground">Print</button>
                     </>
@@ -112,3 +139,5 @@ const TestsExams = () => {
 };
 
 export default TestsExams;
+
+

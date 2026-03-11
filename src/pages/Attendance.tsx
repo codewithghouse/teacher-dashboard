@@ -1,4 +1,6 @@
+import { useState } from "react";
 import StatCard from "@/components/StatCard";
+import MarkAttendance from "@/components/MarkAttendance";
 
 const weeklyData = [
   { day: "Mon", date: "Feb 10", present: 30, absent: 2, rate: "93.8%" },
@@ -15,6 +17,12 @@ const concerns = [
 ];
 
 const Attendance = () => {
+  const [isMarking, setIsMarking] = useState(false);
+
+  if (isMarking) {
+    return <MarkAttendance onBack={() => setIsMarking(false)} />;
+  }
+
   return (
     <div>
       <div className="flex items-start justify-between mb-6">
@@ -22,7 +30,10 @@ const Attendance = () => {
           <h1 className="page-title">Attendance</h1>
           <p className="page-subtitle">Track and manage student attendance across all classes.</p>
         </div>
-        <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90">
+        <button 
+          onClick={() => setIsMarking(true)}
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90"
+        >
           Mark Today's Attendance
         </button>
       </div>
@@ -72,7 +83,10 @@ const Attendance = () => {
                 <span className="font-semibold">—</span>
               </div>
             </div>
-            <button className="mt-2 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-lg font-medium w-full">
+            <button 
+              onClick={() => setIsMarking(true)}
+              className="mt-2 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-lg font-medium w-full"
+            >
               Mark Now
             </button>
           </div>
@@ -100,3 +114,4 @@ const Attendance = () => {
 };
 
 export default Attendance;
+
