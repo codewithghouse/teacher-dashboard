@@ -44,6 +44,14 @@ const Students = () => {
     section: ""
   });
 
+  const handleOpenInvite = () => {
+    setInviteForm(prev => ({
+      ...prev,
+      grade: teacherData?.classes || ""
+    }));
+    setIsInviteOpen(true);
+  };
+
   useEffect(() => {
     if (!teacherData?.id) return;
 
@@ -150,7 +158,7 @@ const Students = () => {
             />
           </div>
           <button 
-            onClick={() => setIsInviteOpen(true)}
+            onClick={handleOpenInvite}
             className="bg-[#1e3a8a] text-white rounded-xl px-6 py-2.5 text-sm font-bold hover:bg-[#1e4fc0] transition-colors shadow-md flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" /> Add Student

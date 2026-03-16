@@ -7,7 +7,7 @@ import {
   User
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -31,32 +31,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       if (currentUser && currentUser.email) {
         try {
-          // Whitelist Check for Teachers
+          // Whitelist Check for Teachers - Real-time with onSnapshot
           const q = query(collection(db, "teachers"), where("email", "==", currentUser.email.toLowerCase()));
-          const querySnapshot = await getDocs(q);
+          const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+              const doc = snapshot.docs[0];
+              setTeacherData({ id: doc.id, ...doc.data() });
+              setUser(currentUser);
+              setError(null);
+            } else {
+              signOut(auth);
+              setUser(null);
+              setTeacherData(null);
+              setError("You are not authorized to access the Teacher Dashboard. Please contact your school principal.");
+            }
+            setLoading(false);
+          });
 
-          if (!querySnapshot.empty) {
-            // Authorized Teacher
-            const doc = querySnapshot.docs[0];
-            setTeacherData({ id: doc.id, ...doc.data() });
-            setUser(currentUser);
-            setError(null);
-          } else {
-            // Not in whitelist
-            await signOut(auth);
-            setUser(null);
-            setTeacherData(null);
-            setError("You are not authorized to access the Teacher Dashboard. Please contact your school principal.");
-          }
+          return () => unsubscribeSnapshot();
         } catch (err: any) {
           console.error("Auth Error:", err);
           setError("An error occurred during verification.");
+          setLoading(false);
         }
       } else {
         setUser(null);
         setTeacherData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
