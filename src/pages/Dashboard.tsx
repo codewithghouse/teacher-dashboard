@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../lib/AuthContext';
 
 const todaysClasses = [
   { time: "09:00", ampm: "AM", subject: "Mathematics", cls: "Class 8-A", students: 32, isNow: true },
@@ -22,13 +23,15 @@ const studentsAttention = [
 ];
 
 const Dashboard = () => {
+  const { teacherData, user } = useAuth();
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm font-medium text-muted-foreground mt-1">Welcome back! Here's what's happening today.</p>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Welcome back, {teacherData?.name || user?.displayName?.split(' ')[0] || "Teacher"}! Here's what's happening today.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="px-4 py-2 bg-card border border-border rounded-xl text-sm font-medium text-foreground shadow-sm">
