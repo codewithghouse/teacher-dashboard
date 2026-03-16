@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { 
   Dialog, 
   DialogContent, 
@@ -11,6 +11,22 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -21,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Filter, Loader2, UserPlus } from "lucide-react";
+import { Plus, Search, Filter, Loader2, UserPlus, Trash2, Edit, MoreVertical } from "lucide-react";
 import { sendEmail } from "../lib/resend";
 
 const statusStyles: Record<string, string> = {
@@ -35,6 +51,10 @@ const Students = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState<any | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<any | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [inviteForm, setInviteForm] = useState({
@@ -43,13 +63,37 @@ const Students = () => {
     grade: "",
     section: ""
   });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    grade: "",
+    section: ""
+  });
 
   const handleOpenInvite = () => {
-    setInviteForm(prev => ({
-      ...prev,
-      grade: teacherData?.classes || ""
-    }));
+    setInviteForm({
+      name: "",
+      email: "",
+      grade: teacherData?.classes || "",
+      section: ""
+    });
     setIsInviteOpen(true);
+  };
+
+  const handleOpenEdit = (student: any) => {
+    setStudentToEdit(student);
+    setEditForm({
+      name: student.name || "",
+      email: student.email || "",
+      grade: student.grade || "",
+      section: student.section || ""
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleOpenDelete = (student: any) => {
+    setStudentToDelete(student);
+    setIsDeleteAlertOpen(true);
   };
 
   useEffect(() => {
@@ -126,6 +170,40 @@ const Students = () => {
       toast.error(error.message || "Failed to invite student");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentToEdit) return;
+
+    setIsSending(true);
+    try {
+      const docRef = doc(db, "students", studentToEdit.id);
+      await updateDoc(docRef, {
+        ...editForm,
+        email: editForm.email.toLowerCase()
+      });
+      toast.success("Student updated successfully!");
+      setIsEditOpen(false);
+    } catch (error: any) {
+      console.error("Update Error:", error);
+      toast.error("Failed to update student");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "students", studentToDelete.id));
+      toast.success("Student records deleted");
+      setIsDeleteAlertOpen(false);
+    } catch (error: any) {
+      console.error("Delete Error:", error);
+      toast.error("Failed to delete records");
     }
   };
 
@@ -243,6 +321,93 @@ const Students = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#1e294b]">Edit Student Details</DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium">
+              Update information for {studentToEdit?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name" className="text-xs font-bold uppercase text-slate-500">Student Full Name</Label>
+              <Input 
+                id="edit-name" 
+                className="rounded-xl border-slate-200"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email" className="text-xs font-bold uppercase text-slate-500">Parent Email</Label>
+              <Input 
+                id="edit-email" 
+                type="email" 
+                className="rounded-xl border-slate-200"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-slate-500">Grade / Class</Label>
+                <Select value={editForm.grade} onValueChange={(val) => setEditForm({ ...editForm, grade: val })}>
+                  <SelectTrigger className="rounded-xl border-slate-200">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"].map(g => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-section" className="text-xs font-bold uppercase text-slate-500">Section</Label>
+                <Input 
+                  id="edit-section" 
+                  className="rounded-xl border-slate-200"
+                  value={editForm.section}
+                  onChange={(e) => setEditForm({ ...editForm, section: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <button 
+                type="submit" 
+                disabled={isSending}
+                className="w-full h-12 rounded-xl bg-[#1e3a8a] text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">Delete Student Record?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              This will permanently remove <strong>{studentToDelete?.name}</strong> from your roster. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+            >
+              Delete Records
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Main Student Cards Grid */}
       <div className="bg-white border border-border rounded-2xl p-6 shadow-sm min-h-[400px]">
          {filteredStudents.length > 0 ? (
@@ -253,10 +418,32 @@ const Students = () => {
                    <div className={`w-14 h-14 rounded-[1rem] flex items-center justify-center text-white text-xl font-bold shadow-sm ${s.color}`}>
                      {s.initials}
                    </div>
-                   <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest ${statusStyles[s.status || 'Active']}`}>
-                     {s.status || 'Active'}
-                   </span>
-                 </div>
+                   <div className="flex flex-col items-end gap-2">
+                      <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest ${statusStyles[s.status || 'Active']}`}>
+                        {s.status || 'Active'}
+                      </span>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="p-1 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none">
+                          <MoreVertical className="w-4 h-4 text-slate-400" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl p-1 shadow-xl border border-slate-100 min-w-[120px]">
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenEdit(s)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-600 focus:text-primary focus:bg-primary/5 rounded-lg cursor-pointer transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenDelete(s)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 focus:text-red-700 focus:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                  
                  <div className="mb-6">
                     <h3 className="font-bold text-foreground text-lg mb-1 truncate">{s.name}</h3>
