@@ -9,7 +9,7 @@ import {
 import { 
   BookOpen, Users, Clock, ArrowRight, GraduationCap, 
   Loader2, Activity, Sparkles, Plus, 
-  Trash2, UserPlus, Search, Check, X
+  Trash2, UserPlus, Search, Check, X, ShieldCheck
 } from "lucide-react";
 import { 
   Dialog, DialogContent, DialogHeader, 
@@ -190,7 +190,7 @@ const MyClasses = () => {
     !currentRoster.some(e => e.studentEmail === s.email) && 
     (s.name.toLowerCase().includes(existSearch.toLowerCase()) || 
      s.email.toLowerCase().includes(existSearch.toLowerCase()))
-  ).slice(0, 3);
+  ).slice(0, 8); // Showing up to 8 candidates
 
   return (
     <div className="animate-in fade-in duration-500 pb-10 px-4 max-w-7xl mx-auto">
@@ -322,12 +322,15 @@ const MyClasses = () => {
             
             {/* ── GLOBAL SEARCH & ASSIGN ── */}
             <div className="space-y-6">
-               <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50" /> Cross-Class Recruitment
-               </h4>
+               <div className="flex justify-between items-center">
+                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
+                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50" /> Add from Global Registry
+                  </h4>
+                  {existSearch && <button onClick={()=>setExistSearch("")} className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-700">Clear Search</button>}
+               </div>
                <div className="relative group">
                   <Input 
-                    placeholder="Search Global Scholar Registry by name or email..." 
+                    placeholder="Search by name or email from all registered students..." 
                     className="h-16 rounded-[2rem] bg-white border-none shadow-xl shadow-slate-200/50 pl-14 transition-all focus:ring-4 ring-blue-100" 
                     value={existSearch} 
                     onChange={e => setExistSearch(e.target.value)} 
@@ -335,34 +338,44 @@ const MyClasses = () => {
                   <Search className="w-5 h-5 absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-blue-400 transition-colors" />
                </div>
                
-               {existSearch && (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                     {searchCandidates.length > 0 ? searchCandidates.map(s => (
+               <div className="space-y-3 animate-in fade-in duration-300">
+                  {searchCandidates.length > 0 ? (
+                    <>
+                      {!existSearch && <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Recently Registered (Available Scholars)</p>}
+                      {searchCandidates.map(s => (
                         <div key={s.id} className="p-6 bg-white border border-blue-50/50 rounded-3xl flex items-center justify-between shadow-xl shadow-slate-100 hover:border-blue-200 transition-all group/item">
                            <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-blue-50 group-hover/item:text-blue-500 transition-all font-black text-xs">
-                                 {s.name.substring(0,2).toUpperCase()}
+                                 {s.initials || s.name.substring(0,2).toUpperCase()}
                               </div>
                               <div>
-                                 <p className="font-black text-slate-800 text-sm">{s.name}</p>
+                                 <p className="font-black text-slate-800 text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px] sm:max-w-none">{s.name}</p>
                                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{s.email}</p>
                               </div>
                            </div>
-                           <button 
-                             onClick={() => handleAssignExisting(s)}
-                             disabled={isSaving}
-                             className="px-6 py-3 bg-[#1e3a8a] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                           >
-                              Assign Selected Scholar
-                           </button>
+                           <div className="flex items-center gap-3">
+                              {s.status === "Active" && <ShieldCheck className="w-4 h-4 text-emerald-500" />}
+                              <button 
+                                onClick={() => handleAssignExisting(s)}
+                                disabled={isSaving}
+                                className="px-6 py-3 bg-[#1e3a8a] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                              >
+                                 Assign Now
+                              </button>
+                           </div>
                         </div>
-                     )) : (
-                        <div className="p-10 text-center bg-white/50 border border-dashed border-slate-200 rounded-3xl">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No matching record found in registry</p>
-                        </div>
-                     )}
-                  </div>
-               )}
+                      ))}
+                    </>
+                  ) : existSearch ? (
+                    <div className="p-10 text-center bg-white/50 border border-dashed border-slate-200 rounded-3xl">
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No matching scholar found in global registry</p>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center bg-blue-50/30 border border-dashed border-blue-100 rounded-3xl">
+                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-relaxed">Global Registry is currently empty or all scholars are already in this class.</p>
+                    </div>
+                  )}
+               </div>
             </div>
 
             {/* QUICK ENROLL NEW */}
