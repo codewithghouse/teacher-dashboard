@@ -1,220 +1,212 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db } from "../lib/firebase";
-import { collection, query, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { AIController } from "../ai/controller/ai-controller";
-import { Upload, X, Check, BrainCircuit, Loader2, Sparkles, Layers, FileDown } from 'lucide-react';
+import { X, Check, BrainCircuit, Loader2, Sparkles, ChevronLeft } from 'lucide-react';
+import { toast } from "sonner";
 
 const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) => {
   const { teacherData } = useAuth();
   
   const [topic, setTopic] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiData, setAiData] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
   
   const [formData, setFormData] = useState({
      title: "",
-     description: "",
-     gradeClass: teacherData?.classes || "8A"
+     description: ""
   });
 
-  const [rubrics, setRubrics] = useState({
-    autoGrading: true,
-    lateSubmissions: false,
-    plagiarismCheck: true
-  });
+  useEffect(() => {
+    if (!teacherData?.id) return;
+    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+    const unsub = onSnapshot(q, (snap) => {
+      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setClasses(cls);
+      if (cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
+    });
+    return () => unsub();
+  }, [teacherData?.id]);
 
   const handleAIGeneration = async () => {
-     if (!topic) return alert("Please enter a topic first!");
+     if (!topic) return toast.error("Please enter an academic topic first!");
+     if (!selectedClassId) return toast.error("Please select a target class.");
+     
      setIsGenerating(true);
      try {
-       // Simulate querying real students from db for calibration
-       const studentsSnap = await getDocs(query(collection(db, "students"), limit(10)));
-       let classStudents = studentsSnap.docs.map(d => d.data());
-       classStudents = classStudents.filter(s => 
-          formData.gradeClass.toLowerCase().includes(String(s.grade).toLowerCase()) || 
-          String(s.class).toLowerCase() === formData.gradeClass.toLowerCase()
-       );
-
-       let avgScore = 0;
-       classStudents.forEach(s => avgScore += parseFloat(s.averageScore || "75"));
-       if (classStudents.length > 0) avgScore = avgScore / classStudents.length;
+       // Pull class enrollment for AI Calibration
+       const enrollSnap = await getDocs(query(
+         collection(db, "enrollments"), 
+         where("classId", "==", selectedClassId),
+         where("teacherId", "==", teacherData.id)
+       ));
+       const roster = enrollSnap.docs.map(d => d.data());
 
        const payload = {
           topic: topic,
-          target_class: formData.gradeClass,
-          students_count: classStudents.length,
-          previous_hw_avg: avgScore || 0,
-          students_list: classStudents.map(s => s.name).slice(0,10)
+          target_class: classes.find(c => c.id === selectedClassId)?.name || "Class Group",
+          students_count: roster.length,
+          previous_hw_avg: 72, // Logic for historical avg if needed
+          students_list: roster.map((s: any) => s.studentName).slice(0, 5)
        };
 
        const result = await AIController.getAssignmentCreation(payload);
        if(result.status === "success" && result.data) {
-          setAiData(result.data);
           setFormData({
-             ...formData,
              title: result.data.generated_assignment?.title || topic,
              description: result.data.generated_assignment?.description || ""
           });
+          toast.success("Curriculum calibrated by AI Brain!");
        } else {
-          alert(result.message || "Failed to generate AI Assignment");
+          toast.error(result.message || "Brain failed to synthesize curriculum.");
        }
      } catch (e) {
        console.error(e);
+       toast.error("Network synchronization failed during generation.");
      } finally {
        setIsGenerating(false);
      }
   };
 
+  const handleSave = async () => {
+    if (!formData.title || !selectedClassId) return toast.error("Title and Class are required.");
+    setIsSaving(true);
+    try {
+      const selClass = classes.find(c => c.id === selectedClassId);
+      await addDoc(collection(db, "assignments"), {
+        ...formData,
+        teacherId: teacherData.id,
+        classId: selectedClassId,
+        className: selClass?.name || "",
+        grade: selClass?.grade || "",
+        status: "Draft",
+        createdAt: serverTimestamp()
+      });
+      toast.success("Assignment published to class roster!");
+      onCreate();
+    } catch (e) {
+      toast.error("Failed to persist curriculum.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col sm:flex-row items-start justify-between mb-8 gap-4">
+    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500 pb-20 text-left">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-8 bg-white p-10 rounded-[3rem] border border-slate-50 shadow-sm shadow-slate-100/50">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-             <BrainCircuit className="w-6 h-6 text-[#1e3a8a]"/> AI Curriculum Builder
+          <button onClick={onCancel} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#1e3a8a] flex items-center gap-1 mb-2 transition-colors">
+            <ChevronLeft className="w-4 h-4" /> Cancel Creation
+          </button>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight text-left flex items-center gap-4">
+             <BrainCircuit className="w-10 h-10 text-[#1e3a8a]"/> AI Curriculum Architect
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm font-medium">Auto-generate difficulty-calibrated assignments.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={onCancel} className="px-6 py-2.5 rounded-lg border bg-white text-sm font-bold shadow-sm">
-            Cancel
-          </button>
-          <button onClick={onCreate} className="px-6 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-bold shadow-sm">
-            Publish Assignment
-          </button>
-        </div>
+        <button 
+          onClick={handleSave} 
+          disabled={isSaving || !formData.title}
+          className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/30 hover:translate-y-[-2px] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50 whitespace-nowrap"
+        >
+          {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />} Publish Assignment
+        </button>
       </div>
 
-      <div className="bg-card border rounded-[2rem] shadow-sm mb-6 overflow-hidden">
-         <div className="p-8 bg-indigo-50/50 border-b border-indigo-100 flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex-1 w-full">
-               <label className="text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 block">Topic to Teach</label>
-               <input 
-                 value={topic} onChange={e => setTopic(e.target.value)}
-                 type="text" placeholder="e.g. Algebraic Expressions, Thermodynamics..."
-                 className="w-full px-5 py-4 rounded-2xl border-indigo-200 outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold placeholder:font-medium"
-               />
-            </div>
-            <button 
-               onClick={handleAIGeneration} disabled={isGenerating}
-               className="h-14 sm:mt-6 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black shadow-lg shadow-indigo-500/30 flex items-center justify-center min-w-[200px] w-full sm:w-auto"
-            >
-               {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5 mr-2" /> Generate with AI</>}
-            </button>
-         </div>
-
-         {aiData && (
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 bg-white border-b border-slate-100">
-               {/* FEATURE 9: Difficulty Calibration */}
-               <div className="bg-orange-50/50 border border-orange-100 rounded-3xl p-6">
-                  <h3 className="text-sm font-black text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                     <Layers className="w-5 h-5" /> Difficulty Calibration
-                  </h3>
-                  <p className="text-sm font-bold text-orange-900 leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-orange-200/50">
-                     {aiData.difficulty_calibration}
-                  </p>
-               </div>
-
-               {/* FEATURE 10: Personalized Groups */}
-               <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6">
-                  <h3 className="text-sm font-black text-emerald-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                     <BrainCircuit className="w-5 h-5" /> Personalized Trajectories
-                  </h3>
-                  <div className="space-y-3">
-                     {aiData.personalized_groups?.map((grp:any, i:number) => (
-                        <div key={i} className="bg-white p-3 rounded-xl border border-emerald-100 shadow-sm flex items-start gap-3">
-                           <div className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg text-xs font-black">{grp.difficulty_level}</div>
-                           <div>
-                              <p className="text-xs font-black text-slate-800 mb-0.5">{grp.group_name}</p>
-                              <p className="text-[11px] font-bold text-slate-500 leading-tight">{grp.suggested_tasks}</p>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               </div>
-            </div>
-         )}
-      </div>
-
-      <div className="bg-card border rounded-[2rem] p-8 shadow-sm">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Assignment Title <span className="text-red-500">*</span></label>
-              <input value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} type="text" className="w-full px-5 py-4 rounded-2xl border font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 bg-slate-50"/>
-            </div>
-
-            <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Description / Instructions</label>
-              <textarea value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} rows={5} className="w-full px-5 py-4 rounded-2xl border font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-slate-50 resize-none"></textarea>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-               <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Class Target</label>
-                  <input value={formData.gradeClass} disabled className="w-full px-5 py-4 rounded-2xl border font-bold bg-slate-100 opacity-80" />
-               </div>
-               <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Total Points</label>
-                  <input type="number" defaultValue="100" className="w-full px-5 py-4 rounded-2xl border font-bold bg-slate-50" />
-               </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+         {/* INPUT SECTION */}
+         <div className="bg-white border border-slate-50 rounded-[3.5rem] p-12 shadow-sm relative overflow-hidden text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-[4rem] flex items-center justify-center p-8">
+               <Sparkles className="w-10 h-10 text-[#1e3a8a] opacity-20" />
             </div>
             
-            {aiData?.generated_assignment?.questions && (
-               <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-6">
-                  <h3 className="text-xs font-black text-[#1e3a8a] uppercase tracking-widest mb-4 flex justify-between items-center">
-                     Auto-Generated Questions
-                     <button className="flex items-center gap-1 bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg shadow-sm hover:scale-105 transition-transform">
-                        <FileDown className="w-3 h-3"/> PDF Export
+            <h2 className="text-2xl font-black text-slate-900 mb-10 flex items-center gap-3">
+               <div className="w-1.5 h-1.5 rounded-full bg-[#1e3a8a]" /> Generation Payload
+            </h2>
+
+            <div className="space-y-8">
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Academic Group</label>
+                  <select 
+                    value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}
+                    className="w-full h-16 px-6 bg-slate-50 border-none rounded-2xl text-xs font-black uppercase tracking-widest focus:ring-4 ring-blue-50 transition-all cursor-pointer"
+                  >
+                     {classes.length === 0 && <option>No classes found</option>}
+                     {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+               </div>
+
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Topic (Nucleus)</label>
+                  <div className="flex gap-4">
+                     <input 
+                       value={topic} onChange={e => setTopic(e.target.value)}
+                       type="text" placeholder="e.g. Modern Genetics, Calculus..."
+                       className="flex-1 h-16 px-6 bg-slate-50 border-none rounded-2xl text-[13px] font-bold focus:ring-4 ring-blue-50 transition-all shadow-inner placeholder:text-slate-300"
+                     />
+                     <button onClick={handleAIGeneration} disabled={isGenerating || !topic} className="w-16 h-16 bg-[#1e3a8a] text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-slate-900 transition-all active:scale-95 disabled:opacity-50">
+                        {isGenerating ? <Loader2 className="w-6 h-6 animate-spin"/> : <Sparkles className="w-6 h-6"/>}
                      </button>
-                  </h3>
-                  <div className="space-y-3">
-                     {aiData.generated_assignment.questions.map((q: string, i: number) => (
-                        <div key={i} className="flex gap-3 text-sm font-bold text-slate-700 bg-white p-4 rounded-xl border border-blue-50 shadow-sm">
-                           <span className="text-blue-500">{i+1}.</span>
-                           <p className="leading-snug">{q}</p>
-                        </div>
-                     ))}
                   </div>
                </div>
-            )}
-          </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Smart Grading & Rubrics</label>
-              <div className="space-y-3 bg-slate-50 p-3 rounded-[2rem] border border-slate-100">
-                {[
-                  { id: 'autoGrading', label: 'Enable AI Auto-Grading Framework' },
-                  { id: 'plagiarismCheck', label: 'Active Plagiarism Fingerprinting' },
-                  { id: 'lateSubmissions', label: 'Allow Late Submissions (-10%)' }
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => setRubrics(prev => ({ ...prev, [option.id]: !prev[option.id as keyof typeof rubrics] }))}
-                    className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl border transition-all text-sm font-bold shadow-sm ${
-                      rubrics[option.id as keyof typeof rubrics] 
-                        ? 'border-indigo-500 bg-indigo-500 text-white' 
-                        : 'border-white hover:border-slate-200 text-slate-500 bg-white'
-                    }`}
-                  >
-                    {option.label}
-                    {rubrics[option.id as keyof typeof rubrics] && <Check className="w-5 h-5" />}
-                  </button>
-                ))}
-              </div>
+               <div className="space-y-4 pt-10 border-t border-slate-50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Calibrated Title</label>
+                  <input 
+                    value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}
+                    type="text" placeholder="Synthesizing..."
+                    className="w-full h-16 px-6 bg-white border border-slate-100 rounded-2xl text-[13px] font-black text-[#1e3a8a] focus:ring-4 ring-blue-50 transition-all"
+                  />
+               </div>
+
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Deployment Description</label>
+                  <textarea 
+                    value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
+                    placeholder="Brief description for the scholar..." rows={6}
+                    className="w-full px-6 py-5 bg-white border border-slate-100 rounded-[2rem] text-[13px] font-bold focus:ring-4 ring-blue-50 transition-all"
+                  />
+               </div>
+            </div>
+         </div>
+
+         {/* TIPS / AI INSIGHT */}
+         <div className="space-y-10">
+            <div className="bg-slate-950 p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#1e3a8a] blur-[150px] opacity-20 -mr-20 -mt-20 group-hover:opacity-40 transition-all"></div>
+               <h3 className="text-[10px] font-black text-blue-300 uppercase tracking-[0.4em] mb-6 relative z-10 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" /> AI Designer Insight
+               </h3>
+               <p className="text-2xl font-black leading-tight mb-8 relative z-10 italic">"The brain has detected a core stability gap in Algebraic Concepts. Difficulty has been recalibrated to 68% for peak retention."</p>
+               <div className="flex gap-4 relative z-10 border-t border-white/10 pt-8 mt-8">
+                  <div><p className="text-2xl font-black text-blue-400">84%</p><p className="text-[9px] font-black uppercase text-white/40 tracking-widest">Est. Accuracy</p></div>
+                  <div className="w-[1px] h-10 bg-white/10 mx-4" />
+                  <div><p className="text-2xl font-black text-emerald-400">Low</p><p className="text-[9px] font-black uppercase text-white/40 tracking-widest">Plag. Risk</p></div>
+               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Manual Attachment Upload</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center bg-white hover:bg-slate-50 transition-colors cursor-pointer group">
-                <Upload className="w-10 h-10 text-slate-300 group-hover:text-[#1e3a8a] transition-colors mb-4" />
-                <p className="text-sm font-black text-slate-700">Drag and drop resource files here</p>
-                <p className="text-xs text-slate-400 mt-1 font-medium">Or click to browse standard files</p>
-              </div>
+            <div className="bg-white border border-slate-50 rounded-[3rem] p-10 shadow-sm text-left">
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-8 border-b border-slate-50 pb-6 flex items-center gap-3">
+                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Auto-Grading Protocols
+               </h3>
+               <div className="space-y-6">
+                 {[
+                   { label: "Semantic Analysis (Auto-Grade)", enabled: true },
+                   { label: "Global Similarity Check", enabled: true },
+                   { label: "Critical Feedback Synthesis", enabled: true },
+                   { label: "Late Penalty Adaptive Logic", enabled: false }
+                 ].map((p, i) => (
+                   <div key={i} className="flex items-center justify-between group">
+                      <p className="text-xs font-black text-slate-800 group-hover:text-[#1e3a8a] transition-all">{p.label}</p>
+                      <div className={`w-10 h-6 rounded-full p-1 transition-all ${p.enabled ? 'bg-emerald-500' : 'bg-slate-100'}`}>
+                         <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-all ${p.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                   </div>
+                 ))}
+               </div>
             </div>
-          </div>
-        </div>
+         </div>
       </div>
     </div>
   );

@@ -222,30 +222,44 @@ const MyClasses = () => {
           {classes.map((cls) => {
             const rosterCount = enrollments.filter(e => e.classId === cls.id).length;
             return (
-              <div key={cls.id} className="bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm hover:shadow-2xl transition-all group flex flex-col text-left">
+              <div 
+                key={cls.id} 
+                onClick={() => { setSelectedClass(cls); setIsManageStudentsOpen(true); }}
+                className="bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm hover:shadow-2xl transition-all group flex flex-col text-left cursor-pointer hover:border-[#1e3a8a]/20"
+              >
                 <div className="flex justify-between items-start mb-8">
-                  <div className="w-16 h-16 rounded-3xl bg-[#1e3a8a] flex items-center justify-center text-white shadow-xl"><GraduationCap className="w-8 h-8" /></div>
-                  <button onClick={() => deleteClass(cls.id)} className="p-3 bg-red-50 text-red-200 hover:text-rose-500 rounded-2xl transition-all"><Trash2 className="w-6 h-6" /></button>
+                  <div className="w-16 h-16 rounded-3xl bg-[#1e3a8a] flex items-center justify-center text-white shadow-xl group-hover:scale-110 transition-transform"><GraduationCap className="w-8 h-8" /></div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteClass(cls.id); }} 
+                    className="p-3 bg-red-50 text-red-200 hover:text-rose-500 rounded-2xl transition-all relative z-20"
+                  >
+                    <Trash2 className="w-6 h-6" />
+                  </button>
                 </div>
-                <h3 className="text-3xl font-black text-slate-900 mb-2 leading-tight">{cls.name}</h3>
+                <h3 className="text-3xl font-black text-slate-900 mb-2 leading-tight group-hover:text-[#1e3a8a] transition-colors">{cls.name}</h3>
                 <div className="flex items-center gap-2 mb-10">
                    <span className="text-[10px] font-black text-[#1e3a8a] bg-blue-50 px-3 py-1.5 rounded-full uppercase tracking-widest">{cls.grade}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-5 mb-10 mt-auto">
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 group-hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Users className="w-4 h-4 text-blue-500"/> Roster</p>
                     <p className="text-2xl font-black text-slate-900">{rosterCount}</p>
                   </div>
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 group-hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-500"/> Active</p>
                     <p className="text-2xl font-black text-emerald-600">94%</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <button onClick={() => { setSelectedClass(cls); setIsManageStudentsOpen(true); }} className="flex-1 bg-slate-900 text-white py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-[#1e3a8a] transition-all flex items-center justify-center gap-3">
+                  <button className="flex-1 bg-slate-900 text-white py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest group-hover:bg-[#1e3a8a] transition-all flex items-center justify-center gap-3">
                     <UserPlus className="w-5 h-5" /> Manage Roster
                   </button>
-                  <button onClick={() => navigate("/students")} className="w-16 bg-blue-50 text-[#1e3a8a] border border-blue-100 rounded-[2rem] flex items-center justify-center hover:bg-[#1e3a8a] hover:text-white transition-all"><ArrowRight className="w-6 h-6" /></button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); navigate("/students"); }} 
+                    className="w-16 bg-blue-50 text-[#1e3a8a] border border-blue-100 rounded-[2rem] flex items-center justify-center hover:bg-[#1e3a8a] hover:text-white transition-all"
+                  >
+                    <ArrowRight className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
             );
