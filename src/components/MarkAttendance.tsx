@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search, Loader2, Save, UserCheck, UserX } from 'lucide-react';
+import { ChevronLeft, Search, Loader2, Save, UserCheck, UserX, Clock, Check, RefreshCw, Layers } from 'lucide-react';
 import { db } from "../lib/firebase";
 import { collection, query, getDocs, where, serverTimestamp, setDoc, doc, onSnapshot } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
-const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
+interface MarkAttendanceProps { 
+  onBack: () => void;
+  initialClassId?: string;
+}
+
+const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
   const { teacherData } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId || "");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -21,11 +26,11 @@ const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
     const unsub = onSnapshot(q, (snap) => {
       const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setClasses(cls);
-      if (cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
+      if (!selectedClassId && cls.length > 0) setSelectedClassId(cls[0].id);
       setLoading(false);
     });
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, selectedClassId]);
 
   // 2. Fetch Students for Selected Class from Enrollments
   useEffect(() => {
@@ -43,7 +48,7 @@ const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
         enrollId: d.id,
         name: (d.data() as any).studentName,
         email: (d.data() as any).studentEmail,
-        status: 'none'
+        status: 'none' // 'present', 'absent', 'late', 'none'
       }));
       setStudents(roster);
       setLoading(false);
@@ -58,8 +63,8 @@ const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
     unmarked: students.filter(s => s.status === 'none').length,
   };
 
-  const toggleStatus = (id: string, status: string) => {
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, status: s.status === status ? 'none' : status } : s));
+  const setStatus = (id: string, newStatus: string) => {
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s));
   };
 
   const markAllPresent = () => {
@@ -67,9 +72,9 @@ const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
   };
 
   const handleSave = async () => {
-    if (students.length === 0) return toast.error("No students in this class roster.");
+    if (students.length === 0) return toast.error("No scholars in this registry subdivision.");
     if (stats.unmarked > 0) {
-      if (!confirm(`You have ${stats.unmarked} unmarked scholars. Proceed with partial record?`)) return;
+      if (!confirm(`You have ${stats.unmarked} unmarked scholars. Proceed with partial synchronization?`)) return;
     }
 
     setSaving(true);
@@ -95,124 +100,133 @@ const MarkAttendance = ({ onBack }: { onBack: () => void }) => {
         });
 
       await Promise.all(promises);
-      toast.success(`Attendance saved for ${selClass?.name}!`);
+      toast.success(`Daily logs synchronized for ${selClass?.name}!`);
       onBack();
     } catch (e) {
       console.error(e);
-      toast.error("Failed to sync attendance with server.");
+      toast.error("Synchronization failed. Check network status.");
     } finally {
       setSaving(false);
     }
   };
 
-  const filteredStudents = students.filter(s => 
-    (s.name || "").toLowerCase().includes(search.toLowerCase()) || 
-    (s.email || "").toLowerCase().includes(search)
+  const filtered = students.filter(s => 
+    s.name.toLowerCase().includes(search.toLowerCase()) || 
+    s.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const selClass = classes.find(c => c.id === selectedClassId);
+
   return (
-    <div className="animate-in fade-in duration-500 pb-10 text-left">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-6">
+    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500 pb-20 text-left">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-8 bg-white p-10 rounded-[3rem] border border-slate-50 shadow-sm shadow-slate-100/50">
         <div className="text-left">
           <button onClick={onBack} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#1e3a8a] flex items-center gap-1 mb-2 transition-colors">
-            <ChevronLeft className="w-4 h-4" /> Exit Session
+            <ChevronLeft className="w-4 h-4" /> Cancel Routine
           </button>
-          <h1 className="text-3xl font-black text-slate-900">Live Roster Audit</h1>
-          <div className="flex items-center gap-4 mt-1">
-             <select 
-               value={selectedClassId} 
-               onChange={e => setSelectedClassId(e.target.value)}
-               className="bg-slate-50 border-none text-xs font-black uppercase tracking-widest text-[#1e3a8a] py-1 pl-0 pr-8 focus:ring-0 cursor-pointer"
-             >
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-             </select>
-             <span className="text-slate-300">|</span>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-             </p>
-          </div>
-        </div>
-        <button 
-          onClick={handleSave}
-          disabled={saving || loading || students.length === 0}
-          className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/20 hover:bg-emerald-700 transition-all flex items-center gap-3 disabled:opacity-50 active:scale-95"
-        >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} Synchronize Daily Roster
-        </button>
-      </div>
-
-      <div className="bg-white border border-slate-50 rounded-[3rem] p-8 mb-8 flex flex-wrap items-center justify-between gap-8 shadow-sm">
-        <div className="flex items-center gap-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Roster Automation:</span>
-          <button onClick={markAllPresent} disabled={loading || students.length === 0} className="px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-emerald-500" /> Mark All Present
-          </button>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">Marking: {selClass?.name || 'Loading...'}</h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+             <Layers className="w-4 h-4 text-[#1e3a8a]"/> Institutional Roster Control • {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
         
-        <div className="flex items-center gap-12 bg-slate-50/50 px-10 py-4 rounded-[2rem] border border-slate-100">
-          <div className="text-center">
-            <p className="text-2xl font-black text-emerald-600 leading-none">{stats.present}</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">Present</p>
-          </div>
-          <div className="w-[1px] h-8 bg-slate-200" />
-          <div className="text-center">
-            <p className="text-2xl font-black text-rose-600 leading-none">{stats.absent}</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">Absent</p>
-          </div>
-          <div className="w-[1px] h-8 bg-slate-200" />
-          <div className="text-center">
-            <p className="text-2xl font-black text-amber-500 leading-none">{stats.late}</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">Late</p>
-          </div>
+        <div className="flex items-center gap-4">
+          <button onClick={markAllPresent} className="bg-emerald-50 text-emerald-700 px-8 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-emerald-100 transition-all flex items-center gap-2 active:scale-95">
+            <UserCheck className="w-5 h-5" /> Mark All Present
+          </button>
+          <button onClick={handleSave} disabled={saving || loading} className="bg-[#1e3a8a] text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/40 hover:translate-y-[-2px] hover:bg-slate-950 transition-all flex items-center gap-3 active:scale-95">
+            {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-5 h-5 transition-transform group-hover:rotate-180" />} Synchronize Daily Log
+          </button>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-50 rounded-[3.5rem] p-10 shadow-sm relative overflow-hidden text-left">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="p-6 bg-white border border-slate-50 rounded-[2rem] shadow-sm flex items-center justify-between group hover:border-emerald-100 transition-all">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all"><Check className="w-5 h-5"/></div>
+          <div className="text-right"><p className="text-2xl font-black text-slate-800 leading-none">{stats.present}</p><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Present</p></div>
+        </div>
+        <div className="p-6 bg-white border border-slate-50 rounded-[2rem] shadow-sm flex items-center justify-between group hover:border-amber-100 transition-all">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all"><Clock className="w-5 h-5"/></div>
+          <div className="text-right"><p className="text-2xl font-black text-slate-800 leading-none">{stats.late}</p><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Late</p></div>
+        </div>
+        <div className="p-6 bg-white border border-slate-50 rounded-[2rem] shadow-sm flex items-center justify-between group hover:border-rose-100 transition-all">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all"><UserX className="w-5 h-5"/></div>
+          <div className="text-right"><p className="text-2xl font-black text-slate-800 leading-none">{stats.absent}</p><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Absent</p></div>
+        </div>
+        <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] shadow-sm flex items-center justify-between group transition-all">
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-300 shadow-inner"><RefreshCw className="w-5 h-5"/></div>
+          <div className="text-right"><p className="text-2xl font-black text-slate-400 leading-none">{stats.unmarked}</p><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unmarked</p></div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-50 rounded-[3.5rem] p-12 shadow-sm text-left">
         <div className="flex flex-col md:flex-row items-center justify-between mb-10 pb-8 border-b border-slate-50 gap-6">
-          <div className="text-left">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Student Disposition</h2>
-            <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-1">Audit Population: {students.length} Scholars</p>
-          </div>
-          <div className="relative w-full md:w-80">
-            <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input 
-              type="text" 
-              placeholder="Filter roster..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-14 pr-6 py-5 bg-slate-50 border-none rounded-2xl text-[13px] font-bold focus:ring-4 ring-blue-50 transition-all shadow-inner placeholder:text-slate-300"
-            />
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Scholar Disposition Matrix</h2>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+            <input value={search} onChange={e=>setSearch(e.target.value)} type="text" placeholder="Filter roster subdivision..." className="pl-14 pr-8 py-5 bg-slate-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest focus:ring-4 ring-blue-50 transition-all w-80 shadow-inner placeholder:text-slate-300"/>
           </div>
         </div>
 
         {loading ? (
-           <div className="py-32 flex flex-col items-center justify-center">
-              <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-6" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recalibrating Neural Student Matrix...</p>
-           </div>
-        ) : filteredStudents.length === 0 ? (
-           <div className="py-32 text-center">
+             <div className="py-24 flex flex-col items-center justify-center">
+                <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-6" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accessing Enrollment Trace...</p>
+             </div>
+        ) : filtered.length === 0 ? (
+           <div className="py-24 text-center">
               <UserX className="w-16 h-16 text-slate-100 mx-auto mb-6" />
-              <p className="text-sm font-black text-slate-300 uppercase tracking-[0.2em]">Roster is Empty or Filtered</p>
+              <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No Scholars Detected</p>
            </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredStudents.map((student) => (
-              <div key={student.id} className="p-8 bg-white border border-slate-100 rounded-[2.5rem] transition-all hover:shadow-xl hover:border-blue-100 group relative">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#1e3a8a] group-hover:text-white transition-all font-black text-lg shadow-sm">
-                    {student.name?.substring(0, 2).toUpperCase()}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filtered.map((student) => (
+              <div key={student.id} className={`p-8 rounded-[3rem] border transition-all relative overflow-hidden group ${
+                 student.status === 'present' ? 'bg-emerald-50 border-emerald-100' :
+                 student.status === 'absent' ? 'bg-rose-50 border-rose-100' :
+                 student.status === 'late' ? 'bg-amber-50 border-amber-100' :
+                 'bg-white border-slate-100 hover:shadow-2xl'
+              }`}>
+                <div className="flex items-center gap-5 mb-8">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xs font-black shadow-lg transition-transform group-hover:scale-110 ${
+                     student.status === 'present' ? 'bg-emerald-500 text-white shadow-emerald-200' :
+                     student.status === 'absent' ? 'bg-rose-500 text-white shadow-rose-200' :
+                     student.status === 'late' ? 'bg-amber-500 text-white shadow-amber-200' :
+                     'bg-slate-50 text-slate-400'
+                  }`}>
+                    {student.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-black text-slate-900 text-sm leading-tight group-hover:text-[#1e3a8a] transition-colors">{student.name}</h3>
-                    <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-1 tracking-widest truncate max-w-[100px]">{student.email}</p>
+                  <div className="text-left overflow-hidden">
+                    <h3 className="text-base font-black text-slate-900 leading-tight group-hover:text-[#1e3a8a] transition-colors truncate">{student.name}</h3>
+                    <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-1 tracking-widest truncate">{student.email}</p>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <button onClick={() => toggleStatus(student.id, 'present')} className={`py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${student.status === 'present' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'}`}>P</button>
-                  <button onClick={() => toggleStatus(student.id, 'absent')} className={`py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${student.status === 'absent' ? 'bg-rose-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600'}`}>A</button>
-                  <button onClick={() => toggleStatus(student.id, 'late')} className={`py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${student.status === 'late' ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-500'}`}>L</button>
+
+                <div className="grid grid-cols-3 gap-3">
+                   <button 
+                      onClick={() => setStatus(student.id, 'present')}
+                      className={`h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
+                         student.status === 'present' ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-500 hover:text-emerald-500'
+                      }`}
+                   >
+                      <Check className="w-4 h-4"/> Present
+                   </button>
+                   <button 
+                      onClick={() => setStatus(student.id, 'late')}
+                      className={`h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
+                         student.status === 'late' ? 'bg-amber-500 text-white border-amber-500 shadow-xl shadow-amber-500/20 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-amber-500 hover:text-amber-500'
+                      }`}
+                   >
+                      <Clock className="w-4 h-4"/> Late
+                   </button>
+                   <button 
+                      onClick={() => setStatus(student.id, 'absent')}
+                      className={`h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
+                         student.status === 'absent' ? 'bg-rose-500 text-white border-rose-500 shadow-xl shadow-rose-500/20 scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-rose-500 hover:text-rose-500'
+                      }`}
+                   >
+                      <UserX className="w-4 h-4"/> Absent
+                   </button>
                 </div>
               </div>
             ))}
