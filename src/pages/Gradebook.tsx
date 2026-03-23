@@ -47,10 +47,16 @@ const getGrade = (total: number) => {
   return "F";
 };
 
+interface ClassData {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
 const Gradebook = () => {
   const { teacherData } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClassName, setSelectedClassName] = useState<string>("");
   const [students, setStudents] = useState<StudentGrade[]>([]);
   const [search, setSearch] = useState("");
@@ -61,7 +67,7 @@ const Gradebook = () => {
     if (!teacherData?.id) return;
     const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
     const unsub = onSnapshot(q, (snap) => {
-      const classList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const classList = snap.docs.map(d => ({ id: d.id, ...d.data() }) as ClassData);
       setClasses(classList);
       if (classList.length > 0 && !selectedClassName) {
         setSelectedClassName(classList[0].name);
@@ -70,7 +76,7 @@ const Gradebook = () => {
       }
     });
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, selectedClassName]);
 
   // 2. Fetch Students and Grades for the selected class
   useEffect(() => {

@@ -17,8 +17,9 @@ const Dashboard = () => {
     const fetchDashboardInsights = async () => {
       try {
         // Real check: Does this teacher have any classes or students?
-        const classesSnap = await getDocs(query(collection(db, "classes"), limit(1)));
-        const studentsSnap = await getDocs(query(collection(db, "students"), limit(1)));
+        if (!teacherData?.id) return;
+        const classesSnap = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id), limit(1)));
+        const studentsSnap = await getDocs(query(collection(db, "students"), where("teacherId", "==", teacherData.id), limit(1)));
         
         const hasData = !classesSnap.empty && !studentsSnap.empty;
         setDataExists(hasData);
