@@ -50,7 +50,7 @@ const AppRoutes = () => {
       <Route element={<TeacherLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/my-classes" element={<MyClasses />} />
-        <Route path="/my-classes/class-detail" element={<ClassDetail />} />
+        <Route path="/my-classes/:classId" element={<ClassDetail />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/assignments" element={<Assignments />} />
         <Route path="/tests" element={<TestsExams />} />

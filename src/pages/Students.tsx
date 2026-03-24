@@ -419,7 +419,7 @@ const Students = () => {
 
       {/* Dialogs */}
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-[3rem] p-0 overflow-hidden border-none text-left">
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[480px] rounded-[3rem] p-0 overflow-hidden border-none text-left">
           <div className="bg-[#1e3a8a] p-10 text-white text-center">
              <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-6"><UserPlus className="w-8 h-8"/></div>
              <DialogTitle className="text-3xl font-black tracking-tight mb-2">Enroll New Scholar</DialogTitle>

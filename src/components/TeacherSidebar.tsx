@@ -36,7 +36,7 @@ const TeacherSidebar = () => {
   const { teacherData, user, logout } = useAuth();
 
   return (
-    <aside className="w-64 min-h-screen bg-card border-r flex flex-col shrink-0">
+    <aside className="w-64 h-screen sticky top-0 bg-card border-r flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
         <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">

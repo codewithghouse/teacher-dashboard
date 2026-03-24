@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search, Check, FileSpreadsheet, BrainCircuit, Loader2, Sparkles, TrendingDown, UserX } from 'lucide-react';
-import { AIController } from '../ai/controller/ai-controller';
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, doc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { Loader2, Search, ChevronLeft } from 'lucide-react';
 import { toast } from "sonner";
 
 interface EnterScoresProps {
@@ -11,254 +10,301 @@ interface EnterScoresProps {
   onBack: () => void;
 }
 
-const EnterScores = ({ test, onBack }: EnterScoresProps) => {
+export default function EnterScores({ test, onBack }: EnterScoresProps) {
   const { teacherData } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiData, setAiData] = useState<any>(null);
   const [search, setSearch] = useState("");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const maxScore = parseFloat(test?.marks) || 50;
 
-  // 1. Fetch Students from Enrollments for this test's class
   useEffect(() => {
     if (!test?.classId || !teacherData?.id) return;
     
-    // Pull Enrollments
-    const q = query(
+    // Fetch Enrollments to get roster
+    const qRoster = query(
       collection(db, "enrollments"), 
       where("classId", "==", test.classId),
       where("teacherId", "==", teacherData.id)
     );
     
-    const unsub = onSnapshot(q, async (snap) => {
+    const unsub = onSnapshot(qRoster, async (snap) => {
+      // Get existing scores if they were already saved previously
+      const qScores = query(collection(db, "test_scores"), where("testId", "==", test.id));
+      const scoresSnap = await getDocs(qScores);
+      const existingScores = scoresSnap.docs.map(d => d.data());
+
       const roster = snap.docs.map(d => {
         const data = d.data() as any;
+        const studentId = data.studentId || d.id;
+        
+        const existing = existingScores.find(s => s.studentId === studentId);
+        
         return {
-          id: data.studentId || d.id,
+          id: studentId,
           name: data.studentName,
           email: data.studentEmail,
-          roll: (data.studentEmail?.split('@')[0]) || "N/A",
-          score: "0",
-          grade: "F",
-          percentage: "0%"
+          rollNo: data.rollNo || (800 + Math.floor(Math.random() * 100)),
+          initials: data.studentName?.substring(0, 2).toUpperCase() || "ST",
+          score: existing ? existing.score.toString() : "",
+          isAbsent: existing ? existing.isAbsent : false
         };
       });
+      
+      roster.sort((a,b) => (a.name || "").localeCompare(b.name || ""));
       setStudents(roster);
       setLoading(false);
     });
     return () => unsub();
-  }, [test?.classId, teacherData?.id]);
+  }, [test?.classId, test?.id, teacherData?.id]);
 
-  const updateScore = (id: string, val: string) => {
-    setStudents(prev => prev.map(s => {
-      if (s.id === id) {
-        const score = parseFloat(val) || 0;
-        const total = parseFloat(test?.marks) || 50;
-        const pct = (score / total) * 100;
-        let grade = "F";
-        if (pct >= 90) grade = "A+";
-        else if (pct >= 80) grade = "A";
-        else if (pct >= 70) grade = "B";
-        else if (pct >= 60) grade = "C";
-        else if (pct >= 50) grade = "D";
-
-        return { ...s, score: val, grade, percentage: `${pct.toFixed(0)}%` };
-      }
-      return s;
-    }));
+  const getMetrics = (scoreStr: string) => {
+     if (!scoreStr && scoreStr !== "0") return { grade: '-', pct: 0, color: 'text-slate-400 bg-slate-100', text: 'text-slate-500' };
+     const val = parseFloat(scoreStr);
+     if (isNaN(val)) return { grade: '-', pct: 0, color: 'text-slate-400 bg-slate-100', text: 'text-slate-500' };
+     const pct = (val / maxScore) * 100;
+     
+     if (pct >= 80) return { grade: 'A', pct, color: 'text-emerald-500 bg-emerald-50 border-emerald-200', text: 'text-emerald-600' };
+     if (pct >= 60) return { grade: 'B', pct, color: 'text-blue-500 bg-blue-50 border-blue-200', text: 'text-blue-600' };
+     if (pct >= 40) return { grade: 'C', pct, color: 'text-amber-500 bg-amber-50 border-amber-200', text: 'text-amber-600' };
+     return { grade: 'D', pct, color: 'text-rose-500 bg-rose-50 border-rose-200', text: 'text-rose-600' };
   };
 
+  const handleScoreChange = (id: string, val: string) => {
+     if (parseFloat(val) > maxScore) return; // Cap at max
+     setStudents(prev => prev.map(s => s.id === id ? { ...s, score: val } : s));
+  };
+
+  const calculateStats = () => {
+     let totalScored = 0;
+     let countScored = 0;
+     const distrib = { a: 0, b: 0, c: 0, d: 0, absent: 0 };
+
+     students.forEach(s => {
+        if (s.isAbsent) {
+           distrib.absent++;
+           return;
+        }
+        if (s.score !== "") {
+           const { grade, pct } = getMetrics(s.score);
+           totalScored += parseFloat(s.score);
+           countScored++;
+           if (grade === 'A') distrib.a++;
+           if (grade === 'B') distrib.b++;
+           if (grade === 'C') distrib.c++;
+           if (grade === 'D') distrib.d++;
+        }
+     });
+
+     const avg = countScored > 0 ? (totalScored / countScored) : 0;
+     const avgPct = countScored > 0 ? (avg / maxScore) * 100 : 0;
+
+     return { avg, avgPct, distrib };
+  };
+
+  const { avg, avgPct, distrib } = calculateStats();
+
   const handleSave = async () => {
-    if (students.length === 0) return;
     setSaving(true);
     try {
-      // Map test to gradebook column (Logic: check title/tags)
-      let col = "q1";
-      const title = test.title.toLowerCase();
-      if (title.includes("quiz 2")) col = "q2";
-      else if (title.includes("mid")) col = "mid";
-      else if (title.includes("hw1")) col = "hw1";
-      else if (title.includes("ut1")) col = "ut1";
-      else if (title.includes("ut2")) col = "ut2";
-      else if (title.includes("proj")) col = "proj";
-
-      const promises = students.map(async (s) => {
-         const gradeRef = doc(db, "grades", s.email.toLowerCase());
-         const existing = await getDoc(gradeRef);
-         const current = existing.exists() ? existing.data() : {};
-         
-         return setDoc(gradeRef, {
-            ...current,
+      // Global Save Architecture to test_scores collection
+      const promises = students.map(s => {
+         const scoreDocRef = doc(db, "test_scores", `${test.id}_${s.id}`);
+         const metrics = getMetrics(s.score);
+         return setDoc(scoreDocRef, {
+            testId: test.id,
+            testName: test.title,
             studentId: s.id,
             studentName: s.name,
-            studentEmail: s.email,
-            [col]: parseFloat(s.score) || 0,
-            lastUpdated: serverTimestamp()
+            classId: test.classId,
+            teacherId: teacherData?.id,
+            score: s.score === "" ? null : parseFloat(s.score),
+            maxScore: maxScore,
+            percentage: metrics.pct,
+            grade: metrics.grade,
+            isAbsent: s.isAbsent,
+            timestamp: serverTimestamp()
          });
       });
 
       await Promise.all(promises);
-      toast.success(`${test.title} scores synced to Gradebook!`);
+      
+      // Update Test Status
+      await updateDoc(doc(db, "tests_registry", test.id), {
+         status: "Completed",
+         classAverage: avgPct
+      });
+
+      toast.success("Scores perfectly synced across all Dashboards!");
       onBack();
     } catch (e) {
       console.error(e);
-      toast.error("Failed to sync scores.");
+      toast.error("Failed to sync scores matrix.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleResultAnalysis = async () => {
-     if (students.length === 0) return;
-     setIsAnalyzing(true);
-     try {
-        const result = await AIController.getResultAnalysis({
-           test_name: test.title,
-           total_marks: test.marks || 50,
-           scores: students.map(s => ({ name: s.name, score: s.score }))
-        });
-        if(result.status === "success" && result.data) {
-           setAiData(result.data);
-           toast.success("Intelligence Report Generated.");
-        }
-     } catch (e) {
-        toast.error("AI Analysis failed.");
-     } finally {
-        setIsAnalyzing(false);
-     }
+  const filtered = students.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()));
+  const totalStudents = filtered.length;
+  const totalPages = Math.ceil(totalStudents / itemsPerPage) || 1;
+  const paginatedStudents = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const getAvatarColor = (initials: string) => {
+    const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-indigo-500'];
+    const idx = initials.charCodeAt(0) % colors.length;
+    return colors[idx];
   };
 
-  const filtered = students.filter(s => 
-    s.name?.toLowerCase().includes(search.toLowerCase()) || 
-    s.email?.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500 pb-20 text-left">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-8 bg-white p-10 rounded-[3rem] border border-slate-50 shadow-sm shadow-slate-100/50">
-        <div className="text-left">
-          <button onClick={onBack} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#1e3a8a] flex items-center gap-1 mb-2 transition-colors">
-            <ChevronLeft className="w-4 h-4" /> Exit Audit Mode
-          </button>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">{test.title}</h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-             {test.className} • Max {test.marks} Marks • Performance Matrix Integration
-          </p>
+    <div className="animate-in fade-in duration-500 pb-20 text-left bg-transparent">
+      
+      {/* ── HEADER ── */}
+      <div className="flex flex-col md:flex-row justify-between mb-8">
+        <div>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors w-fit" onClick={onBack}>
+              <ChevronLeft className="w-3 h-3" /> RESULT OF CLICK: "ENTER TEST SCORES"
+           </p>
+           <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-2">Enter Test Scores</h1>
+           <p className="text-sm font-semibold text-slate-500">{test.title} • {test.className} • {maxScore} marks</p>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <button onClick={handleResultAnalysis} disabled={isAnalyzing || students.length === 0} className="bg-slate-950 text-white px-8 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-[#1e3a8a] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50">
-            {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin"/> : <Sparkles className="w-5 h-5"/>} Deep Analytics AI
-          </button>
-          <button onClick={handleSave} disabled={saving || loading || students.length === 0} className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center gap-3 active:scale-95">
-            {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-5 h-5" />} Sync to Gradebook
-          </button>
+        <div className="flex items-center gap-6 mt-4 md:mt-0">
+           <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-400">Class Average:</span>
+              <span className="text-lg font-black text-[#1e3a8a]">{avg.toFixed(1)}/{maxScore} ({avgPct.toFixed(0)}%)</span>
+           </div>
+           <button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className="bg-[#22c55e] text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50"
+           >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : null} Save Scores
+           </button>
         </div>
       </div>
 
-      {aiData && (
-         <div className="mb-10 grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in zoom-in-95 duration-700">
-            <div className="bg-white border border-slate-50 rounded-[3rem] p-10 shadow-sm">
-               <h3 className="text-[10px] font-black text-[#1e3a8a] uppercase tracking-widest flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
-                  <BrainCircuit className="w-5 h-5"/> Neural Class Insight
-               </h3>
-               <p className="text-sm font-bold text-slate-500 leading-relaxed italic bg-blue-50/30 p-8 rounded-[2rem] border border-blue-50 shadow-inner">
-                  "{aiData.class_insights}"
-               </p>
-            </div>
+      {/* ── STATS CARDS ── */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-emerald-500 mb-1">{distrib.a}</h3>
+            <p className="text-xs font-semibold text-slate-500">A Grade (80%+)</p>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-[#1e3a8a] mb-1">{distrib.b}</h3>
+            <p className="text-xs font-semibold text-slate-500">B Grade (60-79%)</p>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-amber-500 mb-1">{distrib.c}</h3>
+            <p className="text-xs font-semibold text-slate-500">C Grade (40-59%)</p>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-rose-500 mb-1">{distrib.d}</h3>
+            <p className="text-xs font-semibold text-slate-500">D Grade (&lt;40%)</p>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-slate-400 mb-1">{distrib.absent}</h3>
+            <p className="text-xs font-semibold text-slate-500">Absent</p>
+         </div>
+      </div>
 
-            <div className="bg-white border border-slate-50 rounded-[3rem] p-10 shadow-sm">
-               <h3 className="text-[10px] font-black text-rose-800 uppercase tracking-widest flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
-                  <TrendingDown className="w-5 h-5"/> Pattern Trace Analysis
-               </h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {aiData.question_item_analysis?.map((item: any, i:number) => (
-                     <div key={i} className="bg-rose-50/30 p-5 rounded-2xl border border-rose-100 shadow-sm group">
-                        <div className="flex justify-between items-center mb-3">
-                           <h4 className="font-black text-rose-900 text-[11px] uppercase tracking-tighter">{item.question_topic}</h4>
-                           <span className="bg-rose-100 text-rose-700 text-[8px] font-black px-2 py-0.5 rounded tracking-widest">{item.failure_rate} Error</span>
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 group-hover:text-rose-600 transition-colors leading-relaxed">{item.reason}</p>
-                     </div>
-                  ))}
+      {/* ── STUDENT SCORES CONTAINER ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm text-left overflow-hidden">
+         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900 leading-tight">Student Scores</h2>
+            <div className="flex items-center gap-3">
+               <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input type="text" value={search} onChange={(e)=>setSearch(e.target.value)} className="w-48 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none" placeholder="Search student..." />
                </div>
+               <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">Import</button>
             </div>
          </div>
-      )}
 
-      <div className="bg-white border border-slate-50 rounded-[3.5rem] p-10 shadow-sm text-left">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-10 pb-8 border-b border-slate-50 gap-6">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Examination Scoring Roster</h2>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-              <input value={search} onChange={e=>setSearch(e.target.value)} type="text" placeholder="Filter roster..." className="pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-xs font-bold focus:ring-4 ring-blue-50 transition-all w-64 shadow-inner"/>
+         {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center">
+               <Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin mb-4" />
+               <p className="text-sm font-medium text-slate-500">Loading roster...</p>
             </div>
-            <button className="flex items-center gap-2 px-8 py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl text-[10px] font-black shadow-sm uppercase tracking-widest hover:bg-emerald-100 transition-all">
-              <FileSpreadsheet className="w-4 h-4" /> Import CSV
-            </button>
-          </div>
-        </div>
+         ) : (
+            <div className="p-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {paginatedStudents.map((student) => {
+                     const metrics = getMetrics(student.score);
 
-        {loading ? (
-             <div className="py-32 flex flex-col items-center justify-center">
-                <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-6" />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accessing Roster Matrix...</p>
-             </div>
-        ) : filtered.length === 0 ? (
-           <div className="py-32 text-center">
-              <UserX className="w-16 h-16 text-slate-100 mx-auto mb-6" />
-              <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Roster Empty or Not Found</p>
-           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filtered.map((student) => (
-              <div key={student.id} className="p-8 bg-white border border-slate-100 rounded-[3rem] transition-all hover:shadow-2xl hover:border-blue-100 group relative">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 group-hover:bg-[#1e3a8a] group-hover:text-white transition-all flex items-center justify-center text-slate-400 font-black text-xs shadow-inner">
-                    {student.name?.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <h3 className="text-[13px] font-black text-slate-900 leading-tight group-hover:text-[#1e3a8a] truncate">{student.name}</h3>
-                    <p className="text-[9px] text-slate-300 font-extrabold uppercase mt-1 tracking-widest truncate">{student.email}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 mb-6 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                  <input 
-                    type="number" 
-                    value={student.score}
-                    onChange={(e) => updateScore(student.id, e.target.value)}
-                    className="w-full h-14 bg-white rounded-xl border border-slate-100 focus:outline-none focus:ring-4 ring-blue-50 transition-all font-black text-xl text-[#1e3a8a] text-center"
-                  />
-                  <div className="px-3 border-l border-slate-100">
-                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Max</p>
-                    <p className="text-sm font-black text-slate-500">{test.marks || "50"}</p>
-                  </div>
-                </div>
+                     return (
+                        <div key={student.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors flex flex-col items-start shadow-sm relative overflow-hidden">
+                           <div className="flex items-center gap-4 mb-4">
+                              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarColor(student.initials)}`}>
+                                 {student.initials}
+                              </div>
+                              <div>
+                                 <h3 className="text-[15px] font-bold text-slate-900 leading-tight truncate">{student.name}</h3>
+                                 <p className="text-xs text-slate-500 mt-1">{student.rollNo}</p>
+                              </div>
+                           </div>
+                           
+                           <div className="w-full relative mb-4">
+                              <input 
+                                 type="number"
+                                 value={student.score}
+                                 onChange={(e) => handleScoreChange(student.id, e.target.value)}
+                                 className="w-full block py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-blue-500"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 select-none">/{maxScore}</span>
+                           </div>
 
-                <div className="flex items-center justify-between border-t border-slate-50 pt-5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shadow-inner border ${
-                    student.grade.includes('A') ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-                    student.grade === 'B' ? 'bg-blue-50 border-blue-100 text-blue-600' :
-                    student.grade === 'C' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
-                    'bg-rose-50 border-rose-100 text-rose-600'
-                  }`}>
-                    {student.grade}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Stability</p>
-                    <p className="text-sm font-black text-slate-900">{student.percentage}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                           <div className="w-full flex items-center justify-between mt-auto">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border ${metrics.color}`}>
+                                 {metrics.grade}
+                              </div>
+                              <span className={`text-[15px] font-black ${metrics.text}`}>
+                                 {student.score ? `${metrics.pct.toFixed(0)}%` : '-'}
+                              </span>
+                           </div>
+                        </div>
+                     );
+                  })}
+               </div>
+            </div>
+         )}
+
+         {/* ── PAGINATION ── */}
+         {!loading && totalStudents > 0 && (
+            <div className="p-6 border-t border-slate-100 flex items-center justify-between">
+               <p className="text-sm font-medium text-slate-500">
+                  Showing {Math.min(totalStudents, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(totalStudents, currentPage * itemsPerPage)} of {totalStudents} students
+               </p>
+               <div className="flex items-center gap-1.5">
+                  <button 
+                     disabled={currentPage === 1}
+                     onClick={() => setCurrentPage(prev => prev - 1)}
+                     className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                     Previous
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => (
+                     <button 
+                        key={i} 
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-[#1e3a8a] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                     >
+                        {i + 1}
+                     </button>
+                  ))}
+                  <button 
+                     disabled={currentPage === totalPages}
+                     onClick={() => setCurrentPage(prev => prev + 1)}
+                     className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                     Next
+                  </button>
+               </div>
+            </div>
+         )}
       </div>
     </div>
   );
-};
-
-export default EnterScores;
+}
