@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import CreateTest from "./CreateTest";
-import EnterScores from "./EnterScores";
+import CreateTest from "../components/CreateTest";
+import EnterScores from "../components/EnterScores";
 import { db } from "../lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
@@ -18,10 +18,10 @@ export default function TestsExams() {
     if (!teacherData?.id) return;
     const q = query(collection(db, "tests_registry"), where("teacherId", "==", teacherData.id));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const fetched: any[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       fetched.sort((a,b) => {
-         const dA = new Date(a.testDate || a.createdAt?.toDate() || 0).getTime();
-         const dB = new Date(b.testDate || b.createdAt?.toDate() || 0).getTime();
+         const dA = new Date(a.testDate || (a.createdAt as any)?.toDate() || 0).getTime();
+         const dB = new Date(b.testDate || (b.createdAt as any)?.toDate() || 0).getTime();
          return dA - dB; // closest first
       });
       setTests(fetched);

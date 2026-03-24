@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from "../lib/firebase";
 import { collection, query, where, onSnapshot, getDocs, doc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { Loader2, Search, ChevronLeft } from 'lucide-react';
 import { toast } from "sonner";
+import * as XLSX from 'xlsx';
 
 interface EnterScoresProps {
   test: any;
@@ -12,6 +13,7 @@ interface EnterScoresProps {
 
 export default function EnterScores({ test, onBack }: EnterScoresProps) {
   const { teacherData } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,6 +105,72 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
      const avgPct = countScored > 0 ? (avg / maxScore) * 100 : 0;
 
      return { avg, avgPct, distrib };
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file) return;
+
+     const reader = new FileReader();
+     reader.onload = (evt) => {
+        try {
+           const data = evt.target?.result;
+           const workbook = XLSX.read(data, { type: 'binary' });
+           const sheetName = workbook.SheetNames[0];
+           const sheet = workbook.Sheets[sheetName];
+           const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
+
+           let updatedCount = 0;
+           setStudents(prev => {
+              const updated = [...prev];
+              jsonData.forEach(row => {
+                 const roll = row["Roll No"] || row["RollNo"] || row["Roll Number"] || row["rollNo"];
+                 const name = row["Name"] || row["Student Name"];
+                 const score = row["Score"] || row["Marks"];
+                 
+                 if (score !== undefined) {
+                    const studentIndex = updated.findIndex(s => 
+                       (roll && s.rollNo?.toString() === roll.toString()) || 
+                       (name && s.name?.toLowerCase() === name.toString().toLowerCase())
+                    );
+                    if (studentIndex >= 0) {
+                       const parsedScore = parseFloat(score);
+                       if (!isNaN(parsedScore) && parsedScore <= maxScore) {
+                          updated[studentIndex] = { ...updated[studentIndex], score: parsedScore.toString() };
+                          updatedCount++;
+                       }
+                    }
+                 }
+              });
+              return updated;
+           });
+           
+           toast.success(`Excel Imported: ${updatedCount} scores mapped.`);
+        } catch (err) {
+           console.error(err);
+           toast.error("Failed to parse Excel file.");
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+     };
+     reader.readAsBinaryString(file);
+  };
+
+  const handleExportExcel = () => {
+     const data = students.map(s => ({
+        "Test Name": test.title,
+        "Class Name": test.className,
+        "Teacher Name": teacherData?.name || "Teacher",
+        "Roll No": s.rollNo,
+        "Student Name": s.name,
+        "Score": s.score || "",
+        "Total Marks": maxScore
+     }));
+
+     const worksheet = XLSX.utils.json_to_sheet(data);
+     const workbook = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(workbook, worksheet, "Scores");
+     XLSX.writeFile(workbook, `${test.className}_${test.title}_Scores.xlsx`);
+     toast.success("Excel Template Downloaded!");
   };
 
   const { avg, avgPct, distrib } = calculateStats();
@@ -219,7 +287,13 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                   <input type="text" value={search} onChange={(e)=>setSearch(e.target.value)} className="w-48 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none" placeholder="Search student..." />
                </div>
-               <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">Import</button>
+               <button onClick={handleExportExcel} className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors shadow-sm">
+                  Export Template
+               </button>
+               <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                  Import
+               </button>
+               <input type="file" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleImportExcel} className="hidden" />
             </div>
          </div>
 
