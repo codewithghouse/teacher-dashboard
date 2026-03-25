@@ -1,312 +1,315 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, limit, getDocs, where, onSnapshot, orderBy, Unsubscribe } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs, limit } from 'firebase/firestore';
+import { 
+  Loader2, Users, Activity, TrendingUp, AlertCircle, 
+  Calendar, Clock, CheckCircle, FileText, Bell, 
+  Layout, GraduationCap, ClipboardCheck, MessageSquare, Sparkles, BrainCircuit
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AIController } from '../ai/controller/ai-controller';
-import { Loader2, ShieldAlert, Sparkles, LayoutList, BellRing, TrendingUp, AlertCircle, Calendar, Info, Clock, CheckCircle, FileText } from 'lucide-react';
 
 const Dashboard = () => {
-  const { teacherData, user } = useAuth();
+  const { teacherData } = useAuth();
+  const navigate = useNavigate();
   
-  const [dataExists, setDataExists] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [aiData, setAiData] = useState<any>(null);
-  const [placeholderMessage, setPlaceholderMessage] = useState<string | null>(null);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    attendanceRate: "0%",
+    pendingGrading: 0,
+    atRiskCount: 0,
+    classesToday: 0
+  });
 
-  // 1. Dashboard Insights & Metadata Sync
+  const [todayClasses, setTodayClasses] = useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [needingAttention, setNeedingAttention] = useState<any[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   useEffect(() => {
-    const fetchDashboardInsights = async () => {
-      try {
-        if (!teacherData?.id) return;
-        const classesSnap = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id), limit(1)));
-        const enrollmentsSnap = await getDocs(query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id), limit(1)));
-        
-        const hasData = !classesSnap.empty && !enrollmentsSnap.empty;
-        setDataExists(hasData);
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-        if (!hasData) {
-           setPlaceholderMessage("After you add your class schedule and student roster, these AI features will start working automatically.");
-           setLoading(false);
-           return;
-        }
-
-        const context = {
-          teacher_name: teacherData?.name || user?.displayName,
-          class_count: classesSnap.size,
-          student_count: enrollmentsSnap.size,
-          last_updated: new Date().toISOString()
-        };
-
-        const result = await AIController.getDashboardInsights(context);
-        
-        if (result.status === "no_data") {
-           setPlaceholderMessage("After you add your class schedule and student roster, these AI features will start working automatically.");
-        } else if (result.status === "success" && result.data) {
-           setAiData(result.data);
-           setPlaceholderMessage(null);
-        } else {
-           setPlaceholderMessage(result.message || "Error analyzing insights.");
-        }
-      } catch(e) {
-        console.error("Dashboard fetch error:", e);
-        setPlaceholderMessage("AI system is waking up. Please add your first class to begin.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboardInsights();
-  }, [teacherData, user]);
-
-  // 2. Real-time Activity Log (Submissions & Results)
   useEffect(() => {
     if (!teacherData?.id) return;
 
-    let unsubSubs: Unsubscribe | null = null;
-    
-    // Step A: Find all assignments by this teacher
-    const qAssign = query(collection(db, "assignments"), where("teacherId", "==", teacherData.id));
-    
-    const unsubAssign = onSnapshot(qAssign, (aSnap) => {
-        if (unsubSubs) unsubSubs();
-        
-        const aIds = aSnap.docs.map(d => d.id);
-        if (aIds.length === 0) return;
+    // 1. LIVE CLASSES
+    const qClasses = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+    const unsubClasses = onSnapshot(qClasses, (snap) => {
+      const clsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setTodayClasses(clsData);
+      setStats(prev => ({ ...prev, classesToday: clsData.length }));
 
-        // Step B: Watch submissions for these specific assignments
-        const qSub = query(collection(db, "submissions"), where("assignmentId", "in", aIds));
-        unsubSubs = onSnapshot(qSub, (sSnap) => {
-            const subs = sSnap.docs.map(d => ({
-                id: d.id,
-                type: 'submission',
-                title: `${d.data().studentName || "Student"} submitted ${d.data().fileName || "Homework"}`,
-                time: d.data().timestamp?.toDate() || new Date(),
-                icon: <FileText className="w-4 h-4 text-blue-500" />
-            })).sort((a,b) => b.time - a.time);
-            setRecentActivities(prev => {
-                const resultsOnly = prev.filter(p => p.type === 'result');
-                return [...subs, ...resultsOnly].sort((a,b) => b.time - a.time).slice(0, 10);
-            });
-        });
+      // 2. LIVE ATTENDANCE TASKS
+      const todayString = new Date().toISOString().split('T')[0];
+      const qAtndToday = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id), where("date", "==", todayString));
+      
+      const unsubAtndToday = onSnapshot(qAtndToday, (atndSnap) => {
+          const markedClassIds = new Set(atndSnap.docs.map(d => d.data().classId));
+          const unmarked = clsData.filter(c => !markedClassIds.has(c.id));
+          
+          setPendingTasks(prev => {
+             const others = prev.filter(t => t.id !== 'mark_atnd');
+             if (unmarked.length > 0) {
+                return [
+                   ...others,
+                   {
+                      id: 'mark_atnd',
+                      title: 'Mark Attendance',
+                      desc: `${unmarked[0].name} • Pending Registry`,
+                      icon: ClipboardCheck,
+                      color: 'bg-amber-500',
+                      count: unmarked.length,
+                      actionPath: '/attendance'
+                   }
+                ];
+             }
+             return others;
+          });
+      });
     });
 
-    // Step C: Watch results published by this teacher
-    const qRes = query(collection(db, "results"), where("teacherId", "==", teacherData.id));
-    const unsubRes = onSnapshot(qRes, (rSnap) => {
-        const results = rSnap.docs.map(d => ({
-            id: d.id,
-            type: 'result',
-            title: `Graded ${d.data().studentName || "Student"}'s ${d.data().assignmentTitle || "Assessment"}`,
-            time: d.data().timestamp?.toDate() || new Date(),
-            icon: <TrendingUp className="w-4 h-4 text-emerald-500" />
-        })).sort((a,b) => b.time - a.time);
-        setRecentActivities(prev => {
-            const subsOnly = prev.filter(p => p.type === 'submission');
-            return [...results, ...subsOnly].sort((a,b) => b.time - a.time).slice(0, 10);
-        });
+    // 3. LIVE PENDING GRADING
+    const qPending = query(collection(db, "submissions"), where("teacherId", "==", teacherData.id), where("status", "==", "pending"));
+    const unsubPending = onSnapshot(qPending, (snap) => {
+      setStats(prev => ({ ...prev, pendingGrading: snap.size }));
+      setPendingTasks(prev => {
+         const others = prev.filter(t => t.id !== 'grade_papers');
+         if (snap.size > 0) {
+            return [
+               ...others,
+               {
+                  id: 'grade_papers',
+                  title: 'Review Assignments',
+                  desc: `${snap.size} real submissions pending`,
+                  count: snap.size,
+                  icon: FileText,
+                  color: 'bg-indigo-500',
+                  actionPath: '/gradebook'
+               }
+            ];
+         }
+         return others;
+      });
     });
 
+    // 4. SMART STUDENT MONITOR (Manual + AI Analysis)
+    const qEnrol = query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id));
+    const unsubEnrol = onSnapshot(qEnrol, async (snap) => {
+       const students = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+       
+       // Algorithm: Start with manual At-Risk students
+       let critical = students.filter(s => s.manualStatus === "At Risk").slice(0, 4);
+       
+       // AI Fallback Phase
+       if (critical.length < 3 && students.length > 0) {
+          try {
+             const resSnap = await getDocs(query(collection(db, "results"), where("teacherId", "==", teacherData.id), limit(20)));
+             const results = resSnap.docs.map(d => d.data());
+             
+             // Simple AI-like logic if no manual tags: Find students with avg < 60
+             const lowPerf = students.filter(s => {
+                const sResults = results.filter(r => r.studentId === s.studentId);
+                const avg = sResults.length > 0 ? (sResults.reduce((acc, curr) => acc + (curr.score || 0), 0) / sResults.length) : 100;
+                return avg < 65 && !critical.find(c => c.id === s.id);
+             }).slice(0, 4 - critical.length);
+             
+             critical = [...critical, ...lowPerf];
+          } catch (e) { console.error("AI Fallback failed:", e); }
+       }
+
+       setStats(prev => ({ ...prev, atRiskCount: critical.length || 0 }));
+       setNeedingAttention(critical.map(s => ({
+          id: s.id,
+          name: s.studentName || "Scholar",
+          initials: (s.studentName?.[0] || 'S'),
+          reason: s.manualStatus === "At Risk" ? "Priority Academic Concern" : "Automated Performance Alert",
+          action: "Intervene",
+          color: "bg-rose-500",
+          actionPath: '/parent-notes',
+          isAiIdentified: s.manualStatus !== "At Risk"
+       })));
+    });
+
+    // 5. ATTENDANCE RATE AGGREGATE
+    const qAtndRate = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
+    const unsubAtndRate = onSnapshot(qAtndRate, (snap) => {
+       const docs = snap.docs;
+       if (docs.length === 0) {
+          setStats(prev => ({ ...prev, attendanceRate: "100%" }));
+       } else {
+          const present = docs.filter(d => d.data().status === 'present').length;
+          setStats(prev => ({ ...prev, attendanceRate: `${((present / docs.length) * 100).toFixed(1)}%` }));
+       }
+    });
+
+    setLoading(false);
     return () => {
-        unsubAssign();
-        if (unsubSubs) unsubSubs();
-        unsubRes();
+      unsubClasses();
+      unsubPending();
+      unsubEnrol();
+      unsubAtndRate();
     };
   }, [teacherData?.id]);
 
-  const getTimeAgo = (date: Date) => {
-    const diff = (new Date().getTime() - date.getTime()) / 1000;
-    if (diff < 60) return "Just Now";
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-    return `${Math.floor(diff/86400)}d ago`;
-  };
+  if (loading) return (
+     <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="relative">
+           <div className="w-20 h-20 border-4 border-[#1e3a8a]/20 border-t-[#1e3a8a] rounded-full animate-spin"></div>
+           <div className="absolute inset-0 flex items-center justify-center"><BrainCircuit className="w-8 h-8 text-[#1e3a8a] animate-pulse"/></div>
+        </div>
+        <p className="mt-8 text-[11px] font-black text-slate-400 uppercase tracking-[0.5em] animate-pulse">Engaging Neural Registry...</p>
+     </div>
+  );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-10 text-left">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Institutional Intelligence Hub</h1>
-          <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mt-1">Status: Active Monitor • {teacherData?.name || user?.displayName?.split(' ')[0]}</p>
+    <div className="min-h-screen animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-24 text-left font-sans">
+      
+      {/* ─── HEADER SYSTEM ─── */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 px-2">
+        <div className="text-left w-full md:w-auto">
+           <div className="flex items-center gap-3 mb-5">
+              <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Integrated Intelligence Matrix</p>
+           </div>
+           <h1 className="text-6xl font-black text-slate-900 tracking-tighter leading-none mb-5">Insight Hub</h1>
+           <p className="text-lg font-bold text-slate-400">Database synchronization active for subdivision <span className="text-[#1e3a8a] uppercase">{teacherData?.name}</span></p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-black text-[#1e3a8a] shadow-sm flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600"/> {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-          </div>
+        
+        <div className="flex items-center gap-6 w-full md:w-auto">
+           <div className="flex-1 md:flex-none px-12 h-20 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm flex items-center justify-center gap-5 text-base font-black text-slate-700">
+              <Calendar className="w-6 h-6 text-[#1e3a8a]"/>
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <span className="text-slate-200">|</span>
+              {currentTime.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+           </div>
+           <button className="w-20 h-20 bg-[#1e3a8a] rounded-[2.5rem] flex items-center justify-center text-white relative shadow-2xl shadow-blue-900/40 hover:scale-110 active:scale-95 transition-all">
+              <Bell className="w-8 h-8"/>
+              <div className="absolute top-5 right-5 w-4 h-4 bg-rose-500 rounded-full border-4 border-[#1e3a8a]" />
+           </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-card border border-dashed border-border rounded-3xl mt-10 shadow-sm text-center px-4">
-            <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-4" />
-            <h2 className="text-base font-bold text-slate-700 mb-2">Engaging Teacher AI Engine...</h2>
-            <p className="text-xs text-slate-500 font-medium max-w-sm">Analyzing daily syllabus, compiling performance records, and generating urgent smart alerts.</p>
-        </div>
-      ) : !dataExists || placeholderMessage ? (
-        <div className="flex flex-col items-center justify-center py-24 bg-card border border-dashed border-border rounded-3xl mt-10 shadow-sm relative overflow-hidden px-6 text-center">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full blur-3xl -mr-20 -mt-20 block opacity-50"></div>
-            <Sparkles className="w-16 h-16 text-[#1e3a8a] mb-6 relative z-10 animate-pulse" />
-            <h2 className="text-xl font-bold text-slate-700 mb-2 relative z-10">AI Features are Ready!</h2>
-            <p className="text-sm text-slate-500 font-medium max-w-md relative z-10 leading-relaxed">
-              {placeholderMessage || "After you add your class schedule and student roster, these AI features will start working automatically."}
-            </p>
-            <div className="mt-8 flex gap-4 relative z-10">
-               <div className="px-4 py-2 bg-slate-100 rounded-lg text-[10px] font-black uppercase text-slate-400">Step 1: Add Class</div>
-               <div className="px-4 py-2 bg-slate-100 rounded-lg text-[10px] font-black uppercase text-slate-400">Step 2: Add Students</div>
-            </div>
-        </div>
-      ) : (
-        <>
-          {/* Top Level Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                   <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                      <LayoutList className="w-5 h-5 text-blue-600"/>
-                   </div>
-                </div>
-                <h2 className="text-3xl font-black text-foreground mb-1">{aiData?.ai_daily_planner?.length || 0}</h2>
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Planned Periods Today</p>
-             </div>
-             
-             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                   <div className="w-10 h-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-green-600"/>
-                   </div>
-                </div>
-                <h2 className="text-3xl font-black text-foreground mb-1">{aiData?.class_performance_summary?.length || 0}</h2>
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Analytics Generated</p>
-             </div>
+      {/* ─── KEY PERFORMANCE INDICATORS ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+         <StatItem label="Avg Attendance" value={stats.attendanceRate} icon={Activity} color="emerald" tag="Stable" />
+         <StatItem label="Pending Grading" value={stats.pendingGrading} icon={FileText} color="amber" tag={stats.pendingGrading > 0 ? "Action Required" : "Clean"} />
+         <StatItem label="Academic Risk" value={stats.atRiskCount} icon={AlertCircle} color="rose" tag="Critical" />
+         <StatItem label="Classes Today" value={stats.classesToday} icon={Users} color="indigo" tag="Live" />
+      </div>
 
-             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden group">
-                <div className="absolute right-0 top-0 w-16 h-16 bg-red-500 rounded-bl-full opacity-10 group-hover:opacity-20 transition-opacity"/>
-                <div className="flex justify-between items-start mb-4">
-                   <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-red-600 animate-pulse"/>
-                   </div>
-                </div>
-                <h2 className="text-3xl font-black text-red-600 mb-1">{aiData?.smart_notifications?.length || 0}</h2>
-                <p className="text-sm font-bold text-red-500 uppercase tracking-widest">Critical Alerts</p>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-            
-            {/* FEATURE 1: AI Daily Planner */}
-            <div className="lg:col-span-8 bg-card border border-border rounded-3xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-               <div className="px-7 py-5 border-b border-border bg-slate-50 flex items-center justify-between">
-                  <h3 className="text-base font-black text-slate-800 flex items-center gap-2 uppercase tracking-widest leading-none"><Sparkles className="w-5 h-5 text-[#1e3a8a]"/> AI Curriculum Roadmap</h3>
-                  <span className="text-[10px] font-black text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full uppercase tracking-tighter">Live Session planner</span>
-               </div>
-               <div className="divide-y divide-border flex-1">
-                  {aiData?.ai_daily_planner?.map((plan: any, i: number) => (
-                     <div key={i} className="px-7 py-5 hover:bg-slate-50 transition-colors flex items-start gap-4">
-                        <div className="w-20 shrink-0 pt-0.5">
-                           <p className="text-xs font-black text-[#1e3a8a] flex items-center gap-2"><Clock className="w-3.5 h-3.5"/> {plan.time}</p>
-                           <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest mt-2 px-2 py-0.5 bg-white border border-slate-200 rounded-lg w-fit">{plan.class_name}</p>
+      {/* ─── GRID CONTENT ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+         
+         {/* COLUMN 1: SESSIONS */}
+         <div className="lg:col-span-4 space-y-10 text-left">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 flex items-center gap-3 pl-4 border-l-4 border-slate-200">Daily Session Log</h3>
+            <div className="space-y-6">
+               {todayClasses.length === 0 ? (
+                  <EmptyState icon={Clock} text="Registry is currently silent. No active subdivisions." />
+               ) : (
+                  todayClasses.map((cls, i) => (
+                    <div key={cls.id} className="bg-white border border-slate-100 p-8 rounded-[3rem] shadow-sm hover:shadow-2xl hover:-translate-x-3 transition-all group flex items-center gap-8 cursor-pointer relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#1e3a8a]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="text-center relative z-10 min-w-[60px]">
+                           <p className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{i === 0 ? '09:00' : (i === 1 ? '11:30' : '02:00')}</p>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Log Point</p>
                         </div>
-                        <div className="flex-1 bg-blue-50/30 border border-blue-100 rounded-2xl p-5 group hover:bg-white hover:shadow-sm transition-all">
-                           <p className="text-sm text-slate-700 font-bold leading-relaxed italic border-l-4 border-blue-500 pl-6">{plan.plan}</p>
+                        <div className="w-1.5 h-14 bg-[#1e3a8a] rounded-full relative z-10" />
+                        <div className="flex-1 min-w-0 relative z-10">
+                           <h4 className="text-xl font-black text-slate-800 truncate mb-1">{cls.name}</h4>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{cls.grade} • {cls.subject}</p>
                         </div>
-                     </div>
-                  ))}
-                  {(!aiData?.ai_daily_planner || aiData.ai_daily_planner.length === 0) && (
-                     <div className="p-12 text-center flex flex-col items-center">
-                        <Info className="w-10 h-10 text-slate-200 mb-4" />
-                        <p className="text-sm font-black text-slate-300 uppercase tracking-[0.2em]">Institutional logs standby.</p>
-                     </div>
-                  )}
-               </div>
-            </div>
-
-            {/* FEATURE 4: NEW - Institutional Event Log (Touchpoints) */}
-            <div className="lg:col-span-4 bg-[#1e3a8a] border border-[#1e3a8a] rounded-3xl shadow-sm overflow-hidden flex flex-col hover:shadow-xl transition-all relative group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-               <div className="px-7 py-6 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-widest"><TrendingUp className="w-5 h-5 text-emerald-400"/> Audit Stream</h3>
-                  <span className="text-[9px] font-black bg-white/10 text-white px-3 py-1 rounded-full border border-white/10">LIVE DATA</span>
-               </div>
-               <div className="flex-1 p-6 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                  {recentActivities.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
-                        <Clock className="w-10 h-10 text-white mb-4 animate-pulse" />
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Awaiting student artifacts...</p>
+                        {i === 0 && <div className="px-5 py-2 rounded-full bg-[#1e3a8a] text-white text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">Now</div>}
                     </div>
-                  ) : (
-                    recentActivities.map((act) => (
-                      <div key={act.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all group/item">
-                         <div className="flex items-start gap-4">
-                            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/5 group-hover/item:scale-110 transition-transform">
-                               {act.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                               <p className="text-[13px] font-black text-white leading-tight mb-1">{act.title}</p>
-                               <p className="text-[10px] font-black text-blue-300/60 uppercase tracking-widest flex items-center gap-1.5 mt-2">
-                                  <Clock className="w-3 h-3" /> {getTimeAgo(act.time)}
-                               </p>
-                            </div>
-                         </div>
-                      </div>
-                    ))
-                  )}
-               </div>
+                  ))
+               )}
             </div>
+         </div>
 
-          </div>
+         {/* COLUMN 2: WORKFLOWS */}
+         <div className="lg:col-span-4 space-y-10 text-left">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 flex items-center gap-3 pl-4 border-l-4 border-amber-200 text-amber-600">Pending Workflow Matrix</h3>
+            <div className="space-y-6">
+               {pendingTasks.length === 0 ? (
+                  <EmptyState icon={CheckCircle} text="All institutional tasks are finalized." color="text-emerald-500" />
+               ) : (
+                  pendingTasks.map(task => (
+                    <div key={task.id} onClick={() => navigate(task.actionPath)} className="bg-white border border-slate-100 p-8 rounded-[3rem] shadow-sm hover:shadow-xl transition-all group cursor-pointer flex items-center gap-8 border-b-4 border-b-slate-50">
+                        <div className={`w-16 h-16 rounded-[2rem] ${task.color} flex items-center justify-center text-white shadow-2xl transition-all group-hover:rotate-12`}>
+                           <task.icon className="w-8 h-8"/>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <div className="flex items-center justify-between gap-4 mb-2">
+                              <h4 className="text-base font-black text-slate-800 truncate">{task.title}</h4>
+                             {task.count > 0 && <span className="w-8 h-8 bg-rose-500 text-white rounded-full text-[11px] font-black flex items-center justify-center border-2 border-white shadow-xl">{task.count}</span>}
+                           </div>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{task.desc}</p>
+                        </div>
+                    </div>
+                  ))
+               )}
+            </div>
+         </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-             {/* FEATURE 2: Class Performance Summary (Half Width) */}
-              <div className="lg:col-span-7 bg-white border border-border rounded-3xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                 <div className="px-7 py-5 border-b border-border bg-emerald-50/50 flex items-center gap-3">
-                     <TrendingUp className="w-5 h-5 text-emerald-600" />
-                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Class Mastery Analytics</h3>
-                 </div>
-                 <div className="divide-y divide-border">
-                    {aiData?.class_performance_summary?.map((perf: any, i: number) => (
-                       <div key={i} className="p-7 hover:bg-slate-50 transition-colors">
-                          <div className="flex items-center gap-3 mb-4">
-                             <span className="text-[10px] font-black tracking-widest bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full uppercase border border-emerald-200">{perf.class}</span>
-                             <span className="text-[10px] font-black tracking-widest bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase border border-slate-200">{perf.subject}</span>
-                          </div>
-                          <p className="text-sm font-bold text-slate-600 leading-relaxed border-l-4 border-emerald-400 pl-6 italic">{perf.summary}</p>
+         {/* COLUMN 3: SMART INTERVENTION */}
+         <div className="lg:col-span-4 space-y-10 text-left">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 flex items-center gap-3 pl-4 border-l-4 border-rose-200 text-rose-600">Smart Health Monitor</h3>
+            <div className="bg-white border border-slate-100 p-3 rounded-[4rem] shadow-sm space-y-2 min-h-[450px]">
+               {needingAttention.length === 0 ? (
+                  <div className="h-[400px] flex flex-col items-center justify-center px-12 text-center opacity-40">
+                     <BrainCircuit className="w-16 h-16 text-slate-200 mb-6" />
+                     <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest leading-relaxed">System Scan: Performance is within theoretical thresholds.</p>
+                  </div>
+               ) : (
+                  needingAttention.map(student => (
+                    <div key={student.id} className="p-8 hover:bg-slate-50 transition-all group flex items-center gap-6 rounded-[3rem]">
+                       <div className={`w-16 h-16 rounded-[1.8rem] ${student.color} flex items-center justify-center text-white font-black text-2xl shadow-xl transition-all group-hover:scale-110`}>
+                          {student.initials}
                        </div>
-                    ))}
-                 </div>
-              </div>
+                       <div className="flex-1 min-w-0">
+                          <h4 className="text-xl font-black text-slate-800 leading-none mb-2">{student.name}</h4>
+                          <p className={`text-[10px] font-bold uppercase tracking-tight flex items-center gap-2 ${student.isAiIdentified ? 'text-indigo-500' : 'text-rose-500'}`}>
+                             {student.isAiIdentified && <BrainCircuit className="w-3 h-3"/>}
+                             {student.reason}
+                          </p>
+                       </div>
+                       <button onClick={() => navigate(student.actionPath)} className="px-6 h-12 bg-[#1e3a8a] text-white rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-slate-900 transition-all active:scale-95 shrink-0">
+                          {student.action}
+                       </button>
+                    </div>
+                  ))
+               )}
+            </div>
+         </div>
 
-              {/* FEATURE 3: Smart Notifications (Remaining Width) */}
-              <div className="lg:col-span-5 bg-card border border-border rounded-3xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                 <div className="px-7 py-5 border-b border-red-100 bg-red-50/50 flex items-center justify-between">
-                    <h3 className="text-sm font-black text-red-900 flex items-center gap-3 uppercase tracking-widest leading-none"><BellRing className="w-5 h-5 text-red-500 animate-pulse"/> Priority Sync Alerts</h3>
-                 </div>
-                 <div className="divide-y divide-border flex-1">
-                    {aiData?.smart_notifications?.map((notif: any, i: number) => {
-                       const isCrit = notif.priority?.toUpperCase() === 'CRITICAL' || notif.priority?.toUpperCase() === 'HIGH';
-                       return (
-                          <div key={i} className="px-7 py-6 hover:bg-red-50/30 transition-colors">
-                             <div className="flex items-center gap-3 mb-3">
-                               <div className={`w-2 h-2 rounded-full ${isCrit ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
-                               <span className={`text-[10px] font-black uppercase tracking-widest ${isCrit ? 'text-red-600' : 'text-amber-600'}`}>{notif.priority} Priority Vector</span>
-                             </div>
-                             <p className="text-sm font-bold text-slate-800 mb-5 leading-tight">{notif.message}</p>
-                             <button className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${
-                               isCrit ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-200' : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-700'
-                             }`}>
-                               {notif.action_required}
-                             </button>
-                          </div>
-                       )
-                    })}
-                 </div>
-              </div>
-          </div>
-          
-        </>
-      )}
-
+      </div>
     </div>
   );
 };
+
+const StatItem = ({ label, value, tag, color, icon: Icon }: any) => (
+   <div className="bg-white border border-slate-100 p-10 rounded-[3.5rem] shadow-sm hover:shadow-2xl hover:-translate-y-4 transition-all group relative overflow-hidden">
+      <div className="flex items-center justify-between mb-10">
+         <div className={`w-16 h-16 rounded-[1.8rem] bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#1e3a8a] group-hover:text-white transition-all`}>
+            <Icon size={32} />
+         </div>
+         <div className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-slate-50 bg-slate-50 text-slate-400`}>
+            {tag}
+         </div>
+      </div>
+      <h2 className={`text-6xl font-black tracking-tighter mb-2 text-slate-900`}>{value}</h2>
+      <p className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">{label}</p>
+   </div>
+);
+
+const EmptyState = ({ icon: Icon, text, color="text-slate-200" }: any) => (
+   <div className="p-24 border-2 border-dashed border-slate-100 rounded-[4rem] bg-white text-center shadow-inner">
+      <Icon className={`w-20 h-20 ${color} mx-auto mb-8 opacity-30`} />
+      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] leading-relaxed italic">{text}</p>
+   </div>
+);
 
 export default Dashboard;

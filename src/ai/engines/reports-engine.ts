@@ -8,7 +8,7 @@ export async function generateClassReportCardsInsights(data: any): Promise<any> 
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: "gpt-4.1-mini", input: getClassReportCardsPrompt(data),
+        model: "gpt-4o-mini", input: getClassReportCardsPrompt(data),
       text: { format: { type: "json_object" } }
     })
   });
@@ -30,7 +30,7 @@ export async function generateDetailedSubjectReportInsights(data: any): Promise<
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "gpt-4.1-mini", input: getDetailedSubjectReportPrompt(data),
+        model: "gpt-4o-mini", input: getDetailedSubjectReportPrompt(data),
         text: { format: { type: "json_object" } }
       })
     });

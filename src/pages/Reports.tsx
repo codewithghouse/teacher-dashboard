@@ -1,42 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GenerateReport from "@/components/GenerateReport";
-import { FileText, Eye, Star, Sparkles, TrendingUp, Download, PieChart, Layout, BrainCircuit, BookOpen } from "lucide-react";
+import { 
+  FileText, Eye, Star, Sparkles, TrendingUp, Download, PieChart, Layout, BrainCircuit, BookOpen, 
+  BarChart3, Users, AlertTriangle, Clock, ChevronRight, FileJson, FileSpreadsheet, PlusCircle, CheckCircle2
+} from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
+import { db } from "../lib/firebase";
+import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 
-const reports = [
+const reports_config = [
   { 
     id: "class_perf", 
-    title: "Class Performance Summary", 
-    desc: "Detailed aggregate analysis of grades, attendance and engagement trends.", 
+    title: "Class Performance Report", 
+    desc: "Comprehensive analysis of class performance including grades, attendance, and progress trends.", 
     popular: true, 
-    type: "Standard",
-    color: "bg-blue-50 border-blue-100 text-blue-600"
+    type: "Academic",
+    color: "bg-blue-100 text-blue-600",
+    formats: ["PDF", "Excel"],
+    icon: BarChart3
   },
   { 
-    id: "ai_report_cards", 
-    title: "AI Bulk Report Cards", 
-    desc: "Feature 25: One-click generation of personalized AI remarks for the entire class.", 
-    popular: true, 
-    type: "AI Powered",
-    color: "bg-purple-50 border-purple-100 text-purple-600",
-    ai: true
-  },
-  { 
-    id: "subject_action_plan", 
-    title: "Subject Action Plan (PDF/Word)", 
-    desc: "Feature 26: Generate a comprehensive year-end subject analysis with next-year goals.", 
+    id: "individual_progress", 
+    title: "Individual Progress Report", 
+    desc: "Detailed report for individual students covering all academic metrics and recommendations.", 
     popular: false, 
-    type: "Deep Analytics",
-    color: "bg-emerald-50 border-emerald-100 text-emerald-600",
-    ai: true
+    type: "Student-Specific",
+    color: "bg-emerald-100 text-emerald-600",
+    formats: ["PDF"],
+    icon: Users
+  },
+  { 
+    id: "attendance_summary", 
+    title: "Attendance Summary", 
+    desc: "Monthly or term-wise attendance report with statistics and absentee analysis.", 
+    popular: false, 
+    type: "Administrative",
+    color: "bg-amber-100 text-amber-600",
+    formats: ["PDF", "Excel"],
+    icon: Clock
   },
   { 
     id: "at_risk", 
-    title: "At-Risk Student Intervention", 
-    desc: "Automatic flagging of students requiring academic or behavioral intervention.", 
+    title: "At-Risk Students Report", 
+    desc: "List of students with academic or attendance concerns requiring intervention.", 
     popular: false, 
-    type: "Standard",
-    color: "bg-rose-50 border-rose-100 text-rose-600"
+    type: "Intervention",
+    color: "bg-rose-100 text-rose-600",
+    formats: ["PDF", "Excel"],
+    icon: AlertTriangle
   },
 ];
 
@@ -44,6 +55,20 @@ const Reports = () => {
   const { teacherData } = useAuth();
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!teacherData?.id) return;
+    const q = query(
+      collection(db, "reports"),
+      where("teacherId", "==", teacherData.id),
+      orderBy("createdAt", "desc"),
+      limit(5)
+    );
+    return onSnapshot(q, (snap) => {
+       setHistory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+  }, [teacherData?.id]);
 
   const handleOpenGenerate = (report: any) => {
     setSelectedReport(report);
@@ -51,88 +76,107 @@ const Reports = () => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 pb-10">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 text-left">
       <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-3xl font-black text-slate-800">Reports Center</h1>
-          <p className="text-sm font-bold uppercase tracking-widest text-slate-400 mt-1">Compile comprehensive evidence of learning & progress</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Reports</h1>
+          <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none">Generate and download academic reports.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-4 rounded-[2rem] shadow-sm">
            <Layout className="w-5 h-5 text-[#1e3a8a]"/>
-           <span className="text-xs font-black uppercase tracking-widest text-slate-600">{teacherData?.schoolName || 'Main Branch'}</span>
+           <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic">{teacherData?.schoolName || 'EduIntellect Main'}</span>
         </div>
-      </div>
-
-      {/* Stats Highlight */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-         <div className="bg-white border-2 border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500"><Download className="w-6 h-6"/></div>
-            <div>
-               <p className="text-2xl font-black text-slate-800">128</p>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Downloads</p>
-            </div>
-         </div>
-         <div className="bg-white border-2 border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500"><PieChart className="w-6 h-6"/></div>
-            <div>
-               <p className="text-2xl font-black text-slate-800">92%</p>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Completion Rate</p>
-            </div>
-         </div>
-         <div className="bg-white border-2 border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500"><Sparkles className="w-6 h-6"/></div>
-            <div>
-               <p className="text-2xl font-black text-slate-800">AI Active</p>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</p>
-            </div>
-         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {reports.map((r) => (
-          <div key={r.id} className="bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:border-[#1e3a8a]/20 transition-all group relative overflow-hidden flex flex-col h-full">
-            {r.ai && (
-               <div className="absolute top-0 right-0 p-6">
-                  <div className="bg-[#1e3a8a]/5 text-[#1e3a8a] p-2 rounded-xl animate-pulse">
-                     <BrainCircuit className="w-5 h-5"/>
-                  </div>
-               </div>
-            )}
-            
-            <div className="flex items-center gap-4 mb-6">
-               <div className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${r.color}`}>
-                  {r.type}
-               </div>
-               {r.popular && (
-                  <div className="bg-amber-100 text-amber-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                     <Star className="w-3 h-3 fill-amber-600"/>
-                     <span className="text-[9px] font-black uppercase tracking-widest">Teacher's Choice</span>
-                  </div>
-               )}
+        {reports_config.map((r) => (
+          <div key={r.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden flex flex-col h-full">
+            <div className="flex justify-between items-start mb-6">
+              <div className={`w-16 h-16 rounded-2xl ${r.color} flex items-center justify-center shadow-inner`}>
+                <r.icon className="w-8 h-8" />
+              </div>
+              {r.popular && (
+                <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                  Popular
+                </div>
+              )}
             </div>
 
-            <h2 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-[#1e3a8a] transition-colors">{r.title}</h2>
-            <p className="text-sm font-bold text-slate-500 leading-relaxed mb-8 flex-grow">{r.desc}</p>
+            <h2 className="text-2xl font-black text-slate-900 mb-3 group-hover:text-[#1e3a8a] transition-colors">{r.title}</h2>
+            <p className="text-sm font-semibold text-slate-400 leading-relaxed mb-8 flex-grow">{r.desc}</p>
             
-            <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-               <div className="flex gap-4">
-                  <button 
-                    onClick={() => handleOpenGenerate(r)}
-                    className="bg-[#1e3a8a] text-white px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#1e4fc0] transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
-                  >
-                    Generate Now
-                  </button>
-                  <button className="text-slate-400 p-3.5 rounded-2xl border-2 border-slate-50 hover:bg-slate-50 hover:text-slate-600 transition-colors">
-                    <Eye className="w-5 h-5" />
-                  </button>
-               </div>
-               <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-slate-400">PDF</div>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-slate-400">CSV</div>
-               </div>
+            <div className="flex gap-2 mb-8">
+              {r.formats.map(f => (
+                <span key={f} className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:border-indigo-100 group-hover:text-indigo-600 transition-all">{f}</span>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => handleOpenGenerate(r)}
+                className="bg-[#1e3a8a] text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#1e4fc0] transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 group-active:scale-95"
+              >
+                Generate
+              </button>
+              <button 
+                onClick={() => handleOpenGenerate(r)}
+                className="bg-white text-slate-900 py-4 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group-active:scale-95"
+              >
+                Preview
+              </button>
             </div>
           </div>
         ))}
+
+        {/* Dynamic History Section */}
+        <div className="col-span-full mt-12 pb-20">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                   <h3 className="text-2xl font-black text-slate-900 tracking-tight italic">Intelligence Output History</h3>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none mt-1">Audit trail of generated academic documents</p>
+                </div>
+                <button className="flex items-center gap-2 text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline"><TrendingUp className="w-4 h-4"/> View Full Audit</button>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[3rem] p-4 shadow-sm">
+                {history.length === 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-10">
+                      <div className="p-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center group">
+                          <PlusCircle className="w-10 h-10 text-slate-200 group-hover:text-indigo-400 transition-colors mb-4" />
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No Recent Exports</p>
+                      </div>
+                      <div className="col-span-2 space-y-4 flex flex-col justify-center">
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic leading-relaxed">Generated reports will appear here for 30 days. You can sync individual reports directly to parent portals from the generation screen.</p>
+                          <div className="h-px bg-slate-100 w-full" />
+                          <div className="flex items-center gap-6 opacity-30">
+                             <FileJson size={32}/><FileSpreadsheet size={32}/><FileText size={32}/>
+                          </div>
+                      </div>
+                   </div>
+                ) : (
+                   <div className="space-y-3">
+                      {history.map(h => (
+                         <div key={h.id} className="flex items-center justify-between p-6 bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[2rem] transition-all group">
+                            <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-indigo-600">
+                                  <FileText className="w-6 h-6"/>
+                               </div>
+                               <div>
+                                  <p className="text-sm font-black text-slate-800">{h.title} - {h.grade}</p>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" /> {h.status} • {h.format?.toUpperCase()} FORMAT • {h.createdAt?.toDate?.().toLocaleDateString()}
+                                  </p>
+                               </div>
+                            </div>
+                            <button className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all opacity-0 group-hover:opacity-100">
+                               <Download className="w-4 h-4"/>
+                            </button>
+                         </div>
+                      ))}
+                   </div>
+                )}
+            </div>
+        </div>
       </div>
 
       <GenerateReport 
