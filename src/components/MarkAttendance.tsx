@@ -107,15 +107,15 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
         collection(db, "attendance"),
         where("classId", "==", selectedClassId),
         where("teacherId", "==", teacherData.id),
-        orderBy("date", "desc"),
-        limit(30)
+        limit(100)
       );
       const snap = await getDocs(qPrev);
       const today = new Date().toLocaleDateString('en-CA');
       
       const prevLogs = snap.docs
         .map(d => d.data())
-        .filter(l => l.date !== today);
+        .filter(l => l.date !== today)
+        .sort((a: any, b: any) => b.date.localeCompare(a.date));
       
       if (prevLogs.length === 0) {
         toast.error("No previous registry found for this subdivision.");

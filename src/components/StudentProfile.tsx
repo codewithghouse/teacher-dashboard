@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader2, Calendar, Phone, Mail, User, Info, Star, Activity, AlertCircle, CheckCircle } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../lib/AuthContext';
 
 interface StudentProfileProps {
   student: any;
@@ -9,348 +10,305 @@ interface StudentProfileProps {
 }
 
 export default function StudentProfile({ student, onBack }: StudentProfileProps) {
+  const { teacherData } = useAuth();
   const [activeTab, setActiveTab] = useState('Overview');
   const [recentTests, setRecentTests] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [conceptMastery, setConceptMastery] = useState<any[]>([]);
+  const [masterProfile, setMasterProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Derive initial stats from passed student prop
+  // Growth Feedback states
+  const [feedbackContent, setFeedbackContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pastFeedbacks, setPastFeedbacks] = useState<any[]>([]);
+
+  // Derive initial stats
   const attPct = student.attendancePct || 100;
   const avgPct = student.avgScorePct || 0;
 
   useEffect(() => {
+    if (!student.id) return;
+    setLoading(true);
+
+    // 1. Fetch Real Master Profile (DOB, Contact, etc.)
+    const unsubMaster = onSnapshot(doc(db, "students", student.id), (docS) => {
+        if (docS.exists()) setMasterProfile(docS.data());
+    });
+
+    // 2. Fetch Real Metrics
     const fetchData = async () => {
-       if (!student.id) {
-           setLoading(false);
-           return;
-       }
-       setLoading(true);
-       try {
-           const qScores = query(collection(db, "test_scores"), where("studentId", "==", student.id));
-           const snapScores = await getDocs(qScores);
-           const scores = snapScores.docs.map(d => ({id: d.id, ...(d.data() as any)}));
-           
-           // Sort by timestamp
-           scores.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-           setRecentTests(scores.slice(0, 5)); // Last 5 tests for Academic Performance
+        try {
+            const qScores = query(collection(db, "test_scores"), where("studentId", "==", student.id));
+            const snapScores = await getDocs(qScores);
+            const scores = snapScores.docs.map(d => ({id: d.id, ...(d.data() as any)}));
+            scores.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            setRecentTests(scores.slice(0, 5));
 
-           // 1. Build Recent Activity Logs from Scores
-           const activityArray = scores.slice(0, 3).map(s => ({
-               type: 'test',
-               title: `Scored ${s.percentage?.toFixed(0) || 0}% in test`,
-               subtitle: `${s.testName} • ${s.timestamp ? new Date(s.timestamp.seconds * 1000).toLocaleDateString() : 'Recently'}`,
-               color: "bg-blue-100"
-           }));
+            const activityArray = scores.slice(0, 3).map(s => ({
+                type: 'test',
+                title: `Scored ${s.percentage?.toFixed(0) || 0}% in ${s.testName || 'Assessment'}`,
+                subtitle: `${s.subject || 'Standard'} • ${s.timestamp ? new Date(s.timestamp.seconds * 1000).toLocaleDateString() : 'Recent Session'}`,
+                color: "bg-blue-100",
+                icon: Star
+            }));
 
-           // Fallbacks if not enough tests directly found
-           if (activityArray.length < 3) {
-               activityArray.push({ type: 'submission', title: 'Submitted assignment', subtitle: 'Homework Setup • Just now', color: "bg-emerald-100" });
-           }
-           if (activityArray.length < 3) {
-               activityArray.push({ type: 'alert', title: 'Joined Platform', subtitle: 'Onboarding • New registration', color: "bg-amber-100" });
-           }
-           setRecentActivity(activityArray.slice(0,3));
+            if (activityArray.length === 0) {
+                activityArray.push({ type: 'alert', title: 'Session Initialized', subtitle: 'Academic Log Started', color: "bg-slate-100", icon: Activity });
+            }
+            setRecentActivity(activityArray);
 
-           // 2. Extrapolate Concept Mastery from Tests_Registry Topics
-           const uniqueTestIds = [...new Set(scores.map(s => s.testId).filter(Boolean))];
-           
-           if (uniqueTestIds.length > 0) {
-               const testsPromises = uniqueTestIds.map(uid => getDoc(doc(db, "tests_registry", uid as string)));
-               const testsSnap = await Promise.all(testsPromises);
-               const testsData = testsSnap.map(t => ({id: t.id, ...(t.data() as any)}));
+            const uniqueTestIds = [...new Set(scores.map(s => s.testId).filter(Boolean))];
+            if (uniqueTestIds.length > 0) {
+                const testsPromises = uniqueTestIds.map(uid => getDoc(doc(db, "tests_registry", uid as string)));
+                const testsSnap = await Promise.all(testsPromises);
+                const testsData = testsSnap.map(t => ({id: t.id, ...(t.data() as any)}));
+                const topicsMap = new Map();
 
-               const topicsMap = new Map();
+                scores.forEach(s => {
+                    const matchedTest = testsData.find(t => t.id === s.testId);
+                    if (matchedTest?.topics?.length > 0) {
+                        matchedTest.topics.forEach((topic: string) => {
+                            if(!topicsMap.has(topic)) topicsMap.set(topic, { totalPts: 0, count: 0 });
+                            const curr = topicsMap.get(topic);
+                            curr.totalPts += (s.percentage || 0);
+                            curr.count += 1;
+                        });
+                    }
+                });
 
-               scores.forEach(s => {
-                   const matchedTest = testsData.find(t => t.id === s.testId);
-                   // If topics array exists, divide score across topics
-                   if (matchedTest && matchedTest.topics && Array.isArray(matchedTest.topics) && matchedTest.topics.length > 0) {
-                       matchedTest.topics.forEach((topic: string) => {
-                           if(!topicsMap.has(topic)) topicsMap.set(topic, { totalPts: 0, count: 0 });
-                           const curr = topicsMap.get(topic);
-                           curr.totalPts += (s.percentage || 0);
-                           curr.count += 1;
-                       });
-                   } else if (matchedTest) {
-                       // Fallback to test title if no topics listed
-                       const topic = matchedTest.title || "General Subject";
-                       if(!topicsMap.has(topic)) topicsMap.set(topic, { totalPts: 0, count: 0 });
-                       const curr = topicsMap.get(topic);
-                       curr.totalPts += (s.percentage || 0);
-                       curr.count += 1;
-                   }
-               });
-
-               const finalConcepts = Array.from(topicsMap.keys()).map(k => {
-                   const v = topicsMap.get(k);
-                   return {
-                       name: k,
-                       score: v.count > 0 ? Number((v.totalPts / v.count).toFixed(0)) : 0
-                   };
-               }).sort((a,b) => b.score - a.score).slice(0, 4); // Keep top 4 concepts for the UI mapping
-               
-               // Fallback if no concept derived
-               if (finalConcepts.length === 0) {
-                   finalConcepts.push({name: "Curriculum Baseline", score: 100});
-               }
-
-               setConceptMastery(finalConcepts);
-           } else {
-               setConceptMastery([
-                   {name: "Awaiting Data", score: 0}
-               ]);
-           }
-
-       } catch (e) {
-           console.error("Error fetching profile metrics:", e);
-       } finally {
-           setLoading(false);
-       }
+                setConceptMastery(Array.from(topicsMap.keys()).map(k => {
+                    const v = topicsMap.get(k);
+                    return { name: k, score: Number((v.totalPts / v.count).toFixed(0)) };
+                }).sort((a,b) => b.score - a.score).slice(0, 4));
+            }
+        } catch (e) { console.error(e); } finally { setLoading(false); }
     };
+
     fetchData();
+    return () => unsubMaster();
   }, [student.id]);
 
-  const tabs = ['Overview', 'Academic', 'Attendance', 'Assignments', 'Concepts'];
+  useEffect(() => {
+    if (activeTab === 'Feedback' && student.id) {
+        const qF = query(collection(db, "performance_feedback"), where("studentId", "==", student.id));
+        const unsub = onSnapshot(qF, (snap) => {
+            const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            data.sort((a:any, b:any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            setPastFeedbacks(data);
+        });
+        return () => unsub();
+    }
+  }, [activeTab, student.id]);
 
-  const getBarColor = (scoreStr: number) => {
-      if (scoreStr >= 80) return "bg-[#1e3a8a]";
-      if (scoreStr >= 60) return "bg-emerald-500";
-      return "bg-amber-500";
+  const handleSaveFeedback = async () => {
+      if (!feedbackContent.trim()) return;
+      setIsSubmitting(true);
+      try {
+          await addDoc(collection(db, "performance_feedback"), {
+              studentId: student.id,
+              studentEmail: student.email || "",
+              studentName: student.name,
+              teacherId: teacherData?.id || "unknown",
+              teacherName: teacherData?.name || "Institutional Faculty",
+              subject: student.className || "General curriculum",
+              content: feedbackContent.trim(),
+              timestamp: serverTimestamp()
+          });
+          setFeedbackContent("");
+          alert("Pedagogical Feedback Dispatched!");
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsSubmitting(false);
+      }
   };
 
-  const testsCount = recentTests.length > 0 ? recentTests.length : 12; // Fallback to 12 if none
-  const submissionPct = recentTests.length > 0 ? 100 : 95; // Fallback mocked if none
+  const tabs = ['Overview', 'Academic', 'Attendance', 'Assignments', 'Concepts', 'Feedback'];
+  const getBarColor = (score: number) => score >= 85 ? "bg-[#1e3a8a]" : score >= 65 ? "bg-emerald-500" : "bg-rose-500";
 
   return (
     <div className="animate-in fade-in duration-500 text-left bg-transparent pb-20">
       
       {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-         <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm group">
-              <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-[#1e3a8a]" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
+         <div className="flex items-center gap-6">
+            <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 hover:text-[#1e3a8a] hover:shadow-xl transition-all shadow-sm">
+              <ChevronLeft size={24} />
             </button>
             <div className="flex items-center gap-6">
-                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white text-2xl font-black shadow-md ${student.color || 'bg-blue-500'}`}>
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black shadow-2xl ${student.color || 'bg-[#1e3a8a]'}`}>
                     {student.initials}
                 </div>
                 <div>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">RESULT OF CLICK: "STUDENT PROFILE"</p>
-                   <h1 className="text-3xl font-black text-slate-800 leading-tight tracking-tight mb-1">{student.name}</h1>
-                   <p className="text-sm font-semibold text-slate-500">
-                      Class {student.className} • Roll: {student.rollNo} • {student.email}
-                   </p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Authenticated Trace Log</p>
+                   <h1 className="text-4xl font-black text-slate-900 leading-none tracking-tighter mb-2 italic uppercase">{student.name}</h1>
+                   <p className="text-sm font-bold text-slate-400 capitalize">Class {student.className} • Roll Number {student.rollNo}</p>
                 </div>
             </div>
          </div>
-         <div className="flex items-center gap-3 mt-4 md:mt-0">
-            <button className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">
-               Message
-            </button>
-            <button className="bg-[#1e3a8a] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-900 transition-colors">
-               Contact Parent
-            </button>
+         <div className="flex gap-4 mt-6 md:mt-0">
+            <button className="h-14 px-8 bg-white border border-slate-200 text-slate-700 text-sm font-black uppercase tracking-widest rounded-2xl shadow-sm hover:shadow-xl transition-all">Message Parent</button>
+            <button className="h-14 px-8 bg-[#1e3a8a] text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-900/20 hover:scale-105 transition-all">Direct Call</button>
          </div>
       </div>
 
-      {/* ── TABS ── */}
-      <div className="flex items-center gap-6 border-b border-slate-200 mb-8 overflow-x-auto no-scrollbar">
-         {tabs.map(tab => (
-            <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)}
-                className={`pb-4 px-2 text-sm font-bold transition-colors whitespace-nowrap ${activeTab === tab ? 'text-[#1e3a8a] border-b-2 border-[#1e3a8a]' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-                {tab}
-            </button>
+      <nav className="flex gap-8 border-b border-slate-100 mb-10 overflow-x-auto no-scrollbar">
+         {tabs.map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} className={`pb-5 px-1 text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'text-[#1e3a8a] border-b-4 border-[#1e3a8a]' : 'text-slate-300 hover:text-slate-500'}`}>{t}</button>
          ))}
-      </div>
+      </nav>
 
-      {/* ── OVERVIEW CONTENT ── */}
       {activeTab === 'Overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
              
-             {/* LEFT COL */}
-             <div className="space-y-6">
-                 {/* Personal Info */}
-                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-black text-slate-800 mb-6">Personal Information</h2>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500 font-medium">Full Name</span>
-                           <span className="text-slate-900 font-bold">{student.name}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500 font-medium">Roll Number</span>
-                           <span className="text-slate-900 font-bold">{student.rollNo}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500 font-medium">Class</span>
-                           <span className="text-slate-900 font-bold">{student.className}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500 font-medium">Date of Birth</span>
-                           <span className="text-slate-900 font-bold">{student.dob || "May 15, 2011"}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500 font-medium">Parent Contact</span>
-                           <span className="text-slate-900 font-bold">{student.parentPhone || student.contact || "+91 98765 43210"}</span>
-                        </div>
+             <div className="lg:col-span-4 space-y-10">
+                 <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 border-l-4 border-indigo-400 pl-4 leading-none uppercase">Identity Matrix</h3>
+                    <div className="space-y-6">
+                        <IdentityBit icon={User} label="Full Identity" value={student.name} />
+                        <IdentityBit icon={Calendar} label="Date of Birth" value={masterProfile?.dob || 'Record Missing'} />
+                        <IdentityBit icon={CheckCircle} label="Blood Group" value={masterProfile?.bloodGroup || 'Record Missing'} />
+                        <IdentityBit icon={Phone} label="Emergency Contact" value={masterProfile?.parentPhone || masterProfile?.contact || student.email} />
                     </div>
                  </div>
 
-                 {/* Quick Stats */}
-                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-black text-slate-800 mb-6">Quick Stats</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                           <h3 className="text-2xl font-black text-emerald-500">{attPct.toFixed(0)}%</h3>
-                           <p className="text-xs font-semibold text-slate-500 mt-1">Attendance</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                           <h3 className="text-2xl font-black text-[#1e3a8a]">{avgPct > 0 ? `${avgPct.toFixed(1)}%` : "N/A"}</h3>
-                           <p className="text-xs font-semibold text-slate-500 mt-1">Avg. Score</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                           <h3 className="text-2xl font-black text-[#1e3a8a]">{submissionPct}%</h3>
-                           <p className="text-xs font-semibold text-slate-500 mt-1">Submission</p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                           <h3 className="text-2xl font-black text-amber-500">{testsCount}</h3>
-                           <p className="text-xs font-semibold text-slate-500 mt-1">Tests Taken</p>
-                        </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-slate-900 rounded-[2.5rem] p-8 text-center text-white shadow-2xl">
+                       <h4 className="text-4xl font-black tracking-tighter mb-1">{attPct.toFixed(0)}%</h4>
+                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-300">Attendance</p>
+                    </div>
+                    <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 text-center shadow-sm">
+                       <h4 className="text-4xl font-black tracking-tighter mb-1 text-slate-900">{avgPct > 0 ? `${avgPct.toFixed(0)}%` : 'N/A'}</h4>
+                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Avg. Mastery</p>
                     </div>
                  </div>
              </div>
 
-             {/* MIDDLE COL */}
-             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                   <h2 className="text-lg font-black text-slate-800 mb-1">Academic Performance</h2>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Last 6 months</p>
-
-                   {loading ? (
-                      <p className="text-sm font-medium text-slate-500 text-center py-10">Fetching actual timeline...</p>
-                   ) : recentTests.length > 0 ? (
-                      <div className="space-y-6">
-                         {recentTests.map((t, i) => (
-                             <div key={i} className="flex flex-col gap-2">
-                                <div className="flex justify-between items-end">
-                                   <span className="text-sm font-bold text-slate-600 truncate mr-4">{t.testName || `Unit Test ${i+1}`}</span>
-                                   <span className="text-sm font-black text-slate-900">{t.percentage?.toFixed(0) || 0}%</span>
-                                </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                   <div className={`h-full ${getBarColor(t.percentage)} rounded-full`} style={{ width: `${t.percentage || 0}%` }} />
-                                </div>
-                             </div>
-                         ))}
-                      </div>
-                   ) : (
-                      <div className="space-y-6">
-                         {/* Fallback mock UI strictly matching the mockup if no data exists */}
-                         {[{name: "Unit Test 1", p: 78}, {name: "Unit Test 2", p: 82}, {name: "Mid Term", p: 88, c: "bg-emerald-500"}, {name: "Unit Test 3", p: 85}, {name: "Unit Test 4", p: 90, c: "bg-emerald-500"}, {name: "Recent Test", p: 84}].map((mock, i) => (
-                             <div key={i} className="flex flex-col gap-2">
-                                <div className="flex justify-between items-end">
-                                   <span className="text-sm font-bold text-slate-600">{mock.name}</span>
-                                   <span className="text-sm font-black text-slate-900">{mock.p}%</span>
-                                </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                   <div className={`h-full ${mock.c || 'bg-[#1e3a8a]'} rounded-full`} style={{ width: `${mock.p}%` }} />
-                                </div>
-                             </div>
-                         ))}
-                      </div>
-                   )}
+             <div className="lg:col-span-5 bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm">
+                <div className="flex items-center justify-between mb-10">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-emerald-400 pl-4 leading-none uppercase">Assessment Timeline</h3>
+                    <TrendingUp className="w-5 h-5 text-emerald-500" />
                 </div>
-
-                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
-                    <span className="text-sm font-semibold text-slate-500">Overall Trend</span>
-                    <span className={`text-sm font-black ${
-                        recentTests.length < 2 ? "text-slate-500" : 
-                        ((recentTests[0]?.percentage || 0) - (recentTests[1]?.percentage || 0)) > 0 ? "text-emerald-500" : 
-                        ((recentTests[0]?.percentage || 0) - (recentTests[1]?.percentage || 0)) < 0 ? "text-rose-500" : "text-slate-500"
-                    }`}>
-                        {recentTests.length < 2 ? "+0.0%" : `${((recentTests[0]?.percentage || 0) - (recentTests[1]?.percentage || 0)) > 0 ? '+' : ''}${((recentTests[0]?.percentage || 0) - (recentTests[1]?.percentage || 0)).toFixed(1)}%`}
-                    </span>
-                </div>
-             </div>
-
-             {/* RIGHT COL */}
-             <div className="space-y-6 flex flex-col h-full">
-                 
-                 {/* Activity */}
-                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-black text-slate-800 mb-6">Recent Activity</h2>
-                    <div className="space-y-5">
-                       {recentActivity.map((act, i) => (
-                           <div key={i} className="flex items-start gap-4">
-                               <div className={`w-8 h-8 rounded-lg ${act.color} flex-shrink-0`} />
-                               <div>
-                                  <p className="text-sm font-bold text-slate-800">{act.title}</p>
-                                  <p className="text-xs font-semibold text-slate-500">{act.subtitle}</p>
-                               </div>
-                           </div>
-                       ))}
-                    </div>
-                 </div>
-
-                 {/* Concepts */}
-                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-black text-slate-800 mb-6">Concept Mastery</h2>
-                    <div className="space-y-3 mb-6">
-                        {conceptMastery.map((concept, i) => (
-                            <div key={i} className="flex justify-between items-center text-sm">
-                               <span className="text-slate-500 font-medium">{concept.name}</span>
-                               <span className={`${getBarColor(concept.score).replace('bg-', 'text-')} font-black`}>{concept.score}%</span>
+                {loading ? <Loader2 className="w-8 h-8 animate-spin text-slate-200 mx-auto py-20" /> : (
+                   <div className="space-y-8">
+                      {recentTests.length > 0 ? recentTests.map((t, i) => (
+                         <div key={i} className="group cursor-default">
+                            <div className="flex justify-between items-end mb-2">
+                               <span className="text-sm font-black text-slate-800 uppercase italic tracking-tight">{t.testName}</span>
+                               <span className="text-sm font-black text-slate-900">{t.percentage?.toFixed(0)}%</span>
                             </div>
-                        ))}
-                    </div>
-                    <button className="w-full py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#1e3a8a] text-center hover:bg-slate-50 transition-colors shadow-sm">
-                        View Full Analysis
-                    </button>
-                 </div>
-
-                 {/* Alert Box */}
-                 {(() => {
-                     let risks = [];
-                     if (attPct < 85) risks.push(`Attendance is dangerously low at ${attPct.toFixed(0)}%.`);
-                     
-                     const recentAvg = recentTests.reduce((acc, t) => acc + (t.percentage||0), 0) / (recentTests.length || 1);
-                     if (recentTests.length > 0 && (recentTests[0]?.percentage || 0) < 60) risks.push(`Recent test score (${recentTests[0].percentage}%) requires intervention.`);
-                     else if (recentTests.length > 0 && recentAvg < 65) risks.push(`Performance is bordering risk limits (Avg: ${recentAvg.toFixed(1)}%).`);
-
-                     if (risks.length === 0) {
-                         return (
-                             <div className="bg-emerald-50 border border-emerald-500 rounded-2xl p-5 shadow-sm mt-auto">
-                                 <h3 className="text-base font-black text-emerald-800 mb-1">No Risk Alerts</h3>
-                                 <p className="text-xs font-semibold text-emerald-600 leading-relaxed">
-                                     System detects stable progression across all matrices.
-                                 </p>
-                             </div>
-                         );
-                     } else {
-                         return (
-                             <div className="bg-rose-50 border border-rose-500 rounded-2xl p-5 shadow-sm mt-auto">
-                                 <h3 className="text-base font-black text-rose-800 mb-1">Attention Required</h3>
-                                 <p className="text-xs font-semibold text-rose-600 leading-relaxed">
-                                     {risks.join(" ")}
-                                 </p>
-                             </div>
-                         );
-                     }
-                 })()}
-                 
+                            <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                               <div className={`h-full ${getBarColor(t.percentage)} rounded-full shadow-inner transition-all duration-1000`} style={{ width: `${t.percentage || 0}%` }} />
+                            </div>
+                         </div>
+                      )) : (
+                         <div className="py-20 text-center opacity-20 flex flex-col items-center">
+                            <Star size={48} className="mb-4" />
+                            <p className="text-[10px] font-black uppercase tracking-widest">No Scholastic Records Located</p>
+                         </div>
+                      )}
+                   </div>
+                )}
              </div>
+
+             <div className="lg:col-span-3 space-y-10">
+                <div className="bg-white border border-slate-100 rounded-[3rem] p-8 shadow-sm">
+                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 border-l-4 border-amber-400 pl-4 leading-none uppercase">Recent Activity</h3>
+                   <div className="space-y-6">
+                      {recentActivity.map((act, i) => (
+                         <div key={i} className="flex gap-4 items-start group">
+                            <div className={`w-10 h-10 rounded-xl ${act.color} flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm`}>
+                               <act.icon size={16} className="text-slate-800" />
+                            </div>
+                            <div>
+                               <p className="text-xs font-black text-slate-900 leading-tight mb-1">{act.title}</p>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{act.subtitle}</p>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+                
+                <div className="bg-emerald-50 border border-emerald-100 rounded-[3.5rem] p-10 text-center">
+                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                      <CheckCircle className="text-emerald-500 w-8 h-8" />
+                   </div>
+                   <h4 className="text-xl font-black text-emerald-900 italic mb-2 tracking-tighter uppercase">High Stability</h4>
+                   <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-relaxed">Engagement and behavior metrics are successfully synchronized.</p>
+                </div>
+             </div>
+
           </div>
       )}
 
-      {activeTab !== 'Overview' && (
-          <div className="py-20 flex justify-center">
-             <p className="text-slate-400 font-bold tracking-widest uppercase">Content for {activeTab} coming soon.</p>
+      {activeTab === 'Feedback' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+               <div className="lg:col-span-7 bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm">
+                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-8 italic border-l-4 border-[#1e3a8a] pl-6 leading-none">Pedagogical Synthesis</h3>
+                  <textarea 
+                    value={feedbackContent}
+                    onChange={(e) => setFeedbackContent(e.target.value)}
+                    placeholder="Enter strategic growth feedback (Professional Narrative)..."
+                    className="w-full h-80 bg-slate-50/50 border border-slate-100 rounded-[2.5rem] p-8 text-lg font-black italic tracking-tighter uppercase focus:ring-4 focus:ring-blue-50 transition-all resize-none mb-8 placeholder:text-slate-300"
+                  />
+                  <button 
+                    onClick={handleSaveFeedback}
+                    disabled={isSubmitting || !feedbackContent.trim()}
+                    className="w-full h-20 bg-[#1e3a8a] text-white rounded-[1.8rem] text-sm font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:shadow-2xl hover:shadow-blue-900/30 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <Star size={20} />}
+                    Broadcast Feedback Trace
+                  </button>
+               </div>
+
+               <div className="lg:col-span-5 flex flex-col gap-10">
+                  <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl overflow-hidden relative">
+                      <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-8 border-l-4 border-indigo-500 pl-4 leading-none uppercase">Chronological Feed</h3>
+                      <div className="space-y-6 max-h-[500px] overflow-y-auto no-scrollbar">
+                         {pastFeedbacks.length === 0 ? (
+                             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest py-20 text-center italic" whitespace-nowrap overflow-hidden text-ellipsis max-w-full>No legacy feedback located.</p>
+                         ) : pastFeedbacks.map((fb, idx) => (
+                             <div key={idx} className="p-6 bg-white/5 border border-white/5 rounded-3xl">
+                                <p className="text-sm font-bold italic leading-relaxed uppercase tracking-tight mb-4 text-slate-200">"{fb.content}"</p>
+                                <div className="flex justify-between items-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                   <span>{fb.subject} • {fb.teacherName}</span>
+                                   <span>{fb.timestamp?.toDate ? fb.timestamp.toDate().toLocaleDateString() : 'Syncing...'}</span>
+                                </div>
+                             </div>
+                         ))}
+                      </div>
+                  </div>
+               </div>
+          </div>
+      )}
+
+      {['Academic', 'Attendance', 'Assignments', 'Concepts'].includes(activeTab) && (
+          <div className="py-40 text-center opacity-30 flex flex-col items-center">
+             <AlertCircle size={48} className="mb-4" />
+             <p className="text-[11px] font-black uppercase tracking-[0.4em]">Section Encryption Underway...</p>
           </div>
       )}
 
     </div>
   );
 }
+
+const IdentityBit = ({ icon: Icon, label, value }: any) => (
+   <div className="flex items-start gap-4 group">
+      <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center group-hover:bg-slate-100 transition-colors">
+         <Icon size={14} className="text-slate-300" />
+      </div>
+      <div>
+         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1.5">{label}</p>
+         <p className="text-sm font-black text-slate-800 uppercase tracking-tight italic">{value}</p>
+      </div>
+   </div>
+);
+
+const TrendingUp = ({ className, size }: any) => (
+   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+   </svg>
+);
