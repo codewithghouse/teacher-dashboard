@@ -119,6 +119,18 @@ const Assignments = () => {
     }
   };
 
+  const handleDeleteAssignment = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      try {
+        await deleteDoc(doc(db, "assignments", id));
+        toast.success("Assignment deleted successfully.");
+      } catch (error: any) {
+        console.error("Error deleting assignment:", error);
+        toast.error("Failed to delete assignment.");
+      }
+    }
+  };
+
   const getStatusStyle = (status: string) => {
       if (status.includes("To Grade")) return "bg-amber-50 text-amber-600 border-amber-100";
       if (status === "Fully Submitted") return "bg-emerald-50 text-emerald-600 border-emerald-100";
@@ -244,7 +256,12 @@ const Assignments = () => {
                                     Grade
                                   </button>
                                   <button className="px-4 py-2 text-[10px] font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">Edit</button>
-                                  <button className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
+                                  <button 
+                                    onClick={() => handleDeleteAssignment(assign.id, assign.title)}
+                                    className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                </div>
                             </td>
                          </tr>

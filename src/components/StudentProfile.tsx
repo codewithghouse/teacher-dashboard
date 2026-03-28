@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Loader2, Calendar, Phone, Mail, User, Info, Star, Activity, AlertCircle, CheckCircle } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { 
+  ChevronLeft, Loader2, Calendar, Phone, Mail, User, Info, Star, Activity, 
+  AlertCircle, CheckCircle, Trophy, AlertTriangle, Clock, BookOpen, 
+  HandHeart, Lightbulb 
+} from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../lib/AuthContext';
 
 interface StudentProfileProps {
@@ -22,6 +27,13 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
   const [feedbackContent, setFeedbackContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastFeedbacks, setPastFeedbacks] = useState<any[]>([]);
+
+  // Behaviour Note states
+  const [positiveNote, setPositiveNote] = useState("");
+  const [improvementNote, setImprovementNote] = useState("");
+  const [manualRating, setManualRating] = useState(5);
+  const [isSubmittingBehaviour, setIsSubmittingBehaviour] = useState(false);
+  const [pastBehaviours, setPastBehaviours] = useState<any[]>([]);
 
   // Derive initial stats
   const attPct = student.attendancePct || 100;
@@ -99,6 +111,15 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
         });
         return () => unsub();
     }
+    if (activeTab === 'Behaviour' && student.id) {
+        const qB = query(collection(db, "parent_notes"), where("studentId", "==", student.id));
+        const unsub = onSnapshot(qB, (snap) => {
+            const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            data.sort((a:any, b:any) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+            setPastBehaviours(data);
+        });
+        return () => unsub();
+    }
   }, [activeTab, student.id]);
 
   const handleSaveFeedback = async () => {
@@ -124,7 +145,69 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
       }
   };
 
-  const tabs = ['Overview', 'Academic', 'Attendance', 'Assignments', 'Concepts', 'Feedback'];
+  const handleSaveBehaviour = async () => {
+      if (!positiveNote.trim() && !improvementNote.trim()) return;
+      setIsSubmittingBehaviour(true);
+      try {
+          // 1. Save Positive Note if exists
+          if (positiveNote.trim()) {
+              await addDoc(collection(db, "parent_notes"), {
+                  teacherId: teacherData?.id || "unknown",
+                  teacherName: teacherData?.name || "Institutional Faculty",
+                  studentId: student.id, 
+                  studentName: student.name,
+                  parentName: `Parent of ${student.name}`, 
+                  subject: student.className || "General",
+                  content: positiveNote.trim(),
+                  category: "positive",
+                  status: "Sent", 
+                  from: "teacher", 
+                  createdAt: serverTimestamp()
+              });
+          }
+
+          // 2. Save Improvement Note if exists
+          if (improvementNote.trim()) {
+              await addDoc(collection(db, "parent_notes"), {
+                  teacherId: teacherData?.id || "unknown",
+                  teacherName: teacherData?.name || "Institutional Faculty",
+                  studentId: student.id, 
+                  studentName: student.name,
+                  parentName: `Parent of ${student.name}`, 
+                  subject: student.className || "General",
+                  content: improvementNote.trim(),
+                  category: "improvement",
+                  status: "Sent", 
+                  from: "teacher", 
+                  createdAt: serverTimestamp()
+              });
+          }
+
+          // 3. Update Manual Rating in Enrollment
+          const qEnroll = query(
+            collection(db, "enrollments"), 
+            where("studentId", "==", student.id),
+            where("teacherId", "==", teacherData?.id)
+          );
+          const enrollSnap = await getDocs(qEnroll);
+          if (!enrollSnap.empty) {
+            await updateDoc(doc(db, "enrollments", enrollSnap.docs[0].id), {
+              manualBehaviourRating: manualRating,
+              lastBehaviourUpdate: serverTimestamp()
+            });
+          }
+
+          setPositiveNote("");
+          setImprovementNote("");
+          alert("Behaviour Audit Dispatched to Parent Dashboard!");
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsSubmittingBehaviour(false);
+      }
+  };
+
+  const tabs = ['Overview', 'Academic', 'Attendance', 'Assignments', 'Concepts', 'Feedback', 'Behaviour'];
   const getBarColor = (score: number) => score >= 85 ? "bg-[#1e3a8a]" : score >= 65 ? "bg-emerald-500" : "bg-rose-500";
 
   return (
@@ -267,7 +350,7 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
                       <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-8 border-l-4 border-indigo-500 pl-4 leading-none uppercase">Chronological Feed</h3>
                       <div className="space-y-6 max-h-[500px] overflow-y-auto no-scrollbar">
                          {pastFeedbacks.length === 0 ? (
-                             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest py-20 text-center italic" whitespace-nowrap overflow-hidden text-ellipsis max-w-full>No legacy feedback located.</p>
+                             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest py-20 text-center italic">No legacy feedback located.</p>
                          ) : pastFeedbacks.map((fb, idx) => (
                              <div key={idx} className="p-6 bg-white/5 border border-white/5 rounded-3xl">
                                 <p className="text-sm font-bold italic leading-relaxed uppercase tracking-tight mb-4 text-slate-200">"{fb.content}"</p>
@@ -282,6 +365,189 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
                </div>
           </div>
       )}
+
+      {activeTab === 'Behaviour' && (() => {
+          const pNotes = pastBehaviours.filter(b => b.category === "positive");
+          const iNotes = pastBehaviours.filter(b => b.category === "improvement");
+          const calcRating = pastBehaviours.length === 0 ? 5.0 : 
+              Math.min(5.0, Math.max(1.0, 5.0 - (iNotes.length * 0.3) + (pNotes.length * 0.1)));
+          const finalRating = manualRating || calcRating;
+
+          // Generate dynamic chart data from real notes
+          const getTrendData = () => {
+             const months: any = {};
+             const now = new Date();
+             for (let i = 4; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const mName = d.toLocaleString('default', { month: 'short' });
+                months[mName] = { m: mName, pos: 0, improv: 0, count: 0 };
+             }
+
+             pastBehaviours.forEach(n => {
+                const date = n.createdAt?.toDate ? n.createdAt.toDate() : new Date();
+                const mName = date.toLocaleString('default', { month: 'short' });
+                if (months[mName]) {
+                   if (n.category === "positive") months[mName].pos++;
+                   else months[mName].improv++;
+                   months[mName].count++;
+                }
+             });
+
+             return Object.values(months).map((data: any) => ({
+                m: data.m,
+                score: data.count === 0 ? 5.0 : 
+                   Math.min(5.0, Math.max(1.0, 5.0 - (data.improv * 0.3) + (data.pos * 0.1)))
+             }));
+          };
+
+          const tData = getTrendData();
+
+          return (
+          <div className="flex flex-col gap-10">
+               {/* TOP RATING SELECTOR */}
+               <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-[2rem] bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">
+                        <Star size={32} fill={finalRating > 0 ? "currentColor" : "none"} />
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-black text-slate-800 tracking-tighter italic uppercase">Manual Behaviour Rating</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Status: {manualRating ? "MANUAL OVERRIDE" : "ACTIVE AUDIT"}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button 
+                        key={star}
+                        onClick={() => setManualRating(star)}
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${finalRating >= star ? 'bg-amber-400 text-white shadow-lg shadow-amber-200 ring-4 ring-amber-50' : 'bg-slate-50 text-slate-300 hover:bg-slate-100'}`}
+                      >
+                        <Star size={24} fill={finalRating >= star ? "currentColor" : "none"} />
+                      </button>
+                    ))}
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                   {/* POSITIVE INPUT */}
+                   <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-100/30 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                      <div className="relative z-10">
+                         <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                               <Trophy size={20} />
+                            </div>
+                            <p className="text-sm font-black text-slate-800 uppercase italic tracking-tight">Positive Highlights</p>
+                         </div>
+                         <textarea 
+                           value={positiveNote}
+                           onChange={(e) => setPositiveNote(e.target.value)}
+                           placeholder="What went well? (e.g. 'Highly engaged in group project')"
+                           className="w-full h-48 bg-slate-50 border border-slate-100 rounded-[2rem] p-8 text-lg font-black italic tracking-tighter uppercase focus:ring-8 focus:ring-emerald-50 transition-all resize-none mb-4 placeholder:text-slate-200 outline-none"
+                         />
+                      </div>
+                   </div>
+
+                   {/* IMPROVEMENT INPUT */}
+                   <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-100/30 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                      <div className="relative z-10">
+                         <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                               <AlertTriangle size={20} />
+                            </div>
+                            <p className="text-sm font-black text-slate-800 uppercase italic tracking-tight">Areas for Improvement</p>
+                         </div>
+                         <textarea 
+                           value={improvementNote}
+                           onChange={(e) => setImprovementNote(e.target.value)}
+                           placeholder="What needs focus? (e.g. 'Needs more focus during labs')"
+                           className="w-full h-48 bg-slate-50 border border-slate-100 rounded-[2rem] p-8 text-lg font-black italic tracking-tighter uppercase focus:ring-8 focus:ring-amber-50 transition-all resize-none mb-4 placeholder:text-slate-200 outline-none"
+                         />
+                      </div>
+                   </div>
+               </div>
+
+               <button 
+                  onClick={handleSaveBehaviour}
+                  disabled={isSubmittingBehaviour || (!positiveNote.trim() && !improvementNote.trim())}
+                  className="w-full h-24 bg-slate-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:shadow-2xl hover:scale-[1.01] transition-all active:scale-95 disabled:opacity-50"
+               >
+                  {isSubmittingBehaviour ? <Loader2 className="animate-spin" /> : <Star size={24} />}
+                  SYNC BEHAVIOUR AUDIT TO PARENT DASHBOARD
+               </button>
+
+               {/* BEHAVIOR TREND CHART */}
+               <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
+                  <div className="flex items-center gap-4 mb-10">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                      <TrendingUp size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800 uppercase italic tracking-tight">Behavior Trend</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Live Analytics from institutional audit traces</p>
+                    </div>
+                  </div>
+                  
+                  <div className="h-[300px] w-full mt-4">
+                     <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={tData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                           <defs>
+                              <linearGradient id="colorScoreTeacher" x1="0" y1="0" x2="0" y2="1">
+                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              </linearGradient>
+                           </defs>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                           <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 800, fill: '#cbd5e1' }} dy={10} />
+                           <YAxis domain={[3.5, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 800, fill: '#cbd5e1' }} dx={-10} />
+                           <Tooltip 
+                              contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', fontSize: '10px' }} 
+                              labelStyle={{ color: '#64748b', marginBottom: '4px' }}
+                           />
+                           <Area type="monotone" dataKey="score" stroke="#10b981" fillOpacity={1} fill="url(#colorScoreTeacher)" strokeWidth={4} />
+                        </AreaChart>
+                     </ResponsiveContainer>
+                  </div>
+               </div>
+
+               <div className="bg-slate-900 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10">
+                     <Star size={100} className="rotate-12" />
+                  </div>
+                  
+                  <div className="relative z-10">
+                     <div className="flex items-center gap-4 mb-10 pb-6 border-b border-white/5">
+                        <Clock className="w-6 h-6 text-emerald-400" />
+                        <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none">AUDIT LOG ARCHIVE</h3>
+                     </div>
+                     
+                     <div className="space-y-6 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                        {pastBehaviours.length === 0 ? (
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest py-10 text-center italic">No behavioural traces located.</p>
+                        ) : pastBehaviours.map((b, idx) => {
+                            const isImprov = b.category === "improvement" || (b.content || "").toLowerCase().includes("late") || (b.content || "").toLowerCase().includes("miss");
+                            return (
+                               <div key={idx} className={`p-6 bg-white/5 border border-white/5 rounded-[2rem] group hover:bg-white/10 transition-all ${isImprov ? 'border-amber-500/10 hover:border-amber-500/30' : 'border-emerald-500/10 hover:border-emerald-500/30'}`}>
+                                  <div className="flex items-start gap-5">
+                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isImprov ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                        {isImprov ? <AlertTriangle size={18} /> : <Trophy size={18} />}
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                        <p className={`text-[14px] font-black italic leading-snug uppercase tracking-tight mb-3 ${isImprov ? 'text-amber-100' : 'text-emerald-100'}`}>"{b.content}"</p>
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString() : 'Syncing...'}</span>
+                                     </div>
+                                  </div>
+                               </div>
+                            );
+                        })}
+                     </div>
+                  </div>
+               </div>
+          </div>
+          );
+      })()}
 
       {['Academic', 'Attendance', 'Assignments', 'Concepts'].includes(activeTab) && (
           <div className="py-40 text-center opacity-30 flex flex-col items-center">
@@ -312,3 +578,4 @@ const TrendingUp = ({ className, size }: any) => (
       <polyline points="16 7 22 7 22 13" />
    </svg>
 );
+

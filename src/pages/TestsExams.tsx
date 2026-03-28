@@ -16,7 +16,7 @@ export default function TestsExams() {
 
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "tests_registry"), where("teacherId", "==", teacherData.id));
+    const q = query(collection(db, "tests"), where("teacherId", "==", teacherData.id));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched: any[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       fetched.sort((a,b) => {

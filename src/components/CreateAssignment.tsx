@@ -4,15 +4,13 @@ import { db, storage } from "../lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AIController } from "../ai/controller/ai-controller";
-import { X, Check, BrainCircuit, Loader2, Sparkles, ChevronLeft, FileText, UploadCloud, Paperclip } from 'lucide-react';
+import { X, Check, Loader2, ChevronLeft, FileText, UploadCloud } from 'lucide-react';
 import { toast } from "sonner";
 
 const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) => {
   const { teacherData } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [topic, setTopic] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -33,47 +31,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
       if (cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
     });
     return () => unsub();
-  }, [teacherData?.id]);
-
-  const handleAIGeneration = async () => {
-     if (!topic) return toast.error("Please enter an academic topic first!");
-     if (!selectedClassId) return toast.error("Please select a target class.");
-     
-     setIsGenerating(true);
-     try {
-       const enrollSnap = await getDocs(query(
-         collection(db, "enrollments"), 
-         where("classId", "==", selectedClassId),
-         where("teacherId", "==", teacherData.id)
-       ));
-       const roster = enrollSnap.docs.map(d => d.data());
-
-       const payload = {
-          topic: topic,
-          target_class: classes.find(c => c.id === selectedClassId)?.name || "Class Group",
-          students_count: roster.length,
-          previous_hw_avg: 72,
-          students_list: roster.map((s: any) => s.studentName).slice(0, 5)
-       };
-
-       const result = await AIController.getAssignmentCreation(payload);
-       if(result.status === "success" && result.data) {
-          setFormData(prev => ({
-             ...prev,
-             title: result.data.generated_assignment?.title || topic,
-             description: result.data.generated_assignment?.description || ""
-          }));
-          toast.success("Curriculum calibrated by AI Brain!");
-       } else {
-          toast.error(result.message || "Brain failed to synthesize curriculum.");
-       }
-     } catch (e) {
-       console.error(e);
-       toast.error("Network synchronization failed during generation.");
-     } finally {
-       setIsGenerating(false);
-     }
-  };
+  }, [teacherData?.id, selectedClassId]);
 
   const handleSave = async () => {
     if (!formData.title || !selectedClassId) return toast.error("Title and Class are required.");
@@ -134,7 +92,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-         <div className="lg:col-span-2 space-y-8">
+         <div className="lg:col-span-3 space-y-8">
             <div className="bg-white border border-slate-50 rounded-[3.5rem] p-12 shadow-sm relative overflow-hidden text-left">
                <h2 className="text-xl font-black text-slate-800 mb-10 flex items-center gap-3">
                   <FileText className="w-6 h-6 text-[#1e3a8a]" /> Academic Context
@@ -230,38 +188,6 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                      </div>
                   </div>
                </div>
-            </div>
-         </div>
-
-         <div className="lg:col-span-1 space-y-10 text-left">
-            <div className="bg-[#1e3a8a] rounded-[3.5rem] p-10 text-white relative overflow-hidden shadow-2xl group flex flex-col h-full">
-                <Sparkles className="absolute -bottom-10 -right-10 w-48 h-48 text-white/5 group-hover:rotate-12 transition-transform duration-1000" />
-                <div className="bg-white/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-10 shadow-inner">
-                    <BrainCircuit className="w-8 h-8 text-indigo-200" />
-                </div>
-                <h3 className="text-2xl font-black leading-tight mb-6 text-left">AI Calibration Logic</h3>
-                <div className="space-y-6 flex-1">
-                   <div className="space-y-4">
-                      <label className="text-[9px] font-black text-blue-200 uppercase tracking-widest ml-1">Focus Topic</label>
-                      <input 
-                         type="text"
-                         value={topic}
-                         onChange={(e) => setTopic(e.target.value)}
-                         className="w-full p-5 bg-white/10 border border-white/5 rounded-2xl text-xs font-black text-white focus:bg-white/20 outline-none transition-all placeholder:text-blue-100/30"
-                         placeholder="Enter topic for AI focus..."
-                      />
-                   </div>
-                   <p className="text-xs font-bold text-blue-100/70 leading-relaxed italic border-l-4 border-indigo-400 pl-6">
-                      AI scans student performance benchmarks to optimize draft questions.
-                   </p>
-                </div>
-                <button 
-                  onClick={handleAIGeneration}
-                  disabled={isGenerating}
-                  className="w-full py-5 bg-white text-[#1e3a8a] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-50 transition-all shadow-xl mt-10 active:scale-95 disabled:opacity-50"
-                >
-                  {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Run AI Calibration"}
-                </button>
             </div>
          </div>
       </div>

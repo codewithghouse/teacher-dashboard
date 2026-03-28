@@ -201,7 +201,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
       await Promise.all(promises);
       
       // Update Test Status
-      await updateDoc(doc(db, "tests_registry", test.id), {
+      await updateDoc(doc(db, "tests", test.id), {
          status: "Completed",
          classAverage: avgPct
       });

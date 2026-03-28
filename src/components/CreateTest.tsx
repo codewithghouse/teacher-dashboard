@@ -38,7 +38,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     if (!teacherData?.id) return;
     const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
     const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const cls = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
       setClasses(cls);
       if (cls.length > 0 && !formData.classId) {
          setFormData(prev => ({ ...prev, classId: cls[0].id, className: cls[0].name }));
@@ -60,8 +60,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
          pdfUrl = await getDownloadURL(fileRef);
       }
 
-      await addDoc(collection(db, "tests_registry"), {
+      await addDoc(collection(db, "tests"), {
         ...formData,
+        testName: formData.title,
+        date: formData.testDate, // Fixed field name for sync
+        category: (formData as any).category || "Unit Test",
         teacherId: teacherData.id,
         status: "Upcoming",
         topics,
@@ -134,8 +137,28 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   </select>
                </div>
                <div>
+                  <label className="block text-sm font-bold text-slate-900 mb-2">Category</label>
+                  <select 
+                     value={(formData as any).category || "Unit Test"} 
+                     onChange={e => setFormData({...formData, category: e.target.value} as any)}
+                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500 appearance-none bg-no-repeat bg-[right_1rem_center]"
+                     style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")' }}
+                  >
+                     <option value="Unit Test">Unit Test (Normal)</option>
+                     <option value="Quiz">Quick Quiz</option>
+                     <option value="Final Exam">Final Examination</option>
+                  </select>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Subject</label>
                   <input type="text" value={formData.subject} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
+               </div>
+               <div>
+                  <label className="block text-sm font-bold text-slate-900 mb-2">Total Marks <span className="text-rose-500">*</span></label>
+                  <input type="number" value={formData.marks} onChange={e=>setFormData({...formData, marks: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
                </div>
             </div>
 
