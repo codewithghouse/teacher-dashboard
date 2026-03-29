@@ -82,16 +82,18 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        // 1. Fetch REAL Performance Data & Gradebook Status
        const enrichedPerformance = await Promise.all(filteredRoster.map(async (student: any) => {
           // Attendance
-          const atndQ = query(collection(db, "attendance"), where("studentId", "==", student.studentId), where("classId", "==", params.classId));
-          const atndSnap = await getDocs(atndQ);
-          const presentCount = atndSnap.docs.filter(d => d.data().status === 'present' || d.data().status === 'late').length;
-          const atndRate = atndSnap.size > 0 ? (presentCount / atndSnap.size) * 100 : 85 + Math.random() * 10;
+          const atndQ = query(collection(db, "attendance"), where("studentId", "==", student.studentId));
+          const atndSnapTotal = await getDocs(atndQ);
+          const atndDocs = atndSnapTotal.docs.filter(d => d.data().classId === params.classId);
+          const presentCount = atndDocs.filter(d => d.data().status === 'present' || d.data().status === 'late').length;
+          const atndRate = atndDocs.length > 0 ? (presentCount / atndDocs.length) * 100 : 85 + Math.random() * 10;
 
           // Gradebook Sync
-          const gScoresQ = query(collection(db, "gradebook_scores"), where("studentId", "==", student.studentId), where("classId", "==", params.classId));
-          const gScoresSnap = await getDocs(gScoresQ);
-          const totalEarned = gScoresSnap.docs.reduce((acc, curr) => acc + (parseFloat(curr.data().mark) || 0), 0);
-          const avgScore = gScoresSnap.size > 0 ? (totalEarned / gScoresSnap.size) : 70 + Math.random() * 25;
+          const gScoresQ = query(collection(db, "gradebook_scores"), where("studentId", "==", student.studentId));
+          const gScoresSnapTotal = await getDocs(gScoresQ);
+          const gScoresDocs = gScoresSnapTotal.docs.filter(d => d.data().classId === params.classId);
+          const totalEarned = gScoresDocs.reduce((acc, curr) => acc + (parseFloat(curr.data().mark) || 0), 0);
+          const avgScore = gScoresDocs.length > 0 ? (totalEarned / gScoresDocs.length) : 70 + Math.random() * 25;
 
           return {
              name: student.studentName,
@@ -123,7 +125,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
               isClassReport: true,
               subject: selectedClass?.subject || "Subject",
               className: selectedClass?.name,
-              aiRemarks: aiResponse?.status === "success" ? aiResponse.data.report_content : "Overall class engagement remains high. Key focus for next cycle: Advanced problem solving.",
+              aiRemarks: aiResponse?.data?.report_content || "Overall class engagement remains high. Academic trends indicate a stable progress path with specialized focus on core conceptual analysis. Key focus for next cycle: Advanced problem solving and deep inquiry.",
               chartData: enrichedPerformance.map(s => ({ 
                 name: s.name.split(' ')[0], 
                 score: s.score,
@@ -138,16 +140,25 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
               fullList: enrichedPerformance
           };
        } else if (report.id === "individual_progress") {
-          const selectedStudent = enrichedPerformance.find(s => roster.find(r => r.studentId === params.studentId)?.studentName === s.name) || enrichedPerformance[0];
-          resultData = { 
-             isIndividual: true,
-             student_name: selectedStudent?.name,
-             score: selectedStudent?.score,
-             atnd: selectedStudent?.attendance,
-             standing: selectedStudent?.standing,
-             ai_remark: `Demonstrating specialized aptitude in ${selectedClass?.name}. Maintains an academic posture of ${selectedStudent?.score}%.`
-          };
-       }
+           const selectedStudent = enrichedPerformance.find(s => roster.find(r => r.studentId === params.studentId)?.studentName === s.name) || enrichedPerformance[0];
+           
+           const aiResponse = await AIController.getIndividualProgressReport({
+              student_name: selectedStudent?.name,
+              subject: selectedClass?.subject || "Curriculum",
+              score: selectedStudent?.score,
+              attendance: selectedStudent?.attendance,
+              standing: selectedStudent?.standing
+           });
+
+           resultData = { 
+              isIndividual: true,
+              student_name: selectedStudent?.name,
+              score: selectedStudent?.score,
+              atnd: selectedStudent?.attendance,
+              standing: selectedStudent?.standing,
+              ai_remark: aiResponse?.data?.report_content || `Demonstrating specialized aptitude in academic studies. Maintains an academic posture of ${selectedStudent?.score}%.`
+           };
+        }
 
        // CLOUD SYNC
        await addDoc(collection(db, "reports"), {
@@ -163,8 +174,27 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           createdAt: serverTimestamp(),
           status: "Verified",
           format: params.format,
-          data: resultData
+          data: resultData,
+          sentToPrincipal: report.id === "class_perf" // Automatically flag for principal viewing
        });
+
+       if (report.id === "class_perf") {
+           // Also add to a dedicated principal stream for faster visibility
+           await addDoc(collection(db, "principal_reports"), {
+               teacherId: teacherData.id,
+               teacherName: teacherData.name,
+               schoolId: teacherData.schoolId || "Default_School",
+               reportType: "CLASS_PERF",
+               title: `${selectedClass?.name} - ${selectedClass?.subject} Performance Report`,
+               content: resultData.aiRemarks,
+               metrics: {
+                  avgScore: classAvg,
+                  attendance: classAtnd
+               },
+               createdAt: serverTimestamp(),
+               readStatus: false
+           });
+       }
 
        setReportResult(resultData);
        toast.success("Intelligence successfully Harvested! Result Sync Active.");
@@ -373,8 +403,13 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
 
                     <div className="bg-[#1e3a8a] border border-blue-900/10 p-10 rounded-[3rem] relative overflow-hidden group shadow-2xl print:bg-slate-50 print:text-slate-900 print:shadow-none print:border-slate-200">
                        <BrainCircuit className="absolute -right-10 -top-10 w-48 h-48 text-white/5 group-hover:rotate-12 transition-all opacity-20 print:hidden"/>
-                       <p className="text-[10px] font-black text-blue-200 uppercase tracking-[0.3em] mb-6 flex items-center gap-3 print:text-slate-400"><Sparkles className="w-5 h-5 text-white animate-pulse print:text-black"/> Professional Subject Observation</p>
-                       <p className="text-base font-bold text-white leading-relaxed italic relative z-10 antialiased print:text-slate-800">"{reportResult.aiRemarks}"</p>
+                   <div className="flex items-center justify-between mb-6">
+                      <p className="text-[10px] font-black text-blue-200 uppercase tracking-[0.3em] flex items-center gap-3 print:text-slate-400"><Sparkles className="w-5 h-5 text-white animate-pulse print:text-black"/> Professional Subject Observation</p>
+                      <div className="px-4 py-1.5 bg-emerald-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 print:hidden">
+                        <CheckCircle2 className="w-3 h-3" /> Synchronized with Principal
+                      </div>
+                   </div>
+                   <p className="text-base font-bold text-white leading-relaxed italic relative z-10 antialiased print:text-slate-800">"{reportResult.aiRemarks}"</p>
                     </div>
                  </div>
                ) : (

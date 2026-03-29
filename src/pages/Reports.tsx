@@ -61,12 +61,13 @@ const Reports = () => {
     if (!teacherData?.id) return;
     const q = query(
       collection(db, "reports"),
-      where("teacherId", "==", teacherData.id),
-      orderBy("createdAt", "desc"),
-      limit(5)
+      where("teacherId", "==", teacherData.id)
     );
     return onSnapshot(q, (snap) => {
-       setHistory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+       const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+       // Client-side sorting to bypass index requirement
+       docs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+       setHistory(docs.slice(0, 5));
     });
   }, [teacherData?.id]);
 

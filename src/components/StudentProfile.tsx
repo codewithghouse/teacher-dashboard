@@ -373,31 +373,65 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
               Math.min(5.0, Math.max(1.0, 5.0 - (iNotes.length * 0.3) + (pNotes.length * 0.1)));
           const finalRating = manualRating || calcRating;
 
-          // Generate dynamic chart data from real notes
+          // Generate dynamic chart data from join date to now
           const getTrendData = () => {
              const months: any = {};
              const now = new Date();
-             for (let i = 4; i >= 0; i--) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const mName = d.toLocaleString('default', { month: 'short' });
-                months[mName] = { m: mName, pos: 0, improv: 0, count: 0 };
+             
+             // 1. Determine Start Date (Join Date)
+             let startDate = new Date(now.getFullYear(), now.getMonth() - 4, 1); // default 5 months
+             
+             const rawJoinDate = masterProfile?.enrolledAt || masterProfile?.createdAt || student?.enrolledAt;
+             if (rawJoinDate) {
+                const jDate = rawJoinDate.toDate ? rawJoinDate.toDate() : new Date(rawJoinDate);
+                // Clamp to not go too far back if data is huge, but usually joining is fine
+                startDate = new Date(jDate.getFullYear(), jDate.getMonth(), 1);
+             } else if (pastBehaviours.length > 0) {
+                // Fallback to first note date
+                const firstNoteDate = pastBehaviours.reduce((earliest, current) => {
+                   const d = current.createdAt?.toDate ? current.createdAt.toDate() : new Date();
+                   return d < earliest ? d : earliest;
+                }, new Date());
+                startDate = new Date(firstNoteDate.getFullYear(), firstNoteDate.getMonth(), 1);
              }
 
+             // 2. Generate all months between start and now
+             let tempDate = new Date(startDate);
+             while (tempDate <= now) {
+                const mName = tempDate.toLocaleString('default', { month: 'short' });
+                const mYear = tempDate.getFullYear().toString().slice(-2);
+                const key = `${mName} ${mYear}`;
+                months[key] = { m: mName, key: key, pos: 0, improv: 0, count: 0, date: new Date(tempDate) };
+                tempDate.setMonth(tempDate.getMonth() + 1);
+             }
+
+             // 3. Populate Data
              pastBehaviours.forEach(n => {
                 const date = n.createdAt?.toDate ? n.createdAt.toDate() : new Date();
                 const mName = date.toLocaleString('default', { month: 'short' });
-                if (months[mName]) {
-                   if (n.category === "positive") months[mName].pos++;
-                   else months[mName].improv++;
-                   months[mName].count++;
+                const mYear = date.getFullYear().toString().slice(-2);
+                const key = `${mName} ${mYear}`;
+                if (months[key]) {
+                   if (n.category === "positive") months[key].pos++;
+                   else months[key].improv++;
+                   months[key].count++;
                 }
              });
 
-             return Object.values(months).map((data: any) => ({
-                m: data.m,
-                score: data.count === 0 ? 5.0 : 
-                   Math.min(5.0, Math.max(1.0, 5.0 - (data.improv * 0.3) + (data.pos * 0.1)))
-             }));
+             return Object.values(months).map((data: any) => {
+                const curM = now.toLocaleString('default', { month: 'short' });
+                const curY = now.getFullYear().toString().slice(-2);
+                const isCurrentMonth = data.m === curM && data.key.includes(curY);
+                
+                const calculatedScore = data.count === 0 ? 5.0 : 
+                   Math.min(5.0, Math.max(1.0, 5.0 - (data.improv * 0.3) + (data.pos * 0.1)));
+
+                return {
+                   m: data.m,
+                   key: data.key,
+                   score: isCurrentMonth && manualRating ? manualRating : calculatedScore
+                };
+             });
           };
 
           const tData = getTrendData();
@@ -494,19 +528,39 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
                      <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={tData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                            <defs>
-                              <linearGradient id="colorScoreTeacher" x1="0" y1="0" x2="0" y2="1">
-                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              <linearGradient id="colorScoreTeacher" x1="0" y1="0" x2="1" y2="1">
+                                 <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                                 <stop offset="50%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.4}/>
                               </linearGradient>
+                              <linearGradient id="lineGradientTeacher" x1="0" y1="0" x2="1" y2="0">
+                                 <stop offset="0%" stopColor="#6366f1" />
+                                 <stop offset="50%" stopColor="#8b5cf6" />
+                                 <stop offset="100%" stopColor="#10b981" />
+                              </linearGradient>
+                              <filter id="glowTeacher" x="-20%" y="-20%" width="140%" height="140%">
+                                 <feGaussianBlur stdDeviation="3" result="blur" />
+                                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                              </filter>
                            </defs>
                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                            <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 800, fill: '#cbd5e1' }} dy={10} />
-                           <YAxis domain={[3.5, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 800, fill: '#cbd5e1' }} dx={-10} />
+                           <YAxis domain={[1, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 800, fill: '#cbd5e1' }} dx={-10} />
                            <Tooltip 
-                              contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', fontSize: '10px' }} 
-                              labelStyle={{ color: '#64748b', marginBottom: '4px' }}
+                              contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', fontSize: '10px', background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(10px)' }} 
+                              labelStyle={{ color: '#6366f1', marginBottom: '4px' }}
                            />
-                           <Area type="monotone" dataKey="score" stroke="#10b981" fillOpacity={1} fill="url(#colorScoreTeacher)" strokeWidth={4} />
+                           <Area 
+                              type="monotone" 
+                              dataKey="score" 
+                              stroke="url(#lineGradientTeacher)" 
+                              fillOpacity={1} 
+                              fill="url(#colorScoreTeacher)" 
+                              strokeWidth={5} 
+                              dot={{ r: 6, fill: '#6366f1', strokeWidth: 3, stroke: '#fff' }}
+                              activeDot={{ r: 8, strokeWidth: 0, fill: '#10b981' }}
+                              filter="url(#glowTeacher)"
+                           />
                         </AreaChart>
                      </ResponsiveContainer>
                   </div>
