@@ -39,8 +39,11 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
   const { teacherData } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportResult, setReportResult] = useState<any>(null);
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [roster, setRoster] = useState<any[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
   const [params, setParams] = useState({
     classId: "",
     grade: "",
@@ -147,7 +150,6 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
               subject: selectedClass?.subject || "Curriculum",
               score: selectedStudent?.score,
               attendance: selectedStudent?.attendance,
-              standing: selectedStudent?.standing
            });
 
            resultData = { 
@@ -161,7 +163,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
         }
 
        // CLOUD SYNC
-       await addDoc(collection(db, "reports"), {
+       const docRef = await addDoc(collection(db, "reports"), {
           teacherId: teacherData.id,
           teacherName: teacherData.name,
           studentId: params.studentId || "all",
@@ -172,36 +174,79 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           grade: selectedClass?.grade || "N/A",
           className: selectedClass?.name,
           createdAt: serverTimestamp(),
-          status: "Verified",
+          status: report.id === "individual_progress" ? "Draft" : "Sent",
           format: params.format,
           data: resultData,
           sentToPrincipal: report.id === "class_perf" // Automatically flag for principal viewing
        });
 
-       if (report.id === "class_perf") {
-           // Also add to a dedicated principal stream for faster visibility
-           await addDoc(collection(db, "principal_reports"), {
-               teacherId: teacherData.id,
-               teacherName: teacherData.name,
-               schoolId: teacherData.schoolId || "Default_School",
-               reportType: "CLASS_PERF",
-               title: `${selectedClass?.name} - ${selectedClass?.subject} Performance Report`,
-               content: resultData.aiRemarks,
-               metrics: {
-                  avgScore: classAvg,
-                  attendance: classAtnd
-               },
-               createdAt: serverTimestamp(),
-               readStatus: false
-           });
-       }
+       setCurrentReportId(docRef.id);
+       setIsSent(false);
 
+       // Note: Principal sync is now manual via handleSendToPrincipal
        setReportResult(resultData);
-       toast.success("Intelligence successfully Harvested! Result Sync Active.");
+       toast.success("Intelligence successfully Harvested! Review before transmission.");
     } catch (e: any) {
        toast.error(e.message || "Failed to harvest logs.");
     } finally {
        setIsGenerating(false);
+    }
+  };
+
+  const handleSendToParent = async () => {
+    if (!currentReportId) return;
+    setIsSending(true);
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "reports", currentReportId), {
+        status: "Sent",
+        sentAt: serverTimestamp()
+      });
+      setIsSent(true);
+      toast.success("Intelligence successfully mirrored to Parent Dashboard!");
+    } catch (e: any) {
+      toast.error("Failed to sync with Parent Portal.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendToPrincipal = async () => {
+    if (!currentReportId || !reportResult) return;
+    setIsSending(true);
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      
+      // Update the main report status
+      await updateDoc(doc(db, "reports", currentReportId), {
+        status: "Reported",
+        sentToPrincipal: true,
+        sentAt: serverTimestamp()
+      });
+
+      // Add to principal's dedicated stream
+      await addDoc(collection(db, "principal_reports"), {
+        teacherId: teacherData.id,
+        teacherName: teacherData.name,
+        schoolId: teacherData.schoolId || "Default_School",
+        reportType: "CLASS_PERF",
+        title: `${reportResult.className} - ${reportResult.subject} Performance Report`,
+        content: reportResult.aiRemarks,
+        metrics: {
+          avgScore: parseInt(reportResult.summary.avg),
+          attendance: parseInt(reportResult.summary.attendance)
+        },
+        createdAt: serverTimestamp(),
+        readStatus: false
+      });
+
+      setIsSent(true);
+      toast.success("Report successfully transmitted to Principal's desk!");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to sync with Principal Portal.");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -434,14 +479,50 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                  </div>
                )}
 
-               <div className="flex gap-4 pt-10 print:hidden">
-                  <button onClick={handleDownload} className="flex-1 h-20 bg-[#1e3a8a] text-white rounded-[2.2rem] text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-slate-900 transition-all hover:translate-y-[-2px] active:scale-95">
-                     <Download className="w-6 h-6"/> {params.format === 'pdf' ? 'Open Institutional Print View' : 'Download Excel Registry Matrix'}
-                  </button>
-                  <button onClick={() => setReportResult(null)} className="px-8 h-20 bg-white border border-slate-100 text-slate-400 rounded-[2.2rem] hover:bg-slate-50 transition-colors active:scale-95">
-                     <RefreshCw className="w-6 h-6"/>
-                  </button>
-               </div>
+                <div className="flex flex-col gap-4 pt-10 print:hidden">
+                  {report.id === "individual_progress" && !isSent && (
+                    <button 
+                      onClick={handleSendToParent} 
+                      disabled={isSending}
+                      className="w-full h-20 bg-emerald-600 text-white rounded-[2.2rem] text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-emerald-700 transition-all hover:translate-y-[-2px] active:scale-95 disabled:opacity-50"
+                    >
+                      {isSending ? (
+                        <><Loader2 className="w-6 h-6 animate-spin"/> Syncing with Parent Portal...</>
+                      ) : (
+                        <><CheckCircle2 className="w-6 h-6"/> Confirm & Send to Parent Dashboard</>
+                      )}
+                    </button>
+                  )}
+
+                  {report.id === "class_perf" && !isSent && (
+                    <button 
+                      onClick={handleSendToPrincipal} 
+                      disabled={isSending}
+                      className="w-full h-20 bg-indigo-600 text-white rounded-[2.2rem] text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-slate-900 transition-all hover:translate-y-[-2px] active:scale-95 disabled:opacity-50"
+                    >
+                      {isSending ? (
+                        <><Loader2 className="w-6 h-6 animate-spin"/> Transmitting to Principal...</>
+                      ) : (
+                        <><ShieldCheck className="w-6 h-6"/> Finalize & Send to Principal</>
+                      )}
+                    </button>
+                  )}
+                  
+                  {isSent && (
+                    <div className="w-full h-20 bg-emerald-50 border-2 border-emerald-100 text-emerald-600 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase tracking-widest text-[11px]">
+                      <CheckCircle2 className="w-6 h-6" /> {report.id === "individual_progress" ? "Report Published to Parent" : "Report Transmitted to Principal"}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button onClick={handleDownload} className="flex-1 h-20 bg-[#1e3a8a] text-white rounded-[2.2rem] text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-slate-900 transition-all hover:translate-y-[-2px] active:scale-95">
+                      <Download className="w-6 h-6"/> {params.format === 'pdf' ? 'Open Institutional Print View' : 'Download Excel Registry Matrix'}
+                    </button>
+                    <button onClick={() => { setReportResult(null); setIsSent(false); }} className="px-8 h-20 bg-white border border-slate-100 text-slate-400 rounded-[2.2rem] hover:bg-slate-50 transition-colors active:scale-95">
+                      <RefreshCw className="w-6 h-6"/>
+                    </button>
+                  </div>
+                </div>
 
                <div className="hidden print:block pt-20 text-center">
                   <div className="w-full h-px bg-slate-200 mb-8" />
