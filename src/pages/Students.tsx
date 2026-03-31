@@ -255,7 +255,7 @@ export default function Students() {
                                   <p>Your institutional access has been provisioned for <strong>${targetClass.name}</strong>.</p>
                                   <p>Instructor: <strong>${teacherData.name || "Faculty Member"}</strong></p>
                                   <div style="margin: 30px 0; text-align: center;">
-                                    <a href="https://parent-dashboard-tan.vercel.app" style="background: #1e3a8a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Login to Secure Portal</a>
+                                    <a href="https://parent-dashboard-ten.vercel.app/" style="background: #1e3a8a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Login to Secure Portal</a>
                                   </div>
                                 </div>
                               `
