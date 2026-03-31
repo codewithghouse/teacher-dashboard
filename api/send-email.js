@@ -18,14 +18,15 @@ export default async function handler(req, res) {
   }
 
   const { to, subject, html } = req.body;
-  const apiKey = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || "re_KgGiVQA2_Me1JyuWkb2bC2tcUzASqwz8u";
+  const apiKey = process.env.VITE_RESEND_API_KEY || process.env.RESEND_API_KEY || "re_KgGiVQA2_Me1JyuWkb2bC2tcUzASqwz8u";
 
   if (!apiKey) {
-    console.error("Missing Resend API Key in Teacher Dashboard");
+    console.error("[PRODUCTION_EMAIL] Error: Missing Resend API Key");
     return res.status(500).json({ error: 'Email service configuration missing' });
   }
 
   try {
+    console.log(`[PRODUCTION_EMAIL] Sending to: ${to} via edulent.dgion.com...`);
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -41,15 +42,15 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    console.log("[PRODUCTION_EMAIL] Resend API Response:", response.status, data);
 
     if (response.ok) {
       return res.status(200).json(data);
     } else {
-      console.error('Resend API Error:', data);
       return res.status(response.status).json({ error: data.message || 'Resend API Error' });
     }
   } catch (error) {
-    console.error('Fetch Error:', error);
+    console.error('[PRODUCTION_EMAIL] Fatal Exception:', error);
     return res.status(500).json({ error: error.message });
   }
 }

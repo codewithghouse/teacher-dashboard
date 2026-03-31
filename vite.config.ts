@@ -28,10 +28,13 @@ export default defineConfig(({ mode }) => {
                   const apiKey = env.VITE_RESEND_API_KEY;
 
                   if (!apiKey) {
+                    console.error("[EMAIL_SERVER] Error: VITE_RESEND_API_KEY is missing in .env");
                     res.statusCode = 500;
                     res.end(JSON.stringify({ error: "VITE_RESEND_API_KEY is missing in .env" }));
                     return;
                   }
+
+                  console.log(`[EMAIL_SERVER] Attempting delivery to: ${to}...`);
 
                   const response = await fetch("https://api.resend.com/emails", {
                     method: "POST",
@@ -48,11 +51,17 @@ export default defineConfig(({ mode }) => {
                   });
 
                   const result = await response.json();
+                  
+                  // LOGGING THE EXACT RESPONSE FROM RESEND TO THE TERMINAL
+                  console.log("[RESEND_API_STATUS]", response.status);
+                  console.log("[RESEND_RESPONSE_BODY]", JSON.stringify(result, null, 2));
+
                   res.setHeader("Content-Type", "application/json");
                   res.statusCode = response.status || 200;
                   res.end(JSON.stringify(result));
                 });
               } catch (err: any) {
+                console.error("[EMAIL_SERVER] Fatal Error:", err.message);
                 res.statusCode = 500;
                 res.end(JSON.stringify({ error: err.message }));
               }
