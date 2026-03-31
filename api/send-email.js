@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const { to, subject, html } = req.body;
-  const apiKey = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || "re_KgGiVQA2_Me1JyuWkb2bC2tcUzASqwz8u";
 
   if (!apiKey) {
     console.error("Missing Resend API Key in Teacher Dashboard");
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: 'EduIntellect <invite@edulent.dgion.com>',
+        from: 'EduIntellect <onboarding@resend.dev>',
         to,
         subject,
         html,

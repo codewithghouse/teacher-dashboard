@@ -173,6 +173,8 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
             status: s.status,
             date: today,
             teacherId: teacherData.id,
+            schoolId: teacherData.schoolId || "",
+            branch: teacherData.branch || "Main",
             assignmentId: teachingAssignmentId, // From Phase 1 spec
             teacherName: teacherData.name || "Faculty",
             classId: selectedClassId,

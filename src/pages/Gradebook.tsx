@@ -216,12 +216,15 @@ export default function Gradebook() {
 
               const cId = matchedCol.id;
               const sId = key.replace(`_${cId}`, "");
-              
               const docRef = doc(db, "gradebook_scores", key);
+              
               batch.set(docRef, {
                   id: key,
                   studentId: sId,
                   columnId: cId,
+                  teacherId: teacherData.id,
+                  schoolId: teacherData.schoolId || "",
+                  branch: teacherData.branch || "Main",
                   assignmentId: selectedClassId, // Subject isolation Phase 2
                   classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId, // Legacy bridge
                   mark: localVal,

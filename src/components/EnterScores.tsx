@@ -189,6 +189,8 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
             studentName: s.name,
             classId: test.classId,
             teacherId: teacherData?.id,
+            schoolId: teacherData?.schoolId || "",
+            branch: teacherData?.branch || "Main",
             score: s.score === "" ? null : parseFloat(s.score),
             maxScore: maxScore,
             percentage: metrics.pct,
