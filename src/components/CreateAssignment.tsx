@@ -46,10 +46,24 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
       }
 
       const selClass = classes.find(c => c.id === selectedClassId);
+      
+      // Fetch the teaching_assignment ID for this specific class and teacher
+      let teachingAssignmentId = "legacy";
+      const qAssign = query(collection(db, "teaching_assignments"), 
+          where("teacherId", "==", teacherData.id), 
+          where("classId", "==", selectedClassId),
+          where("status", "==", "active")
+      );
+      const assignSnap = await getDocs(qAssign);
+      if (!assignSnap.empty) {
+          teachingAssignmentId = assignSnap.docs[0].id;
+      }
+
       await addDoc(collection(db, "assignments"), {
         ...formData,
         dueDate: new Date(formData.dueDate),
         teacherId: teacherData.id,
+        assignmentId: teachingAssignmentId, // From Phase 1 spec
         teacherName: teacherData.name || "Faculty",
         classId: selectedClassId,
         className: selClass?.name || "",

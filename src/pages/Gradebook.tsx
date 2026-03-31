@@ -62,16 +62,30 @@ export default function Gradebook() {
 
   const [saving, setSaving] = useState(false);
 
-  // 1. Fetch Classes
+  // 1. Fetch Classes (Now Teaching Assignments for Subject Isolation)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }) as ClassData);
-      setClasses(cls);
-      if (cls.length > 0 && !selectedClassId) {
-        setSelectedClassId(cls[0].id);
-      } else if (cls.length === 0) {
+    const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+    const unsub = onSnapshot(q, async (snap) => {
+      const assignments = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      
+      const classSnap = await getDocs(query(collection(db, "classes")));
+      const classMap = new Map();
+      classSnap.docs.forEach(d => classMap.set(d.id, d.data()));
+
+      const assignmentOptions = assignments.map(a => {
+        const cls = classMap.get(a.classId);
+        return {
+          id: a.id, 
+          classId: a.classId,
+          name: `${cls?.name || 'Class'} - ${a.subjectName || a.subject || 'Subject'}`
+        };
+      });
+      
+      setClasses(assignmentOptions);
+      if (assignmentOptions.length > 0 && !selectedClassId) {
+        setSelectedClassId(assignmentOptions[0].id);
+      } else if (assignmentOptions.length === 0) {
         setLoading(false);
       }
     });
@@ -83,30 +97,45 @@ export default function Gradebook() {
     if (!teacherData?.id || !selectedClassId) return;
     setLoading(true);
 
-    const selClass = classes.find(c => c.id === selectedClassId);
+    const selAssignment = classes.find(c => c.id === selectedClassId);
+    const legacyClassId = selAssignment?.classId || selectedClassId; // Target the underlying classId for roster
 
-    // Fetch Enrollments
-    const qEnroll = query(collection(db, "enrollments"), where("classId", "==", selectedClassId));
+    // Fetch Enrollments (roster belongs to class)
+    const qEnroll = query(collection(db, "enrollments"), where("classId", "==", legacyClassId));
     
-    // Fetch Columns
-    const qCols = query(collection(db, "gradebook_columns"), where("classId", "==", selectedClassId));
+    // Fetch Columns (Subject-specific via assignmentId, legacy via classId+teacherId)
+    const qColsNew = query(collection(db, "gradebook_columns"), where("assignmentId", "==", selectedClassId));
+    const qColsOld = query(collection(db, "gradebook_columns"), where("classId", "==", legacyClassId), where("teacherId", "==", teacherData.id));
     
-    // Fetch Scores
-    const qScores = query(collection(db, "gradebook_scores"), where("classId", "==", selectedClassId));
+    // Fetch Scores 
+    const qScoresNew = query(collection(db, "gradebook_scores"), where("assignmentId", "==", selectedClassId));
+    const qScoresOld = query(collection(db, "gradebook_scores"), where("classId", "==", legacyClassId));
 
-    const unsubCols = onSnapshot(qCols, (colSnap) => {
-        const fetchedCols = colSnap.docs.map(d => ({ id: d.id, ...d.data() } as CustomColumn));
-        setColumns(fetchedCols.sort((a:any, b:any) => a.createdAt - b.createdAt));
+    const unsubCols = onSnapshot(qColsNew, async (colSnap) => {
+        const newCols = colSnap.docs.map(d => ({ id: d.id, ...d.data() } as CustomColumn));
+        const oldSnap = await getDocs(qColsOld);
+        const oldCols = oldSnap.docs.map(d => ({ id: d.id, assignmentId: selectedClassId, ...d.data() } as unknown as CustomColumn))
+                             .filter(c => !newCols.some(nc => nc.id === c.id));
+        setColumns([...newCols, ...oldCols].sort((a:any, b:any) => a.createdAt - b.createdAt));
     });
 
-    const unsubScores = onSnapshot(qScores, (scoreSnap) => {
+    const unsubScores = onSnapshot(qScoresNew, async (scoreSnap) => {
         const fetchedScores: any = {};
-        scoreSnap.docs.forEach(d => {
+        const processScore = (d: any) => {
+             const data = d.data ? d.data() : d;
+             fetchedScores[`${data.studentId}_${data.columnId}`] = Number(data.mark) || 0;
+        };
+        scoreSnap.docs.forEach(processScore);
+        
+        const oldSnap = await getDocs(qScoresOld);
+        oldSnap.docs.forEach(d => {
             const data = d.data();
-            fetchedScores[`${data.studentId}_${data.columnId}`] = Number(data.mark) || 0;
+            if (fetchedScores[`${data.studentId}_${data.columnId}`] === undefined) {
+               processScore(data);
+            }
         });
         setScores(fetchedScores);
-        setLocalScores(fetchedScores); // Sync local state
+        setLocalScores(fetchedScores); 
     });
 
     const unsubStudents = onSnapshot(qEnroll, (snap) => {
@@ -134,7 +163,8 @@ export default function Gradebook() {
           const colId = `col_${Date.now()}`;
           await setDoc(doc(db, "gradebook_columns", colId), {
               id: colId,
-              classId: selectedClassId,
+              assignmentId: selectedClassId, // Subject isolation Phase 2
+              classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId, // Legacy bridge
               teacherId: teacherData.id,
               name: newColName,
               maxMarks: Number(newColMax),
@@ -192,7 +222,8 @@ export default function Gradebook() {
                   id: key,
                   studentId: sId,
                   columnId: cId,
-                  classId: selectedClassId,
+                  assignmentId: selectedClassId, // Subject isolation Phase 2
+                  classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId, // Legacy bridge
                   mark: localVal,
                   updatedAt: Date.now()
               }, { merge: true });
@@ -292,7 +323,8 @@ export default function Gradebook() {
                               id: scoreId,
                               studentId: validStudent.id,
                               columnId: map.dbColId,
-                              classId: selectedClassId,
+                              assignmentId: selectedClassId,
+                              classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId,
                               mark: Number(importedMark),
                               updatedAt: Date.now()
                           }, { merge: true });

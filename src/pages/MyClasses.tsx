@@ -37,10 +37,25 @@ const MyClasses = () => {
   useEffect(() => {
     if (!teacherData?.id) return;
     
-    // 1. Fetch Teacher's Classes
-    const qCls = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsubCls = onSnapshot(qCls, (snap) => {
-      setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    // 1. Fetch Teacher's Classes via teaching_assignments & legacy direct links
+    const qAssign = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+    const unsubAssign = onSnapshot(qAssign, async (snap) => {
+      const assignedClassIds = snap.docs.map(d => d.data().classId).filter(Boolean);
+      
+      // Fetch Legacy classes (backward compatibility)
+      const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+      const legacySnap = await getDocs(qLegacy);
+      const legacyIds = legacySnap.docs.map(d => d.id);
+      
+      const allIds = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+
+      if (allIds.length === 0) {
+          setClasses([]);
+          return;
+      }
+      const qCls = query(collection(db, "classes"));
+      const classSnap = await getDocs(qCls);
+      setClasses(classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ id: d.id, ...d.data() })));
     });
 
     // 2. Fetch All Enrollments for Teacher's Classes
@@ -62,7 +77,7 @@ const MyClasses = () => {
     });
 
     setLoading(false);
-    return () => { unsubCls(); unsubEnrol(); unsubAtnd(); unsubRes(); };
+    return () => { unsubAssign(); unsubEnrol(); unsubAtnd(); unsubRes(); };
   }, [teacherData?.id]);
 
   const calculateMetrics = (classId: string) => {
@@ -89,14 +104,24 @@ const MyClasses = () => {
       if (!newClass.name || !newClass.grade) return toast.error("Essential fields required.");
       setIsSaving(true);
       try {
-          await addDoc(collection(db, "classes"), {
+          const docRef = await addDoc(collection(db, "classes"), {
               ...newClass,
+              // Kept for backward compatibility temporarily
               teacherId: teacherData.id,
               teacherName: teacherData.name,
               createdAt: serverTimestamp(),
               status: "Active"
           });
-          toast.success("Institutional Class Synchronized.");
+          
+          await addDoc(collection(db, "teaching_assignments"), {
+              teacherId: teacherData.id,
+              classId: docRef.id,
+              subjectId: newClass.subject,
+              status: "active",
+              createdAt: serverTimestamp()
+          });
+          
+          toast.success("Institutional Class Synchronized & Assigned.");
           setIsAddClassOpen(false);
       } catch (e) {
           toast.error("Cloud synchronization failure.");

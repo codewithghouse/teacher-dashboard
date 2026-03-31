@@ -151,6 +151,17 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
     const selClass = classes.find(c => c.id === selectedClassId);
 
     try {
+      let teachingAssignmentId = "legacy";
+      const qAssign = query(collection(db, "teaching_assignments"), 
+          where("teacherId", "==", teacherData.id), 
+          where("classId", "==", selectedClassId),
+          where("status", "==", "active")
+      );
+      const assignSnap = await getDocs(qAssign);
+      if (!assignSnap.empty) {
+          teachingAssignmentId = assignSnap.docs[0].id;
+      }
+
       const promises = students
         .filter(s => s.status !== 'none')
         .map(s => {
@@ -162,6 +173,7 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
             status: s.status,
             date: today,
             teacherId: teacherData.id,
+            assignmentId: teachingAssignmentId, // From Phase 1 spec
             teacherName: teacherData.name || "Faculty",
             classId: selectedClassId,
             className: selClass?.name || "Unknown",

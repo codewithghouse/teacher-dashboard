@@ -34,40 +34,129 @@ const Attendance = () => {
   const [registryDate, setRegistryDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [registryClassId, setRegistryClassId] = useState<string>("");
 
-  // 1. Fetch Teacher's Classes
+  // 1. Fetch Teacher's Classes via teaching_assignments & legacy
+  const [allClassIds, setAllClassIds] = useState<string[]>([]);
+  
   useEffect(() => {
     if (!teacherData?.id) return;
-    const qClasses = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsubClasses = onSnapshot(qClasses, (snap) => {
-      const clsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setClasses(clsData);
-      if (clsData.length > 0) {
-        if (!selectedClassId) setSelectedClassId(clsData[0].id);
-        if (!registryClassId) setRegistryClassId(clsData[0].id);
+    const qAssign = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+    const unsubAssign = onSnapshot(qAssign, async (assignSnap) => {
+      const assignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const assignedIds = assignments.map(a => a.classId).filter(Boolean);
+      
+      const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+      const legacySnap = await getDocs(qLegacy);
+      const legacyIds = legacySnap.docs.map(d => d.id);
+      
+      const mergedIds = Array.from(new Set([...assignedIds, ...legacyIds]));
+      setAllClassIds(mergedIds);
+
+      if (assignments.length > 0 || legacyIds.length > 0) {
+        const qClasses = query(collection(db, "classes"));
+        const classSnap = await getDocs(qClasses);
+        const classMap = new Map();
+        classSnap.docs.forEach(d => classMap.set(d.id, d.data()));
+        
+        const clsData = assignments.map(a => {
+           const cls = classMap.get(a.classId);
+           return {
+              id: a.id,
+              classId: a.classId,
+              name: `${cls?.name || 'Class'} - ${a.subjectName || a.subject || 'Subject'}`
+           };
+        });
+
+        legacyIds.forEach(lid => {
+           if (!assignedIds.includes(lid)) {
+               const cls = classMap.get(lid);
+               clsData.push({ id: lid, classId: lid, name: cls?.name || 'Legacy Class' });
+           }
+        });
+
+        setClasses(clsData);
+        if (clsData.length > 0) {
+          if (!selectedClassId) setSelectedClassId(clsData[0].id);
+          if (!registryClassId) setRegistryClassId(clsData[0].id);
+        }
+      } else {
+        setClasses([]);
       }
     });
-    return () => unsubClasses();
-  }, [teacherData?.id]);
+    return () => unsubAssign();
+  }, [teacherData?.id, selectedClassId, registryClassId]);
 
-  // 2. Fetch Enrollments (to know total students per class)
+  // 2. Fetch Enrollments
   useEffect(() => {
-    if (!teacherData?.id) return;
-    const qEnroll = query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id));
-    const unsubEnroll = onSnapshot(qEnroll, (snap) => {
-      setEnrollments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return () => unsubEnroll();
-  }, [teacherData?.id]);
+    if (allClassIds.length === 0) {
+        setEnrollments([]);
+        return;
+    }
+    const fetchEnrollments = async () => {
+        const promises = allClassIds.map(cid => getDocs(query(collection(db, "enrollments"), where("classId", "==", cid))));
+        const snaps = await Promise.all(promises);
+        const data: any[] = [];
+        snaps.forEach(s => s.docs.forEach(d => data.push({ id: d.id, ...d.data() })));
+        setEnrollments(data);
+    };
+    fetchEnrollments();
+  }, [allClassIds]);
 
   // 3. Fetch Attendance Stats & Weekly Records
   useEffect(() => {
-    if (!teacherData?.id) return;
+    if (classes.length === 0) {
+        setAttendanceRecords([]);
+        setLoading(false);
+        return;
+    }
     
     setLoading(true);
-    const q = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAttendanceRecords(records);
+    // Real-time listener per assignmentId (and legacy classId)
+    const unsubs = classes.map(c => {
+       const isLegacy = c.id === c.classId;
+       const q = isLegacy 
+             ? query(collection(db, "attendance"), where("classId", "==", c.classId), where("teacherId", "==", teacherData?.id))
+             : query(collection(db, "attendance"), where("assignmentId", "==", c.id));
+       return onSnapshot(q, () => {
+          fetchAllAttendance();
+       });
+    });
+
+    const fetchAllAttendance = async () => {
+       const promises = classes.map(c => {
+           const isLegacy = c.id === c.classId;
+           const q = isLegacy 
+                 ? query(collection(db, "attendance"), where("classId", "==", c.classId), where("teacherId", "==", teacherData?.id))
+                 : query(collection(db, "attendance"), where("assignmentId", "==", c.id));
+           return getDocs(q);
+       });
+       const snaps = await Promise.all(promises);
+       
+       // Fallback fetch: also fetch documents matching teacher + classId just in case some missed Phase 1 conversion
+       const legacyPromises = classes.map(c => {
+           if (c.id !== c.classId) {
+                return getDocs(query(collection(db, "attendance"), where("classId", "==", c.classId), where("teacherId", "==", teacherData?.id)));
+           }
+           return Promise.resolve({ docs: [] });
+       });
+       const legacySnaps = await Promise.all(legacyPromises);
+
+       const recordMap = new Map();
+       snaps.forEach(s => s.docs.forEach(d => recordMap.set(d.id, { id: d.id, ...d.data() })));
+       
+       legacySnaps.forEach(s => s.docs.forEach((d: any) => {
+            if (!recordMap.has(d.id)) {
+                const record = d.data();
+                const matchedCol = classes.find(cls => cls.classId === record.classId && cls.id !== cls.classId);
+                recordMap.set(d.id, { 
+                    id: d.id, 
+                    assignmentId: matchedCol ? matchedCol.id : record.classId,
+                    ...record 
+                 });
+            }
+       }));
+       
+       const records = Array.from(recordMap.values());
+       setAttendanceRecords(records);
 
       if (records.length >= 0) {
         const today = new Date().toLocaleDateString('en-CA');
@@ -81,18 +170,16 @@ const Attendance = () => {
         const totalPresentOverall = records.filter((r: any) => r.status === 'present' || r.status === 'late').length;
         const rate = totalOverall > 0 ? ((totalPresentOverall / totalOverall) * 100).toFixed(1) + "%" : "0%";
 
-        setStats({
-          rate,
-          presentToday,
-          absentToday,
-          lateToday
-        });
+        setStats({ rate, presentToday, absentToday, lateToday });
       }
       setLoading(false);
-    });
+    };
+    
+    // Initial fetch
+    fetchAllAttendance();
 
-    return () => unsubscribe();
-  }, [teacherData?.id]);
+    return () => unsubs.forEach(unsub => unsub());
+  }, [classes, teacherData?.id]);
 
   const handleMarkToday = () => {
     if (classes.length > 0) {
@@ -114,10 +201,11 @@ const Attendance = () => {
       date.setDate(monday.getDate() + i);
       const dateStr = date.toLocaleDateString('en-CA');
       
-      const dayRecords = attendanceRecords.filter((r: any) => r.date === dateStr && r.classId === selectedClassId);
+      const dayRecords = attendanceRecords.filter((r: any) => r.date === dateStr && (r.assignmentId === selectedClassId || r.classId === selectedClassId));
       const present = dayRecords.filter(r => r.status === 'present' || r.status === 'late').length;
       const absent = dayRecords.filter(r => r.status === 'absent').length;
-      const totalInClass = enrollments.filter(e => e.classId === selectedClassId).length || 1;
+      const actualClassId = classes.find(c => c.id === selectedClassId)?.classId || selectedClassId;
+      const totalInClass = enrollments.filter(e => e.classId === actualClassId).length || 1;
       const rate = dayRecords.length > 0 ? ((present / totalInClass) * 100).toFixed(1) : "-";
 
       days.push({
@@ -156,7 +244,8 @@ const Attendance = () => {
   };
 
   if (isMarking) {
-    return <MarkAttendance initialClassId={selectedClassId} onBack={() => setIsMarking(false)} />;
+    const activeC = classes.find(c => c.id === selectedClassId);
+    return <MarkAttendance initialClassId={activeC?.classId || selectedClassId} onBack={() => setIsMarking(false)} />;
   }
 
   const weeklyDays = getWeeklyDays();
@@ -372,7 +461,8 @@ const Attendance = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                  {(() => {
-                    const classRoster = enrollments.filter(e => e.classId === registryClassId);
+                    const activeReg = classes.find(c => c.id === registryClassId);
+                    const classRoster = enrollments.filter(e => e.classId === (activeReg?.classId || registryClassId));
                     if (classRoster.length === 0) {
                       return (
                         <tr>
@@ -384,7 +474,7 @@ const Attendance = () => {
                       );
                     }
                     return classRoster.map((student) => {
-                       const log = attendanceRecords.find(r => r.studentId === student.studentId && r.date === registryDate && r.classId === registryClassId);
+                       const log = attendanceRecords.find(r => r.studentId === student.studentId && r.date === registryDate && (r.assignmentId === registryClassId || r.classId === registryClassId));
                        const status = log ? log.status : "unmarked";
                        
                        return (

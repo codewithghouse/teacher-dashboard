@@ -34,10 +34,57 @@ const Dashboard = () => {
   useEffect(() => {
     if (!teacherData?.id) return;
 
-    // 1. LIVE CLASSES
-    const qClasses = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsubClasses = onSnapshot(qClasses, (snap) => {
-      const clsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    // 1. Fetch Assigned Classes via teaching_assignments junction
+    const qAssignments = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+    const unsubClasses = onSnapshot(qAssignments, async (assignSnap) => {
+      const assignedClassIds = assignSnap.docs.map(d => d.data().classId).filter(Boolean);
+      
+      // Fetch Legacy classes (backward compatibility)
+      const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+      const legacySnap = await getDocs(qLegacy);
+      const legacyIds = legacySnap.docs.map(d => d.id);
+      
+      const allIds = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+
+      if (allIds.length === 0) {
+          setTodayClasses([]);
+          setStats(prev => ({ ...prev, classesToday: 0 }));
+          setPendingTasks(prev => prev.filter(t => t.id !== 'mark_atnd'));
+          return;
+      }
+
+      // Fetch the actual class details to map names
+      const qClasses = query(collection(db, "classes"));
+      const classDocsSnap = await getDocs(qClasses);
+      const classMap = new Map();
+      classDocsSnap.docs.forEach(d => classMap.set(d.id, d.data()));
+
+      const assignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const clsData = assignments.map(a => {
+           const cls = classMap.get(a.classId);
+           return {
+               id: a.id,
+               actualClassId: a.classId,
+               name: `${cls?.name || 'Class'} - ${a.subjectName || a.subject || 'Subject'}`,
+               grade: cls?.grade || 'Grade N/A',
+               subject: a.subjectName || a.subject || 'Subject'
+           };
+      });
+
+      // Add standalone legacy classes
+      legacyIds.forEach(lid => {
+          if (!assignments.some(a => a.classId === lid)) {
+              const cls = classMap.get(lid);
+              clsData.push({
+                 id: lid,
+                 actualClassId: lid,
+                 name: cls?.name || 'Legacy Class',
+                 grade: cls?.grade || 'Legacy',
+                 subject: 'General'
+              });
+          }
+      });
+          
       setTodayClasses(clsData);
       setStats(prev => ({ ...prev, classesToday: clsData.length }));
 
@@ -46,8 +93,9 @@ const Dashboard = () => {
       const qAtndToday = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id), where("date", "==", todayString));
       
       const unsubAtndToday = onSnapshot(qAtndToday, (atndSnap) => {
-          const markedClassIds = new Set(atndSnap.docs.map(d => d.data().classId));
-          const unmarked = clsData.filter(c => !markedClassIds.has(c.id));
+          // Check marked entities (by assignmentId, fallback to classId)
+          const markedIds = new Set(atndSnap.docs.map(d => d.data().assignmentId || d.data().classId));
+          const unmarked = clsData.filter(c => !markedIds.has(c.id) && !markedIds.has(c.actualClassId));
           
           setPendingTasks(prev => {
              const others = prev.filter(t => t.id !== 'mark_atnd');

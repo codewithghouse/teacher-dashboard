@@ -130,7 +130,8 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
             return setDoc(resRef, {
                 studentId: sub.id,
                 studentName: sub.name,
-                assignmentId: assignment.id,
+                homeworkId: assignment.id, // Renamed from assignmentId to differentiate from teaching_assignment
+                assignmentId: assignment.assignmentId || "legacy", // Enforced Phase 1 spec: tracking the teaching_assignment
                 assignmentTitle: assignment.title,
                 classId: assignment.classId,
                 className: assignment.className || "Class 8-A",

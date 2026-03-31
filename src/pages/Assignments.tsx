@@ -26,10 +26,60 @@ const Assignments = () => {
     if (!teacherData?.id) return;
     
     setLoading(true);
-    const q = query(collection(db, "assignments"), where("teacherId", "==", teacherData.id));
-    
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 1. Fetch assigned classes first
+    const qAssign = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+    const unsubAssign = onSnapshot(qAssign, async (assignSnap) => {
+        const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const assignmentIds = teachingAssignments.map(t => t.id);
+        const assignedClassIds = teachingAssignments.map(t => t.classId).filter(Boolean);
+        
+        // 2. Fetch Legacy classes
+        const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+        const legacySnap = await getDocs(qLegacy);
+        const legacyIds = legacySnap.docs.map(d => d.id);
+        
+        const allClassIds = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+
+        if (assignmentIds.length === 0 && allClassIds.length === 0) {
+            setAssignmentsData([]);
+            setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
+            setLoading(false);
+            return;
+        }
+
+        // 3. Fetch Assignments by assignmentId (Phase 2 primary architecture)
+        const assignmentsPromisesNew = assignmentIds.map(aid => 
+            getDocs(query(collection(db, "assignments"), where("assignmentId", "==", aid)))
+        );
+        
+        // Fetch legacy assignments by classId AND teacherId to guarantee subject isolation
+        const assignmentsPromisesOld = allClassIds.map(cid => 
+            getDocs(query(collection(db, "assignments"), where("classId", "==", cid), where("teacherId", "==", teacherData.id)))
+        );
+
+        const newSnaps = await Promise.all(assignmentsPromisesNew);
+        const oldSnaps = await Promise.all(assignmentsPromisesOld);
+        
+        const fetchedMap = new Map();
+        
+        // Load Phase 2 primary data
+        newSnaps.forEach(snap => snap.docs.forEach(d => fetchedMap.set(d.id, { id: d.id, ...d.data() })));
+        
+        // Load Legacy bridge data, dynamically mapping back to Phase 2
+        oldSnaps.forEach(snap => snap.docs.forEach(d => {
+            if (!fetchedMap.has(d.id)) {
+                // Determine implicit assignmentId if absent
+                const record = d.data();
+                const matchedAssignment = teachingAssignments.find(t => t.classId === record.classId);
+                fetchedMap.set(d.id, { 
+                    id: d.id, 
+                    assignmentId: matchedAssignment ? matchedAssignment.id : "legacy",
+                    ...record 
+                });
+            }
+        }));
+        
+        const fetched = Array.from(fetchedMap.values());
       
       const now = new Date();
       const nextWeek = new Date();
@@ -107,9 +157,10 @@ const Assignments = () => {
           avgSubmission: totalAssignedStudents > 0 ? Math.round((totalReceivedSubmissions / totalAssignedStudents) * 100) : 0
       });
       setLoading(false);
+      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubAssign();
   }, [teacherData?.id]);
 
   const handleAction = (action: string, assignment: any) => {
