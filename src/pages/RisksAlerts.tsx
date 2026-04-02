@@ -68,7 +68,7 @@ const RisksAlerts = () => {
             ? getDocs(query(collection(db, "gradebook_scores"),  where("classId", "in", classIds)))
             : Promise.resolve({ docs: [] } as any),
           getDocs(query(collection(db, "assignments"),            where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "assignment_submissions"), where("teacherId", "==", teacherData.id))),
+          getDocs(query(collection(db, "submissions"), where("teacherId", "==", teacherData.id))),
           getDocs(query(collection(db, "risks"),                  where("teacherId", "==", teacherData.id))),
           getDocs(query(collection(db, "results"),                 where("teacherId", "==", teacherData.id))),
           getDocs(query(collection(db, "parent_notes"),           where("teacherId", "==", teacherData.id)))

@@ -49,6 +49,18 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Real-time attendance rate — updates immediately after teacher marks attendance
+  useEffect(() => {
+    if (!teacherData?.id) return;
+    const q = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
+    return onSnapshot(q, (snap) => {
+      const att = snap.docs.map(d => d.data());
+      const totalPres = att.filter((a: any) => a.status === 'present' || a.status === 'late').length;
+      const avgAtnd = att.length > 0 ? Number(((totalPres / att.length) * 100).toFixed(1)) : 0;
+      setStats(prev => ({ ...prev, avgAttendance: avgAtnd }));
+    });
+  }, [teacherData?.id]);
+
   useEffect(() => {
     if (!teacherData?.email && !teacherData?.id) return;
     setLoading(true);

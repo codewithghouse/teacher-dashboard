@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, getDocs, addDoc, deleteDoc, doc as firestoreDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, addDoc, deleteDoc, doc as firestoreDoc, serverTimestamp } from "firebase/firestore";
 import { Search, Loader2, UserPlus, X, Trash2 } from "lucide-react"; // Only Icons here
 import { sendEmail } from "../lib/resend";
 import { toast } from "sonner";
@@ -225,16 +225,14 @@ export default function Students() {
                         const sid = newStudentEmail.toLowerCase().trim();
                         await addDoc(collection(db, "enrollments"), {
                            teacherId: teacherData.id,
-                           teacherName: teacherData.name || "Faculty",
-                           schoolId: teacherData.schoolId || "",
-                           schoolName: teacherData.schoolName || "",
-                           branch: teacherData.branch || "Main",
+                           schoolId: teacherData.schoolId,
+                           branchId: teacherData.branchId,
+                           studentId: sid,
                            studentEmail: sid,
                            studentName: newStudentName,
                            className: targetClass.name,
                            classId: targetClass.id,
-                           status: "Active",
-                           enrolledAt: new Date()
+                           createdAt: serverTimestamp(),
                         });
                         
                         const qCheck = query(collection(db, "students"), where("email", "==", sid));
@@ -243,12 +241,14 @@ export default function Students() {
                            await addDoc(collection(db, "students"), {
                                name: newStudentName,
                                email: sid,
-                               schoolId: teacherData.schoolId || "",
-                               schoolName: teacherData.schoolName || "",
-                               branch: teacherData.branch || "Main",
+                               studentId: sid,
+                               teacherId: teacherData.id,
+                               schoolId: teacherData.schoolId,
+                               branchId: teacherData.branchId,
                                classId: targetClass.id,
-                               status: "Active",
-                               createdAt: new Date()
+                               className: targetClass.name,
+                               status: "invited",
+                               createdAt: serverTimestamp(),
                            });
                         }
 

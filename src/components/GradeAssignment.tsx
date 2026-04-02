@@ -171,6 +171,8 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                 isPlagiarized: sub.isPlagiarized || false,
                 teacherId: teacherData.id,
                 teacherName: teacherData.name,
+                schoolId: teacherData.schoolId,
+                branchId: teacherData.branchId || "",
                 timestamp: serverTimestamp(),
                 category: "Assignment",
                 type: "score"

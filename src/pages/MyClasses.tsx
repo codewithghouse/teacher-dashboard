@@ -102,27 +102,37 @@ const MyClasses = () => {
 
   const handleCreateClass = async () => {
       if (!newClass.name || !newClass.grade) return toast.error("Essential fields required.");
+      if (!teacherData?.schoolId || !teacherData?.branchId) {
+          return toast.error("School/branch context missing. Please re-login.");
+      }
       setIsSaving(true);
       try {
           const docRef = await addDoc(collection(db, "classes"), {
-              ...newClass,
-              // Kept for backward compatibility temporarily
+              name: newClass.name,
+              grade: newClass.grade,
+              section: newClass.section,
+              subject: newClass.subject,
               teacherId: teacherData.id,
-              teacherName: teacherData.name,
+              teacherName: teacherData.name || "",
+              schoolId: teacherData.schoolId,
+              branchId: teacherData.branchId,
               createdAt: serverTimestamp(),
               status: "Active"
           });
-          
+
           await addDoc(collection(db, "teaching_assignments"), {
               teacherId: teacherData.id,
               classId: docRef.id,
               subjectId: newClass.subject,
+              schoolId: teacherData.schoolId,
+              branchId: teacherData.branchId,
               status: "active",
               createdAt: serverTimestamp()
           });
-          
+
           toast.success("Institutional Class Synchronized & Assigned.");
           setIsAddClassOpen(false);
+          setNewClass({ name: "", grade: "", section: "", subject: "" });
       } catch (e) {
           toast.error("Cloud synchronization failure.");
       } finally {

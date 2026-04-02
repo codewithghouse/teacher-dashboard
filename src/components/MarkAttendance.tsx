@@ -40,8 +40,7 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
     const today = new Date().toLocaleDateString('en-CA');
 
     const qRoster = query(
-      collection(db, "enrollments"), 
-      where("teacherId", "==", teacherData.id),
+      collection(db, "enrollments"),
       where("classId", "==", selectedClassId)
     );
     
@@ -174,7 +173,7 @@ const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
             date: today,
             teacherId: teacherData.id,
             schoolId: teacherData.schoolId || "",
-            branch: teacherData.branch || "Main",
+            branchId: teacherData.branchId || "",
             assignmentId: teachingAssignmentId, // From Phase 1 spec
             teacherName: teacherData.name || "Faculty",
             classId: selectedClassId,

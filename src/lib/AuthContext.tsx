@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   User
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -27,31 +27,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let snapshotUnsub: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // Clean up previous snapshot listener on each auth change
+      if (snapshotUnsub) { snapshotUnsub(); snapshotUnsub = null; }
+
       setLoading(true);
+
       if (currentUser && currentUser.email) {
         try {
-          // Whitelist Check for Teachers - Real-time with onSnapshot
-          const q = query(collection(db, "teachers"), where("email", "==", currentUser.email.toLowerCase()));
-          const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+          const email = currentUser.email.toLowerCase();
+          const q = query(collection(db, "teachers"), where("email", "==", email));
+
+          // ── Step 1: One-time fetch to verify + auto-activate ──────────────
+          const snap = await getDocs(q);
+
+          if (snap.empty) {
+            // Email not whitelisted — reject immediately
+            await signOut(auth);
+            setUser(null);
+            setTeacherData(null);
+            setError("You are not authorized to access the Teacher Dashboard. Please contact your school principal.");
+            setLoading(false);
+            return;
+          }
+
+          const teacherDoc  = snap.docs[0];
+          const teacherInfo = teacherDoc.data();
+
+          // ── Step 2: Auto-activate if status is "Invited" ──────────────────
+          if (teacherInfo.status === "Invited" || teacherInfo.status === "invited") {
+            await updateDoc(doc(db, "teachers", teacherDoc.id), {
+              status:      "Active",
+              isActive:    true,
+              activatedAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp(),
+            });
+          } else {
+            // Just update last login time for Active teachers
+            await updateDoc(doc(db, "teachers", teacherDoc.id), {
+              lastLoginAt: serverTimestamp(),
+            });
+          }
+
+          // ── Step 3: Real-time listener to keep teacherData in sync ────────
+          snapshotUnsub = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-              const doc = snapshot.docs[0];
-              setTeacherData({ id: doc.id, ...doc.data() });
+              const d = snapshot.docs[0];
+              setTeacherData({ id: d.id, ...d.data() });
               setUser(currentUser);
               setError(null);
             } else {
+              // Doc was deleted/archived after login
               signOut(auth);
               setUser(null);
               setTeacherData(null);
-              setError("You are not authorized to access the Teacher Dashboard. Please contact your school principal.");
+              setError("Your account has been deactivated. Please contact your school principal.");
             }
             setLoading(false);
           });
 
-          return () => unsubscribeSnapshot();
         } catch (err: any) {
           console.error("Auth Error:", err);
-          setError("An error occurred during verification.");
+          setError("An error occurred during verification. Please try again.");
           setLoading(false);
         }
       } else {
@@ -61,7 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (snapshotUnsub) snapshotUnsub();
+    };
   }, []);
 
   const loginWithGoogle = async () => {
