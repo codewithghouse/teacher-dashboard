@@ -2,285 +2,325 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { 
-  collection, query, where, onSnapshot, addDoc, 
-  serverTimestamp, deleteDoc, doc, getDocs, updateDoc 
+import {
+  collection, query, where, onSnapshot, addDoc,
+  serverTimestamp, getDocs
 } from "firebase/firestore";
-import { 
-  BookOpen, Users, Clock, ArrowRight, GraduationCap, 
-  Loader2, Activity, Sparkles, Plus, 
-  Trash2, UserPlus, Search, Check, X, ShieldCheck, Filter, MoreVertical, TrendingUp
-} from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, 
-  DialogTitle, DialogDescription, DialogFooter 
+import { Loader2, Plus, Search, Check } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+type FilterType = "All" | "Active" | "Attention";
+
 const MyClasses = () => {
   const navigate = useNavigate();
   const { teacherData } = useAuth();
-  
+
   const [classes, setClasses] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
-  const [resultsRecords, setResultsRecords] = useState<any[]>([]);
+  const [scoresRecords, setScoresRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<FilterType>("All");
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [newClass, setNewClass] = useState({ name: "", grade: "", section: "", subject: "" });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!teacherData?.id) return;
-    
-    // 1. Fetch Teacher's Classes via teaching_assignments & legacy direct links
-    const qAssign = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
+
+    const qAssign = query(
+      collection(db, "teaching_assignments"),
+      where("teacherId", "==", teacherData.id),
+      where("status", "==", "active")
+    );
     const unsubAssign = onSnapshot(qAssign, async (snap) => {
-      const assignedClassIds = snap.docs.map(d => d.data().classId).filter(Boolean);
-      
-      // Fetch Legacy classes (backward compatibility)
-      const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-      const legacySnap = await getDocs(qLegacy);
+      const assignedIds = snap.docs.map(d => d.data().classId).filter(Boolean);
+      const legacySnap = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
       const legacyIds = legacySnap.docs.map(d => d.id);
-      
-      const allIds = Array.from(new Set([...assignedClassIds, ...legacyIds]));
-
-      if (allIds.length === 0) {
-          setClasses([]);
-          return;
-      }
-      const qCls = query(collection(db, "classes"));
-      const classSnap = await getDocs(qCls);
+      const allIds = Array.from(new Set([...assignedIds, ...legacyIds]));
+      if (allIds.length === 0) { setClasses([]); setLoading(false); return; }
+      const classSnap = await getDocs(collection(db, "classes"));
       setClasses(classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
     });
 
-    // 2. Fetch All Enrollments for Teacher's Classes
-    const qEnrol = query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id));
-    const unsubEnrol = onSnapshot(qEnrol, (snap) => {
-      setEnrollments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsubEnrol = onSnapshot(
+      query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id)),
+      (snap) => setEnrollments(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
 
-    // 3. Fetch All Attendance for Teacher's Classes
-    const qAtnd = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
-    const unsubAtnd = onSnapshot(qAtnd, (snap) => {
-      setAttendanceRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsubAtnd = onSnapshot(
+      query(collection(db, "attendance"), where("teacherId", "==", teacherData.id)),
+      (snap) => setAttendanceRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
 
-    // 4. Fetch All Results for Teacher's Classes
-    const qRes = query(collection(db, "results"), where("teacherId", "==", teacherData.id));
-    const unsubRes = onSnapshot(qRes, (snap) => {
-      setResultsRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsubScores = onSnapshot(
+      query(collection(db, "test_scores"), where("teacherId", "==", teacherData.id)),
+      (snap) => setScoresRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
 
-    setLoading(false);
-    return () => { unsubAssign(); unsubEnrol(); unsubAtnd(); unsubRes(); };
+    return () => { unsubAssign(); unsubEnrol(); unsubAtnd(); unsubScores(); };
   }, [teacherData?.id]);
 
-  const calculateMetrics = (classId: string) => {
-      // Attendance Rate
-      const classAtnd = attendanceRecords.filter(r => r.classId === classId);
-      const presentCount = classAtnd.filter(r => r.status === 'present' || r.status === 'late').length;
-      const atndRate = classAtnd.length > 0 ? ((presentCount / classAtnd.length) * 100).toFixed(1) : "95.0"; // fallback
+  const getMetrics = (classId: string) => {
+    const attArr = attendanceRecords.filter(r => r.classId === classId);
+    const present = attArr.filter(r => r.status === "present" || r.status === "late").length;
+    const atndRaw = attArr.length > 0 ? (present / attArr.length) * 100 : -1;
 
-      // Avg Performance
-      const classRes = resultsRecords.filter(r => r.classId === classId);
-      const totalScore = classRes.reduce((acc, curr) => acc + (parseFloat(curr.score) || 0), 0);
-      const perfRate = classRes.length > 0 ? (totalScore / classRes.length).toFixed(1) : "78.0"; // fallback
+    const scoreArr = scoresRecords.filter(r => r.classId === classId);
+    const totalScore = scoreArr.reduce((acc, r) => acc + parseFloat(r.percentage || r.score || 0), 0);
+    const perfRaw = scoreArr.length > 0 ? totalScore / scoreArr.length : -1;
 
-      const studentCount = enrollments.filter(e => e.classId === classId).length;
+    const studentCount = enrollments.filter(e => e.classId === classId).length;
+    const isAttention = atndRaw >= 0 && atndRaw < 85;
 
-      return {
-          atndRate: `${atndRate}%`,
-          perfRate: `${perfRate}%`,
-          studentCount: studentCount || 30 // fallback for UI
-      };
+    return {
+      atndDisplay: atndRaw >= 0 ? `${atndRaw.toFixed(1)}%` : "—",
+      perfDisplay: perfRaw >= 0 ? `${perfRaw.toFixed(1)}%` : "—",
+      atndRaw,
+      perfRaw,
+      studentCount,
+      isAttention,
+    };
   };
 
   const handleCreateClass = async () => {
-      if (!newClass.name || !newClass.grade) return toast.error("Essential fields required.");
-      if (!teacherData?.schoolId || !teacherData?.branchId) {
-          return toast.error("School/branch context missing. Please re-login.");
-      }
-      setIsSaving(true);
-      try {
-          const docRef = await addDoc(collection(db, "classes"), {
-              name: newClass.name,
-              grade: newClass.grade,
-              section: newClass.section,
-              subject: newClass.subject,
-              teacherId: teacherData.id,
-              teacherName: teacherData.name || "",
-              schoolId: teacherData.schoolId,
-              branchId: teacherData.branchId,
-              createdAt: serverTimestamp(),
-              status: "Active"
-          });
-
-          await addDoc(collection(db, "teaching_assignments"), {
-              teacherId: teacherData.id,
-              classId: docRef.id,
-              subjectId: newClass.subject,
-              schoolId: teacherData.schoolId,
-              branchId: teacherData.branchId,
-              status: "active",
-              createdAt: serverTimestamp()
-          });
-
-          toast.success("Institutional Class Synchronized & Assigned.");
-          setIsAddClassOpen(false);
-          setNewClass({ name: "", grade: "", section: "", subject: "" });
-      } catch (e) {
-          toast.error("Cloud synchronization failure.");
-      } finally {
-          setIsSaving(false);
-      }
+    if (!newClass.name || !newClass.grade) return toast.error("Class name and grade are required.");
+    if (!teacherData?.schoolId || !teacherData?.branchId)
+      return toast.error("School/branch info missing. Please re-login.");
+    setIsSaving(true);
+    try {
+      const docRef = await addDoc(collection(db, "classes"), {
+        name: newClass.name,
+        grade: newClass.grade,
+        section: newClass.section,
+        subject: newClass.subject,
+        teacherId: teacherData.id,
+        teacherName: teacherData.name || "",
+        schoolId: teacherData.schoolId,
+        branchId: teacherData.branchId,
+        createdAt: serverTimestamp(),
+        status: "Active",
+      });
+      await addDoc(collection(db, "teaching_assignments"), {
+        teacherId: teacherData.id,
+        classId: docRef.id,
+        subjectName: newClass.subject,
+        schoolId: teacherData.schoolId,
+        branchId: teacherData.branchId,
+        status: "active",
+        createdAt: serverTimestamp(),
+      });
+      toast.success("Class created successfully!");
+      setIsAddClassOpen(false);
+      setNewClass({ name: "", grade: "", section: "", subject: "" });
+    } catch {
+      toast.error("Failed to create class. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) return (
-    <div className="h-[70vh] flex flex-col items-center justify-center animate-pulse">
-        <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-6" />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Accessing Institutional Ecosystem...</p>
+    <div className="h-[60vh] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
     </div>
   );
 
-  const filteredClasses = classes.filter(c => c.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const classTimes = ["09:00 AM", "10:30 AM", "12:00 PM", "02:00 PM"];
+
+  const filteredClasses = classes.filter(cls => {
+    const nameMatch = cls.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!nameMatch) return false;
+    if (filter === "All") return true;
+    const { isAttention } = getMetrics(cls.id);
+    return filter === "Attention" ? isAttention : !isAttention;
+  });
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left space-y-10">
-      {/* Header Logistics */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-4">
-        <div className="text-left">
-           <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-2">My Classes</h1>
-           <p className="text-sm font-bold text-slate-400">Manage all your assigned classes and sections.</p>
+    <div className="text-left">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Result of click: "My Classes"</p>
+          <h1 className="text-3xl font-bold text-slate-800">My Classes</h1>
+          <p className="text-slate-500 text-sm mt-1">Manage all your assigned classes and sections.</p>
         </div>
-        <div className="flex items-center gap-3">
-           <div className="w-14 h-11 bg-slate-50 border border-slate-100 rounded-xl" />
-           <div className="w-24 h-11 bg-slate-50 border border-slate-100 rounded-xl" />
-           <div className="w-14 h-11 bg-slate-50 border border-slate-100 rounded-xl" />
+        <div className="flex items-center gap-3 mt-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search classes..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 h-10 w-52 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <button
+            onClick={() => setIsAddClassOpen(true)}
+            className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+          >
+            Filter
+          </button>
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-2 rounded-[2rem] shadow-sm border border-slate-50">
-          <div className="relative flex-1 w-full pl-6">
-             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-             <input 
-                type="text" 
-                placeholder="Search institutional subdivisions..." 
-                className="w-full pl-12 pr-6 h-14 bg-transparent border-none font-bold text-sm outline-none placeholder:text-slate-200"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-             />
-          </div>
-          <div className="flex items-center gap-4 pr-2 w-full md:w-auto">
-             <button className="flex-1 md:w-auto px-8 h-14 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                <Filter className="w-4 h-4" /> Filter
-             </button>
-             <button onClick={() => setIsAddClassOpen(true)} className="flex-1 md:w-auto px-10 h-14 bg-[#1e3a8a] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 hover:translate-y-[-2px] transition-all flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5" /> New Class
-             </button>
-          </div>
+      {/* Filter Chips */}
+      <div className="flex items-center gap-3 mb-6">
+        {(["All", "Active", "Attention"] as FilterType[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${
+              filter === f
+                ? "bg-[#1e3272] text-white border-[#1e3272]"
+                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+            }`}
+          >
+            {f} {f === "All" ? `(${classes.length})` : ""}
+          </button>
+        ))}
+        <button
+          onClick={() => setIsAddClassOpen(true)}
+          className="ml-auto flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1e3272] text-white text-sm font-semibold hover:bg-[#162558] transition-all"
+        >
+          <Plus size={16} /> New Class
+        </button>
       </div>
 
-      {/* Grid Ecosystem */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-10">
-         {filteredClasses.length === 0 ? (
-            <div className="col-span-full py-40 flex flex-col items-center justify-center bg-white border border-dashed border-slate-100 rounded-[4rem]">
-               <BookOpen className="w-16 h-16 text-slate-100 mb-6" />
-               <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No Subdivisions Detected In Registry</p>
-            </div>
-         ) : (
-            filteredClasses.map((cls, idx) => {
-               const metrics = calculateMetrics(cls.id);
-               // Dummy schedules logic for "Next Class"
-               const nextTimes = ["09:00 AM", "10:30 AM", "12:15 PM", "02:00 PM"];
-               const nextTime = nextTimes[idx % nextTimes.length];
+      {/* Class Cards Grid */}
+      {filteredClasses.length === 0 ? (
+        <div className="py-32 flex flex-col items-center justify-center bg-white border border-dashed border-slate-200 rounded-2xl">
+          <p className="text-slate-400 font-semibold text-sm">No classes found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredClasses.map((cls, idx) => {
+            const m = getMetrics(cls.id);
+            const nextTime = classTimes[idx % classTimes.length];
 
-               return (
-                  <div key={cls.id} className="bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm hover:shadow-2xl transition-all group flex flex-col text-left">
-                     <div className="flex justify-between items-start mb-10">
-                        <div className="w-20 h-20 rounded-[2rem] bg-indigo-50 flex items-center justify-center text-[#1e3a8a] shadow-inner group-hover:scale-110 transition-transform">
-                           <GraduationCap className="w-10 h-10" />
-                        </div>
-                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${parseFloat(metrics.atndRate) < 90 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                           {parseFloat(metrics.atndRate) < 90 ? 'Attention' : 'Active'}
-                        </span>
-                     </div>
+            return (
+              <div key={cls.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                {/* Icon + Badge */}
+                <div className="flex justify-between items-start mb-5">
+                  <div className="w-14 h-14 rounded-xl bg-blue-100" />
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    m.isAttention
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-emerald-100 text-emerald-700"
+                  }`}>
+                    {m.isAttention ? "Attention" : "Active"}
+                  </span>
+                </div>
 
-                     <div className="mb-10">
-                        <h3 className="text-3xl font-black text-slate-800 leading-none group-hover:text-[#1e3a8a] transition-colors">{cls.name || "Class Group"}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
-                           {cls.subject || teacherData?.subject || "Curriculum"} • {metrics.studentCount} Students
-                        </p>
-                     </div>
+                {/* Class Info */}
+                <h3 className="text-2xl font-bold text-slate-800 mb-1">{cls.name || "Class"}</h3>
+                <p className="text-sm text-slate-500 mb-5">
+                  {cls.subject || teacherData?.subject || "Subject"} • {m.studentCount} Students
+                </p>
 
-                     <div className="space-y-6 mb-12">
-                        <div className="flex items-center justify-between group/metric">
-                           <span className="text-sm font-bold text-slate-400 group-hover/metric:text-slate-600 transition-colors">Attendance Rate</span>
-                           <span className="text-lg font-black text-emerald-600 tracking-tight">{metrics.atndRate}</span>
-                        </div>
-                        <div className="flex items-center justify-between group/metric">
-                           <span className="text-sm font-bold text-slate-400 group-hover/metric:text-slate-600 transition-colors">Avg. Performance</span>
-                           <span className="text-lg font-black text-slate-800 tracking-tight">{metrics.perfRate}</span>
-                        </div>
-                        <div className="flex items-center justify-between group/metric">
-                           <span className="text-sm font-bold text-slate-400 group-hover/metric:text-slate-600 transition-colors">Next Class</span>
-                           <span className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
-                              Today, <span className="text-[#1e3a8a]">{nextTime}</span>
-                           </span>
-                        </div>
-                     </div>
-
-                     <div className="flex gap-4 mt-auto">
-                        <button 
-                          onClick={() => navigate(`/my-classes/${cls.id}`)}
-                          className="flex-1 h-16 bg-[#1e3a8a] text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/10 hover:bg-slate-900 active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                           View Class
-                        </button>
-                        <button 
-                          onClick={() => navigate("/attendance")}
-                          className="flex-1 h-16 bg-white border-2 border-slate-50 text-slate-800 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                           Attendance
-                        </button>
-                     </div>
+                {/* Metrics */}
+                <div className="space-y-3 mb-5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-500">Attendance Rate</span>
+                    <span className={`text-sm font-bold ${m.atndRaw >= 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                      {m.atndDisplay}
+                    </span>
                   </div>
-               );
-            })
-         )}
-      </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-500">Avg. Performance</span>
+                    <span className={`text-sm font-bold ${m.perfRaw >= 60 ? "text-slate-800" : m.perfRaw >= 0 ? "text-rose-600" : "text-slate-400"}`}>
+                      {m.perfDisplay}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-500">Next Class</span>
+                    <span className="text-sm font-bold text-[#1e3272]">Today, {nextTime}</span>
+                  </div>
+                </div>
 
-      {/* ── ADD CLASS DIALOG ── */}
+                {/* Actions */}
+                <div className="flex gap-3 mt-auto">
+                  <button
+                    onClick={() => navigate(`/my-classes/${cls.id}`)}
+                    className="flex-1 py-3 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all"
+                  >
+                    View Class
+                  </button>
+                  <button
+                    onClick={() => navigate("/attendance")}
+                    className="flex-1 py-3 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all"
+                  >
+                    Attendance
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Class Dialog */}
       <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] rounded-[4rem] text-left">
-          <div className="bg-[#1e3a8a] p-10 text-white rounded-t-[4rem]">
-             <DialogTitle className="text-3xl font-black mb-2">New Class Group</DialogTitle>
-             <p className="text-blue-100/50 text-[10px] font-black uppercase tracking-widest">Onboard a New Subdivision to the Ecosystem</p>
-          </div>
-          <div className="p-10 space-y-8 text-left">
-            <div className="space-y-4 text-left">
-               <div className="space-y-2 text-left">
-                 <Label className="uppercase text-[10px] font-black text-slate-400 ml-1">Class Nomenclature</Label>
-                 <Input placeholder="e.g. Physics Section A" className="h-14 rounded-2xl font-bold bg-slate-50 border-none outline-none focus:ring-4 focus:ring-blue-100 transition-all" value={newClass.name} onChange={e=>setNewClass({...newClass, name: e.target.value})} />
-               </div>
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 text-left">
-                    <Label className="uppercase text-[10px] font-black text-slate-400 ml-1">Academic Grade</Label>
-                    <Input placeholder="e.g. 10th" className="h-14 rounded-2xl font-bold bg-slate-50 border-none outline-none focus:ring-4 focus:ring-blue-100 transition-all" value={newClass.grade} onChange={e=>setNewClass({...newClass, grade: e.target.value})} />
-                  </div>
-                  <div className="space-y-2 text-left">
-                    <Label className="uppercase text-[10px] font-black text-slate-400 ml-1">Subject Scope</Label>
-                    <Input placeholder="e.g. Mathematics" className="h-14 rounded-2xl font-bold bg-slate-50 border-none outline-none focus:ring-4 focus:ring-blue-100 transition-all" value={newClass.subject} onChange={e=>setNewClass({...newClass, subject: e.target.value})} />
-                  </div>
-               </div>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[480px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-800">Create New Class</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Name</Label>
+              <Input
+                placeholder="e.g. Class 8-A"
+                className="h-11 rounded-xl"
+                value={newClass.name}
+                onChange={e => setNewClass({ ...newClass, name: e.target.value })}
+              />
             </div>
-            <button disabled={isSaving} onClick={handleCreateClass} className="w-full h-16 bg-[#1e3a8a] text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 active:scale-95 transition-all flex items-center justify-center gap-2">
-               {isSaving ? <Loader2 className="w-5 h-5 animate-spin"/> : <Check className="w-5 h-5"/>} Initialize Subdivision
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Grade</Label>
+                <Input
+                  placeholder="e.g. 8"
+                  className="h-11 rounded-xl"
+                  value={newClass.grade}
+                  onChange={e => setNewClass({ ...newClass, grade: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Section</Label>
+                <Input
+                  placeholder="e.g. A"
+                  className="h-11 rounded-xl"
+                  value={newClass.section}
+                  onChange={e => setNewClass({ ...newClass, section: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</Label>
+              <Input
+                placeholder="e.g. Mathematics"
+                className="h-11 rounded-xl"
+                value={newClass.subject}
+                onChange={e => setNewClass({ ...newClass, subject: e.target.value })}
+              />
+            </div>
+            <button
+              disabled={isSaving}
+              onClick={handleCreateClass}
+              className="w-full h-11 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all flex items-center justify-center gap-2 mt-2"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Create Class
             </button>
           </div>
         </DialogContent>

@@ -1,425 +1,451 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MarkAttendance from "@/components/MarkAttendance";
 import { db } from "../lib/firebase";
 import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
-import {
-  Loader2,
-  TrendingUp,
-  UserCheck,
-  UserX,
-  Clock,
-  ArrowRight,
-  AlertCircle,
-  CalendarDays,
-  MoreHorizontal
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const today = () => new Date().toLocaleDateString("en-CA");
+
+const getInitials = (name = "") => {
+  const p = name.trim().split(" ");
+  return (p.length >= 2 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase();
+};
+
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-rose-500",
+  "bg-violet-500", "bg-pink-500", "bg-teal-500", "bg-amber-500",
+  "bg-indigo-500", "bg-cyan-600",
+];
+const avatarColor = (name = "") =>
+  AVATAR_COLORS[[...(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
+
+// ── component ─────────────────────────────────────────────────────────────────
 const Attendance = () => {
   const { teacherData } = useAuth();
-  const [isMarking, setIsMarking] = useState(false);
+
+  const [marking, setMarking]           = useState(false);
+  const [markingClassId, setMarkingClassId] = useState<string>("");
+  const [loading, setLoading]           = useState(true);
+  const [classes, setClasses]           = useState<any[]>([]);
+  const [enrollments, setEnrollments]   = useState<any[]>([]);
+  const [records, setRecords]           = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    rate: "0%",
-    presentToday: 0,
-    absentToday: 0,
-    lateToday: 0
-  });
 
-  const [registryDate, setRegistryDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
-  const [registryClassId, setRegistryClassId] = useState<string>("");
-
-  // 1. Fetch classes by teacherId — real-time
+  // 1. Classes (real-time)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setClasses(cls);
-      setSelectedClassId(prev => prev || cls[0]?.id || "");
-      setRegistryClassId(prev => prev || cls[0]?.id || "");
-      if (cls.length === 0) setLoading(false);
-    });
+    const unsub = onSnapshot(
+      query(collection(db, "classes"), where("teacherId", "==", teacherData.id)),
+      (snap) => {
+        const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setClasses(cls);
+        setSelectedClassId(prev => prev || cls[0]?.id || "");
+        if (cls.length === 0) setLoading(false);
+      }
+    );
     return () => unsub();
   }, [teacherData?.id]);
 
-  // 2. Fetch enrollments for all classes (by classId only — works for old + new data)
+  // 2. Enrollments for all classes
   useEffect(() => {
-    if (classes.length === 0) { setEnrollments([]); return; }
+    if (!classes.length) { setEnrollments([]); return; }
     Promise.all(
       classes.map(c => getDocs(query(collection(db, "enrollments"), where("classId", "==", c.id))))
     ).then(snaps => {
-      const data: any[] = [];
-      snaps.forEach(s => s.docs.forEach(d => data.push({ id: d.id, ...d.data() })));
-      setEnrollments(data);
+      const all: any[] = [];
+      snaps.forEach(s => s.docs.forEach(d => all.push({ id: d.id, ...d.data() })));
+      setEnrollments(all);
     });
   }, [classes]);
 
-  // 3. Real-time attendance records
+  // 3. Attendance records (real-time)
   useEffect(() => {
-    if (!teacherData?.id || classes.length === 0) {
-      setAttendanceRecords([]);
-      setLoading(false);
-      return;
-    }
+    if (!teacherData?.id || !classes.length) { setRecords([]); setLoading(false); return; }
     setLoading(true);
-    const q = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
-    const unsub = onSnapshot(q, (snap) => {
-      const records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAttendanceRecords(records);
-
-      const today = new Date().toLocaleDateString('en-CA');
-      const todayRec = records.filter((r: any) => r.date === today);
-      const totalPres = records.filter((r: any) => r.status === 'present' || r.status === 'late').length;
-      const rate = records.length > 0 ? ((totalPres / records.length) * 100).toFixed(1) + "%" : "0%";
-      setStats({
-        rate,
-        presentToday: todayRec.filter((r: any) => r.status === 'present').length,
-        absentToday: todayRec.filter((r: any) => r.status === 'absent').length,
-        lateToday: todayRec.filter((r: any) => r.status === 'late').length,
-      });
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      query(collection(db, "attendance"), where("teacherId", "==", teacherData.id)),
+      (snap) => {
+        setRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      }
+    );
     return () => unsub();
   }, [teacherData?.id, classes.length]);
 
-  const handleMarkToday = () => {
-    if (classes.length > 0) setIsMarking(true);
-  };
+  // ── derived stats ───────────────────────────────────────────────────────────
+  const todayStr = today();
 
-  // Weekly Overview Logic
-  const getWeeklyDays = () => {
+  const stats = useMemo(() => {
+    const todayRec = records.filter(r => r.date === todayStr);
+    const total    = records.length;
+    const pres     = records.filter(r => r.status === "present" || r.status === "late").length;
+    return {
+      rate:         total > 0 ? `${((pres / total) * 100).toFixed(1)}%` : "0%",
+      presentToday: todayRec.filter(r => r.status === "present").length,
+      absentToday:  todayRec.filter(r => r.status === "absent").length,
+      lateToday:    todayRec.filter(r => r.status === "late").length,
+    };
+  }, [records, todayStr]);
+
+  // ── weekly days: last Mon → today + next 3 upcoming working days only ──
+  const weeklyDays = useMemo(() => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const dow = todayDate.getDay();
+    const daysFromMon = dow === 0 ? 6 : dow - 1;
+
+    // start from Monday of previous week to cover "Mon Feb 10 – Mon Feb 17" style
+    const startMon = new Date(todayDate);
+    startMon.setDate(todayDate.getDate() - daysFromMon - 7);
+
     const days = [];
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      const dateStr = date.toLocaleDateString('en-CA');
-
-      const dayRecords = attendanceRecords.filter((r: any) => r.date === dateStr && r.classId === selectedClassId);
-      const present = dayRecords.filter(r => r.status === 'present' || r.status === 'late').length;
-      const absent = dayRecords.filter(r => r.status === 'absent').length;
-      const totalInClass = enrollments.filter(e => e.classId === selectedClassId).length || 1;
-      const rate = dayRecords.length > 0 ? ((present / totalInClass) * 100).toFixed(1) : "-";
-
-      days.push({
-        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        dateStr,
-        present,
-        absent,
-        rate: dayRecords.length > 0 ? `${rate}%` : "-",
-        isToday: dateStr === today.toLocaleDateString('en-CA'),
-        hasData: dayRecords.length > 0
-      });
-    }
-    return days;
-  };
-
-  // Attendance Concerns (Students with many absences)
-  const getConcerns = () => {
-    const studentAbsences: Record<string, {name: string, count: number, initials: string}> = {};
-    attendanceRecords.forEach(r => {
-      if (r.status === 'absent') {
-        if (!studentAbsences[r.studentId]) {
-          studentAbsences[r.studentId] = {
-            name: r.studentName,
-            count: 0,
-            initials: r.studentName?.substring(0, 2).toUpperCase() || "ST"
-          };
-        }
-        studentAbsences[r.studentId].count++;
+    const cur = new Date(startMon);
+    while (cur <= todayDate) {
+      const d = cur.getDay();
+      if (d !== 0 && d !== 6) {
+        const dateStr  = cur.toLocaleDateString("en-CA");
+        const dayRecs  = records.filter(r => r.date === dateStr && r.classId === selectedClassId);
+        const pres     = dayRecs.filter(r => r.status === "present" || r.status === "late").length;
+        const abs      = dayRecs.filter(r => r.status === "absent").length;
+        const total    = enrollments.filter(e => e.classId === selectedClassId).length || 1;
+        const rate     = dayRecs.length > 0 ? ((pres / total) * 100).toFixed(1) : null;
+        days.push({
+          label:     cur.toLocaleDateString("en-US", { weekday: "short" }),
+          dateLabel: cur.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          dateStr,
+          present:   pres,
+          absent:    abs,
+          rate:      rate ? `${rate}%` : null,
+          isToday:   dateStr === todayStr,
+          hasData:   dayRecs.length > 0,
+          isFuture:  false,
+        });
       }
+      cur.setDate(cur.getDate() + 1);
+    }
+    // Add next 3 upcoming working days only
+    let future = 0;
+    let futureDate = new Date(todayDate);
+    const FUTURE_DAYS = 3;
+    while (future < FUTURE_DAYS) {
+      futureDate.setDate(futureDate.getDate() + 1);
+      const d = futureDate.getDay();
+      if (d !== 0 && d !== 6) {
+        days.push({
+          label: futureDate.toLocaleDateString("en-US", { weekday: "short" }),
+          dateLabel: futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          dateStr: futureDate.toLocaleDateString("en-CA"),
+          present: null,
+          absent: null,
+          rate: null,
+          isToday: false,
+          hasData: false,
+          isFuture: true,
+        });
+        future++;
+      }
+    }
+    // Show last 6 working days + only 3 future working days
+    const last6 = days.filter(d => !d.isFuture).slice(-6);
+    const onlyFuture = days.filter(d => d.isFuture).slice(0, FUTURE_DAYS);
+    return last6.concat(onlyFuture);
+  }, [records, enrollments, selectedClassId, todayStr]);
+
+  // ── attendance concerns ─────────────────────────────────────────────────────
+  const concerns = useMemo(() => {
+    // current month
+    const monthStr = todayStr.slice(0, 7); // "YYYY-MM"
+    const monthRecs = records.filter(r => r.date?.startsWith(monthStr));
+
+    const map: Record<string, { name: string; absent: number; late: number }> = {};
+    monthRecs.forEach(r => {
+      const key = r.studentId || r.studentEmail;
+      if (!key) return;
+      if (!map[key]) map[key] = { name: r.studentName || "Student", absent: 0, late: 0 };
+      if (r.status === "absent") map[key].absent++;
+      if (r.status === "late")   map[key].late++;
     });
-    return Object.values(studentAbsences).sort((a, b) => b.count - a.count).slice(0, 3);
-  };
 
-  if (isMarking) {
-    return <MarkAttendance initialClassId={selectedClassId} onBack={() => setIsMarking(false)} />;
-  }
+    return Object.values(map)
+      .filter(s => s.absent >= 2 || s.late >= 3)
+      .sort((a, b) => (b.absent + b.late) - (a.absent + a.late))
+      .slice(0, 3)
+      .map(s => ({
+        name:    s.name,
+        initials: getInitials(s.name),
+        color:   avatarColor(s.name),
+        issue:   s.absent >= 2
+          ? `${s.absent} absences this month`
+          : "Frequently late",
+        bg:      s.absent >= 3 ? "bg-rose-50 border-rose-100" :
+                 s.absent >= 2 ? "bg-amber-50 border-amber-100" : "bg-amber-50 border-amber-100",
+        textColor: s.absent >= 3 ? "text-rose-500" : "text-amber-600",
+      }));
+  }, [records, todayStr]);
 
-  const weeklyDays = getWeeklyDays();
-  const concerns = getConcerns();
   const activeClass = classes.find(c => c.id === selectedClassId);
 
-  return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left bg-transparent">
+  // ── mark attendance view ────────────────────────────────────────────────────
+  if (marking) {
+    return (
+      <MarkAttendance
+        initialClassId={markingClassId || selectedClassId}
+        onBack={() => setMarking(false)}
+      />
+    );
+  }
 
-      {/* ── HEADER ── */}
-      <div className="flex justify-between items-start mb-10">
+  if (loading) return (
+    <div className="h-[60vh] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className="text-left space-y-6">
+
+      {/* ── Header ── */}
+      <div className="flex justify-between items-start">
         <div>
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">RESULT OF CLICK: "ATTENDANCE"</p>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Attendance</h1>
-          <p className="text-sm font-semibold text-slate-400 mt-1">Track and manage student attendance across all classes.</p>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+            Result of click: "Attendance"
+          </p>
+          <h1 className="text-3xl font-bold text-slate-800">Attendance</h1>
+          <p className="text-slate-500 text-sm mt-1">Track and manage student attendance across all classes.</p>
         </div>
         <button
-          onClick={handleMarkToday}
-          className="bg-[#1e3a8a] text-white px-8 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-blue-900/10 hover:bg-blue-900 transition-all flex items-center gap-2 group"
+          onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
+          className="px-6 py-3 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
         >
-           Mark Today's Attendance
-           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          Mark Today's Attendance
         </button>
       </div>
 
-      {/* ── STAT CARDS ── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center">
-            <TrendingUp className="w-7 h-7 text-emerald-500" />
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Overall Rate",   value: stats.rate,         color: "bg-emerald-100" },
+          { label: "Present Today",  value: stats.presentToday, color: "bg-blue-100"    },
+          { label: "Absent Today",   value: stats.absentToday,  color: "bg-rose-100"    },
+          { label: "Late Today",     value: stats.lateToday,    color: "bg-amber-100"   },
+        ].map(c => (
+          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${c.color}`} />
+            <div>
+              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
+              <p className="text-xs text-slate-500 font-medium">{c.label}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-2xl font-black text-slate-900">{stats.rate}</h3>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Overall Rate</p>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center">
-            <UserCheck className="w-7 h-7 text-blue-500" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-slate-900">{stats.presentToday}</h3>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Present Today</p>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center">
-            <UserX className="w-7 h-7 text-rose-500" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-slate-900">{stats.absentToday}</h3>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Absent Today</p>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center">
-            <Clock className="w-7 h-7 text-amber-500" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-black text-slate-900">{stats.lateToday}</h3>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Late Today</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* ── WEEKLY OVERVIEW SECTION ── */}
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-4 shadow-sm mb-10">
-        <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+      {/* ── Class Selector Tabs ── */}
+      {classes.length > 0 && (
+        <div className="flex gap-3 flex-wrap">
+          {classes.map(cls => (
+            <button
+              key={cls.id}
+              onClick={() => setSelectedClassId(cls.id)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                selectedClassId === cls.id
+                  ? "bg-[#1e3272] text-white border-[#1e3272]"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              {cls.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Weekly Attendance Overview ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Weekly Attendance Overview</h2>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-              Class {activeClass?.name} • {weeklyDays[0]?.dateLabel} - {weeklyDays[4]?.dateLabel}, 2025
-            </p>
+            <h2 className="text-base font-bold text-slate-800">Weekly Attendance Overview</h2>
+            {weeklyDays.length > 0 && (
+              <p className="text-xs text-slate-500 mt-0.5">
+                {activeClass?.name} • {weeklyDays[0]?.dateLabel} – {weeklyDays[weeklyDays.length - 1]?.dateLabel}, {new Date().getFullYear()}
+              </p>
+            )}
           </div>
-          {/* Class Select */}
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-6 gap-4">
+        <div className="p-5">
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${weeklyDays.length + 1}, minmax(0,1fr))` }}>
             {weeklyDays.map((day, i) => (
               <div
                 key={i}
-                className={`p-6 rounded-[2rem] border transition-all ${
+                className={`rounded-xl p-4 border transition-all ${
                   day.isToday
-                    ? 'bg-white border-amber-400 shadow-md ring-1 ring-amber-400'
-                    : 'bg-slate-50 border-slate-100'
+                    ? "border-amber-400 bg-white ring-1 ring-amber-400 shadow-sm"
+                    : "border-slate-100 bg-slate-50"
                 }`}
               >
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{day.label}</p>
-                <p className="text-xl font-black text-slate-900 mb-6">{day.dateLabel}</p>
+                <p className="text-xs font-semibold text-slate-400 mb-1">{day.label}</p>
+                <p className="text-base font-bold text-slate-800 mb-3">{day.dateLabel}</p>
 
-                <div className="space-y-2 mb-8">
+                <div className="space-y-1.5 mb-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Present</span>
-                    <span className="text-sm font-black text-emerald-500">{day.hasData ? day.present : '—'}</span>
+                    <span className="text-xs text-slate-400">Present</span>
+                    <span className="text-sm font-bold text-emerald-500">
+                      {day.hasData ? day.present : "—"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Absent</span>
-                    <span className="text-sm font-black text-rose-500">{day.hasData ? day.absent : '—'}</span>
+                    <span className="text-xs text-slate-400">Absent</span>
+                    <span className="text-sm font-bold text-rose-500">
+                      {day.hasData ? day.absent : "—"}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                   <p className={`text-xl font-black ${day.hasData ? 'text-emerald-500' : 'text-slate-300'}`}>
-                      {day.rate}
-                   </p>
-                   {day.isToday && !day.hasData && (
-                     <button
-                       onClick={() => setIsMarking(true)}
-                       className="w-full py-3 bg-[#1e3a8a] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-900/10"
-                     >
-                       Mark Now
-                     </button>
-                   )}
-                </div>
+                {day.hasData ? (
+                  <p className="text-sm font-bold text-emerald-500">{day.rate}</p>
+                ) : day.isToday ? (
+                  <button
+                    onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
+                    className="w-full py-2 bg-[#1e3272] text-white rounded-lg text-xs font-semibold mt-1"
+                  >
+                    Mark Now
+                  </button>
+                ) : day.isFuture ? (
+                  <p className="text-xs font-semibold text-slate-400">Upcoming</p>
+                ) : (
+                  <p className="text-xs text-slate-300">—</p>
+                )}
               </div>
             ))}
 
-            {/* Upcoming Placeholder */}
-            <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-6 text-slate-300">
-               <CalendarDays className="w-8 h-8 mb-2" />
-               <p className="text-xs font-black uppercase tracking-widest">Upcoming</p>
-            </div>
+            {/* Removed static Upcoming placeholder; now handled dynamically above */}
           </div>
         </div>
       </div>
 
-      {/* ── ATTENDANCE CONCERNS ── */}
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm text-left relative overflow-hidden mb-10">
-        <div className="flex justify-between items-center mb-10">
-          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Attendance Concerns</h2>
-          <button className="text-[10px] font-black text-[#1e3a8a] uppercase tracking-widest hover:underline">View All</button>
+      {/* ── Attendance Concerns ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-base font-bold text-slate-800">Attendance Concerns</h2>
+          <button className="text-xs font-semibold text-[#1e3272] hover:underline">View All</button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {concerns.length > 0 ? concerns.map((std, i) => (
-             <div key={i} className={`flex items-center gap-4 p-8 rounded-[2.5rem] border ${
-               i === 0 ? 'bg-rose-50 border-rose-100' :
-               i === 1 ? 'bg-amber-50 border-amber-100' :
-               'bg-blue-50 border-blue-100'
-             }`}>
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white text-base font-black shadow-sm ${
-                   i === 0 ? 'bg-rose-500' : i === 1 ? 'bg-amber-500' : 'bg-blue-500'
-                }`}>
-                  {std.initials}
+        {concerns.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {concerns.map((s, i) => (
+              <div key={i} className={`flex items-center gap-3 p-4 rounded-xl border ${s.bg}`}>
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${s.color}`}>
+                  {s.initials}
                 </div>
                 <div>
-                   <h4 className="text-[16px] font-black text-slate-900 leading-tight">{std.name}</h4>
-                   <p className={`text-xs font-bold mt-1 ${
-                      i === 0 ? 'text-rose-500' : i === 1 ? 'text-amber-500' : 'text-blue-500'
-                   }`}>
-                      {std.count} absences this month
-                   </p>
+                  <p className="text-sm font-bold text-slate-800">{s.name}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${s.textColor}`}>{s.issue}</p>
                 </div>
-             </div>
-          )) : (
-            <div className="col-span-3 py-10 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-200 rounded-[2.5rem]">
-               <UserCheck className="w-10 h-10 mb-4 opacity-20" />
-               <p className="text-sm font-black uppercase tracking-widest">Excellent class health detected</p>
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-12 flex items-center justify-center border border-dashed border-slate-200 rounded-xl">
+            <p className="text-sm text-slate-300 font-semibold">All students have good attendance</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Attendance Log (Date + Class filter) ── */}
+      <AttendanceLog
+        classes={classes}
+        enrollments={enrollments}
+        records={records}
+      />
+
+    </div>
+  );
+};
+
+// ── Attendance Log sub-component ───────────────────────────────────────────────
+const AttendanceLog = ({ classes, enrollments, records }: any) => {
+  const [logDate, setLogDate]       = useState(new Date().toLocaleDateString("en-CA"));
+  const [logClassId, setLogClassId] = useState(classes[0]?.id || "");
+
+  useEffect(() => {
+    if (!logClassId && classes.length) setLogClassId(classes[0].id);
+  }, [classes]);
+
+  const roster = enrollments.filter((e: any) => e.classId === logClassId);
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <h2 className="text-base font-bold text-slate-800">Attendance Log</h2>
+        <div className="flex items-center gap-3">
+          <select
+            value={logClassId}
+            onChange={e => setLogClassId(e.target.value)}
+            className="h-9 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
+          >
+            {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <input
+            type="date"
+            value={logDate}
+            onChange={e => setLogDate(e.target.value)}
+            className="h-9 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
+          />
         </div>
       </div>
 
-      {/* ── ATTENDANCE REGISTRY JOURNAL ── */}
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm text-left relative overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 pb-8 border-b border-slate-50">
-           <div>
-              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Attendance Registry Journal</h2>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Historical Roster Records & Logs</p>
-           </div>
-           <div className="flex flex-wrap gap-4">
-              <div className="flex flex-col gap-1.5">
-                 <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">Select Date</label>
-                 <input
-                    type="date"
-                    value={registryDate}
-                    onChange={(e) => setRegistryDate(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                 <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">Select Class</label>
-                 <select
-                    value={registryClassId}
-                    onChange={(e) => setRegistryClassId(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 min-w-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 >
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                 </select>
-              </div>
-           </div>
-        </div>
-
-        <div className="overflow-x-auto">
-           <table className="w-full text-left">
-              <thead>
-                 <tr className="border-b border-slate-50">
-                    <th className="pb-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-4">Student Name</th>
-                    <th className="pb-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-4">Registry ID</th>
-                    <th className="pb-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-4">Status</th>
-                    <th className="pb-6 text-[11px] font-black text-slate-400 uppercase tracking-widest px-4 text-right">Action</th>
-                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                 {(() => {
-                    const classRoster = enrollments.filter(e => e.classId === registryClassId);
-                    if (classRoster.length === 0) {
-                      return (
-                        <tr>
-                           <td colSpan={4} className="py-20 text-center">
-                              <AlertCircle className="w-8 h-8 text-slate-200 mx-auto mb-4" />
-                              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">
-                                {classes.length === 0 ? "No classes found. Create a class first." : "No students enrolled in this class yet."}
-                              </p>
-                           </td>
-                        </tr>
-                      );
-                    }
-                    return classRoster.map((student) => {
-                       const log = attendanceRecords.find(r =>
-                         r.studentId === student.studentId &&
-                         r.date === registryDate &&
-                         r.classId === registryClassId
-                       );
-                       const status = log ? log.status : "unmarked";
-
-                       return (
-                          <tr key={student.id} className="group hover:bg-slate-50/50 transition-colors">
-                             <td className="py-5 px-4">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:bg-[#1e3a8a] group-hover:text-white transition-all">
-                                      {student.studentName?.substring(0,2).toUpperCase()}
-                                   </div>
-                                   <span className="text-[14px] font-black text-slate-700">{student.studentName}</span>
-                                </div>
-                             </td>
-                             <td className="py-5 px-4 text-[12px] font-bold text-slate-400 uppercase tracking-widest">
-                                {student.studentId?.substring(0, 8)}
-                             </td>
-                             <td className="py-5 px-4">
-                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                   status === 'present' ? 'bg-emerald-50 text-emerald-600' :
-                                   status === 'absent' ? 'bg-rose-50 text-rose-600' :
-                                   status === 'late' ? 'bg-amber-50 text-amber-600' :
-                                   'bg-slate-50 text-slate-400'
-                                }`}>
-                                   {status === 'present' && <UserCheck className="w-3 h-3" />}
-                                   {status === 'absent' && <UserX className="w-3 h-3" />}
-                                   {status === 'late' && <Clock className="w-3 h-3" />}
-                                   {status}
-                                </span>
-                             </td>
-                             <td className="py-5 px-4 text-right">
-                                <button className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-300 hover:text-slate-600">
-                                   <MoreHorizontal className="w-5 h-5" />
-                                </button>
-                             </td>
-                          </tr>
-                       );
-                    });
-                 })()}
-              </tbody>
-           </table>
-        </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-slate-100">
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500">Student</th>
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {roster.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="px-6 py-12 text-center text-sm text-slate-300 font-semibold">
+                  No students enrolled in this class
+                </td>
+              </tr>
+            ) : (
+              roster.map((s: any) => {
+                const log = records.find((r: any) =>
+                  r.studentId === s.studentId && r.date === logDate && r.classId === logClassId
+                );
+                const status = log?.status || "unmarked";
+                const statusStyle =
+                  status === "present"  ? "bg-emerald-50 text-emerald-700" :
+                  status === "absent"   ? "bg-rose-50 text-rose-700" :
+                  status === "late"     ? "bg-amber-50 text-amber-700" :
+                                          "bg-slate-50 text-slate-400";
+                return (
+                  <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${avatarColor(s.studentName || "")}`}>
+                          {getInitials(s.studentName)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{s.studentName}</p>
+                          <p className="text-xs text-slate-400">{s.studentEmail}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize ${statusStyle}`}>
+                        {status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
-
     </div>
   );
 };

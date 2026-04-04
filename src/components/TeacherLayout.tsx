@@ -5,7 +5,7 @@ const TeacherLayout = () => {
   return (
     <div className="flex min-h-screen w-full">
       <TeacherSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-[#f8fafc]">
         <div className="p-8">
           <Outlet />
         </div>

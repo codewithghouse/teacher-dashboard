@@ -1,110 +1,125 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  collection, query, where, onSnapshot, getDocs,
+  doc, getDoc, updateDoc
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
-import { 
-  Users, Activity, TrendingUp, AlertTriangle, 
-  Search, Filter, ChevronLeft, ChevronRight, 
-  MoreVertical, Loader2, Sparkles, UserCheck, Download, Edit2, Check, X
+import {
+  Loader2, Search, ChevronLeft, ChevronRight,
+  Download, Edit2, Check, X
 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from 'xlsx';
+import * as XLSX from "xlsx";
+
+const ITEMS_PER_PAGE = 5;
+
+const getStatus = (atnd: number, score: number, manual?: string) => {
+  if (manual) return manual;
+  if (atnd < 75 || score < 50) return "At Risk";
+  if (atnd < 85 || score < 65) return "Needs Attention";
+  return "Good Standing";
+};
+
+const statusStyle = (s: string) => {
+  if (s === "Good Standing") return "text-emerald-700 bg-emerald-50";
+  if (s === "Needs Attention") return "text-amber-700 bg-amber-50";
+  return "text-rose-700 bg-rose-50";
+};
 
 const ClassDetail = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
   const { teacherData } = useAuth();
-  
+
   const [classInfo, setClassInfo] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Students");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [exporting, setExporting] = useState(false);
 
-  // Inline editing states
   const [editingRoll, setEditingRoll] = useState<string | null>(null);
   const [tempRoll, setTempRoll] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [stats, setStats] = useState({
     totalStudents: 0,
-    attendanceRate: "0%",
-    avgScore: "0%",
-    atRiskCount: 0
+    attendanceRate: "—",
+    avgScore: "—",
+    atRiskCount: 0,
   });
 
+  // Fetch class info
+  useEffect(() => {
+    if (!classId) return;
+    getDoc(doc(db, "classes", classId)).then(snap => {
+      if (snap.exists()) setClassInfo(snap.data());
+    });
+  }, [classId]);
+
+  // Fetch students + compute metrics
   useEffect(() => {
     if (!classId) return;
 
-    // 1. Fetch Class Metadata
-    const fetchClass = async () => {
-      const docRef = doc(db, "classes", classId);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) setClassInfo(snap.data());
-    };
-    fetchClass();
-
-    // 2. Fetch Roster & Metrics
     const q = query(collection(db, "enrollments"), where("classId", "==", classId));
     const unsub = onSnapshot(q, async (snap) => {
-      const roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      const enrichedStudents = await Promise.all(roster.map(async (s: any) => {
-          const sid = s.studentId;
-          const email = s.studentEmail?.toLowerCase();
+      const roster = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-          // Attendance Dual-Lookup
-          const qA1 = sid ? query(collection(db, "attendance"), where("studentId", "==", sid), where("classId", "==", classId)) : null;
-          const qA2 = email ? query(collection(db, "attendance"), where("studentEmail", "==", email), where("classId", "==", classId)) : null;
-          
-          const [snapA1, snapA2] = await Promise.all([
-             qA1 ? getDocs(qA1) : Promise.resolve({docs:[]}), 
-             qA2 ? getDocs(qA2) : Promise.resolve({docs:[]})
-          ]);
-          const uniqueAtt = Array.from(new Map([...snapA1.docs, ...snapA2.docs].map(d => [d.id, d.data()])).values());
-          const presentCount = uniqueAtt.filter((d:any) => d.status === 'present' || d.status === 'late').length;
-          const atndRate = uniqueAtt.length > 0 ? (presentCount / uniqueAtt.length) * 100 : 95.0;
+      const enriched = await Promise.all(roster.map(async (s: any) => {
+        const sid = s.studentId;
+        const email = s.studentEmail?.toLowerCase();
 
-          // Results Dual-Lookup
-          const qR1 = sid ? query(collection(db, "results"), where("studentId", "==", sid), where("classId", "==", classId)) : null;
-          const qR2 = email ? query(collection(db, "results"), where("studentEmail", "==", email), where("classId", "==", classId)) : null;
-          
-          const [snapR1, snapR2] = await Promise.all([
-             qR1 ? getDocs(qR1) : Promise.resolve({docs:[]}), 
-             qR2 ? getDocs(qR2) : Promise.resolve({docs:[]})
-          ]);
-          const uniqueRes = Array.from(new Map([...snapR1.docs, ...snapR2.docs].map(d => [d.id, d.data()])).values());
-          const totalScore = uniqueRes.reduce((acc, curr:any) => acc + (parseFloat(curr.score) || 0), 0);
-          const avgScore = uniqueRes.length > 0 ? totalScore / uniqueRes.length : 78.5;
+        // Attendance
+        const attQueries = await Promise.all([
+          sid ? getDocs(query(collection(db, "attendance"), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "attendance"), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+        ]);
+        const uniqueAtt = Array.from(new Map([...attQueries[0].docs, ...attQueries[1].docs].map(d => [d.id, d.data()])).values());
+        const present = uniqueAtt.filter((d: any) => d.status === "present" || d.status === "late").length;
+        const atndRaw = uniqueAtt.length > 0 ? (present / uniqueAtt.length) * 100 : -1;
 
-          // Use manually set status if exists, otherwise calculate
-          let standing = s.manualStatus || (atndRate < 80 || avgScore < 60 ? "At Risk" : (atndRate < 90 || avgScore < 75 ? "Needs Attention" : "Good Standing"));
+        // Scores — try test_scores first, fallback to results
+        const scoreQueries = await Promise.all([
+          sid ? getDocs(query(collection(db, "test_scores"), where("studentId", "==", sid))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "test_scores"), where("studentEmail", "==", email))) : Promise.resolve({ docs: [] }),
+          sid ? getDocs(query(collection(db, "results"), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "results"), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+        ]);
+        const uniqueScores = Array.from(new Map([
+          ...scoreQueries[0].docs, ...scoreQueries[1].docs,
+          ...scoreQueries[2].docs, ...scoreQueries[3].docs
+        ].map(d => [d.id, d.data()])).values());
+        const totalScore = uniqueScores.reduce((acc, r: any) => acc + parseFloat(r.percentage || r.score || 0), 0);
+        const scoreRaw = uniqueScores.length > 0 ? totalScore / uniqueScores.length : -1;
 
-          return {
-             ...s,
-             initials: s.studentName?.substring(0, 2).toUpperCase() || "ST",
-             rollNo: s.rollNo || "N/A",
-             attendance: atndRate.toFixed(1) + "%",
-             avg: avgScore.toFixed(1) + "%",
-             status: standing,
-             atndRaw: atndRate,
-             scoreRaw: avgScore
-          };
+        const initials = (() => {
+          const parts = (s.studentName || "ST").trim().split(" ");
+          return parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0].slice(0, 2);
+        })().toUpperCase();
+
+        const atndDisplay = atndRaw >= 0 ? `${atndRaw.toFixed(1)}%` : "—";
+        const scoreDisplay = scoreRaw >= 0 ? `${scoreRaw.toFixed(1)}%` : "—";
+        const status = getStatus(atndRaw >= 0 ? atndRaw : 100, scoreRaw >= 0 ? scoreRaw : 100, s.manualStatus);
+
+        return { ...s, initials, atndRaw, scoreRaw, attendance: atndDisplay, avg: scoreDisplay, status };
       }));
 
-      setStudents(enrichedStudents);
-      
-      const totalAtnd = enrichedStudents.reduce((acc, curr) => acc + curr.atndRaw, 0) / (enrichedStudents.length || 1);
-      const totalScore = enrichedStudents.reduce((acc, curr) => acc + curr.scoreRaw, 0) / (enrichedStudents.length || 1);
-      const atRisk = enrichedStudents.filter(s => s.status === "At Risk").length;
+      setStudents(enriched);
+
+      const totalAtnd = enriched.filter(s => s.atndRaw >= 0).reduce((a, s) => a + s.atndRaw, 0);
+      const atndCount = enriched.filter(s => s.atndRaw >= 0).length;
+      const totalScore = enriched.filter(s => s.scoreRaw >= 0).reduce((a, s) => a + s.scoreRaw, 0);
+      const scoreCount = enriched.filter(s => s.scoreRaw >= 0).length;
+      const atRisk = enriched.filter(s => s.status === "At Risk").length;
 
       setStats({
-          totalStudents: enrichedStudents.length,
-          attendanceRate: totalAtnd.toFixed(1) + "%",
-          avgScore: totalScore.toFixed(1) + "%",
-          atRiskCount: atRisk
+        totalStudents: enriched.length,
+        attendanceRate: atndCount > 0 ? `${(totalAtnd / atndCount).toFixed(1)}%` : "—",
+        avgScore: scoreCount > 0 ? `${(totalScore / scoreCount).toFixed(1)}%` : "—",
+        atRiskCount: atRisk,
       });
       setLoading(false);
     });
@@ -113,234 +128,287 @@ const ClassDetail = () => {
   }, [classId]);
 
   const handleUpdateRoll = async (id: string) => {
-      setIsUpdating(true);
-      try {
-          await updateDoc(doc(db, "enrollments", id), { rollNo: tempRoll });
-          toast.success("Identity Matrix Updated.");
-          setEditingRoll(null);
-      } catch (e) {
-          toast.error("Cloud Sync Failure.");
-      } finally {
-          setIsUpdating(false);
-      }
+    setIsUpdating(true);
+    try {
+      await updateDoc(doc(db, "enrollments", id), { rollNo: tempRoll });
+      toast.success("Roll number updated.");
+      setEditingRoll(null);
+    } catch {
+      toast.error("Failed to update roll number.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-      const statuses = ["Good Standing", "Needs Attention", "At Risk"];
-      const nextIdx = (statuses.indexOf(currentStatus) + 1) % statuses.length;
-      const nextStatus = statuses[nextIdx];
-      
-      try {
-          await updateDoc(doc(db, "enrollments", id), { manualStatus: nextStatus });
-          toast.success(`Standing updated to ${nextStatus}`);
-      } catch (e) {
-          toast.error("Failed to update status.");
-      }
+  const handleToggleStatus = async (id: string, current: string) => {
+    const statuses = ["Good Standing", "Needs Attention", "At Risk"];
+    const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
+    try {
+      await updateDoc(doc(db, "enrollments", id), { manualStatus: next });
+      toast.success(`Status updated to ${next}`);
+    } catch {
+      toast.error("Failed to update status.");
+    }
   };
 
   const handleExport = () => {
     setExporting(true);
     try {
-      const exportData = students.map(s => ({
-        'Student Name': s.studentName,
-        'Email': s.studentEmail,
-        'Roll Number': s.rollNo,
-        'Attendance': s.attendance,
-        'Average Score': s.avg,
-        'Academic Health': s.status
+      const data = students.map(s => ({
+        "Student Name": s.studentName,
+        "Email": s.studentEmail,
+        "Roll No": s.rollNo || "—",
+        "Attendance": s.attendance,
+        "Avg Score": s.avg,
+        "Status": s.status,
       }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Roster");
-      XLSX.writeFile(wb, `${classInfo?.name || 'Class'}_Roster.xlsx`);
-      toast.success("Roster exported to Excel!");
-    } catch (e) {
-      toast.error("Export failed");
+      XLSX.utils.book_append_sheet(wb, ws, "Students");
+      XLSX.writeFile(wb, `${classInfo?.name || "Class"}_Roster.xlsx`);
+      toast.success("Roster exported!");
+    } catch {
+      toast.error("Export failed.");
     } finally {
       setExporting(false);
     }
   };
 
+  // Pagination
+  const filtered = useMemo(() =>
+    students.filter(s => s.studentName?.toLowerCase().includes(searchQuery.toLowerCase())),
+    [students, searchQuery]
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const goPage = (p: number) => setCurrentPage(Math.max(1, Math.min(p, totalPages)));
+
   if (loading) return (
-     <div className="h-[70vh] flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-6" />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Accessing Roster Ecosystem...</p>
-     </div>
+    <div className="h-[60vh] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
+    </div>
   );
 
-  const filtered = students.filter(s => s.studentName?.toLowerCase().includes(searchQuery.toLowerCase()));
-
   return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left space-y-10">
-      {/* Header View */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="text-left">
-           <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none mb-3">{classInfo?.name || "Class Group"}</h1>
-           <p className="text-sm font-bold text-slate-400">
-              {classInfo?.subject || "Curriculum"} • {stats.totalStudents} Students • Mon-Fri 09:00 AM
-           </p>
+    <div className="text-left space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">{classInfo?.name || "Class"}</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {classInfo?.subject || teacherData?.subject || "Subject"} • {stats.totalStudents} Students • Mon-Fri 09:00 AM
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-            <button 
-              onClick={handleExport}
-              disabled={exporting}
-              className="px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              {exporting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Download className="w-4 h-4"/>} Export Roster
-            </button>
-            <button 
-              onClick={() => navigate("/attendance")}
-              className="bg-[#1e3a8a] text-white px-10 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/10 hover:bg-slate-900 transition-all active:scale-95 whitespace-nowrap"
-            >
-              Mark Attendance
-            </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 flex items-center gap-2"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Export
+          </button>
+          <button
+            onClick={() => navigate("/attendance")}
+            className="px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all"
+          >
+            Mark Attendance
+          </button>
         </div>
       </div>
 
-      {/* Primary Tabs */}
-      <div className="flex gap-12 border-b-2 border-slate-50 relative pb-0 overflow-x-auto no-scrollbar">
-        {["Students", "Attendance", "Assignments", "Tests", "Performance"].map((t) => (
-          <button 
-            key={t} 
-            onClick={() => setActiveTab(t)}
-            className={`pb-5 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative whitespace-nowrap ${activeTab === t ? "text-[#1e3a8a]" : "text-slate-400 hover:text-slate-600"}`}
+      {/* Tabs */}
+      <div className="flex gap-8 border-b border-slate-200">
+        {["Students", "Attendance", "Assignments", "Tests", "Performance"].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`pb-3 text-sm font-semibold relative transition-colors ${
+              activeTab === tab ? "text-[#1e3272]" : "text-slate-400 hover:text-slate-600"
+            }`}
           >
-            {t}
-            {activeTab === t && <div className="absolute bottom-[-2px] left-0 w-full h-1 bg-[#1e3a8a] rounded-full animate-in zoom-in duration-500" />}
+            {tab}
+            {activeTab === tab && (
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#1e3272] rounded-full" />
+            )}
           </button>
         ))}
       </div>
 
-      {/* Metrics Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-         <MetricMiniCard label="Total Students" value={stats.totalStudents} color="bg-blue-50 text-blue-500" />
-         <MetricMiniCard label="Attendance" value={stats.attendanceRate} color="bg-emerald-50 text-emerald-500" />
-         <MetricMiniCard label="Avg. Score" value={stats.avgScore} color="bg-blue-50 text-blue-500" />
-         <MetricMiniCard label="At Risk" value={stats.atRiskCount} color="bg-rose-50 text-rose-500" />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Students", value: stats.totalStudents, color: "bg-blue-100" },
+          { label: "Attendance", value: stats.attendanceRate, color: "bg-emerald-100" },
+          { label: "Avg. Score", value: stats.avgScore, color: "bg-blue-100" },
+          { label: "At Risk", value: stats.atRiskCount, color: "bg-rose-100" },
+        ].map(card => (
+          <div key={card.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${card.color}`} />
+            <div>
+              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{card.value}</p>
+              <p className="text-xs text-slate-500 font-medium">{card.label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Institutional Student Roster Table */}
-      <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm overflow-hidden text-left pt-6 pb-2">
-          <div className="px-8 flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-             <h2 className="text-xl font-black text-slate-800 tracking-tight">Student List</h2>
-             <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="flex-1 md:w-48 relative">
-                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                   <input 
-                      type="text" 
-                      placeholder="Search roster..." 
-                      className="w-full pl-12 pr-6 h-12 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                   />
-                </div>
-                <button 
-                  onClick={() => navigate("/my-classes")}
-                  className="px-6 h-12 bg-indigo-50 text-[#1e3a8a] rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-100 transition-all"
-                >
-                   <Users className="w-4 h-4"/> Enroll Student
-                </button>
-             </div>
+      {/* Students Tab Content */}
+      {activeTab === "Students" && (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          {/* Table Header */}
+          <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-800">Student List</h2>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="pl-9 pr-4 h-9 w-44 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <button
+                onClick={() => navigate("/students")}
+                className="px-4 h-9 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-100"
+              >
+                Add Student
+              </button>
+            </div>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto">
-             <table className="w-full text-left">
-                <thead className="bg-[#f8fafc]/50">
-                   <tr>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Roll No</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Attendance</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Avg. Score</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                   {filtered.length === 0 ? (
-                      <tr><td colSpan={6} className="px-8 py-20 text-center uppercase font-black text-slate-200 text-[10px] tracking-widest">No candidates in current view</td></tr>
-                   ) : (
-                      filtered.map((s) => (
-                         <tr key={s.id} className="hover:bg-slate-50/50 transition-all group">
-                            <td className="px-8 py-6">
-                               <div className="flex flex-col text-left">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase mb-2 group-hover:text-[#1e3a8a] transition-colors">{s.initials}</span>
-                                  <span className="text-[15px] font-black text-slate-800 leading-tight block">{s.studentName}</span>
-                                  <span className="text-[11px] font-bold text-slate-400 block mt-1">{s.studentEmail}</span>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6 text-center">
-                               {editingRoll === s.id ? (
-                                  <div className="flex items-center justify-center gap-2">
-                                     <input 
-                                       className="w-16 h-8 text-center text-xs font-black bg-slate-50 border border-slate-200 rounded outline-none" 
-                                       value={tempRoll} 
-                                       onChange={e=>setTempRoll(e.target.value)}
-                                       autoFocus
-                                     />
-                                     <button onClick={() => handleUpdateRoll(s.id)} className="text-emerald-500"><Check size={14}/></button>
-                                     <button onClick={() => setEditingRoll(null)} className="text-slate-300"><X size={14}/></button>
-                                  </div>
-                               ) : (
-                                  <div className="flex items-center justify-center gap-2 group/edit cursor-pointer" onClick={() => { setEditingRoll(s.id); setTempRoll(s.rollNo); }}>
-                                     <span className="text-[13px] font-bold text-slate-800">{s.rollNo}</span>
-                                     <Edit2 size={10} className="text-slate-200 opacity-0 group-hover/edit:opacity-100 transition-opacity" />
-                                  </div>
-                               )}
-                            </td>
-                            <td className="px-8 py-6 text-center text-[13px] font-black text-slate-800 leading-none">{s.attendance}</td>
-                            <td className="px-8 py-6 text-center text-[13px] font-black text-slate-800 leading-none">{s.avg}</td>
-                            <td className="px-8 py-6 text-center">
-                               <button 
-                                 onClick={() => handleToggleStatus(s.id, s.status)}
-                                 className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                    s.status === "Good Standing" ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100" : 
-                                    s.status === "Needs Attention" ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100" : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100"
-                                 }`}
-                               >
-                                  {s.status}
-                               </button>
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                               <button 
-                                 onClick={() => navigate(`/students?id=${s.studentId}`)}
-                                 className="text-xs font-black text-slate-800 hover:text-[#1e3a8a] transition-colors"
-                               >
-                                  View Profile
-                               </button>
-                            </td>
-                         </tr>
-                      ))
-                   )}
-                </tbody>
-             </table>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500">Student</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Roll No</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Attendance</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Avg. Score</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center text-slate-400 text-sm">
+                      No students found
+                    </td>
+                  </tr>
+                ) : (
+                  paginated.map(s => (
+                    <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-slate-400 mb-1">{s.initials}</span>
+                          <span className="text-sm font-semibold text-slate-800">{s.studentName}</span>
+                          <span className="text-xs text-slate-400">{s.studentEmail}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {editingRoll === s.id ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              className="w-16 h-7 text-center text-xs border border-slate-200 rounded-lg outline-none"
+                              value={tempRoll}
+                              onChange={e => setTempRoll(e.target.value)}
+                              autoFocus
+                            />
+                            <button onClick={() => handleUpdateRoll(s.id)} disabled={isUpdating} className="text-emerald-500 hover:text-emerald-600">
+                              {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                            </button>
+                            <button onClick={() => setEditingRoll(null)} className="text-slate-300 hover:text-slate-500">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="flex items-center justify-center gap-1 cursor-pointer group/roll"
+                            onClick={() => { setEditingRoll(s.id); setTempRoll(s.rollNo || ""); }}
+                          >
+                            <span className="text-sm font-medium text-slate-700">{s.rollNo || "—"}</span>
+                            <Edit2 size={10} className="text-slate-300 opacity-0 group-hover/roll:opacity-100" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm font-medium text-slate-700">{s.attendance}</td>
+                      <td className="px-6 py-4 text-center text-sm font-medium text-slate-700">{s.avg}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleToggleStatus(s.id, s.status)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${statusStyle(s.status)}`}
+                        >
+                          {s.status}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => navigate(`/students`)}
+                          className="text-sm font-semibold text-[#1e3272] hover:underline"
+                        >
+                          View Profile
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
-          <div className="px-8 py-8 flex items-center justify-between border-t border-slate-50 mt-4">
-             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Showing {filtered.length} of {stats.totalStudents} students</p>
-             <div className="flex items-center gap-2">
-                <button className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 border border-slate-100 rounded-lg hover:bg-slate-50 transition-all">Previous</button>
-                <div className="flex gap-1">
-                   <button className="w-10 h-10 bg-[#1e3a8a] text-white rounded-lg text-xs font-black">1</button>
-                   <button className="w-10 h-10 bg-white border border-slate-100 text-slate-400 rounded-lg text-xs font-black">2</button>
-                   <button className="w-10 h-10 bg-white border border-slate-100 text-slate-400 rounded-lg text-xs font-black">3</button>
-                </div>
-                <button className="px-4 py-2 text-[10px] font-black uppercase text-slate-800 border border-slate-100 rounded-lg hover:bg-slate-50 transition-all">Next</button>
-             </div>
+          {/* Pagination */}
+          <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100">
+            <p className="text-xs text-slate-500">
+              Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filtered.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length} students
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => goPage(p)}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
+                      p === currentPage
+                        ? "bg-[#1e3272] text-white"
+                        : "border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => goPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
-      </div>
+        </div>
+      )}
+
+      {/* Other Tabs — Placeholder */}
+      {activeTab !== "Students" && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-sm font-semibold shadow-sm">
+          {activeTab} view — coming soon
+        </div>
+      )}
     </div>
   );
 };
-
-const MetricMiniCard = ({ label, value, color }: any) => (
-   <div className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm flex items-center gap-6 group hover:shadow-xl transition-all">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${color} shadow-inner group-hover:scale-110 transition-transform`} />
-      <div className="text-left">
-         <p className="text-3xl font-black text-slate-800 leading-none mb-1">{value}</p>
-         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-      </div>
-   </div>
-);
 
 export default ClassDetail;

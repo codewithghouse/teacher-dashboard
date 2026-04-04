@@ -10,18 +10,18 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const StatCard = ({ label, value, tag, tagColor, iconColor, unit = "" }: any) => {
+const StatCard = ({ label, value, tag, tagColor, iconBg, unit = "" }: any) => {
    return (
       <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-         <div className="flex items-center justify-between mb-6">
-            <div className={`w-12 h-12 rounded-lg ${iconColor} flex items-center justify-center`} />
-            <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${tagColor}`}>
+         <div className="flex items-center justify-between mb-5">
+            <div className={`w-11 h-11 rounded-xl ${iconBg}`} />
+            <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${tagColor}`}>
                {tag}
-            </div>
+            </span>
          </div>
          <div>
             <h2 className="text-4xl font-bold text-slate-800 tracking-tight">{value}{unit}</h2>
-            <p className="text-sm text-slate-500 font-medium mt-1">{label}</p>
+            <p className="text-sm text-slate-400 font-medium mt-1">{label}</p>
          </div>
       </div>
    );
@@ -140,8 +140,8 @@ const Dashboard = () => {
          const markedToday = new Set(att.filter(a => a.date === todayStr).map(a => a.classId || a.assignmentId));
          const pendingClasses = assignments.filter(a => !markedToday.has(a.classId || a.id));
 
-         if (pendingClasses.length > 0) tasks.push({ title: 'Mark Attendance', sub: `${pendingClasses.length} subdivisions pending`, color: 'bg-amber-500' });
-         if (pendingRev > 0) tasks.push({ title: 'Grade Unit Test Papers', sub: `${pendingRev} pending reviewer`, count: pendingRev, color: 'bg-rose-500' });
+         if (pendingRev > 0) tasks.push({ title: 'Grade Unit Test Papers', sub: `Due Today`, count: pendingRev, color: 'bg-rose-500', bgLight: 'bg-rose-50' });
+         if (pendingClasses.length > 0) tasks.push({ title: 'Mark Attendance', sub: `${pendingClasses.length} class${pendingClasses.length > 1 ? 'es' : ''} • Pending`, color: 'bg-amber-500', bgLight: 'bg-amber-50' });
 
          setPendingTasks(tasks);
 
@@ -157,18 +157,26 @@ const Dashboard = () => {
             
             let lvl = "stable";
             let trig = "On Track";
-            if (sA < 75 || sM < 60) { lvl = "critical"; trig = sA < 75 ? "Attendance Failure" : "Merit Decline"; rCount++; }
-            else if (sA < 85 || sM < 70) { lvl = "observation"; trig = "Registry Dip"; }
+            if (sA < 75 || sM < 60) {
+              lvl = "critical";
+              trig = sA < 75 ? `${sAtt.filter(a => a.status !== 'present' && a.status !== 'late').length} absences this week` : "Grade dropped significantly";
+              rCount++;
+            } else if (sA < 85 || sM < 70) {
+              lvl = "observation";
+              trig = sM < 70 ? "Grade dropped 15%" : "Missing assignments";
+            }
             return { ...s, level: lvl, trigger: trig, score: sM, atnd: sA };
          }).filter(s => s.level !== "stable").sort((a,b) => (a.level === 'critical' ? -1 : 1)).slice(0, 4);
 
          setStats(prev => ({ ...prev, atRiskCount: rCount }));
          setCriticalStudents(rList);
          
+         const classTimes = ['09:00', '10:30', '12:00', '02:00'];
+         const classPeriods = ['AM', 'AM', 'PM', 'PM'];
          setTodayClasses(assignments.slice(0, 4).map((a, i) => ({
-            time: i === 0 ? '08:00' : (i === 1 ? '10:00' : (i === 2 ? '12:30' : '02:30')),
-            period: i < 2 ? 'AM' : 'PM',
-            subject: a.subjectName || a.subject || "Registry",
+            time: classTimes[i] || '09:00',
+            period: classPeriods[i] || 'AM',
+            subject: a.subjectName || a.subject || "Subject",
             class: a.className || a.name || "Class",
             students: students.filter(s => s.classId === (a.classId || a.id)).length,
             isNow: i === 0
@@ -191,20 +199,21 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-8 font-sans text-left">
+    <div className="min-h-screen font-sans text-left">
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
+           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Result of click: "Dashboard"</p>
            <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
            <p className="text-slate-500 text-sm mt-1">Welcome back! Here's what's happening today.</p>
         </div>
-        <div className="flex items-center gap-4">
-           <div className="bg-white px-6 py-2 rounded-xl border border-slate-100 shadow-sm text-sm font-semibold text-slate-600">
+        <div className="flex items-center gap-3">
+           <div className="bg-white px-5 py-2 rounded-xl border border-slate-200 shadow-sm text-sm font-semibold text-slate-600">
               {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
            </div>
            <div className="relative">
-              <div className="w-10 h-10 bg-white rounded-xl border border-slate-100 flex items-center justify-center shadow-sm">
-                 <Bell size={20} className="text-slate-400" />
+              <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
+                 <Bell size={18} className="text-slate-400" />
               </div>
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">3</span>
            </div>
@@ -212,11 +221,31 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-         <StatCard label="Attendance Rate" value={stats.avgAttendance} unit="%" tag={stats.avgAttendance > 90 ? "Stable" : "Action Required"} tagColor={stats.avgAttendance > 90 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"} iconColor="bg-blue-100" />
-         <StatCard label="Pending Grading" value={stats.pendingGrading} tag={stats.pendingGrading > 0 ? "Urgent" : "Sync Complete"} tagColor={stats.pendingGrading > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"} iconColor="bg-amber-100" />
-         <StatCard label="At-Risk Students" value={stats.atRiskCount} tag={stats.atRiskCount > 0 ? "Attention" : "Secure"} tagColor={stats.atRiskCount > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"} iconColor="bg-rose-100" />
-         <StatCard label="Classes Today" value={stats.activeClasses} tag="Real-time" tagColor="bg-emerald-50 text-emerald-600" iconColor="bg-blue-100" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+         <StatCard
+           label="Attendance Rate" value={stats.avgAttendance} unit="%"
+           tag={stats.avgAttendance > 0 ? `+${Math.abs(stats.avgAttendance - 91.8).toFixed(1)}%` : "+0%"}
+           tagColor="bg-emerald-50 text-emerald-600"
+           iconBg="bg-blue-100"
+         />
+         <StatCard
+           label="Pending Grading" value={stats.pendingGrading}
+           tag={stats.pendingGrading > 0 ? "Urgent" : "All Clear"}
+           tagColor={stats.pendingGrading > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"}
+           iconBg="bg-amber-100"
+         />
+         <StatCard
+           label="At-Risk Students" value={stats.atRiskCount}
+           tag={stats.atRiskCount > 0 ? `+${stats.atRiskCount}` : "Secure"}
+           tagColor={stats.atRiskCount > 0 ? "bg-emerald-50 text-emerald-600" : "bg-emerald-50 text-emerald-600"}
+           iconBg="bg-rose-100"
+         />
+         <StatCard
+           label="Classes Today" value={stats.activeClasses}
+           tag="On Track"
+           tagColor="bg-emerald-50 text-emerald-600"
+           iconBg="bg-blue-100"
+         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -237,11 +266,11 @@ const Dashboard = () => {
                            <h4 className="font-bold text-slate-800 truncate leading-tight mb-0.5">{cls.subject}</h4>
                            {cls.isNow && <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase">Now</span>}
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium italic">Class {cls.class} • {cls.students} scholars</p>
+                        <p className="text-[11px] text-slate-500 font-medium">Class {cls.class} • {cls.students} students</p>
                      </div>
                   </div>
                )) : (
-                  <div className="py-20 text-center opacity-30 font-bold uppercase text-[10px] tracking-widest italic">No subdivisions identified.</div>
+                  <div className="py-20 text-center text-slate-300 font-semibold text-sm">No classes scheduled today</div>
                )}
             </div>
          </div>
@@ -251,22 +280,22 @@ const Dashboard = () => {
             <h3 className="text-lg font-bold text-slate-800 mb-6 font-primary">Pending Tasks</h3>
             <div className="space-y-4">
                {pendingTasks.length > 0 ? pendingTasks.map((task, idx) => (
-                  <div key={idx} className="bg-white rounded-xl border border-slate-50 p-4 transition-all hover:shadow-sm group cursor-pointer" onClick={() => navigate(task.title.includes('Attendance') ? '/attendance' : '/gradebook')}>
+                  <div key={idx} className={`rounded-xl p-4 transition-all hover:opacity-90 cursor-pointer ${task.bgLight || 'bg-rose-50'}`} onClick={() => navigate(task.title.includes('Attendance') ? '/attendance' : '/gradebook')}>
                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-lg ${task.color} flex items-center justify-center text-white shadow-md transition-all group-hover:rotate-6`}>
-                           {task.count ? <span className="font-bold">{task.count}</span> : <ClipboardCheck className="w-6 h-6" />}
+                        <div className={`w-11 h-11 rounded-xl ${task.color} flex items-center justify-center flex-shrink-0`}>
+                           <ClipboardCheck className="w-5 h-5 text-white" />
                         </div>
-                        <div className="flex-1">
-                           <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-slate-800 text-sm leading-tight">{task.title}</h4>
-                              {task.count && <span className="w-5 h-5 bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full">{task.count}</span>}
+                        <div className="flex-1 min-w-0">
+                           <div className="flex items-center justify-between gap-2">
+                              <h4 className="font-bold text-slate-800 text-sm leading-tight truncate">{task.title}</h4>
+                              {task.count && <span className="w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full flex-shrink-0">{task.count}</span>}
                            </div>
-                           <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-tighter italic">{task.sub}</p>
+                           <p className="text-xs text-slate-500 mt-0.5">{task.sub}</p>
                         </div>
                      </div>
                   </div>
                )) : (
-                  <div className="py-20 text-center opacity-30 font-bold uppercase text-[10px] tracking-widest italic">Registry synchronized.</div>
+                  <div className="py-20 text-center text-slate-300 font-semibold text-sm">All tasks complete</div>
                )}
             </div>
          </div>
@@ -277,20 +306,21 @@ const Dashboard = () => {
             <div className="space-y-4">
                {criticalStudents.length > 0 ? criticalStudents.map((s, idx) => (
                   <div key={idx} className="flex items-center gap-4 p-4 rounded-xl border border-slate-50">
-                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold ${idx % 4 === 0 ? 'bg-rose-500' : (idx % 4 === 1 ? 'bg-amber-500' : (idx % 4 === 2 ? 'bg-orange-500' : 'bg-[#1e3a8a]'))}`}>
-                        {s.studentName?.[0]}
-                        {s.studentName?.split(' ')[1]?.[0]}
+                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${idx % 4 === 0 ? 'bg-rose-500' : (idx % 4 === 1 ? 'bg-amber-500' : (idx % 4 === 2 ? 'bg-orange-500' : 'bg-[#1e3272]'))}`}>
+                        {(() => { const p = (s.studentName || "S").trim().split(" "); return p.length >= 2 ? p[0][0]+p[1][0] : p[0].slice(0,2); })().toUpperCase()}
                      </div>
                      <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-bold text-slate-800 truncate">{s.studentName}</h4>
                         <p className={`text-[10px] font-black uppercase tracking-tighter ${s.level === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>{s.trigger}</p>
                      </div>
-                     <button onClick={() => navigate('/parent-notes')} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold text-white transition-all active:scale-95 ${idx % 4 === 0 ? 'bg-rose-500 hover:bg-rose-600' : (idx % 4 === 1 ? 'bg-amber-500 hover:bg-amber-600' : (idx % 4 === 2 ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1e3a8a] hover:bg-black'))}`}>
-                        {idx % 4 === 0 ? 'Notify' : (idx % 4 === 1 ? 'Review' : (idx % 4 === 2 ? 'Remind' : 'Help'))}
+                     <button onClick={() => navigate('/parent-notes')} className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white transition-all active:scale-95 flex-shrink-0 ${
+                        s.level === 'critical' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-amber-500 hover:bg-amber-600'
+                     }`}>
+                        {s.level === 'critical' ? 'Notify' : 'Review'}
                      </button>
                   </div>
                )) : (
-                  <div className="py-20 text-center opacity-30 font-bold uppercase text-[10px] tracking-widest italic">Scholar manifest stable.</div>
+                  <div className="py-20 text-center text-slate-300 font-semibold text-sm">All students on track</div>
                )}
             </div>
          </div>

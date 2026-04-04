@@ -2,345 +2,328 @@ import React, { useState, useEffect } from "react";
 import CreateAssignment from "@/components/CreateAssignment";
 import GradeAssignment from "@/components/GradeAssignment";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
+import {
+  collection, query, where, onSnapshot,
+  doc, deleteDoc, getDocs
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
-import { Loader2, FilePlus, Sparkles, Plus, GraduationCap, Trash2, Search, Filter, MoreVertical, Edit3, Eye, Calendar, Clock, CheckCircle2, ChevronRight } from "lucide-react";
+import {
+  Loader2, Plus, Search, Trash2, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { toast } from "sonner";
+
+const ITEMS_PER_PAGE = 8;
+
+const statusStyle = (status: string) => {
+  if (status.includes("To Grade"))      return "bg-amber-50 text-amber-700";
+  if (status === "Fully Submitted")     return "bg-emerald-50 text-emerald-700";
+  if (status === "Completed")           return "bg-slate-100 text-slate-500";
+  if (status === "Active")              return "bg-blue-50 text-blue-700";
+  return "bg-slate-50 text-slate-500";
+};
+
+const timeRemaining = (date: Date) => {
+  const diff = Math.ceil((date.getTime() - Date.now()) / 86400000);
+  if (diff === 0)  return "Due Today";
+  if (diff === 1)  return "Tomorrow";
+  if (diff < 0)   return `${Math.abs(diff)}d ago`;
+  return `${diff} days left`;
+};
 
 const Assignments = () => {
   const { teacherData } = useAuth();
-  const [view, setView] = useState<'list' | 'create' | 'grade'>('list');
+  const [view, setView]                     = useState<"list" | "create" | "grade">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  
-  const [assignmentsData, setAssignmentsData] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-     totalActive: 0,
-     dueThisWeek: 0,
-     pendingGrading: 0,
-     avgSubmission: 0
+  const [assignments, setAssignments]       = useState<any[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [search, setSearch]                 = useState("");
+  const [page, setPage]                     = useState(1);
+  const [stats, setStats]                   = useState({
+    totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0,
   });
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!teacherData?.id) return;
-    
     setLoading(true);
-    // 1. Fetch assigned classes first
-    const qAssign = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
-    const unsubAssign = onSnapshot(qAssign, async (assignSnap) => {
-        const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-        const assignmentIds = teachingAssignments.map(t => t.id);
-        const assignedClassIds = teachingAssignments.map(t => t.classId).filter(Boolean);
-        
-        // 2. Fetch Legacy classes
-        const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-        const legacySnap = await getDocs(qLegacy);
-        const legacyIds = legacySnap.docs.map(d => d.id);
-        
-        const allClassIds = Array.from(new Set([...assignedClassIds, ...legacyIds]));
 
-        if (assignmentIds.length === 0 && allClassIds.length === 0) {
-            setAssignmentsData([]);
-            setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
-            setLoading(false);
-            return;
+    const unsub = onSnapshot(
+      query(
+        collection(db, "teaching_assignments"),
+        where("teacherId", "==", teacherData.id),
+        where("status", "==", "active")
+      ),
+      async (assignSnap) => {
+        const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const assignedClassIds    = teachingAssignments.map(t => t.classId).filter(Boolean);
+
+        // Legacy classes
+        const legacySnap    = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
+        const legacyIds     = legacySnap.docs.map(d => d.id);
+        const allClassIds   = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+
+        if (!allClassIds.length) {
+          setAssignments([]);
+          setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
+          setLoading(false);
+          return;
         }
 
-        // 3. Fetch Assignments by assignmentId (Phase 2 primary architecture)
-        const assignmentsPromisesNew = assignmentIds.map(aid => 
-            getDocs(query(collection(db, "assignments"), where("assignmentId", "==", aid)))
-        );
-        
-        // Fetch legacy assignments by classId AND teacherId to guarantee subject isolation
-        const assignmentsPromisesOld = allClassIds.map(cid => 
+        // Fetch assignments from all class IDs
+        const snaps = await Promise.all(
+          allClassIds.map(cid =>
             getDocs(query(collection(db, "assignments"), where("classId", "==", cid), where("teacherId", "==", teacherData.id)))
+          )
         );
-
-        const newSnaps = await Promise.all(assignmentsPromisesNew);
-        const oldSnaps = await Promise.all(assignmentsPromisesOld);
-        
-        const fetchedMap = new Map();
-        
-        // Load Phase 2 primary data
-        newSnaps.forEach(snap => snap.docs.forEach(d => fetchedMap.set(d.id, { id: d.id, ...d.data() })));
-        
-        // Load Legacy bridge data, dynamically mapping back to Phase 2
-        oldSnaps.forEach(snap => snap.docs.forEach(d => {
-            if (!fetchedMap.has(d.id)) {
-                // Determine implicit assignmentId if absent
-                const record = d.data();
-                const matchedAssignment = teachingAssignments.find(t => t.classId === record.classId);
-                fetchedMap.set(d.id, { 
-                    id: d.id, 
-                    assignmentId: matchedAssignment ? matchedAssignment.id : "legacy",
-                    ...record 
-                });
-            }
+        const map = new Map<string, any>();
+        snaps.forEach(s => s.docs.forEach(d => {
+          if (!map.has(d.id)) map.set(d.id, { id: d.id, ...d.data() });
         }));
-        
-        const fetched = Array.from(fetchedMap.values());
-      
-      const now = new Date();
-      const nextWeek = new Date();
-      nextWeek.setDate(now.getDate() + 7);
+        const raw = Array.from(map.values());
 
-      const enhanced = await Promise.all(fetched.map(async (a: any) => {
-          // Robust Date Parsing
+        const now      = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 86400000);
+
+        const enriched = await Promise.all(raw.map(async (a: any) => {
+          // Parse deadline
           let deadline: Date;
-          if (a.dueDate) {
-              deadline = a.dueDate.toDate ? a.dueDate.toDate() : new Date(a.dueDate);
-          } else if (a.deadline) {
-              deadline = new Date(a.deadline);
-          } else if (a.createdAt) {
-              // Fallback: 7 days after creation if no deadline set
-              const created = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-              deadline = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
-          } else {
-              deadline = new Date();
-          }
-
-          // Ensure it's a valid date
+          if      (a.dueDate?.toDate)  deadline = a.dueDate.toDate();
+          else if (a.dueDate)          deadline = new Date(a.dueDate);
+          else if (a.deadline)         deadline = new Date(a.deadline);
+          else if (a.createdAt?.toDate) deadline = new Date(a.createdAt.toDate().getTime() + 7 * 86400000);
+          else                          deadline = new Date();
           if (isNaN(deadline.getTime())) deadline = new Date();
 
-          // Fetch submissions for stats — DUAL LOOKUP (homeworkId OR assignmentId)
-          const subQ1 = query(collection(db, "submissions"), where("homeworkId", "==", a.id));
-          const subQ2 = query(collection(db, "submissions"), where("assignmentId", "==", a.id));
-          const [subSnap1, subSnap2] = await Promise.all([getDocs(subQ1), getDocs(subQ2)]);
-          // Deduplicate by student key
-          const subSet = new Map();
-          subSnap1.docs.forEach(d => subSet.set(d.data().studentId || d.data().studentEmail || d.id, d));
-          subSnap2.docs.forEach(d => { const k = d.data().studentId || d.data().studentEmail || d.id; if (!subSet.has(k)) subSet.set(k, d); });
-          const subCount = subSet.size;
+          // Submissions
+          const [s1, s2] = await Promise.all([
+            getDocs(query(collection(db, "submissions"), where("homeworkId",   "==", a.id))),
+            getDocs(query(collection(db, "submissions"), where("assignmentId", "==", a.id))),
+          ]);
+          const subMap = new Map<string, any>();
+          s1.docs.forEach(d => subMap.set(d.data().studentId || d.data().studentEmail || d.id, d));
+          s2.docs.forEach(d => { const k = d.data().studentId || d.data().studentEmail || d.id; if (!subMap.has(k)) subMap.set(k, d); });
+          const subCount = subMap.size;
 
-          const resQ = query(collection(db, "results"), where("assignmentId", "==", a.id));
-          const resSnap = await getDocs(resQ);
-          const pendingCount = Math.max(0, subCount - resSnap.size);
+          const [resSnap, enrollSnap] = await Promise.all([
+            getDocs(query(collection(db, "results"), where("assignmentId", "==", a.id))),
+            getDocs(query(collection(db, "enrollments"), where("classId",   "==", a.classId))),
+          ]);
+          const expected    = enrollSnap.size || 1;
+          const pendingGrading = Math.max(0, subCount - resSnap.size);
 
-          const enrollQ = query(collection(db, "enrollments"), where("classId", "==", a.classId));
-          const enrollSnap = await getDocs(enrollQ);
-          const expectedCount = enrollSnap.size || 1;
+          let status = "Active";
+          if (pendingGrading > 0)                          status = `${pendingGrading} To Grade`;
+          else if (subCount >= expected && expected > 0)   status = "Fully Submitted";
+          else if (deadline < now)                          status = "Completed";
 
-          let calcStatus = "Active";
-          if (pendingCount > 0) {
-              calcStatus = `${pendingCount} To Grade`;
-          } else if (deadline < now) {
-              calcStatus = "Completed";
-          } else if (subCount === expectedCount && expectedCount > 0) {
-              calcStatus = "Fully Submitted";
-          }
+          return { ...a, deadline, subCount, expected, pendingGrading, status };
+        }));
 
-          return {
-             ...a,
-             deadline: deadline,
-             submissionCount: subCount,
-             expectedCount: expectedCount,
-             pendingGradingCount: pendingCount,
-             status: calcStatus
-          };
-      }));
+        enriched.sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+        setAssignments(enriched);
 
-      setAssignmentsData(enhanced);
-      
-      // Calculate Global Stats
-      let activeCount = 0;
-      let dueSoonCount = 0;
-      let totalAssignedStudents = 0;
-      let totalReceivedSubmissions = 0;
-
-      enhanced.forEach(a => {
-          if (a.deadline > now) activeCount++;
-          if (a.deadline > now && a.deadline <= nextWeek) dueSoonCount++;
-          totalReceivedSubmissions += a.submissionCount;
-          totalAssignedStudents += a.expectedCount;
-      });
-
-      setStats({
-          totalActive: activeCount,
-          dueThisWeek: dueSoonCount,
-          pendingGrading: enhanced.reduce((acc, curr) => acc + curr.pendingGradingCount, 0),
-          avgSubmission: totalAssignedStudents > 0 ? Math.round((totalReceivedSubmissions / totalAssignedStudents) * 100) : 0
-      });
-      setLoading(false);
-      setLoading(false);
-    });
-
-    return () => unsubAssign();
+        const active        = enriched.filter(a => a.deadline > now).length;
+        const dueSoon       = enriched.filter(a => a.deadline > now && a.deadline <= nextWeek).length;
+        const pending       = enriched.reduce((acc, a) => acc + a.pendingGrading, 0);
+        const totalStudents = enriched.reduce((acc, a) => acc + a.expected, 0);
+        const totalSubs     = enriched.reduce((acc, a) => acc + a.subCount, 0);
+        setStats({
+          totalActive:   active,
+          dueThisWeek:   dueSoon,
+          pendingGrading: pending,
+          avgSubmission: totalStudents > 0 ? Math.round((totalSubs / totalStudents) * 100) : 0,
+        });
+        setLoading(false);
+      }
+    );
+    return () => unsub();
   }, [teacherData?.id]);
 
-  const handleAction = (action: string, assignment: any) => {
-    if (action === "Grade") {
-      setSelectedAssignment(assignment);
-      setView('grade');
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, "assignments", id));
+      toast.success("Assignment deleted.");
+    } catch {
+      toast.error("Failed to delete assignment.");
     }
   };
 
-  const handleDeleteAssignment = async (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
-      try {
-        await deleteDoc(doc(db, "assignments", id));
-        toast.success("Assignment deleted successfully.");
-      } catch (error: any) {
-        console.error("Error deleting assignment:", error);
-        toast.error("Failed to delete assignment.");
-      }
-    }
-  };
+  if (view === "create") return <CreateAssignment onCancel={() => setView("list")} onCreate={() => setView("list")} />;
+  if (view === "grade")  return <GradeAssignment assignment={selectedAssignment} onBack={() => setView("list")} />;
 
-  const getStatusStyle = (status: string) => {
-      if (status.includes("To Grade")) return "bg-amber-50 text-amber-600 border-amber-100";
-      if (status === "Fully Submitted") return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      if (status === "Completed") return "bg-slate-50 text-slate-400 border-slate-100";
-      if (status === "Active") return "bg-blue-50 text-blue-600 border-blue-100";
-      return "bg-slate-50 text-slate-600 border-slate-100";
-  };
-
-  const getTimeRemaining = (date: Date) => {
-      const now = new Date();
-      const diff = date.getTime() - now.getTime();
-      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-      if (days === 0) return "Today";
-      if (days === 1) return "Tomorrow";
-      if (days < 0) return `${Math.abs(days)} days ago`;
-      return `${days} days left`;
-  };
-
-  if (view === 'create') {
-    return <CreateAssignment onCancel={() => setView('list')} onCreate={() => setView('list')} />;
-  }
-
-  if (view === 'grade') {
-    return <GradeAssignment assignment={selectedAssignment} onBack={() => setView('list')} />;
-  }
-
-  const filtered = assignmentsData.filter(a => a.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filtered  = assignments.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 text-left">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="text-left">
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Assignments</h1>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Create, manage, and grade student curiculums.</p>
+    <div className="text-left space-y-6">
+
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+            Result of click: "Assignments"
+          </p>
+          <h1 className="text-3xl font-bold text-slate-800">Assignments</h1>
+          <p className="text-slate-500 text-sm mt-1">Create, manage and grade student assignments.</p>
         </div>
-        <button 
-          onClick={() => setView('create')}
-          className="bg-[#1e3a8a] text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:translate-y-[-2px] transition-all flex items-center gap-3 active:scale-95"
+        <button
+          onClick={() => setView("create")}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
         >
-          <Plus className="w-5 h-5" /> Create Assignment
+          <Plus size={16} /> Create Assignment
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatMiniCard title="Total Active" value={stats.totalActive} color="bg-blue-50 text-blue-600" />
-          <StatMiniCard title="Due This Week" value={stats.dueThisWeek} color="bg-amber-50 text-amber-600" />
-          <StatMiniCard title="Pending Grading" value={stats.pendingGrading} color="bg-rose-50 text-rose-600" />
-          <StatMiniCard title="Avg. Submission" value={`${stats.avgSubmission}%`} color="bg-emerald-50 text-emerald-600" />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Active",     value: stats.totalActive,    color: "bg-blue-100"    },
+          { label: "Due This Week",    value: stats.dueThisWeek,    color: "bg-amber-100"   },
+          { label: "Pending Grading",  value: stats.pendingGrading, color: "bg-rose-100"    },
+          { label: "Avg. Submission",  value: `${stats.avgSubmission}%`, color: "bg-emerald-100" },
+        ].map(c => (
+          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${c.color}`} />
+            <div>
+              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
+              <p className="text-xs text-slate-500 font-medium">{c.label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 overflow-hidden shadow-sm">
-          <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
-             <div className="relative flex-1 w-full max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="text" 
-                  placeholder="Search assignments..." 
-                  className="w-full pl-12 pr-6 py-3.5 bg-slate-50 border-none rounded-2xl text-xs font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-             </div>
-             <div className="flex items-center gap-3 w-full md:w-auto">
-                <button className="flex-1 md:flex-none px-6 py-3.5 bg-white border-2 border-slate-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-center gap-2 hover:bg-slate-50 transition-all">
-                   <Filter className="w-4 h-4" /> Filter
-                </button>
-             </div>
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        {/* Search */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search assignments..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-9 pr-4 h-9 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+            />
           </div>
+        </div>
 
-          <div className="overflow-x-auto">
-             <table className="w-full text-left">
-                <thead>
-                   <tr className="bg-slate-50/30">
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assignment</th>
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Class</th>
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</th>
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Submissions</th>
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                      <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                   {loading ? (
-                      [1,2,3].map(i => (
-                         <tr key={i} className="animate-pulse">
-                            <td colSpan={6} className="px-8 py-10"><div className="h-8 bg-slate-50 rounded-xl" /></td>
-                         </tr>
-                      ))
-                   ) : filtered.length === 0 ? (
-                      <tr>
-                         <td colSpan={6} className="px-8 py-20 text-center text-slate-300 uppercase font-black text-[10px] tracking-widest italic">No Curriculums Found In Registry</td>
-                      </tr>
-                   ) : (
-                      filtered.map((assign) => (
-                         <tr key={assign.id} className="hover:bg-slate-50/30 transition-colors group">
-                            <td className="px-8 py-6">
-                               <div className="flex flex-col text-left">
-                                  <span className="text-sm font-black text-slate-800 group-hover:text-[#1e3a8a] transition-colors uppercase">{assign.title}</span>
-                                  <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase max-w-[200px] truncate">{assign.description || "Experimental Unit Assessment"}</span>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6 font-bold text-slate-600 text-xs uppercase italic">{assign.className || "Class 8-A"}</td>
-                            <td className="px-8 py-6 font-black text-slate-800 text-xs uppercase">{getTimeRemaining(assign.deadline)}</td>
-                            <td className="px-8 py-6 text-center">
-                               <div className="flex flex-col items-center">
-                                  <span className="text-sm font-black text-slate-700">{assign.submissionCount} <span className="text-slate-300 font-bold">/ {assign.expectedCount}</span></span>
-                                  <div className="w-16 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                                     <div className="h-full bg-emerald-500" style={{ width: `${(assign.submissionCount/assign.expectedCount)*100}%` }} />
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6 text-center">
-                               <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusStyle(assign.status)}`}>
-                                  {assign.status}
-                               </span>
-                            </td>
-                            <td className="px-8 py-6">
-                               <div className="flex items-center justify-end gap-2">
-                                  <button 
-                                    onClick={() => handleAction("Grade", assign)}
-                                    className="px-4 py-2 text-[10px] font-black text-[#1e3a8a] hover:bg-blue-50 rounded-xl transition-all"
-                                  >
-                                    Grade
-                                  </button>
-                                  <button className="px-4 py-2 text-[10px] font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">Edit</button>
-                                  <button 
-                                    onClick={() => handleDeleteAssignment(assign.id, assign.title)}
-                                    className="p-2 text-slate-300 hover:text-rose-500 rounded-xl transition-all"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                               </div>
-                            </td>
-                         </tr>
-                      ))
-                   )}
-                </tbody>
-             </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Assignment</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Class</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Due Date</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Submissions</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <Loader2 className="w-6 h-6 text-[#1e3272] animate-spin mx-auto" />
+                  </td>
+                </tr>
+              ) : paginated.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center text-sm text-slate-300 font-semibold">
+                    No assignments found. Create your first one!
+                  </td>
+                </tr>
+              ) : (
+                paginated.map(a => (
+                  <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e3272] transition-colors">{a.title}</p>
+                      {a.description && (
+                        <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">{a.description}</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{a.className || "—"}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-700">{timeRemaining(a.deadline)}</td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {a.subCount}<span className="text-slate-400 font-normal"> / {a.expected}</span>
+                        </span>
+                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusStyle(a.status)}`}>
+                        {a.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => { setSelectedAssignment(a); setView("grade"); }}
+                          className="px-3 py-1.5 text-xs font-semibold text-[#1e3272] hover:bg-blue-50 rounded-lg transition-all"
+                        >
+                          Grade
+                        </button>
+                        <button
+                          onClick={() => handleDelete(a.id, a.title)}
+                          className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {!loading && filtered.length > ITEMS_PER_PAGE && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Showing {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-lg text-xs font-semibold ${
+                    p === page ? "bg-[#1e3272] text-white" : "border border-slate-200 text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
+        )}
       </div>
     </div>
   );
 };
-
-const StatMiniCard = ({ title, value, color }: any) => (
-   <div className="bg-white border-2 border-slate-50 rounded-[2.5rem] p-8 shadow-sm flex items-center justify-between text-left">
-      <div>
-         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-         <h3 className="text-3xl font-black text-slate-800 leading-none">{value}</h3>
-      </div>
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black ${color}`}>
-         <CheckCircle2 className="w-6 h-6" />
-      </div>
-   </div>
-);
 
 export default Assignments;

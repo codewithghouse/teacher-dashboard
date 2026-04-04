@@ -1,365 +1,435 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search, Loader2, Save, UserCheck, UserX, Clock, Check, RefreshCw, Layers, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Loader2, Check, ArrowLeft, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { db } from "../lib/firebase";
-import { collection, query, getDocs, where, serverTimestamp, setDoc, doc, onSnapshot, orderBy, limit } from "firebase/firestore";
+import {
+  collection, query, getDocs, where,
+  serverTimestamp, setDoc, doc, onSnapshot, limit
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
-interface MarkAttendanceProps { 
+// ── helpers ───────────────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-rose-500",
+  "bg-violet-500", "bg-pink-500", "bg-teal-500", "bg-amber-500",
+  "bg-indigo-500", "bg-cyan-600",
+];
+const avatarColor = (name = "") =>
+  AVATAR_COLORS[[...(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
+
+const getInitials = (name = "") => {
+  const p = name.trim().split(" ");
+  return (p.length >= 2 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase();
+};
+
+const todayStr = () => new Date().toLocaleDateString("en-CA");
+const ITEMS_PER_PAGE = 8;
+
+// ── types ─────────────────────────────────────────────────────────────────────
+interface Student {
+  id: string;
+  enrollId: string;
+  name: string;
+  email: string;
+  rollNo: string | number;
+  status: "present" | "absent" | "late" | "none";
+  note: string;
+  initials: string;
+  color: string;
+}
+
+interface Props {
   onBack: () => void;
   initialClassId?: string;
 }
 
-const MarkAttendance = ({ onBack, initialClassId }: MarkAttendanceProps) => {
+// ── component ─────────────────────────────────────────────────────────────────
+const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const { teacherData } = useAuth();
-  const [students, setStudents] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
+
+  const [classes, setClasses]               = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId || "");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [students, setStudents]             = useState<Student[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [saving, setSaving]                 = useState(false);
+  const [currentPage, setCurrentPage]       = useState(1);
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; 
-
+  // ── fetch classes ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-    const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setClasses(cls);
-      if (!selectedClassId && cls.length > 0) setSelectedClassId(cls[0].id);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      query(collection(db, "classes"), where("teacherId", "==", teacherData.id)),
+      (snap) => {
+        const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setClasses(cls);
+        if (!selectedClassId && cls.length > 0) setSelectedClassId(cls[0].id);
+      }
+    );
     return () => unsub();
-  }, [teacherData?.id, selectedClassId]);
+  }, [teacherData?.id]);
 
+  // ── fetch roster + today's attendance ────────────────────────────────────
   useEffect(() => {
     if (!selectedClassId || !teacherData?.id) return;
     setLoading(true);
-    const today = new Date().toLocaleDateString('en-CA');
+    setCurrentPage(1);
 
-    const qRoster = query(
-      collection(db, "enrollments"),
-      where("classId", "==", selectedClassId)
-    );
-    
-    const unsub = onSnapshot(qRoster, async (snap) => {
-      try {
-        const qToday = query(
-          collection(db, "attendance"),
-          where("classId", "==", selectedClassId),
-          where("date", "==", today)
-        );
-        const logSnap = await getDocs(qToday);
-        const activeLogs = logSnap.docs.map(d => d.data());
+    const unsub = onSnapshot(
+      query(collection(db, "enrollments"), where("classId", "==", selectedClassId)),
+      async (snap) => {
+        try {
+          // Fetch today's existing attendance logs
+          const logsSnap = await getDocs(
+            query(
+              collection(db, "attendance"),
+              where("classId", "==", selectedClassId),
+              where("date", "==", todayStr())
+            )
+          );
+          const logs = logsSnap.docs.map(d => d.data());
 
-        const roster = snap.docs.map(d => {
-          const data = d.data() as any;
-          const sId = data.studentId || d.id;
-          const matchingLog = activeLogs.find(l => l.studentId === sId);
-          
-          return {
-            id: sId,
-            enrollId: d.id,
-            name: data.studentName,
-            email: data.studentEmail,
-            rollNo: data.rollNo || (800 + Math.floor(Math.random() * 100)),
-            status: matchingLog ? matchingLog.status : 'none',
-            initials: data.studentName?.substring(0, 2).toUpperCase() || "ST",
-            color: data.avatarColor || `bg-${['blue', 'emerald', 'rose', 'amber', 'indigo'][Math.floor(Math.random()*5)]}-500`
-          };
-        });
-        
-        // Sort alphabetically
-        roster.sort((a,b) => (a.name || "").localeCompare(b.name || ""));
-        setStudents(roster);
-      } catch (e) {
-        console.error("Roster error:", e);
-      } finally {
-        setLoading(false);
+          const roster: Student[] = snap.docs.map(d => {
+            const data = d.data() as any;
+            const sId  = data.studentId || d.id;
+            const log  = logs.find(l => l.studentId === sId);
+            return {
+              id:       sId,
+              enrollId: d.id,
+              name:     data.studentName || "Student",
+              email:    data.studentEmail || "",
+              rollNo:   data.rollNo || "—",
+              status:   (log?.status as any) || "none",
+              note:     log?.note || "",
+              initials: getInitials(data.studentName),
+              color:    avatarColor(data.studentName),
+            };
+          });
+
+          roster.sort((a, b) => a.name.localeCompare(b.name));
+          setStudents(roster);
+        } catch (e) {
+          console.error("Roster fetch error:", e);
+        } finally {
+          setLoading(false);
+        }
       }
-    });
+    );
     return () => unsub();
   }, [selectedClassId, teacherData?.id]);
 
-  const stats = {
-    present: students.filter(s => s.status === 'present').length,
-    absent: students.filter(s => s.status === 'absent').length,
-    late: students.filter(s => s.status === 'late').length,
-    unmarked: students.filter(s => s.status === 'none').length,
+  // ── live counters ──────────────────────────────────────────────────────────
+  const counts = {
+    present:  students.filter(s => s.status === "present").length,
+    absent:   students.filter(s => s.status === "absent").length,
+    late:     students.filter(s => s.status === "late").length,
+    unmarked: students.filter(s => s.status === "none").length,
   };
 
-  const setStatus = (id: string, newStatus: string) => {
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s));
-  };
+  // ── actions ────────────────────────────────────────────────────────────────
+  const setStatus = (id: string, status: Student["status"]) =>
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+
+  const setNote = (id: string, note: string) =>
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, note } : s));
 
   const markAllPresent = () => {
-    setStudents(prev => prev.map(s => ({ ...s, status: 'present' })));
-    toast.success("Ready for registry synchronization!");
+    setStudents(prev => prev.map(s => ({ ...s, status: "present" })));
+    toast.success("All students marked present!");
   };
 
   const copyFromYesterday = async () => {
     setLoading(true);
     try {
-      const qPrev = query(
-        collection(db, "attendance"),
-        where("classId", "==", selectedClassId),
-        where("teacherId", "==", teacherData.id),
-        limit(100)
+      const snap = await getDocs(
+        query(
+          collection(db, "attendance"),
+          where("classId", "==", selectedClassId),
+          where("teacherId", "==", teacherData.id),
+          limit(200)
+        )
       );
-      const snap = await getDocs(qPrev);
-      const today = new Date().toLocaleDateString('en-CA');
-      
+      const today = todayStr();
       const prevLogs = snap.docs
         .map(d => d.data())
-        .filter(l => l.date !== today)
+        .filter((l: any) => l.date !== today)
         .sort((a: any, b: any) => b.date.localeCompare(a.date));
-      
-      if (prevLogs.length === 0) {
-        toast.error("No previous registry found for this subdivision.");
+
+      if (!prevLogs.length) {
+        toast.error("No previous attendance found.");
         setLoading(false);
         return;
       }
-
       const latestDate = prevLogs[0].date;
-      const latestLogs = prevLogs.filter(l => l.date === latestDate);
+      const latestLogs = prevLogs.filter((l: any) => l.date === latestDate);
 
       setStudents(prev => prev.map(s => {
-        const match = latestLogs.find(l => l.studentId === s.id);
-        return match ? { ...s, status: match.status } : s;
+        const match = latestLogs.find((l: any) => l.studentId === s.id);
+        return match ? { ...s, status: match.status as any, note: match.note || "" } : s;
       }));
-
-      toast.success(`Synchronized with registry from ${latestDate}`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Registry lookup failed.");
+      toast.success(`Copied from ${latestDate}`);
+    } catch {
+      toast.error("Failed to copy previous attendance.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (students.length === 0) return toast.error("No scholars in this registry subdivision.");
-    if (stats.unmarked > 0) {
-      if (!confirm(`You have ${stats.unmarked} unmarked scholars. Proceed with full synchronization?`)) return;
+    if (!students.length) return toast.error("No students in this class.");
+    if (counts.unmarked > 0) {
+      if (!window.confirm(`${counts.unmarked} students are unmarked. Save anyway?`)) return;
     }
 
     setSaving(true);
-    const today = new Date().toLocaleDateString('en-CA');
+    const today   = todayStr();
     const selClass = classes.find(c => c.id === selectedClassId);
 
     try {
-      let teachingAssignmentId = "legacy";
-      const qAssign = query(collection(db, "teaching_assignments"), 
-          where("teacherId", "==", teacherData.id), 
+      // Get teaching assignment ID
+      let assignmentId = "legacy";
+      const aSnap = await getDocs(
+        query(
+          collection(db, "teaching_assignments"),
+          where("teacherId", "==", teacherData.id),
           where("classId", "==", selectedClassId),
           where("status", "==", "active")
+        )
       );
-      const assignSnap = await getDocs(qAssign);
-      if (!assignSnap.empty) {
-          teachingAssignmentId = assignSnap.docs[0].id;
-      }
+      if (!aSnap.empty) assignmentId = aSnap.docs[0].id;
 
-      const promises = students
-        .filter(s => s.status !== 'none')
-        .map(s => {
-          const attendanceRef = doc(db, "attendance", `${s.id}_${selectedClassId}_${today}`);
-          return setDoc(attendanceRef, {
-            studentId: s.id,
-            studentName: s.name,
+      const marked = students.filter(s => s.status !== "none");
+      await Promise.all(
+        marked.map(s =>
+          setDoc(doc(db, "attendance", `${s.id}_${selectedClassId}_${today}`), {
+            studentId:    s.id,
+            studentName:  s.name,
             studentEmail: s.email,
-            status: s.status,
-            date: today,
-            teacherId: teacherData.id,
-            schoolId: teacherData.schoolId || "",
-            branchId: teacherData.branchId || "",
-            assignmentId: teachingAssignmentId, // From Phase 1 spec
-            teacherName: teacherData.name || "Faculty",
-            classId: selectedClassId,
-            className: selClass?.name || "Unknown",
-            timestamp: serverTimestamp()
-          });
-        });
+            status:       s.status,
+            note:         s.note || "",
+            date:         today,
+            teacherId:    teacherData.id,
+            teacherName:  teacherData.name || "",
+            schoolId:     teacherData.schoolId || "",
+            branchId:     teacherData.branchId || "",
+            classId:      selectedClassId,
+            className:    selClass?.name || "",
+            assignmentId,
+            timestamp:    serverTimestamp(),
+          })
+        )
+      );
 
-      await Promise.all(promises);
-      toast.success(`Globally synchronized! Visible to Parents & Principals.`);
+      toast.success(`Attendance saved! ${marked.length} students recorded.`);
       onBack();
     } catch (e) {
       console.error(e);
-      toast.error("Process aborted. Check connectivity.");
+      toast.error("Failed to save attendance. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
+  // ── pagination ─────────────────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(students.length / ITEMS_PER_PAGE));
+  const paginated  = students.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const goPage     = (p: number) => setCurrentPage(Math.max(1, Math.min(p, totalPages)));
+
   const selClass = classes.find(c => c.id === selectedClassId);
-  const currentDateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
-  // Pagination Logic
-  const totalStudents = students.length;
-  const totalPages = Math.ceil(totalStudents / itemsPerPage) || 1;
-  const paginatedStudents = students.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const getAvatarColor = (initials: string) => {
-      const colorMap: Record<string, string> = {
-          'A': 'bg-[#1e3a8a]', 'B': 'bg-emerald-500', 'C': 'bg-amber-500', 'D': 'bg-rose-500', 
-          'E': 'bg-blue-600', 'F': 'bg-violet-600', 'G': 'bg-[#1e3a8a]', 'H': 'bg-emerald-500'
-      };
-      return colorMap[initials.charAt(0)] || 'bg-indigo-600';
-  };
+  const dateFormatted = new Date().toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric", year: "numeric"
+  });
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left bg-transparent">
-      
-      {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8">
-        <div className="text-left flex items-start gap-4">
-           <button onClick={onBack} className="mt-1 p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm group">
-              <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-[#1e3a8a]" />
-           </button>
-           <div>
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">RESULT OF CLICK: "MARK ATTENDANCE"</p>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mark Attendance</h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{selClass?.name || 'Class'} • {currentDateFormatted}</p>
-           </div>
+    <div className="text-left space-y-6">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <button
+            onClick={onBack}
+            className="mt-1 p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-500" />
+          </button>
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+              Result of click: "Mark Attendance"
+            </p>
+            <h1 className="text-3xl font-bold text-slate-800">Mark Attendance</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              {selClass?.name || "Class"} • {dateFormatted}
+            </p>
+          </div>
         </div>
-        <button 
-           onClick={handleSave} 
-           disabled={saving || loading} 
-           className="mt-6 md:mt-0 bg-[#22c55e] text-white px-8 py-3.5 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/10 hover:bg-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50"
+        <button
+          onClick={handleSave}
+          disabled={saving || loading}
+          className="px-6 py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-50 flex items-center gap-2"
         >
-           {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>} 
-           Save Attendance
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          Save Attendance
         </button>
       </div>
 
-      {/* ── QUICK ACTIONS BAR ── */}
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-sm">
-         <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">Quick Actions:</span>
-            <button onClick={markAllPresent} className="px-6 py-2.5 bg-white border border-slate-200 text-[11px] font-black uppercase tracking-widest text-[#1e3a8a] rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
-               Mark All Present
-            </button>
-            <button onClick={copyFromYesterday} className="px-6 py-2.5 bg-white border border-slate-200 text-[11px] font-black uppercase tracking-widest text-slate-500 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
-               Copy from Yesterday
-            </button>
-         </div>
-         <div className="flex items-center gap-8 pr-4">
-            <div className="flex items-center gap-3">
-               <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-               <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Present: <span className="font-black text-slate-900 ml-1">{stats.present}</span></span>
-            </div>
-            <div className="flex items-center gap-3">
-               <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-               <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Absent: <span className="font-black text-slate-900 ml-1">{stats.absent}</span></span>
-            </div>
-            <div className="flex items-center gap-3">
-               <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-               <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Late: <span className="font-black text-slate-900 ml-1">{stats.late}</span></span>
-            </div>
-         </div>
+      {/* ── Quick Actions Bar ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-slate-500">Quick Actions:</span>
+          <button
+            onClick={markAllPresent}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all"
+          >
+            Mark All Present
+          </button>
+          <button
+            onClick={copyFromYesterday}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all"
+          >
+            Copy from Yesterday
+          </button>
+        </div>
+        <div className="flex items-center gap-5 text-sm">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+            <span className="text-slate-500">Present:</span>
+            <span className="font-bold text-slate-800">{counts.present}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+            <span className="text-slate-500">Absent:</span>
+            <span className="font-bold text-slate-800">{counts.absent}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+            <span className="text-slate-500">Late:</span>
+            <span className="font-bold text-slate-800">{counts.late}</span>
+          </span>
+        </div>
       </div>
 
-      {/* ── MAIN ROSTER GRID ── */}
-      <div className="bg-white border border-slate-200 rounded-[3.5rem] p-4 shadow-sm text-left overflow-hidden">
-         <div className="px-10 py-10 border-b border-slate-50">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">Student Attendance</h2>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{totalStudents} students • Click to toggle status</p>
-         </div>
+      {/* ── Student Grid ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="text-base font-bold text-slate-800">Student Attendance</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {students.length} students • Click to toggle status
+          </p>
+        </div>
 
-         {loading ? (
-            <div className="py-28 flex flex-col items-center justify-center">
-               <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-4" />
-               <p className="text-xs font-black uppercase tracking-widest text-slate-300">Synchronizing registry subdivisions...</p>
-            </div>
-         ) : paginatedStudents.length === 0 ? (
-            <div className="py-28 flex flex-col items-center justify-center text-slate-300">
-               <Layers className="w-16 h-16 mb-4 opacity-20" />
-               <p className="text-sm font-black uppercase tracking-widest">No scholars in this registry</p>
-            </div>
-         ) : (
-            <div className="p-10">
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                  {paginatedStudents.map((student) => {
-                     const isPresent = student.status === 'present';
-                     const isAbsent = student.status === 'absent';
-                     const isLate = student.status === 'late';
-
-                     return (
-                        <div key={student.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-8 hover:border-blue-100 hover:shadow-2xl transition-all flex flex-col items-start group shadow-sm">
-                           <div className="flex items-center gap-4 mb-8">
-                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-base font-black shadow-md ${getAvatarColor(student.initials)} group-hover:scale-110 transition-transform`}>
-                                 {student.initials}
-                              </div>
-                              <div>
-                                 <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1.5">{student.name}</h3>
-                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Roll: {student.rollNo}</p>
-                              </div>
-                           </div>
-                           
-                           <div className="w-full grid grid-cols-3 bg-slate-50/50 p-1 rounded-2xl border border-slate-50">
-                              <button 
-                                 onClick={() => setStatus(student.id, 'present')}
-                                 className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isPresent ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
-                              >
-                                 Present
-                              </button>
-                              <button 
-                                 onClick={() => setStatus(student.id, 'absent')}
-                                 className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isAbsent ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
-                              >
-                                 Absent
-                              </button>
-                              <button 
-                                 onClick={() => setStatus(student.id, 'late')}
-                                 className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLate ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
-                              >
-                                 Late
-                              </button>
-                           </div>
-                        </div>
-                     );
-                  })}
-               </div>
-            </div>
-         )}
-
-         {/* ── PAGINATION ── */}
-         {!loading && totalStudents > 0 && (
-            <div className="px-10 py-10 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-8">
-               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                  Showing {Math.min(totalStudents, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(totalStudents, currentPage * itemsPerPage)} of {totalStudents} students
-               </p>
-               <div className="flex items-center gap-1.5">
-                  <button 
-                     disabled={currentPage === 1}
-                     onClick={() => setCurrentPage(prev => prev - 1)}
-                     className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-                  >
-                     Previous
-                  </button>
-                  <div className="flex gap-1.5">
-                     {[...Array(totalPages)].map((_, i) => (
-                        <button 
-                           key={i} 
-                           onClick={() => setCurrentPage(i + 1)}
-                           className={`w-10 h-10 rounded-xl text-[12px] font-black flex items-center justify-center transition-all ${currentPage === i + 1 ? 'bg-[#1e3a8a] text-white shadow-xl shadow-blue-900/10' : 'bg-white border border-slate-200 text-slate-400 hover:text-slate-600'}`}
-                        >
-                           {i + 1}
-                        </button>
-                     ))}
+        {loading ? (
+          <div className="py-24 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
+          </div>
+        ) : paginated.length === 0 ? (
+          <div className="py-24 text-center text-slate-300 font-semibold text-sm">
+            No students enrolled in this class
+          </div>
+        ) : (
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {paginated.map(student => (
+              <div
+                key={student.id}
+                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
+              >
+                {/* Avatar + Name */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${student.color}`}>
+                    {student.initials}
                   </div>
-                  <button 
-                     disabled={currentPage === totalPages}
-                     onClick={() => setCurrentPage(prev => prev + 1)}
-                     className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                  <div>
+                    <p className="text-sm font-bold text-slate-800 leading-tight">{student.name}</p>
+                    <p className="text-xs text-slate-400">Roll: {student.rollNo}</p>
+                  </div>
+                </div>
+
+                {/* Status Buttons */}
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => setStatus(student.id, "present")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                      student.status === "present"
+                        ? "bg-emerald-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600"
+                    }`}
                   >
-                     Next
+                    Present
                   </button>
-               </div>
+                  <button
+                    onClick={() => setStatus(student.id, "absent")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                      student.status === "absent"
+                        ? "bg-rose-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:border-rose-300 hover:text-rose-600"
+                    }`}
+                  >
+                    Absent
+                  </button>
+                  <button
+                    onClick={() => setStatus(student.id, "late")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                      student.status === "late"
+                        ? "bg-amber-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600"
+                    }`}
+                  >
+                    Late
+                  </button>
+                </div>
+
+                {/* Note field */}
+                <input
+                  type="text"
+                  placeholder="Add note..."
+                  value={student.note}
+                  onChange={e => setNote(student.id, e.target.value)}
+                  className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 bg-slate-50"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && students.length > 0 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, students.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, students.length)} of {students.length} students
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => goPage(p)}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
+                      p === currentPage
+                        ? "bg-[#1e3272] text-white"
+                        : "border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => goPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                Next <ChevronRight size={14} />
+              </button>
             </div>
-         )}
+          </div>
+        )}
       </div>
     </div>
   );

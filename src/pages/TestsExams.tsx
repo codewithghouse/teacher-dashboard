@@ -1,203 +1,305 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import CreateTest from "../components/CreateTest";
 import EnterScores from "../components/EnterScores";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
-import { Loader2, Plus, Edit, Printer, ChevronRight, BarChart3, TrendingUp } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
+
+const statusStyle = (s: string) => {
+  if (s === "Completed")      return "bg-emerald-50 text-emerald-700";
+  if (s === "Pending Scores") return "bg-amber-50 text-amber-700";
+  if (s === "Draft")          return "bg-slate-100 text-slate-500";
+  return "bg-blue-50 text-blue-700";
+};
+
+const daysLabel = (dateStr: string) => {
+  if (!dateStr) return "";
+  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+  if (diff < 0)   return `${Math.abs(diff)}d ago`;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  return `In ${diff} days`;
+};
+
+const daysUrgent = (dateStr: string) => {
+  if (!dateStr) return false;
+  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+  return diff >= 0 && diff <= 3;
+};
 
 export default function TestsExams() {
   const { teacherData } = useAuth();
-  const [view, setView] = useState<'list' | 'create' | 'enter-scores'>('list');
+  const [view, setView]               = useState<"list" | "create" | "enter-scores">("list");
   const [selectedTest, setSelectedTest] = useState<any>(null);
-  
-  const [tests, setTests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tests, setTests]             = useState<any[]>([]);
+  const [scores, setScores]           = useState<any[]>([]);
+  const [classes, setClasses]         = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState("");
 
+  // Fetch tests (real-time)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "tests"), where("teacherId", "==", teacherData.id));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched: any[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      fetched.sort((a,b) => {
-         const dA = new Date(a.testDate || (a.createdAt as any)?.toDate() || 0).getTime();
-         const dB = new Date(b.testDate || (b.createdAt as any)?.toDate() || 0).getTime();
-         return dA - dB; // closest first
-      });
-      setTests(fetched);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const unsub = onSnapshot(
+      query(collection(db, "tests"), where("teacherId", "==", teacherData.id)),
+      async (snap) => {
+        const raw = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        raw.sort((a, b) => {
+          const dA = a.testDate ? new Date(a.testDate).getTime() : (a.createdAt?.toDate?.()?.getTime?.() || 0);
+          const dB = b.testDate ? new Date(b.testDate).getTime() : (b.createdAt?.toDate?.()?.getTime?.() || 0);
+          return dA - dB;
+        });
+
+        // Enrich each test with student count from enrollments
+        const enriched = await Promise.all(raw.map(async t => {
+          if (!t.classId) return { ...t, studentsCount: 0 };
+          const enSnap = await getDocs(query(collection(db, "enrollments"), where("classId", "==", t.classId)));
+          return { ...t, studentsCount: enSnap.size };
+        }));
+        setTests(enriched);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
   }, [teacherData?.id]);
 
-  const handleEnterScores = (test: any) => {
-    setSelectedTest(test);
-    setView('enter-scores');
-  };
+  // Fetch test_scores for this teacher (real-time — for avg calculation)
+  useEffect(() => {
+    if (!teacherData?.id) return;
+    const unsub = onSnapshot(
+      query(collection(db, "test_scores"), where("teacherId", "==", teacherData.id)),
+      snap => setScores(snap.docs.map(d => d.data()))
+    );
+    return () => unsub();
+  }, [teacherData?.id]);
 
-  if (view === 'create') return <CreateTest onCancel={() => setView('list')} onCreate={() => setView('list')} />;
-  if (view === 'enter-scores') return <EnterScores test={selectedTest} onBack={() => setView('list')} />;
+  // Fetch classes for per-class avg
+  useEffect(() => {
+    if (!teacherData?.id) return;
+    getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)))
+      .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  }, [teacherData?.id]);
 
-  const completedCount = tests.filter(t => t.status === "Completed").length;
-  const pendingCount = tests.filter(t => t.status === "Pending Scores" || t.status === "Draft").length;
-  const upcomingCount = tests.filter(t => t.status !== "Completed" && t.status !== "Pending Scores").length;
+  // Stats
+  const stats = useMemo(() => {
+    const upcoming      = tests.filter(t => t.status !== "Completed" && t.status !== "Pending Scores").length;
+    const completed     = tests.filter(t => t.status === "Completed").length;
+    const pendingScores = tests.filter(t => t.status === "Pending Scores" || t.status === "Draft").length;
+    const total         = scores.length;
+    const sum           = scores.reduce((a, s) => a + parseFloat(s.percentage || s.score || 0), 0);
+    const classAvg      = total > 0 ? (sum / total).toFixed(1) : "—";
+    return { upcoming, completed, pendingScores, classAvg };
+  }, [tests, scores]);
 
-  const mockTopicData = [
-     { name: "Algebra", score: 82, color: "text-emerald-500" },
-     { name: "Geometry", score: 71, color: "text-amber-500" },
-     { name: "Statistics", score: 79, color: "text-emerald-500" },
-     { name: "Trigonometry", score: 64, color: "text-rose-500" },
-  ];
+  // Per-class average (right panel)
+  const classPerf = useMemo(() => {
+    return classes.map(cls => {
+      const clsScores = scores.filter(s => {
+        // match by classId if available, else just show all teacher scores per class
+        return true; // test_scores may not have classId — show overall per class enrolled
+      });
+      // Use test-level matching: tests for this class
+      const clsTests  = tests.filter(t => t.classId === cls.id).map(t => t.id);
+      const clsScoreArr = scores.filter(s => clsTests.includes(s.testId || ""));
+      const avg = clsScoreArr.length > 0
+        ? clsScoreArr.reduce((a, s) => a + parseFloat(s.percentage || s.score || 0), 0) / clsScoreArr.length
+        : null;
+      return { name: cls.name, avg };
+    }).filter(c => c.avg !== null);
+  }, [classes, tests, scores]);
 
-  const mockPerfData = [
-     { class: "Class 8-A", score: 78.5, fill: "bg-emerald-500" },
-     { class: "Class 9-B", score: 72.3, fill: "bg-amber-500" },
-     { class: "Class 7-C", score: 81.2, fill: "bg-emerald-500" },
-     { class: "Class 10-A", score: 65.8, fill: "bg-rose-500" },
-  ];
+  // Per-topic performance (from test titles / topics field)
+  const topicPerf = useMemo(() => {
+    const map: Record<string, number[]> = {};
+    scores.forEach(s => {
+      const topic = s.topic || s.subject || s.testTitle || "General";
+      if (!map[topic]) map[topic] = [];
+      map[topic].push(parseFloat(s.percentage || s.score || 0));
+    });
+    return Object.entries(map)
+      .map(([name, arr]) => ({ name, avg: arr.reduce((a, b) => a + b, 0) / arr.length }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5);
+  }, [scores]);
+
+  if (view === "create")      return <CreateTest onCancel={() => setView("list")} onCreate={() => setView("list")} />;
+  if (view === "enter-scores") return <EnterScores test={selectedTest} onBack={() => setView("list")} />;
+
+  const filtered = tests.filter(t =>
+    (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
+    (t.className || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left">
-      
+    <div className="text-left space-y-6">
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+      <div className="flex justify-between items-start">
         <div>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">RESULT OF CLICK: "TESTS & EXAMS"</p>
-           <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">Tests & Exams</h1>
-           <p className="text-sm font-medium text-slate-500 mt-2">Manage tests, enter scores, and analyze performance.</p>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+            Result of click: "Tests & Exams"
+          </p>
+          <h1 className="text-3xl font-bold text-slate-800">Tests & Exams</h1>
+          <p className="text-slate-500 text-sm mt-1">Manage tests, enter scores and analyze performance.</p>
         </div>
-        <button 
-           onClick={() => setView('create')} 
-           className="bg-[#1e3a8a] text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-blue-900 transition-all flex items-center gap-2"
+        <button
+          onClick={() => setView("create")}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
         >
-           Create Test
+          <Plus size={16} /> Create Test
         </button>
       </div>
 
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-         <div className="bg-white border text-left border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-amber-100/50" />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Upcoming",       value: stats.upcoming,      color: "bg-amber-100"   },
+          { label: "Completed",      value: stats.completed,     color: "bg-blue-100"    },
+          { label: "Pending Scores", value: stats.pendingScores, color: "bg-rose-100"    },
+          { label: "Class Avg",      value: stats.classAvg === "—" ? "—" : `${stats.classAvg}%`, color: "bg-emerald-100" },
+        ].map(c => (
+          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${c.color}`} />
             <div>
-               <h3 className="text-2xl font-black text-slate-800 leading-none">{upcomingCount}</h3>
-               <p className="text-xs font-semibold text-slate-500 mt-1">Upcoming</p>
+              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
+              <p className="text-xs text-slate-500 font-medium">{c.label}</p>
             </div>
-         </div>
-         <div className="bg-white border text-left border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-100/50" />
-            <div>
-               <h3 className="text-2xl font-black text-slate-800 leading-none">{completedCount}</h3>
-               <p className="text-xs font-semibold text-slate-500 mt-1">Completed</p>
-            </div>
-         </div>
-         <div className="bg-white border text-left border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-rose-100/50" />
-            <div>
-               <h3 className="text-2xl font-black text-slate-800 leading-none">{pendingCount}</h3>
-               <p className="text-xs font-semibold text-slate-500 mt-1">Pending Scores</p>
-            </div>
-         </div>
-         <div className="bg-white border text-left border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100/50" />
-            <div>
-               <h3 className="text-2xl font-black text-slate-800 leading-none">74.5%</h3>
-               <p className="text-xs font-semibold text-slate-500 mt-1">Class Avg</p>
-            </div>
-         </div>
+          </div>
+        ))}
       </div>
 
-      {/* Main Grid: Left List, Right Panel */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-         
-         {/* Left Side: Upcoming Tests */}
-         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col items-start">
-            <div className="w-full flex items-center justify-between p-6 border-b border-slate-100">
-               <h2 className="text-lg font-bold text-slate-900">Upcoming Tests</h2>
-               <input type="text" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none" />
+
+        {/* Left: Tests List */}
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+            <h2 className="text-base font-bold text-slate-800">Test Schedule</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search tests..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 pr-4 h-9 w-44 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+              />
             </div>
-            
-            <div className="w-full p-4 space-y-4">
-               {loading ? (
-                 <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin" /></div>
-               ) : tests.length === 0 ? (
-                 <div className="py-20 text-center text-sm font-semibold text-slate-400">No tests created yet. Use 'Create Test'.</div>
-               ) : tests.map((test, i) => {
-                  
-                  // Calculate days left logic mock
-                  const isSoon = i === 0;
+          </div>
 
-                  return (
-                     <div key={test.id} className={`w-full rounded-2xl border p-5 ${isSoon ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
-                        <div className="flex items-start justify-between mb-4">
-                           <div>
-                              <h3 className="text-[17px] font-bold text-slate-900 leading-tight">{test.title || "Untitled Test"}</h3>
-                              <p className="text-sm font-medium text-slate-500 mt-1">{test.className || "Class Unknown"} • {test.studentsCount || 0} students</p>
-                           </div>
-                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isSoon ? 'bg-amber-400 text-white' : 'bg-blue-100 text-blue-700'}`}>
-                              {isSoon ? "In 2 days" : "In 5 days"}
-                           </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-5">
-                           <span>{test.testDate || "No Date"}</span>
-                           <span>{test.duration || "45 minutes"}</span>
-                           <span>{test.marks || "50"} marks</span>
-                        </div>
+          <div className="p-4 space-y-3">
+            {loading ? (
+              <div className="py-20 flex justify-center">
+                <Loader2 className="w-7 h-7 text-[#1e3272] animate-spin" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-20 text-center text-sm text-slate-300 font-semibold">
+                No tests yet. Create your first test!
+              </div>
+            ) : (
+              filtered.map(test => {
+                const urgent = daysUrgent(test.testDate);
+                return (
+                  <div
+                    key={test.id}
+                    className={`rounded-2xl border p-5 ${urgent ? "bg-amber-50 border-amber-200" : "bg-white border-slate-200"}`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-800">{test.title || "Untitled Test"}</h3>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {test.className || "Class"} • {test.studentsCount} students
+                        </p>
+                      </div>
+                      {test.testDate && (
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                          urgent ? "bg-amber-400 text-white" : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {daysLabel(test.testDate)}
+                        </span>
+                      )}
+                    </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                           {isSoon ? (
-                              <button onClick={() => handleEnterScores(test)} className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-900 transition-colors">
-                                 Enter Scores
-                              </button>
-                           ) : (
-                              <button onClick={() => handleEnterScores(test)} className="bg-white border border-slate-200 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-                                 View
-                              </button>
-                           )}
-                           <button className="bg-white border border-slate-200 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-                              Edit
-                           </button>
-                           {isSoon && (
-                              <button className="bg-white border border-slate-200 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-                                 Print
-                              </button>
-                           )}
-                        </div>
-                     </div>
-                  );
-               })}
-            </div>
-         </div>
+                    <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+                      {test.testDate  && <span>{new Date(test.testDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+                      {test.duration  && <span>{test.duration}</span>}
+                      {test.marks     && <span>{test.marks} marks</span>}
+                      <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${statusStyle(test.status || "Active")}`}>
+                        {test.status || "Active"}
+                      </span>
+                    </div>
 
-         {/* Right Side: Analytics */}
-         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-left w-full self-start">
-            <h2 className="text-lg font-bold text-slate-900 leading-none mb-1">Performance Overview</h2>
-            <p className="text-xs font-medium text-slate-500 mb-6">Last 5 tests</p>
-
-            <div className="space-y-5 border-b border-slate-100 pb-6 mb-6">
-               {mockPerfData.map((d, i) => (
-                  <div key={i}>
-                     <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className="text-slate-800">{d.class}</span>
-                        <span className={d.score > 75 ? "text-emerald-500" : d.score > 66 ? "text-amber-500" : "text-rose-500"}>{d.score}%</span>
-                     </div>
-                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${d.fill} rounded-full`} style={{ width: `${d.score}%` }} />
-                     </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setSelectedTest(test); setView("enter-scores"); }}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                          urgent
+                            ? "bg-[#1e3272] text-white hover:bg-[#162558]"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {urgent ? "Enter Scores" : "View Scores"}
+                      </button>
+                      {urgent && (
+                        <button className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all">
+                          Print
+                        </button>
+                      )}
+                    </div>
                   </div>
-               ))}
-            </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
-            <h2 className="text-[15px] font-bold text-slate-900 leading-none mb-4">Topic Performance</h2>
-            <div className="space-y-3">
-               {mockTopicData.map((t, i) => (
-                  <div key={i} className="flex justify-between text-sm font-semibold">
-                     <span className="text-slate-500">{t.name}</span>
-                     <span className={t.color}>{t.score}%</span>
+        {/* Right: Analytics */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 self-start">
+          <h2 className="text-base font-bold text-slate-800 mb-1">Performance Overview</h2>
+          <p className="text-xs text-slate-500 mb-5">Based on recorded scores</p>
+
+          {classPerf.length > 0 ? (
+            <div className="space-y-4 border-b border-slate-100 pb-5 mb-5">
+              {classPerf.map((c, i) => (
+                <div key={i}>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-slate-700">{c.name}</span>
+                    <span className={c.avg! >= 75 ? "text-emerald-500" : c.avg! >= 60 ? "text-amber-500" : "text-rose-500"}>
+                      {c.avg!.toFixed(1)}%
+                    </span>
                   </div>
-               ))}
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${c.avg! >= 75 ? "bg-emerald-500" : c.avg! >= 60 ? "bg-amber-500" : "bg-rose-500"}`}
+                      style={{ width: `${Math.min(100, c.avg!)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-         </div>
+          ) : (
+            <div className="py-6 text-center text-xs text-slate-300 font-semibold border-b border-slate-100 mb-5">
+              No class data yet
+            </div>
+          )}
+
+          <h3 className="text-sm font-bold text-slate-800 mb-3">Topic Performance</h3>
+          {topicPerf.length > 0 ? (
+            <div className="space-y-2.5">
+              {topicPerf.map((t, i) => (
+                <div key={i} className="flex justify-between text-sm">
+                  <span className="text-slate-500 truncate max-w-[130px]">{t.name}</span>
+                  <span className={`font-semibold ${t.avg >= 75 ? "text-emerald-500" : t.avg >= 60 ? "text-amber-500" : "text-rose-500"}`}>
+                    {t.avg.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-300 font-semibold text-center py-4">No score data yet</p>
+          )}
+        </div>
 
       </div>
     </div>
