@@ -89,68 +89,56 @@ const Attendance = () => {
     };
   }, [records, todayStr]);
 
-  // ── weekly days: last Mon → today + next 3 upcoming working days only ──
+  // ── weekly days: last 5 working days + today + next 3 upcoming working days ──
   const weeklyDays = useMemo(() => {
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
-    const dow = todayDate.getDay();
-    const daysFromMon = dow === 0 ? 6 : dow - 1;
 
-    // start from Monday of previous week to cover "Mon Feb 10 – Mon Feb 17" style
-    const startMon = new Date(todayDate);
-    startMon.setDate(todayDate.getDate() - daysFromMon - 7);
+    const makeDay = (d: Date, isFuture = false) => {
+      const dateStr = d.toLocaleDateString("en-CA");
+      const dayRecs = records.filter(r => r.date === dateStr && r.classId === selectedClassId);
+      const pres    = dayRecs.filter(r => r.status === "present" || r.status === "late").length;
+      const abs     = dayRecs.filter(r => r.status === "absent").length;
+      const total   = enrollments.filter(e => e.classId === selectedClassId).length || 1;
+      const rate    = dayRecs.length > 0 ? ((pres / total) * 100).toFixed(1) : null;
+      const wd      = d.getDay();
+      return {
+        label:     d.toLocaleDateString("en-US", { weekday: "short" }),
+        dateLabel: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        dateStr,
+        present:   pres,
+        absent:    abs,
+        rate:      rate ? `${rate}%` : null,
+        isToday:   dateStr === todayStr,
+        hasData:   dayRecs.length > 0,
+        isFuture,
+        isWeekend: wd === 0 || wd === 6,
+      };
+    };
 
-    const days = [];
-    const cur = new Date(startMon);
-    while (cur <= todayDate) {
+    // Collect last 5 working days (excluding today)
+    const past: ReturnType<typeof makeDay>[] = [];
+    const cur = new Date(todayDate);
+    cur.setDate(cur.getDate() - 1);
+    while (past.length < 5) {
       const d = cur.getDay();
-      if (d !== 0 && d !== 6) {
-        const dateStr  = cur.toLocaleDateString("en-CA");
-        const dayRecs  = records.filter(r => r.date === dateStr && r.classId === selectedClassId);
-        const pres     = dayRecs.filter(r => r.status === "present" || r.status === "late").length;
-        const abs      = dayRecs.filter(r => r.status === "absent").length;
-        const total    = enrollments.filter(e => e.classId === selectedClassId).length || 1;
-        const rate     = dayRecs.length > 0 ? ((pres / total) * 100).toFixed(1) : null;
-        days.push({
-          label:     cur.toLocaleDateString("en-US", { weekday: "short" }),
-          dateLabel: cur.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          dateStr,
-          present:   pres,
-          absent:    abs,
-          rate:      rate ? `${rate}%` : null,
-          isToday:   dateStr === todayStr,
-          hasData:   dayRecs.length > 0,
-          isFuture:  false,
-        });
-      }
-      cur.setDate(cur.getDate() + 1);
+      if (d !== 0 && d !== 6) past.unshift(makeDay(new Date(cur)));
+      cur.setDate(cur.getDate() - 1);
     }
-    // Add next 3 upcoming working days only
-    let future = 0;
-    let futureDate = new Date(todayDate);
-    const FUTURE_DAYS = 3;
-    while (future < FUTURE_DAYS) {
-      futureDate.setDate(futureDate.getDate() + 1);
-      const d = futureDate.getDay();
-      if (d !== 0 && d !== 6) {
-        days.push({
-          label: futureDate.toLocaleDateString("en-US", { weekday: "short" }),
-          dateLabel: futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          dateStr: futureDate.toLocaleDateString("en-CA"),
-          present: null,
-          absent: null,
-          rate: null,
-          isToday: false,
-          hasData: false,
-          isFuture: true,
-        });
-        future++;
-      }
+
+    // Today always included
+    const todayEntry = makeDay(todayDate);
+
+    // Next 3 upcoming working days
+    const upcoming: ReturnType<typeof makeDay>[] = [];
+    const fut = new Date(todayDate);
+    while (upcoming.length < 3) {
+      fut.setDate(fut.getDate() + 1);
+      const d = fut.getDay();
+      if (d !== 0 && d !== 6) upcoming.push(makeDay(new Date(fut), true));
     }
-    // Show last 6 working days + only 3 future working days
-    const last6 = days.filter(d => !d.isFuture).slice(-6);
-    const onlyFuture = days.filter(d => d.isFuture).slice(0, FUTURE_DAYS);
-    return last6.concat(onlyFuture);
+
+    return [...past, todayEntry, ...upcoming];
   }, [records, enrollments, selectedClassId, todayStr]);
 
   // ── attendance concerns ─────────────────────────────────────────────────────
@@ -304,13 +292,15 @@ const Attendance = () => {
 
                 {day.hasData ? (
                   <p className="text-sm font-bold text-emerald-500">{day.rate}</p>
-                ) : day.isToday ? (
+                ) : day.isToday && !day.isWeekend ? (
                   <button
                     onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
                     className="w-full py-2 bg-[#1e3272] text-white rounded-lg text-xs font-semibold mt-1"
                   >
                     Mark Now
                   </button>
+                ) : day.isToday && day.isWeekend ? (
+                  <p className="text-xs font-semibold text-slate-300">Weekend</p>
                 ) : day.isFuture ? (
                   <p className="text-xs font-semibold text-slate-400">Upcoming</p>
                 ) : (
