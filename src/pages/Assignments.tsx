@@ -156,27 +156,27 @@ const Assignments = () => {
   const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
-    <div className="text-left space-y-6">
+    <div className="text-left space-y-5 sm:space-y-6">
 
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div>
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
-            Result of click: "Assignments"
+            Teacher Dashboard
           </p>
-          <h1 className="text-3xl font-bold text-slate-800">Assignments</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Assignments</h1>
           <p className="text-slate-500 text-sm mt-1">Create, manage and grade student assignments.</p>
         </div>
         <button
           onClick={() => setView("create")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
+          className="self-start sm:self-auto flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
         >
           <Plus size={16} /> Create Assignment
         </button>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Total Active",     value: stats.totalActive,    color: "bg-blue-100"    },
           { label: "Due This Week",    value: stats.dueThisWeek,    color: "bg-amber-100"   },
@@ -193,10 +193,9 @@ const Assignments = () => {
         ))}
       </div>
 
-      {/* Table */}
+      {/* Search bar */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        {/* Search */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -209,90 +208,133 @@ const Assignments = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-slate-100">
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Assignment</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Class</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500">Due Date</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Submissions</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <Loader2 className="w-6 h-6 text-[#1e3272] animate-spin mx-auto" />
-                  </td>
-                </tr>
-              ) : paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-sm text-slate-300 font-semibold">
-                    No assignments found. Create your first one!
-                  </td>
-                </tr>
-              ) : (
-                paginated.map(a => (
-                  <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e3272] transition-colors">{a.title}</p>
+        {/* Loading / empty states */}
+        {loading ? (
+          <div className="py-16 flex justify-center">
+            <Loader2 className="w-6 h-6 text-[#1e3272] animate-spin" />
+          </div>
+        ) : paginated.length === 0 ? (
+          <div className="py-16 text-center text-sm text-slate-300 font-semibold">
+            No assignments found. Create your first one!
+          </div>
+        ) : (
+          <>
+            {/* ── Mobile: card list (hidden on md+) ── */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {paginated.map(a => (
+                <div key={a.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 leading-tight">{a.title}</p>
                       {a.description && (
-                        <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">{a.description}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 truncate">{a.description}</p>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{a.className || "—"}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-700">{timeRemaining(a.deadline)}</td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-sm font-semibold text-slate-700">
-                          {a.subCount}<span className="text-slate-400 font-normal"> / {a.expected}</span>
-                        </span>
-                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full"
-                            style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusStyle(a.status)}`}>
-                        {a.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => { setSelectedAssignment(a); setView("grade"); }}
-                          className="px-3 py-1.5 text-xs font-semibold text-[#1e3272] hover:bg-blue-50 rounded-lg transition-all"
-                        >
-                          Grade
-                        </button>
-                        <button
-                          onClick={() => handleDelete(a.id, a.title)}
-                          className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap ${statusStyle(a.status)}`}>
+                      {a.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Class: <strong className="text-slate-700">{a.className || "—"}</strong></span>
+                    <span>Due: <strong className="text-slate-700">{timeRemaining(a.deadline)}</strong></span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>Submissions</span>
+                      <span className="font-semibold text-slate-700">{a.subCount} / {a.expected}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => { setSelectedAssignment(a); setView("grade"); }}
+                      className="flex-1 py-2 text-xs font-semibold text-white bg-[#1e3272] rounded-xl hover:bg-[#162558] transition-all"
+                    >
+                      Grade
+                    </button>
+                    <button
+                      onClick={() => handleDelete(a.id, a.title)}
+                      className="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Desktop: table (hidden on mobile) ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Assignment</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Class</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Due Date</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Submissions</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginated.map(a => (
+                    <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e3272] transition-colors">{a.title}</p>
+                        {a.description && (
+                          <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">{a.description}</p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{a.className || "—"}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{timeRemaining(a.deadline)}</td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {a.subCount}<span className="text-slate-400 font-normal"> / {a.expected}</span>
+                          </span>
+                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusStyle(a.status)}`}>
+                          {a.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => { setSelectedAssignment(a); setView("grade"); }}
+                            className="px-3 py-1.5 text-xs font-semibold text-[#1e3272] hover:bg-blue-50 rounded-lg transition-all"
+                          >
+                            Grade
+                          </button>
+                          <button
+                            onClick={() => handleDelete(a.id, a.title)}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {/* Pagination */}
         {!loading && filtered.length > ITEMS_PER_PAGE && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-xs text-slate-500">
+          <div className="px-4 sm:px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-500 hidden sm:block">
               Showing {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 ml-auto">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -300,7 +342,7 @@ const Assignments = () => {
               >
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
                 <button
                   key={p}
                   onClick={() => setPage(p)}

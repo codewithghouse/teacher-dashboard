@@ -93,32 +93,33 @@ const SettingsPage = () => {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 text-left font-sans">
       
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-2">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 px-0 sm:px-2">
         <div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none mb-3">Settings</h1>
-          <p className="text-lg font-bold text-slate-400 italic">Configure your professional profile and global preferences.</p>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none mb-2 sm:mb-3">Settings</h1>
+          <p className="text-sm sm:text-lg font-bold text-slate-400 italic">Configure your professional profile and preferences.</p>
         </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <button 
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
             onClick={() => window.location.reload()}
-            className="flex-1 md:flex-none px-8 h-14 bg-white border border-slate-100 rounded-2xl text-sm font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none px-4 sm:px-8 h-11 sm:h-14 bg-white border border-slate-100 rounded-2xl text-sm font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
           >
             <X className="w-4 h-4"/> Reset
           </button>
-          <button 
+          <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex-1 md:flex-none px-10 h-14 bg-[#1e3a8a] text-white rounded-2xl text-sm font-black shadow-2xl shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="flex-1 sm:flex-none px-5 sm:px-10 h-11 sm:h-14 bg-[#1e3a8a] text-white rounded-2xl text-sm font-black shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50"
           >
-            {isSaving ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5"/>}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
             {isSaving ? "Syncing..." : "Update Identity"}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-10">
         
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm relative overflow-hidden group">
+        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50/50 rounded-full blur-3xl group-hover:bg-blue-100/50 transition-all" />
           
           <div className="flex items-center gap-5 mb-11 relative z-10">
@@ -136,7 +137,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm relative overflow-hidden group">
+        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-50/50 rounded-full blur-3xl group-hover:bg-amber-100/50 transition-all" />
           
           <div className="flex items-center gap-5 mb-11 relative z-10">
@@ -155,7 +156,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-[3.5rem] p-10 shadow-sm relative overflow-hidden group">
+        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-50/50 rounded-full blur-3xl group-hover:bg-emerald-100/50 transition-all" />
           
           <div className="flex items-center gap-5 mb-11 relative z-10">

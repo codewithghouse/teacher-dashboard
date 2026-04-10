@@ -132,49 +132,49 @@ export default function TestsExams() {
   );
 
   return (
-    <div className="text-left space-y-6">
+    <div className="text-left space-y-5 sm:space-y-6">
 
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div>
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
-            Result of click: "Tests & Exams"
+            Teacher Dashboard
           </p>
-          <h1 className="text-3xl font-bold text-slate-800">Tests & Exams</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Tests & Exams</h1>
           <p className="text-slate-500 text-sm mt-1">Manage tests, enter scores and analyze performance.</p>
         </div>
         <button
           onClick={() => setView("create")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
+          className="self-start sm:self-auto flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
         >
           <Plus size={16} /> Create Test
         </button>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Upcoming",       value: stats.upcoming,      color: "bg-amber-100"   },
           { label: "Completed",      value: stats.completed,     color: "bg-blue-100"    },
           { label: "Pending Scores", value: stats.pendingScores, color: "bg-rose-100"    },
           { label: "Class Avg",      value: stats.classAvg === "—" ? "—" : `${stats.classAvg}%`, color: "bg-emerald-100" },
         ].map(c => (
-          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${c.color}`} />
+          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center gap-3 sm:gap-4">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 ${c.color}`} />
             <div>
-              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
-              <p className="text-xs text-slate-500 font-medium">{c.label}</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">{c.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* Left: Tests List */}
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
             <h2 className="text-base font-bold text-slate-800">Test Schedule</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -183,7 +183,7 @@ export default function TestsExams() {
                 placeholder="Search tests..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 pr-4 h-9 w-44 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                className="pl-9 pr-4 h-9 w-36 sm:w-44 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function TestsExams() {
         </div>
 
         {/* Right: Analytics */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 self-start">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-6 self-start">
           <h2 className="text-base font-bold text-slate-800 mb-1">Performance Overview</h2>
           <p className="text-xs text-slate-500 mb-5">Based on recorded scores</p>
 

@@ -159,7 +159,7 @@ const ParentNotes = () => {
   }, [studentMessages]);
 
   return (
-    <div className="h-screen flex flex-col" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+    <div className="flex flex-col -mx-4 sm:-mx-6 md:-mx-8 -my-4 sm:-my-6 md:-my-8 md:h-screen" style={{ fontFamily: "'Montserrat', sans-serif", height: "calc(100vh - 56px)" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
         .wa-scroll::-webkit-scrollbar { width: 6px; }
@@ -174,17 +174,17 @@ const ParentNotes = () => {
       `}</style>
 
       {/* Stat strip */}
-      <div className="flex gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0">
+      <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white border-b border-gray-200 shrink-0">
         {[
-          { label: "Total Messages",  val: stats.total,        icon: MessageSquare, color: "text-blue-600" },
-          { label: "Parent Replies",  val: stats.parentReplies, icon: Mail,          color: "text-amber-500" },
-          { label: "Students",        val: stats.students,      icon: GraduationCap, color: "text-emerald-500" },
+          { label: "Messages",  val: stats.total,        icon: MessageSquare, color: "text-blue-600" },
+          { label: "Replies",   val: stats.parentReplies, icon: Mail,          color: "text-amber-500" },
+          { label: "Students",  val: stats.students,      icon: GraduationCap, color: "text-emerald-500" },
         ].map(s => (
-          <div key={s.label} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 flex-1 border border-gray-100">
-            <s.icon className={`w-5 h-5 ${s.color} shrink-0`} />
-            <div>
-              <p className="text-xs font-semibold text-gray-400">{s.label}</p>
-              <p className="text-xl font-black text-gray-800">{s.val}</p>
+          <div key={s.label} className="flex items-center gap-2 sm:gap-3 bg-gray-50 rounded-xl px-2 sm:px-4 py-2 sm:py-3 flex-1 border border-gray-100 min-w-0">
+            <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color} shrink-0`} />
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-400 truncate">{s.label}</p>
+              <p className="text-lg sm:text-xl font-black text-gray-800">{s.val}</p>
             </div>
           </div>
         ))}
@@ -194,7 +194,7 @@ const ParentNotes = () => {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Left sidebar — student list */}
-        <div className={`w-[360px] shrink-0 flex flex-col border-r border-gray-200 bg-white ${selectedStudent ? "hidden md:flex" : "flex"}`}>
+        <div className={`w-full md:w-[320px] lg:w-[360px] shrink-0 flex flex-col border-r border-gray-200 bg-white ${selectedStudent ? "hidden md:flex" : "flex"}`}>
           {/* Sidebar header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-[#1e3a8a] shrink-0">
             <GraduationCap className="w-5 h-5 text-white" />

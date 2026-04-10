@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
-  doc, getDoc, updateDoc
+  doc, getDoc, updateDoc, writeBatch
 } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import {
@@ -44,6 +44,11 @@ const ClassDetail = () => {
   const [editingRoll, setEditingRoll] = useState<string | null>(null);
   const [tempRoll, setTempRoll] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Subject inline editing
+  const [editingSubject, setEditingSubject] = useState(false);
+  const [tempSubject, setTempSubject] = useState("");
+  const [isSavingSubject, setIsSavingSubject] = useState(false);
 
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -127,6 +132,32 @@ const ClassDetail = () => {
     return () => unsub();
   }, [classId]);
 
+  // Save subject → update classes doc + all enrollment docs for this class
+  const handleSaveSubject = async () => {
+    if (!tempSubject.trim() || !classId) return;
+    setIsSavingSubject(true);
+    try {
+      // 1. Update the class document
+      await updateDoc(doc(db, "classes", classId), { subject: tempSubject.trim() });
+
+      // 2. Batch update all enrollments for this class
+      const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("classId", "==", classId)));
+      if (enrollSnap.docs.length > 0) {
+        const batch = writeBatch(db);
+        enrollSnap.docs.forEach(d => batch.update(d.ref, { subject: tempSubject.trim() }));
+        await batch.commit();
+      }
+
+      setClassInfo((prev: any) => ({ ...prev, subject: tempSubject.trim() }));
+      setEditingSubject(false);
+      toast.success(`Subject updated to "${tempSubject.trim()}" for all enrollments.`);
+    } catch {
+      toast.error("Failed to update subject.");
+    } finally {
+      setIsSavingSubject(false);
+    }
+  };
+
   const handleUpdateRoll = async (id: string) => {
     setIsUpdating(true);
     try {
@@ -196,9 +227,45 @@ const ClassDetail = () => {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{classInfo?.name || "Class"}</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {classInfo?.subject || teacherData?.subject || "Subject"} • {stats.totalStudents} Students • Mon-Fri 09:00 AM
-          </p>
+
+          {/* Subject — inline editable */}
+          <div className="flex items-center gap-2 mt-1">
+            {editingSubject ? (
+              <>
+                <input
+                  autoFocus
+                  value={tempSubject}
+                  onChange={e => setTempSubject(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleSaveSubject(); if (e.key === "Escape") setEditingSubject(false); }}
+                  placeholder="e.g. Mathematics"
+                  className="h-8 px-3 text-sm border border-blue-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 w-44"
+                />
+                <button
+                  onClick={handleSaveSubject}
+                  disabled={isSavingSubject}
+                  className="h-8 px-3 bg-[#1e3272] text-white rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[#162558]"
+                >
+                  {isSavingSubject ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  Save
+                </button>
+                <button onClick={() => setEditingSubject(false)} className="h-8 px-2 text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setTempSubject(classInfo?.subject || teacherData?.subject || ""); setEditingSubject(true); }}
+                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#1e3272] group"
+              >
+                <span className={classInfo?.subject ? "text-slate-600 font-medium" : "text-slate-400 italic"}>
+                  {classInfo?.subject || teacherData?.subject || "Set subject..."}
+                </span>
+                <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+            <span className="text-slate-300">•</span>
+            <span className="text-sm text-slate-500">{stats.totalStudents} Students</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button

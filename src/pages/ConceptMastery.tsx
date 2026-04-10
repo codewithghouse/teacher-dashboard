@@ -201,26 +201,26 @@ const ConceptMastery = () => {
 
       {/* Header */}
       <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Result of click: "Concept Mastery"</p>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Concept Mastery</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Concept Mastery</h1>
             <p className="text-sm text-slate-400 mt-1">Track student understanding across all assessed concepts.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search student..."
-                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-44 bg-white"
+                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full sm:w-40 bg-white"
               />
             </div>
             <button
               onClick={exportCSV}
               disabled={masteryData.length === 0}
-              className="px-4 py-2 text-sm font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors bg-white disabled:opacity-40"
+              className="px-3 sm:px-4 py-2 text-sm font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors bg-white disabled:opacity-40"
             >
               Export
             </button>

@@ -101,18 +101,19 @@ const Reports = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 text-left">
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-10">
+      <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-6 sm:mb-10">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Reports</h1>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">Reports</h1>
           <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none">Generate and download academic reports.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-4 rounded-[2rem] shadow-sm">
-           <Layout className="w-5 h-5 text-[#1e3a8a]"/>
-           <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic">{teacherData?.schoolName || 'EduIntellect Main'}</span>
+        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-[2rem] shadow-sm self-start">
+           <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3a8a]"/>
+           <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">{teacherData?.schoolName || 'EduIntellect Main'}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
         {reports_config.map((r) => (
           <div key={r.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden flex flex-col h-full">
             <div className="flex justify-between items-start mb-6">

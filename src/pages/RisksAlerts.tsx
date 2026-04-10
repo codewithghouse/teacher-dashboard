@@ -328,8 +328,8 @@ const RisksAlerts = () => {
 
       {/* Header */}
       <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Result of click: "Risks &amp; Alerts"</p>
-        <h1 className="text-3xl font-bold text-slate-800">Risks &amp; Alerts</h1>
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Teacher Dashboard</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Risks &amp; Alerts</h1>
         <p className="text-sm text-slate-400 mt-1">Monitor and respond to student concerns.</p>
       </div>
 

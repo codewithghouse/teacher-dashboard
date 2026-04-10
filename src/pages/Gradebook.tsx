@@ -218,47 +218,20 @@ export default function Gradebook() {
     <div className="animate-in fade-in duration-500 pb-20 text-left">
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6">
-        <div>
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Result of click: "Gradebook"</p>
-          <h1 className="text-3xl font-bold text-slate-800">Gradebook</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {selectedClass ? `Complete academic record for ${selectedClass.name}` : "Select a class to view gradebook"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Search */}
-          <div className="flex items-center gap-2 h-10 px-4 border border-slate-200 rounded-xl bg-white">
-            <Search className="w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search student..."
-              className="text-sm outline-none bg-transparent text-slate-700 w-40"
-            />
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Gradebook</h1>
+            <p className="text-sm text-slate-400 mt-1">
+              {selectedClass ? `Complete academic record for ${selectedClass.name}` : "Select a class to view gradebook"}
+            </p>
           </div>
-          {/* Export */}
-          <button
-            onClick={handleExport}
-            className="h-10 px-5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          {/* Add Column */}
-          <button
-            onClick={() => setShowAddCol(v => !v)}
-            className="h-10 px-4 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Column
-          </button>
-          {/* Save */}
+          {/* Save button — prominent on mobile */}
           <button
             onClick={handleSave}
             disabled={saving || !hasUnsaved}
-            className={`h-10 px-5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+            className={`self-start sm:self-auto h-10 px-5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
               hasUnsaved
                 ? "bg-[#1e3a8a] text-white hover:bg-blue-900"
                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
@@ -266,6 +239,33 @@ export default function Gradebook() {
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save
+          </button>
+        </div>
+        {/* Toolbar row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 h-9 px-3 border border-slate-200 rounded-xl bg-white flex-1 min-w-0 max-w-xs">
+            <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search student..."
+              className="text-sm outline-none bg-transparent text-slate-700 w-full min-w-0"
+            />
+          </div>
+          <button
+            onClick={() => setShowAddCol(v => !v)}
+            className="h-9 px-3 sm:px-4 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Column</span><span className="sm:hidden">Column</span>
+          </button>
+          <button
+            onClick={handleExport}
+            className="h-9 px-3 sm:px-4 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all flex items-center gap-1.5"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export</span>
           </button>
           <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls" />
         </div>

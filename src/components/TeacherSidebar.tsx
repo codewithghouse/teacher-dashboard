@@ -14,7 +14,8 @@ import {
   School,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  X
 } from "lucide-react";
 
 const navItems = [
@@ -33,7 +34,11 @@ const navItems = [
   { title: "Settings", path: "/settings", icon: Settings },
 ];
 
-const TeacherSidebar = () => {
+interface TeacherSidebarProps {
+  onClose?: () => void;
+}
+
+const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
   const location = useLocation();
   const { teacherData, user, logout } = useAuth();
 
@@ -44,20 +49,29 @@ const TeacherSidebar = () => {
   })();
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-[#1e3272] flex flex-col shrink-0 overflow-y-auto">
+    <aside className="w-64 h-full bg-[#1e3272] flex flex-col overflow-y-auto">
       {/* Logo */}
       <div className="px-6 py-5 flex items-center gap-3 border-b border-white/10">
-        <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+        <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
           <BookOpen className="w-5 h-5 text-white" />
         </div>
-        <div className="flex flex-col leading-none">
+        <div className="flex flex-col leading-none flex-1 min-w-0">
           <span className="text-sm font-bold text-white tracking-wide">EDUINTELLECT</span>
           {teacherData?.schoolName && (
-            <span className="text-[10px] font-medium text-blue-200 mt-0.5 truncate max-w-[130px]">
+            <span className="text-[10px] font-medium text-blue-200 mt-0.5 truncate">
               {teacherData.schoolName}
             </span>
           )}
         </div>
+        {/* Close button — only visible on mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 flex-shrink-0 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -68,13 +82,14 @@ const TeacherSidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
                   ? "bg-white/15 text-white shadow-sm"
                   : "text-blue-200 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <item.icon className={`w-4 h-4 ${isActive ? "text-white" : "text-blue-300"}`} />
+              <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-blue-300"}`} />
               {item.title}
             </NavLink>
           );
@@ -84,7 +99,7 @@ const TeacherSidebar = () => {
       {/* Teacher Profile */}
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
+          <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
             {initials}
           </div>
           <div className="overflow-hidden">

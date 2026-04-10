@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, getDocs, addDoc, deleteDoc, doc as firestoreDoc, serverTimestamp } from "firebase/firestore";
-import { Search, Loader2, UserPlus, X, Trash2, Users, TrendingUp, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import { sendEmail } from "../lib/resend";
+import { collection, query, where, onSnapshot, getDocs, deleteDoc, doc as firestoreDoc } from "firebase/firestore";
+import { Search, Loader2, Trash2, Users, TrendingUp, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 const AVATAR_COLORS = [
@@ -28,12 +27,6 @@ export default function Students() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newStudentEmail, setNewStudentEmail] = useState("");
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentClassId, setNewStudentClassId] = useState("");
-  const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
-  const [addLoading, setAddLoading] = useState(false);
 
   useEffect(() => {
     if (!teacherData?.id) return;
@@ -103,12 +96,7 @@ export default function Students() {
         setLoading(false);
       });
 
-      const qCls = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-      const unsubCls = onSnapshot(qCls, (snap) => {
-        setTeacherClasses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      });
-
-      return () => { unsubEnroll(); unsubCls(); };
+      return () => { unsubEnroll(); };
     } catch (e) {
       console.error("Students fetch error", e);
       setLoading(false);
@@ -135,77 +123,6 @@ export default function Students() {
     }
   };
 
-  const handleAddStudent = async () => {
-    if (!newStudentEmail || !newStudentName || !newStudentClassId) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-    const targetClass = teacherClasses.find(c => c.id === newStudentClassId);
-    if (!targetClass || !teacherData?.id) return;
-
-    setAddLoading(true);
-    try {
-      const sid = newStudentEmail.toLowerCase().trim();
-      await addDoc(collection(db, "enrollments"), {
-        teacherId: teacherData.id,
-        schoolId: teacherData.schoolId,
-        branchId: teacherData.branchId,
-        studentId: sid,
-        studentEmail: sid,
-        studentName: newStudentName,
-        className: targetClass.name,
-        classId: targetClass.id,
-        createdAt: serverTimestamp(),
-      });
-
-      const qCheck = query(collection(db, "students"), where("email", "==", sid));
-      const checkSnap = await getDocs(qCheck);
-      if (checkSnap.empty) {
-        await addDoc(collection(db, "students"), {
-          name: newStudentName,
-          email: sid,
-          studentId: sid,
-          teacherId: teacherData.id,
-          schoolId: teacherData.schoolId,
-          branchId: teacherData.branchId,
-          classId: targetClass.id,
-          className: targetClass.name,
-          status: "invited",
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      try {
-        await sendEmail({
-          to: sid,
-          subject: `Welcome to ${teacherData.schoolName || "EduIntellect"} - Account Created`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #1e3a8a;">Welcome, ${newStudentName}!</h2>
-              <p>You have been enrolled in <strong>${targetClass.name}</strong> by <strong>${teacherData.name || "your teacher"}</strong>.</p>
-              <p>You can now log in to access your classes, assignments, and progress reports.</p>
-              <div style="margin: 30px 0; text-align: center;">
-                <a href="https://parent-dashboard-ten.vercel.app/" style="background: #1e3a8a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Portal</a>
-              </div>
-            </div>
-          `
-        });
-        toast.success("Student enrolled and invitation sent!");
-      } catch {
-        toast.warning("Student enrolled, but invitation email could not be sent.");
-      }
-
-      setShowAddModal(false);
-      setNewStudentEmail("");
-      setNewStudentName("");
-      setNewStudentClassId("");
-    } catch {
-      toast.error("Failed to enroll student. Please try again.");
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
   if (selectedStudent) return <StudentProfile student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
 
   const uniqueClasses = [...new Set(students.map(s => s.className).filter(Boolean))];
@@ -228,22 +145,16 @@ export default function Students() {
     <div className="animate-in fade-in duration-500 pb-20">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Students</h1>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Students</h1>
           <p className="text-sm text-slate-500 mt-1">View and manage all your students across classes.</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-[#1e3a8a] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:bg-blue-900 transition-all"
-        >
-          <UserPlus className="w-4 h-4" />
-          Add Student
-        </button>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {[
           { label: "Total Students", value: students.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Performing Well", value: goodCount, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -263,8 +174,8 @@ export default function Students() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 mb-6 sm:mb-8">
+        <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
@@ -274,24 +185,22 @@ export default function Students() {
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
           />
         </div>
-
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400 ml-1" />
+          <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <select
             value={filterStatus}
             onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all cursor-pointer"
+            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all cursor-pointer"
           >
             <option value="All">All Status</option>
             <option value="Good">Good</option>
             <option value="Attention">Attention</option>
             <option value="At Risk">At Risk</option>
           </select>
-
           <select
             value={filterClass}
             onChange={e => { setFilterClass(e.target.value); setCurrentPage(1); }}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all cursor-pointer"
+            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all cursor-pointer"
           >
             <option value="All">All Classes</option>
             {uniqueClasses.map(cls => (
@@ -311,7 +220,7 @@ export default function Students() {
         <div className="py-32 flex flex-col items-center justify-center gap-3">
           <Users className="w-12 h-12 text-slate-200" />
           <p className="text-slate-500 font-medium">No students found</p>
-          <p className="text-sm text-slate-400">Try changing your filters or add a new student</p>
+          <p className="text-sm text-slate-400">Try changing your filters</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -397,11 +306,11 @@ export default function Students() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-8">
-          <p className="text-xs text-slate-400">
+        <div className="flex items-center justify-between mt-6 sm:mt-8 gap-2">
+          <p className="text-xs text-slate-400 hidden sm:block">
             Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filtered.length)}–{Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} students
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 ml-auto">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -409,7 +318,7 @@ export default function Students() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
@@ -429,67 +338,6 @@ export default function Students() {
         </div>
       )}
 
-      {/* Add Student Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl relative">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h2 className="text-xl font-bold text-slate-900 mb-1">Add Student</h2>
-            <p className="text-sm text-slate-400 mb-6">Enroll a new student into your class.</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Student Name</label>
-                <input
-                  type="text"
-                  value={newStudentName}
-                  onChange={e => setNewStudentName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition-all"
-                  placeholder="e.g. Rahul Verma"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email Address</label>
-                <input
-                  type="email"
-                  value={newStudentEmail}
-                  onChange={e => setNewStudentEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition-all"
-                  placeholder="student@email.com"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assign to Class</label>
-                <select
-                  value={newStudentClassId}
-                  onChange={e => setNewStudentClassId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition-all cursor-pointer appearance-none"
-                >
-                  <option value="" disabled>Select a class...</option>
-                  {teacherClasses.map(cls => (
-                    <option key={cls.id} value={cls.id}>{cls.name}{cls.grade ? ` (${cls.grade})` : ""}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                onClick={handleAddStudent}
-                disabled={addLoading}
-                className="w-full bg-[#1e3a8a] text-white rounded-xl py-3 font-semibold text-sm mt-2 hover:bg-blue-900 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {addLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                {addLoading ? "Enrolling..." : "Enroll Student"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

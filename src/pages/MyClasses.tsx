@@ -3,17 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
 import {
-  collection, query, where, onSnapshot, addDoc,
-  serverTimestamp, getDocs
+  collection, query, where, onSnapshot, getDocs
 } from "firebase/firestore";
-import { Loader2, Plus, Search, Check } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { Loader2, Search } from "lucide-react";
 
 type FilterType = "All" | "Active" | "Attention";
 
@@ -29,9 +21,6 @@ const MyClasses = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("All");
-  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
-  const [newClass, setNewClass] = useState({ name: "", grade: "", section: "", subject: "" });
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!teacherData?.id) return;
@@ -92,43 +81,6 @@ const MyClasses = () => {
     };
   };
 
-  const handleCreateClass = async () => {
-    if (!newClass.name || !newClass.grade) return toast.error("Class name and grade are required.");
-    if (!teacherData?.schoolId || !teacherData?.branchId)
-      return toast.error("School/branch info missing. Please re-login.");
-    setIsSaving(true);
-    try {
-      const docRef = await addDoc(collection(db, "classes"), {
-        name: newClass.name,
-        grade: newClass.grade,
-        section: newClass.section,
-        subject: newClass.subject,
-        teacherId: teacherData.id,
-        teacherName: teacherData.name || "",
-        schoolId: teacherData.schoolId,
-        branchId: teacherData.branchId,
-        createdAt: serverTimestamp(),
-        status: "Active",
-      });
-      await addDoc(collection(db, "teaching_assignments"), {
-        teacherId: teacherData.id,
-        classId: docRef.id,
-        subjectName: newClass.subject,
-        schoolId: teacherData.schoolId,
-        branchId: teacherData.branchId,
-        status: "active",
-        createdAt: serverTimestamp(),
-      });
-      toast.success("Class created successfully!");
-      setIsAddClassOpen(false);
-      setNewClass({ name: "", grade: "", section: "", subject: "" });
-    } catch {
-      toast.error("Failed to create class. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   if (loading) return (
     <div className="h-[60vh] flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
@@ -148,39 +100,31 @@ const MyClasses = () => {
   return (
     <div className="text-left">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
         <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Result of click: "My Classes"</p>
-          <h1 className="text-3xl font-bold text-slate-800">My Classes</h1>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">My Classes</h1>
           <p className="text-slate-500 text-sm mt-1">Manage all your assigned classes and sections.</p>
         </div>
-        <div className="flex items-center gap-3 mt-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search classes..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 h-10 w-52 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-          <button
-            onClick={() => setIsAddClassOpen(true)}
-            className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-2"
-          >
-            Filter
-          </button>
+        <div className="relative flex-1 sm:flex-none">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search classes..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9 pr-4 h-10 w-full sm:w-48 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-100"
+          />
         </div>
       </div>
 
       {/* Filter Chips */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-2 sm:gap-3 mb-6 overflow-x-auto pb-1">
         {(["All", "Active", "Attention"] as FilterType[]).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${
+            className={`px-4 sm:px-5 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${
               filter === f
                 ? "bg-[#1e3272] text-white border-[#1e3272]"
                 : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
@@ -189,18 +133,13 @@ const MyClasses = () => {
             {f} {f === "All" ? `(${classes.length})` : ""}
           </button>
         ))}
-        <button
-          onClick={() => setIsAddClassOpen(true)}
-          className="ml-auto flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1e3272] text-white text-sm font-semibold hover:bg-[#162558] transition-all"
-        >
-          <Plus size={16} /> New Class
-        </button>
       </div>
 
       {/* Class Cards Grid */}
       {filteredClasses.length === 0 ? (
-        <div className="py-32 flex flex-col items-center justify-center bg-white border border-dashed border-slate-200 rounded-2xl">
-          <p className="text-slate-400 font-semibold text-sm">No classes found</p>
+        <div className="py-32 flex flex-col items-center justify-center bg-white border border-dashed border-slate-200 rounded-2xl text-center px-8">
+          <p className="text-slate-500 font-semibold text-sm mb-1">No classes assigned yet</p>
+          <p className="text-slate-400 text-xs">Your principal will assign classes to you. Check back soon.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -269,62 +208,6 @@ const MyClasses = () => {
         </div>
       )}
 
-      {/* Add Class Dialog */}
-      <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[480px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-800">Create New Class</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Name</Label>
-              <Input
-                placeholder="e.g. Class 8-A"
-                className="h-11 rounded-xl"
-                value={newClass.name}
-                onChange={e => setNewClass({ ...newClass, name: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Grade</Label>
-                <Input
-                  placeholder="e.g. 8"
-                  className="h-11 rounded-xl"
-                  value={newClass.grade}
-                  onChange={e => setNewClass({ ...newClass, grade: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Section</Label>
-                <Input
-                  placeholder="e.g. A"
-                  className="h-11 rounded-xl"
-                  value={newClass.section}
-                  onChange={e => setNewClass({ ...newClass, section: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</Label>
-              <Input
-                placeholder="e.g. Mathematics"
-                className="h-11 rounded-xl"
-                value={newClass.subject}
-                onChange={e => setNewClass({ ...newClass, subject: e.target.value })}
-              />
-            </div>
-            <button
-              disabled={isSaving}
-              onClick={handleCreateClass}
-              className="w-full h-11 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all flex items-center justify-center gap-2 mt-2"
-            >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              Create Class
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

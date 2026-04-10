@@ -201,24 +201,24 @@ const Attendance = () => {
     <div className="text-left space-y-6">
 
       {/* ── Header ── */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div>
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
-            Result of click: "Attendance"
+            Teacher Dashboard
           </p>
-          <h1 className="text-3xl font-bold text-slate-800">Attendance</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Attendance</h1>
           <p className="text-slate-500 text-sm mt-1">Track and manage student attendance across all classes.</p>
         </div>
         <button
           onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
-          className="px-6 py-3 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
+          className="self-start sm:self-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm whitespace-nowrap"
         >
           Mark Today's Attendance
         </button>
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Overall Rate",   value: stats.rate,         color: "bg-emerald-100" },
           { label: "Present Today",  value: stats.presentToday, color: "bg-blue-100"    },
@@ -256,7 +256,7 @@ const Attendance = () => {
 
       {/* ── Weekly Attendance Overview ── */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <div>
             <h2 className="text-base font-bold text-slate-800">Weekly Attendance Overview</h2>
             {weeklyDays.length > 0 && (
@@ -267,7 +267,75 @@ const Attendance = () => {
           </div>
         </div>
 
-        <div className="p-5">
+        {/* ── Mobile: vertical list (hidden on sm+) ── */}
+        <div className="sm:hidden divide-y divide-slate-100">
+          {weeklyDays.map((day, i) => {
+            const statusText = day.hasData
+              ? day.rate
+              : day.isWeekend
+              ? "Weekend"
+              : day.isFuture
+              ? "Upcoming"
+              : day.isForgotten
+              ? "Not Marked"
+              : "—";
+            const statusColor = day.hasData
+              ? "text-emerald-600 font-bold"
+              : day.isWeekend || day.isFuture
+              ? "text-slate-300"
+              : day.isForgotten
+              ? "text-amber-500"
+              : "text-slate-300";
+
+            return (
+              <div
+                key={i}
+                className={`flex items-center gap-3 px-4 py-3 ${
+                  day.isToday ? "bg-amber-50 border-l-4 border-l-amber-400" : ""
+                }`}
+              >
+                {/* Day + Date */}
+                <div className="w-14 flex-shrink-0">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">{day.label}</p>
+                  <p className="text-sm font-bold text-slate-800">{day.dateLabel}</p>
+                </div>
+
+                {/* Present / Absent bars */}
+                <div className="flex-1 flex gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                    <span className="text-xs text-slate-500">
+                      {day.hasData ? <strong className="text-emerald-600">{day.present}</strong> : <span className="text-slate-300">—</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0" />
+                    <span className="text-xs text-slate-500">
+                      {day.hasData ? <strong className="text-rose-500">{day.absent}</strong> : <span className="text-slate-300">—</span>}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status / Rate */}
+                <div className="flex-shrink-0 text-right">
+                  {day.isToday && !day.hasData && !day.isWeekend ? (
+                    <button
+                      onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
+                      className="px-3 py-1 bg-[#1e3272] text-white rounded-lg text-xs font-bold"
+                    >
+                      Mark
+                    </button>
+                  ) : (
+                    <span className={`text-sm ${statusColor}`}>{statusText}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Desktop: grid (hidden on mobile) ── */}
+        <div className="hidden sm:block p-5 overflow-x-auto">
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${weeklyDays.length + 1}, minmax(0,1fr))` }}>
             {weeklyDays.map((day, i) => (
               <div
@@ -318,8 +386,6 @@ const Attendance = () => {
                 )}
               </div>
             ))}
-
-            {/* Removed static Upcoming placeholder; now handled dynamically above */}
           </div>
         </div>
       </div>
@@ -376,13 +442,13 @@ const AttendanceLog = ({ classes, enrollments, records }: any) => {
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-bold text-slate-800">Attendance Log</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <select
             value={logClassId}
             onChange={e => setLogClassId(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
+            className="flex-1 sm:flex-none h-9 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
           >
             {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -390,7 +456,7 @@ const AttendanceLog = ({ classes, enrollments, records }: any) => {
             type="date"
             value={logDate}
             onChange={e => setLogDate(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
+            className="flex-1 sm:flex-none h-9 px-2 sm:px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white outline-none focus:ring-2 focus:ring-blue-100"
           />
         </div>
       </div>

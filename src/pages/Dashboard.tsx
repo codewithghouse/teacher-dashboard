@@ -12,16 +12,16 @@ import { useNavigate } from 'react-router-dom';
 
 const StatCard = ({ label, value, tag, tagColor, iconBg, unit = "" }: any) => {
    return (
-      <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-         <div className="flex items-center justify-between mb-5">
-            <div className={`w-11 h-11 rounded-xl ${iconBg}`} />
-            <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${tagColor}`}>
+      <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+         <div className="flex items-center justify-between mb-3 sm:mb-5">
+            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${iconBg}`} />
+            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold ${tagColor} max-w-[80px] text-right leading-tight`}>
                {tag}
             </span>
          </div>
          <div>
-            <h2 className="text-4xl font-bold text-slate-800 tracking-tight">{value}{unit}</h2>
-            <p className="text-sm text-slate-400 font-medium mt-1">{label}</p>
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-800 tracking-tight">{value}{unit}</h2>
+            <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">{label}</p>
          </div>
       </div>
    );
@@ -201,27 +201,27 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen font-sans text-left">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6 md:mb-8">
         <div>
-           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Result of click: "Dashboard"</p>
-           <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
+           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Dashboard</h1>
            <p className="text-slate-500 text-sm mt-1">Welcome back! Here's what's happening today.</p>
         </div>
-        <div className="flex items-center gap-3">
-           <div className="bg-white px-5 py-2 rounded-xl border border-slate-200 shadow-sm text-sm font-semibold text-slate-600">
-              {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+        <div className="flex items-center gap-2 sm:gap-3">
+           <div className="bg-white px-3 sm:px-5 py-2 rounded-xl border border-slate-200 shadow-sm text-xs sm:text-sm font-semibold text-slate-600 whitespace-nowrap">
+              {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
            </div>
            <div className="relative">
-              <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
-                 <Bell size={18} className="text-slate-400" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
+                 <Bell size={16} className="text-slate-400" />
               </div>
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">3</span>
+              <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">3</span>
            </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 mb-6 md:mb-8">
          <StatCard
            label="Attendance Rate" value={stats.avgAttendance} unit="%"
            tag={stats.avgAttendance > 0 ? `+${Math.abs(stats.avgAttendance - 91.8).toFixed(1)}%` : "+0%"}
@@ -248,10 +248,10 @@ const Dashboard = () => {
          />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+
          {/* Today's Classes */}
-         <div className="bg-white rounded-2xl border border-slate-100 p-6 flex flex-col shadow-sm">
+         <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 flex flex-col shadow-sm">
             <h3 className="text-lg font-bold text-slate-800 mb-6 font-primary">Today's Classes</h3>
             <div className="space-y-4">
                {todayClasses.length > 0 ? todayClasses.map((cls, idx) => (
@@ -276,8 +276,8 @@ const Dashboard = () => {
          </div>
 
          {/* Pending Tasks */}
-         <div className="bg-white rounded-2xl border border-slate-100 p-6 flex flex-col shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-6 font-primary">Pending Tasks</h3>
+         <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 flex flex-col shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 sm:mb-6 font-primary">Pending Tasks</h3>
             <div className="space-y-4">
                {pendingTasks.length > 0 ? pendingTasks.map((task, idx) => (
                   <div key={idx} className={`rounded-xl p-4 transition-all hover:opacity-90 cursor-pointer ${task.bgLight || 'bg-rose-50'}`} onClick={() => navigate(task.title.includes('Attendance') ? '/attendance' : '/gradebook')}>
@@ -301,7 +301,7 @@ const Dashboard = () => {
          </div>
 
          {/* Students Needing Attention */}
-         <div className="bg-white rounded-2xl border border-slate-100 p-6 flex flex-col shadow-sm">
+         <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 flex flex-col shadow-sm">
             <h3 className="text-lg font-bold text-slate-800 mb-6 font-primary">Students Needing Attention</h3>
             <div className="space-y-4">
                {criticalStudents.length > 0 ? criticalStudents.map((s, idx) => (
