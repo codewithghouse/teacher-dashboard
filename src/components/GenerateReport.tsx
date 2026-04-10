@@ -177,13 +177,74 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        } else if (report.id === "individual_progress") {
           const sel = enrichedPerformance.find(s => (s.studentId === params.studentId || s.email?.toLowerCase() === params.studentId?.toLowerCase())) || enrichedPerformance[0];
           const aiResponse = await AIController.getIndividualProgressReport({ student_name: sel.name, subject: selectedClass?.subject || "General", score: sel.score, attendance: sel.attendance });
-          resultData = { 
+
+          // Extra fetches for rich individual card
+          const [extraStudentSnap, feesSnap, incidentSnap, pfSnap] = await Promise.all([
+             getDocs(query(collection(db, "students"), where("studentId", "==", sel.studentId))).catch(() => ({ docs: [] as any[] })),
+             getDocs(query(collection(db, "fees"), where("studentId", "==", sel.studentId))).catch(() => ({ docs: [] as any[] })),
+             getDocs(query(collection(db, "incidents"), where("studentId", "==", sel.studentId))).catch(() => ({ docs: [] as any[] })),
+             getDocs(query(collection(db, "performance_feedback"), where("studentId", "==", sel.studentId))).catch(() => ({ docs: [] as any[] })),
+          ]);
+
+          const studentDoc = (extraStudentSnap.docs as any[])[0]?.data() || {};
+          const genderRaw = (studentDoc.gender || studentDoc.sex || "male").toLowerCase();
+          const gender = genderRaw.startsWith("f") || genderRaw === "girl" ? "female" : "male";
+          const dob = studentDoc.dob || studentDoc.dateOfBirth || studentDoc.birthDate || "";
+          const age: string | number = dob
+             ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+             : studentDoc.age || "—";
+
+          const feeDocs = (feesSnap.docs as any[]).map(d => d.data());
+          const totalFee = feeDocs.reduce((s: number, f: any) => s + (f.amount || f.totalAmount || f.feeAmount || 0), 0);
+          const paidFee  = feeDocs.reduce((s: number, f: any) => s + (f.paidAmount || f.collectedAmount || (f.status === "paid" ? (f.amount || f.totalAmount || 0) : 0)), 0);
+          const pendingFee = Math.max(0, totalFee - paidFee);
+          const paidDocs = feeDocs.filter((f: any) => f.paidAmount > 0 || f.collectedAmount > 0 || f.status === "paid");
+          const lastPayDate = paidDocs.length > 0
+             ? (paidDocs[paidDocs.length - 1].paidDate || paidDocs[paidDocs.length - 1].updatedAt || "").substring(0, 10)
+             : "—";
+
+          const incidents = (incidentSnap.docs as any[]).map(d => d.data());
+          const warnings   = incidents.filter((i: any) => (i.type || "").toLowerCase().includes("warn") || i.severity === "warning").length;
+          const detentions = incidents.filter((i: any) => (i.type || "").toLowerCase().includes("detent")).length;
+
+          const pfDocs = (pfSnap.docs as any[]).map(d => d.data());
+          const positiveRemarks = pfDocs.filter((f: any) => {
+             const t = (f.content || f.feedback || f.remark || "").toLowerCase();
+             return t.includes("good") || t.includes("excel") || t.includes("great") || t.includes("well") || t.includes("positive");
+          }).length;
+
+          const rawSkills = studentDoc.skills || studentDoc.activities || studentDoc.extracurricular || [];
+          const skills: string[] = Array.isArray(rawSkills) ? rawSkills : typeof rawSkills === "string" ? rawSkills.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+
+          const selNotes = noteDocs.filter((n: any) => n.studentId === sel.studentId || (sel.email && n.studentEmail?.toLowerCase() === sel.email?.toLowerCase()));
+          const latestPf = pfDocs[pfDocs.length - 1];
+          const teacherNote = latestPf?.content || latestPf?.feedback || latestPf?.remark || selNotes[selNotes.length - 1]?.content || "";
+
+          const parentContacts = selNotes.slice(-3).map((n: any) => ({
+             label: (n.type === "meeting" || (n.content || "").toLowerCase().includes("meet")) ? "Meeting" : "Call",
+             date: n.date || (n.createdAt?.toDate?.()?.toLocaleDateString("en-US", { month: "short", day: "numeric" })) || "",
+             content: (n.content || "").substring(0, 50),
+          }));
+
+          const predictedScore = Math.min(100, Math.round(sel.score + Math.max(0, (100 - sel.score) * 0.05)));
+          const riskLevel = sel.score >= 75 && sel.attendance >= 80 ? "LOW" : sel.score >= 60 ? "MODERATE" : "HIGH";
+
+          resultData = {
              isIndividual: true,
              student_name: sel.name,
              score: sel.score,
              atnd: sel.attendance,
              standing: sel.standing,
-             ai_remark: aiResponse?.data?.report_content || `Demonstrates dedicated scholarly commitment at ${sel.score}%.`
+             ai_remark: aiResponse?.data?.report_content || `${sel.name} demonstrates consistent academic effort with a score of ${sel.score}% and attendance of ${sel.attendance}%.`,
+             gender, age,
+             grade: studentDoc.grade || studentDoc.class || selectedClass?.grade || "—",
+             rollNo: sel.rollNo || studentDoc.rollNo || studentDoc.studentId?.substring(0, 8) || "—",
+             className: selectedClass?.name || "—",
+             subject: selectedClass?.subject || "—",
+             pendingFee, lastPayDate, totalFee, paidFee,
+             warnings, detentions, positiveRemarks,
+             skills, teacherNote, parentContacts,
+             predictedScore, riskLevel,
           };
        } else if (report.id === "attendance_summary") {
           resultData = {
@@ -290,7 +351,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[850px] overflow-hidden p-0 rounded-[3rem] border-none shadow-2xl font-sans text-left print:shadow-none print:w-full">
+      <DialogContent className="sm:max-w-[1150px] overflow-hidden p-0 rounded-[3rem] border-none shadow-2xl font-sans text-left print:shadow-none print:w-full">
         <div className="bg-slate-50/50 p-12 max-h-[90vh] overflow-y-auto custom-scrollbar print:bg-white print:max-h-full print:p-0 print:overflow-visible">
           
           <div className="print:hidden">
@@ -444,23 +505,147 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                     </div>
                  </div>
                ) : (
-                 <div className="space-y-10">
-                    <div className="bg-white border border-slate-100 p-12 rounded-[4rem] flex items-center gap-10 shadow-sm print:border-slate-200">
-                        <div className="w-24 h-24 bg-indigo-50 text-[#1e3a8a] rounded-[2.5rem] flex items-center justify-center shadow-inner font-black text-4xl italic">{reportResult.student_name?.[0]}</div>
-                        <div>
-                            <h3 className="text-5xl font-black text-slate-900 tracking-tighter leading-none mb-4 uppercase italic">{reportResult.student_name}</h3>
-                            <div className="flex items-center gap-10 uppercase tracking-widest font-black text-[11px] text-slate-400">
-                               <div className="flex items-center gap-3"><TrendingUp size={16} className="text-indigo-500"/> MERIT: <span className="text-slate-900">{reportResult.score}%</span></div>
-                               <div className="flex items-center gap-3"><Clock size={16} className="text-emerald-500"/> PRESENCE: <span className="text-slate-900">{reportResult.atnd}%</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-emerald-50 border-emerald-100 text-emerald-900 border p-12 rounded-[4rem] text-left relative overflow-hidden print:bg-slate-50 shadow-inner">
-                        <ArrowUpRight className="absolute -right-8 -bottom-8 w-40 h-40 text-emerald-200 opacity-20 rotate-45" />
-                        <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-6 flex items-center gap-4 italic"><Sparkles className="w-5 h-5"/> Scholar Diagnosis</p>
-                        <p className="text-2xl font-bold leading-relaxed italic">"{reportResult.ai_remark}"</p>
-                    </div>
-                 </div>
+                 <>
+                   <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
+                   {/* ── Landscape Individual Report Card ── */}
+                   <div className="grid grid-cols-[1fr_210px_1fr] gap-3 print:gap-2">
+
+                     {/* LEFT COLUMN */}
+                     <div className="flex flex-col gap-3">
+                       <ReportPanel title="Academic Performance" color="blue">
+                         <div className="flex items-baseline gap-2 mb-1">
+                           <span className="text-3xl font-black text-[#1e3a8a]">{reportResult.score}%</span>
+                           <span className="text-[10px] font-bold text-slate-400 uppercase">Score</span>
+                         </div>
+                         <div className="flex gap-2 flex-wrap mb-2">
+                           <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${reportResult.standing === "Excellence" ? "bg-emerald-100 text-emerald-600" : reportResult.standing === "Critical" ? "bg-rose-100 text-rose-600" : "bg-blue-100 text-blue-600"}`}>
+                             {reportResult.standing}
+                           </span>
+                           {reportResult.subject && reportResult.subject !== "—" && (
+                             <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-slate-100 text-slate-500">{reportResult.subject}</span>
+                           )}
+                         </div>
+                         <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-3">{reportResult.ai_remark}</p>
+                       </ReportPanel>
+
+                       <ReportPanel title="Attendance" color="emerald">
+                         <div className="flex items-baseline gap-1 mb-1">
+                           <span className="text-3xl font-black text-emerald-600">{reportResult.atnd}%</span>
+                           <span className="text-[10px] font-bold text-slate-400">Present</span>
+                         </div>
+                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-black inline-block ${reportResult.atnd >= 80 ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}>
+                           {reportResult.atnd >= 90 ? "Excellent" : reportResult.atnd >= 80 ? "Good" : reportResult.atnd >= 70 ? "Below Target" : "Critical"}
+                         </span>
+                       </ReportPanel>
+
+                       <ReportPanel title="Fee Status" color="amber">
+                         {reportResult.totalFee > 0 ? (
+                           <>
+                             <div className="text-sm font-black text-rose-500">Due: ₹{reportResult.pendingFee?.toLocaleString()}</div>
+                             <div className="text-[10px] text-slate-400 mt-1">Paid: ₹{reportResult.paidFee?.toLocaleString()} / ₹{reportResult.totalFee?.toLocaleString()}</div>
+                             {reportResult.lastPayDate !== "—" && (
+                               <div className="text-[10px] text-slate-400">Last payment: {reportResult.lastPayDate}</div>
+                             )}
+                           </>
+                         ) : (
+                           <div className="text-[10px] text-slate-300 italic">No fee records found</div>
+                         )}
+                       </ReportPanel>
+
+                       <ReportPanel title="Skills & Activities" color="purple">
+                         {reportResult.skills?.length > 0 ? (
+                           <div className="space-y-1">
+                             {reportResult.skills.slice(0, 4).map((s: string, i: number) => (
+                               <div key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
+                                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full shrink-0" />{s}
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="text-[10px] text-slate-300 italic">No extracurricular data</div>
+                         )}
+                       </ReportPanel>
+                     </div>
+
+                     {/* CENTER — Student Card */}
+                     <div className="flex flex-col items-center rounded-2xl border border-[#1e3a8a]/10 bg-gradient-to-b from-[#1e3a8a]/5 to-white px-3 py-4 gap-2">
+                       <div className="text-center">
+                         <h2 className="text-sm font-black text-[#1e294b] tracking-tight leading-snug">{reportResult.student_name}</h2>
+                         <div className="text-[9px] text-slate-400 font-bold mt-1 leading-relaxed space-y-0.5">
+                           {reportResult.age !== "—" && <div>Age: {reportResult.age}</div>}
+                           <div>Grade: {reportResult.grade}</div>
+                           <div>ID: {reportResult.rollNo}</div>
+                           <div className="truncate max-w-[190px]">Class: {reportResult.className}</div>
+                         </div>
+                       </div>
+                       <img
+                         src={reportResult.gender === "female" ? "/3dmodelgirl.jpg" : "/3dmodelboy.jpg"}
+                         alt="Student"
+                         className="w-full max-w-[170px] h-[190px] object-cover object-top rounded-xl"
+                       />
+                       <div className="text-center w-full">
+                         <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Risk Level</div>
+                         <span className={`text-[11px] font-black px-3 py-0.5 rounded-full ${reportResult.riskLevel === "LOW" ? "bg-emerald-100 text-emerald-600" : reportResult.riskLevel === "HIGH" ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"}`}>
+                           {reportResult.riskLevel}
+                         </span>
+                       </div>
+                     </div>
+
+                     {/* RIGHT COLUMN */}
+                     <div className="flex flex-col gap-3">
+                       <ReportPanel title="Behavior Record" color="rose">
+                         <div className="space-y-2">
+                           {[
+                             { label: "Warnings",        val: reportResult.warnings ?? 0,         col: "text-rose-500"    },
+                             { label: "Detentions",       val: reportResult.detentions ?? 0,        col: "text-amber-500"  },
+                             { label: "Positive Remarks", val: reportResult.positiveRemarks ?? 0,   col: "text-emerald-500"},
+                           ].map(r => (
+                             <div key={r.label} className="flex items-center justify-between">
+                               <span className="text-[10px] font-bold text-slate-500">{r.label}</span>
+                               <span className={`text-sm font-black ${r.col}`}>{r.val}</span>
+                             </div>
+                           ))}
+                         </div>
+                       </ReportPanel>
+
+                       <ReportPanel title="AI Analysis" color="blue">
+                         <div>
+                           <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Predicted Score</div>
+                           <div className="text-2xl font-black text-[#1e3a8a]">{reportResult.predictedScore}%</div>
+                         </div>
+                         <div className="flex items-center gap-2 mt-1">
+                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Risk:</span>
+                           <span className={`text-[10px] font-black ${reportResult.riskLevel === "LOW" ? "text-emerald-500" : reportResult.riskLevel === "HIGH" ? "text-rose-500" : "text-amber-500"}`}>
+                             {reportResult.riskLevel}
+                           </span>
+                         </div>
+                       </ReportPanel>
+
+                       <ReportPanel title="Parent Contacts" color="teal">
+                         {reportResult.parentContacts?.length > 0 ? (
+                           <div className="space-y-1.5">
+                             {reportResult.parentContacts.map((c: any, i: number) => (
+                               <div key={i} className="flex items-center gap-1.5">
+                                 <span className="text-[9px] font-black text-teal-500 shrink-0">{c.label}</span>
+                                 {c.date && <span className="text-[9px] text-slate-400">{c.date}</span>}
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="text-[10px] text-slate-300 italic">No contact records</div>
+                         )}
+                       </ReportPanel>
+
+                       <ReportPanel title="Teacher's Notes" color="emerald">
+                         {reportResult.teacherNote ? (
+                           <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-4">{reportResult.teacherNote}</p>
+                         ) : (
+                           <div className="text-[10px] text-slate-300 italic">No notes recorded yet</div>
+                         )}
+                       </ReportPanel>
+                     </div>
+                   </div>
+                 </>
                )}
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
@@ -484,6 +669,23 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const ReportPanel = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => {
+  const map: Record<string, string> = {
+    blue:    "border-blue-100 bg-blue-50/40",
+    emerald: "border-emerald-100 bg-emerald-50/40",
+    amber:   "border-amber-100 bg-amber-50/40",
+    rose:    "border-rose-100 bg-rose-50/40",
+    purple:  "border-purple-100 bg-purple-50/40",
+    teal:    "border-teal-100 bg-teal-50/40",
+  };
+  return (
+    <div className={`flex-1 rounded-xl border p-3 ${map[color] || "border-slate-100 bg-white"}`}>
+      <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">{title}</p>
+      {children}
+    </div>
   );
 };
 
