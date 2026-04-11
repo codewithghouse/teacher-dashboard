@@ -24,7 +24,13 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id), ...SC);
     const unsub = onSnapshot(q, (snap) => {
       const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setClasses(cls);
@@ -48,11 +54,18 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
       const selClass = classes.find(c => c.id === selectedClassId);
       
       // Fetch the teaching_assignment ID for this specific class and teacher
+      const schoolId = teacherData.schoolId as string | undefined;
+      const branchId = teacherData.branchId as string | undefined;
+      const SC: any[] = [];
+      if (schoolId) SC.push(where("schoolId", "==", schoolId));
+      if (branchId) SC.push(where("branchId", "==", branchId));
+
       let teachingAssignmentId = "legacy";
-      const qAssign = query(collection(db, "teaching_assignments"), 
-          where("teacherId", "==", teacherData.id), 
+      const qAssign = query(collection(db, "teaching_assignments"),
+          where("teacherId", "==", teacherData.id),
           where("classId", "==", selectedClassId),
-          where("status", "==", "active")
+          where("status", "==", "active"),
+          ...SC
       );
       const assignSnap = await getDocs(qAssign);
       if (!assignSnap.empty) {
@@ -63,12 +76,14 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
         ...formData,
         dueDate: new Date(formData.dueDate),
         teacherId: teacherData.id,
-        assignmentId: teachingAssignmentId, // From Phase 1 spec
+        schoolId: teacherData.schoolId || "",
+        branchId: teacherData.branchId || "",
+        assignmentId: teachingAssignmentId,
         teacherName: teacherData.name || "Faculty",
         classId: selectedClassId,
         className: selClass?.name || "",
         grade: selClass?.grade || "",
-        gradeClass: selClass?.name || `${selClass?.grade}-A`,
+        gradeClass: selClass?.name || (selClass?.grade ? `${selClass.grade}-A` : ""),
         status: "Active",
         pdfUrl: attachmentUrl,
         fileName: selectedFile?.name || "",

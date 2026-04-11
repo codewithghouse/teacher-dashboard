@@ -21,7 +21,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
      marks: ""
   });
 
-  const [topics, setTopics] = useState<string[]>(['Algebraic Expressions', 'Linear Equations', 'Quadratic Equations', 'Polynomials']);
+  const [topics, setTopics] = useState<string[]>([]);
   const [newTopic, setNewTopic] = useState("");
   const [qTypes, setQTypes] = useState<string[]>(['MCQ', 'Short Answer', 'Long Answer']);
   
@@ -36,7 +36,13 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    const q = query(collection(db, "classes"), where("teacherId", "==", teacherData.id), ...SC);
     const unsub = onSnapshot(q, (snap) => {
       const cls = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
       setClasses(cls);
@@ -63,9 +69,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
       await addDoc(collection(db, "tests"), {
         ...formData,
         testName: formData.title,
-        date: formData.testDate, // Fixed field name for sync
+        date: formData.testDate,
         category: (formData as any).category || "Unit Test",
         teacherId: teacherData.id,
+        schoolId: teacherData.schoolId || "",
+        branchId: teacherData.branchId || "",
         status: "Upcoming",
         topics,
         questionTypes: qTypes,
@@ -218,11 +226,6 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
          {/* RIGHT COLUMN */}
          <div className="space-y-8">
-            <div>
-               <label className="block text-sm font-bold text-slate-900 mb-2">Total Marks <span className="text-rose-500">*</span></label>
-               <input type="number" value={formData.marks} onChange={e=>setFormData({...formData, marks: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
-            </div>
-
             <div>
                <label className="block text-sm font-bold text-slate-900 mb-3">Topics Covered</label>
                <div className="space-y-3">

@@ -56,11 +56,17 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const [saving, setSaving]                 = useState(false);
   const [currentPage, setCurrentPage]       = useState(1);
 
-  // ── fetch classes ──────────────────────────────────────────────────────────
+  // ── fetch classes (scoped by school) ──────────────────────────────────────
   useEffect(() => {
     if (!teacherData?.id) return;
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
     const unsub = onSnapshot(
-      query(collection(db, "classes"), where("teacherId", "==", teacherData.id)),
+      query(collection(db, "classes"), where("teacherId", "==", teacherData.id), ...SC),
       (snap) => {
         const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setClasses(cls);
@@ -70,14 +76,20 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     return () => unsub();
   }, [teacherData?.id]);
 
-  // ── fetch roster + today's attendance ────────────────────────────────────
+  // ── fetch roster + today's attendance (scoped by school) ─────────────────
   useEffect(() => {
     if (!selectedClassId || !teacherData?.id) return;
     setLoading(true);
     setCurrentPage(1);
 
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
     const unsub = onSnapshot(
-      query(collection(db, "enrollments"), where("classId", "==", selectedClassId)),
+      query(collection(db, "enrollments"), where("classId", "==", selectedClassId), ...SC),
       async (snap) => {
         try {
           // Fetch today's existing attendance logs
@@ -85,7 +97,8 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             query(
               collection(db, "attendance"),
               where("classId", "==", selectedClassId),
-              where("date", "==", todayStr())
+              where("date", "==", todayStr()),
+              ...SC
             )
           );
           const logs = logsSnap.docs.map(d => d.data());
@@ -142,12 +155,19 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const copyFromYesterday = async () => {
     setLoading(true);
     try {
+      const schoolId = teacherData.schoolId as string | undefined;
+      const branchId = teacherData.branchId as string | undefined;
+      const SC: any[] = [];
+      if (schoolId) SC.push(where("schoolId", "==", schoolId));
+      if (branchId) SC.push(where("branchId", "==", branchId));
+
       const snap = await getDocs(
         query(
           collection(db, "attendance"),
           where("classId", "==", selectedClassId),
           where("teacherId", "==", teacherData.id),
-          limit(200)
+          limit(200),
+          ...SC
         )
       );
       const today = todayStr();
@@ -187,17 +207,30 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     const selClass = classes.find(c => c.id === selectedClassId);
 
     try {
-      // Get teaching assignment ID
+      // Get teaching assignment ID (scoped by school)
+      const schoolId2 = teacherData.schoolId as string | undefined;
+      const branchId2 = teacherData.branchId as string | undefined;
+      const SC2: any[] = [];
+      if (schoolId2) SC2.push(where("schoolId", "==", schoolId2));
+      if (branchId2) SC2.push(where("branchId", "==", branchId2));
+
       let assignmentId = "legacy";
       const aSnap = await getDocs(
         query(
           collection(db, "teaching_assignments"),
           where("teacherId", "==", teacherData.id),
           where("classId", "==", selectedClassId),
-          where("status", "==", "active")
+          ...SC2
         )
       );
-      if (!aSnap.empty) assignmentId = aSnap.docs[0].id;
+      if (!aSnap.empty) {
+        // Filter in memory — handles "active"/"Active" casing and legacy docs without status
+        const activeDoc = aSnap.docs.find(d => {
+          const s = d.data().status;
+          return !s || s.toLowerCase() === "active";
+        });
+        if (activeDoc) assignmentId = activeDoc.id;
+      }
 
       const marked = students.filter(s => s.status !== "none");
       await Promise.all(

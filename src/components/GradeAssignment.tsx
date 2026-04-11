@@ -25,37 +25,41 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
     
     const fetchEverything = async () => {
         setLoading(true);
+        const schoolId = teacherData?.schoolId as string | undefined;
+        const branchId = teacherData?.branchId as string | undefined;
+        const SC: any[] = [];
+        if (schoolId) SC.push(where("schoolId", "==", schoolId));
+        if (branchId) SC.push(where("branchId", "==", branchId));
+
         try {
-            // 1. Get Enrollments (Class Roster)
+            // 1. Get Enrollments (Class Roster) — scoped by school
             const enrolQ = query(
-                collection(db, "enrollments"), 
-                where("classId", "==", assignment.classId)
+                collection(db, "enrollments"),
+                where("classId", "==", assignment.classId),
+                ...SC
             );
             const rosterSnap = await getDocs(enrolQ);
-            
-            // 2. Get existing results
-            const qGrades = query(collection(db, "results"), where("assignmentId", "==", assignment.id));
+
+            // 2. Get existing results — scoped by school
+            const qGrades = query(collection(db, "results"), where("assignmentId", "==", assignment.id), ...SC);
             const gradeSnap = await getDocs(qGrades);
             const gradeMap = new Map();
             gradeSnap.docs.forEach(d => gradeMap.set(d.data().studentId, d.data()));
 
-            // 3. Get Student Submissions — DUAL LOOKUP
-            // Parent Dashboard saves: { homeworkId: assignment.id, assignmentId: teachingAssignmentId }
-            // Teacher Dashboard was only querying by assignmentId which is the teachingAssignment ID — MISMATCH!
+            // 3. Get Student Submissions — DUAL LOOKUP (scoped by school)
             const subMap = new Map();
-            
+
             // Query by homeworkId (the assignment's actual doc ID) — this is what parent saves
-            const qSubsByHomework = query(collection(db, "submissions"), where("homeworkId", "==", assignment.id));
+            const qSubsByHomework = query(collection(db, "submissions"), where("homeworkId", "==", assignment.id), ...SC);
             const subSnapByHomework = await getDocs(qSubsByHomework);
             subSnapByHomework.docs.forEach(d => {
                 const data = d.data();
-                // Key by studentId or studentEmail (whichever is available)
                 const key = data.studentId || data.studentEmail;
                 if (key) subMap.set(key, { ...data, _docId: d.id });
             });
-            
+
             // Also query by assignmentId as fallback (for older records)
-            const qSubsByAssign = query(collection(db, "submissions"), where("assignmentId", "==", assignment.id));
+            const qSubsByAssign = query(collection(db, "submissions"), where("assignmentId", "==", assignment.id), ...SC);
             const subSnapByAssign = await getDocs(qSubsByAssign);
             subSnapByAssign.docs.forEach(d => {
                 const data = d.data();
@@ -95,7 +99,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                 return {
                     id: sId,
                     name: data.studentName,
-                    rollNo: data.rollNo || "801", // dummy fallback for UI match
+                    rollNo: data.rollNo || "—",
                     email: data.studentEmail,
                     status: status,
                     submittedAt: submittedAtStr,

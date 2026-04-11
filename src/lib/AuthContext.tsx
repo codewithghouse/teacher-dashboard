@@ -53,7 +53,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
 
-          const teacherDoc  = snap.docs[0];
+          // Pick the best matching teacher doc when the same email exists across multiple schools.
+          // Priority: Active/Invited > other statuses, then most recently activated.
+          // This prevents "first match wins" from loading a deactivated or stale school record.
+          const sortedDocs = [...snap.docs].sort((a, b) => {
+            const aD = a.data(), bD = b.data();
+            const score = (d: any) =>
+              ["Active", "active"].includes(d.status) ? 2 :
+              ["Invited", "invited"].includes(d.status) ? 1 : 0;
+            const diff = score(bD) - score(aD);
+            if (diff !== 0) return diff;
+            const aTime = aD.activatedAt?.toMillis?.() || aD.createdAt?.toMillis?.() || 0;
+            const bTime = bD.activatedAt?.toMillis?.() || bD.createdAt?.toMillis?.() || 0;
+            return bTime - aTime;
+          });
+          const teacherDoc  = sortedDocs[0];
           const teacherInfo = teacherDoc.data();
 
           // ── Step 2: Auto-activate if status is "Invited" ──────────────────
@@ -71,11 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
 
-          // ── Step 3: Real-time listener to keep teacherData in sync ────────
-          snapshotUnsub = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-              const d = snapshot.docs[0];
-              setTeacherData({ id: d.id, ...d.data() });
+          // ── Step 3: Real-time listener on the specific doc (not the query) ──
+          // Using doc(db, "teachers", teacherDoc.id) instead of onSnapshot(q, ...) ensures
+          // we always listen to the exact doc chosen above — not "first matching doc for email"
+          // which can change if teacher records are reordered or a new school record is added.
+          snapshotUnsub = onSnapshot(doc(db, "teachers", teacherDoc.id), (docSnap) => {
+            if (docSnap.exists()) {
+              setTeacherData({ id: docSnap.id, ...docSnap.data() });
               setUser(currentUser);
               setError(null);
             } else {

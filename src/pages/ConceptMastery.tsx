@@ -30,40 +30,62 @@ const ConceptMastery = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // 1. Fetch Teacher's Active Assignments
+  // 1. Fetch Teacher's Active Assignments (scoped by school)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
-    const unsub = onSnapshot(q, async (snap) => {
-      const assignments = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-      const classSnap = await getDocs(query(collection(db, "classes")));
-      const classMap = new Map();
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    let unsub: (() => void) | null = null;
+    let cancelled = false; // Guard against orphaned listeners if component unmounts during getDocs
+
+    // Fetch all school classes ONCE before setting up the listener.
+    // Fixes two issues: (a) getDocs was being called inside onSnapshot on every update,
+    // causing a read storm; (b) classMap is now stable for the lifetime of the listener.
+    const init = async () => {
+      const classSnap = await getDocs(query(collection(db, "classes"), ...SC));
+      if (cancelled) return; // Component unmounted while getDocs was in flight — abort
+      const classMap = new Map<string, any>();
       classSnap.docs.forEach(d => classMap.set(d.id, d.data()));
+      // Legacy options: classes directly owned by this teacher (subset of classSnap)
+      const legacyOptions = classSnap.docs
+        .filter(d => d.data().teacherId === teacherData.id)
+        .map(d => ({ id: d.id, classId: d.id, name: d.data().name }));
 
-      const assignmentOptions = assignments.map(a => {
-        const cls = classMap.get(a.classId);
-        return {
-          id: a.id,
-          classId: a.classId,
-          name: `${cls?.name || "Class"} - ${a.subjectName || a.subject || "Subject"}`,
-        };
+      // No status filter in Firestore query — filter in memory.
+      // Handles "active"/"Active" casing mismatch and legacy docs without a status field.
+      const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), ...SC);
+      unsub = onSnapshot(q, (snap) => {
+        const assignments = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as any))
+          .filter(a => !a.status || a.status.toLowerCase() === "active");
+
+        const assignmentOptions = assignments.map(a => {
+          const cls = classMap.get(a.classId);
+          return {
+            id: a.id,
+            classId: a.classId,
+            name: `${cls?.name || "Class"} - ${a.subjectName || a.subject || "Subject"}`,
+          };
+        });
+
+        const combined = [...assignmentOptions];
+        legacyOptions.forEach(lo => { if (!combined.some(c => c.classId === lo.classId)) combined.push(lo); });
+
+        setClasses(combined);
+        if (combined.length > 0 && !selectedClassId) setSelectedClassId(combined[0].id);
+        if (combined.length === 0) setLoading(false);
       });
+    };
 
-      const qLegacy = query(collection(db, "classes"), where("teacherId", "==", teacherData.id));
-      const legacySnap = await getDocs(qLegacy);
-      const lOps = legacySnap.docs.map(d => ({ id: d.id, classId: d.id, name: d.data().name }));
-
-      const combined = [...assignmentOptions];
-      lOps.forEach(lo => { if (!combined.some(c => c.classId === lo.classId)) combined.push(lo); });
-
-      setClasses(combined);
-      if (combined.length > 0 && !selectedClassId) setSelectedClassId(combined[0].id);
-      if (combined.length === 0) setLoading(false);
-    });
-    return () => unsub();
+    init();
+    return () => { cancelled = true; unsub?.(); };
   }, [teacherData?.id]);
 
-  // 2. LIVE SYNC ENGINE (STRICT MARKS-BASED JUDGMENT)
+  // 2. LIVE SYNC ENGINE — flat parallel listeners, debounced compute, full cleanup
   useEffect(() => {
     if (!teacherData?.id || !selectedClassId) return;
     setLoading(true);
@@ -71,95 +93,129 @@ const ConceptMastery = () => {
     const selAssignment = classes.find(c => c.id === selectedClassId);
     const targetClassId = selAssignment?.classId || selectedClassId;
 
-    const unsubRegistry = onSnapshot(query(collection(db, "gradebook_columns"), where("classId", "==", targetClassId)), (gbSnap) => {
-      const gbCols = gbSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
 
-      onSnapshot(query(collection(db, "tests_registry"), where("classId", "==", targetClassId)), (tSnap) => {
-        const classTests = tSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    // Shared closure data — updated by each listener independently
+    let gbCols: any[] = [];
+    let classTests: any[] = [];
+    let roster: any[] = [];
+    let s1: any[] = [];
+    let s2: any[] = [];
+    let s3: any[] = [];
+    let computeTimer: ReturnType<typeof setTimeout> | null = null;
 
-        const potentialTopicsSet = new Set<string>();
-        classTests.forEach(t => { if (t.topics && Array.isArray(t.topics)) t.topics.forEach((c: string) => potentialTopicsSet.add(c.toUpperCase())); });
-        gbCols.forEach(col => { if (col.name) potentialTopicsSet.add(col.name.toUpperCase()); });
-        const potentialTopics = Array.from(potentialTopicsSet).sort();
+    const scheduleCompute = () => {
+      if (computeTimer) clearTimeout(computeTimer);
+      computeTimer = setTimeout(runCompute, 30);
+    };
 
-        let s1: any[] = [], s2: any[] = [], s3: any[] = [];
+    const runCompute = () => {
+      const potentialTopicsSet = new Set<string>();
+      classTests.forEach(t => { if (t.topics && Array.isArray(t.topics)) t.topics.forEach((c: string) => potentialTopicsSet.add(c.toUpperCase())); });
+      gbCols.forEach(col => { if (col.name) potentialTopicsSet.add(col.name.toUpperCase()); });
+      const potentialTopics = Array.from(potentialTopicsSet).sort();
 
-        const processMatrix = (roster: any[]) => {
-          const activeConceptsMap = new Map<string, boolean>();
-          const builtMatrix = roster.map((s: any) => {
-            const sEmail = s.email?.toLowerCase();
-            const sId = s.realId;
-            const filterByStudent = (arr: any[]) => arr.filter(item =>
-              (sId && (item.studentId === sId || item.id?.includes(sId))) ||
-              (sEmail && item.studentEmail?.toLowerCase() === sEmail)
-            );
+      const activeConceptsMap = new Map<string, boolean>();
+      const builtMatrix = roster.map((s: any) => {
+        const sEmail = s.email?.toLowerCase();
+        const sId = s.realId;
+        const filterByStudent = (arr: any[]) => arr.filter(item =>
+          (sId && (item.studentId === sId || item.id?.includes(sId))) ||
+          (sEmail && item.studentEmail?.toLowerCase() === sEmail)
+        );
 
-            const sSum = filterByStudent(s1);
-            const sFor = filterByStudent(s2);
-            const sRes = filterByStudent(s3);
+        const sSum = filterByStudent(s1);
+        const sFor = filterByStudent(s2);
+        const sRes = filterByStudent(s3);
 
-            const conceptScores = potentialTopics.map(concept => {
-              const rSum = sSum.filter(sc => classTests.find(t => t.id === sc.testId)?.topics?.some((t: any) => t.trim().toUpperCase() === concept));
-              const rFor = sFor.filter(sc => sc.columnName?.trim().toUpperCase() === concept || sc.columnId === gbCols.find(c => c.name?.trim().toUpperCase() === concept)?.id);
-              const rRes = sRes.filter(sc => sc.testName?.trim().toUpperCase() === concept || sc.assignmentTitle?.trim().toUpperCase() === concept || sc.title?.trim().toUpperCase() === concept);
+        const conceptScores = potentialTopics.map(concept => {
+          const rSum = sSum.filter(sc => classTests.find(t => t.id === sc.testId)?.topics?.some((t: any) => t.trim().toUpperCase() === concept));
+          const rFor = sFor.filter(sc => sc.columnName?.trim().toUpperCase() === concept || sc.columnId === gbCols.find(c => c.name?.trim().toUpperCase() === concept)?.id);
+          const rRes = sRes.filter(sc => sc.testName?.trim().toUpperCase() === concept || sc.assignmentTitle?.trim().toUpperCase() === concept || sc.title?.trim().toUpperCase() === concept);
 
-              const combined = [...rSum, ...rFor, ...rRes];
-              if (combined.length === 0) return 0;
-              activeConceptsMap.set(concept, true);
+          const combined = [...rSum, ...rFor, ...rRes];
+          if (combined.length === 0) return 0;
+          activeConceptsMap.set(concept, true);
 
-              let total = 0, count = 0;
-              combined.forEach(sc => {
-                const pct = Number(sc.percentage ?? (sc.mark / sc.maxMarks * 100) ?? (sc.score / sc.maxScore * 100) ?? sc.score ?? 0);
-                if (pct >= 0) { total += pct; count++; }
-              });
-              return count > 0 ? Math.round(total / count) : 0;
-            });
-            return { ...s, rawConcepts: conceptScores };
+          let total = 0, count = 0;
+          combined.forEach(sc => {
+            const pct = Number(sc.percentage ?? (sc.mark / sc.maxMarks * 100) ?? (sc.score / sc.maxScore * 100) ?? sc.score ?? 0);
+            if (pct >= 0) { total += pct; count++; }
           });
-
-          const filteredHeaders = potentialTopics.filter(h => activeConceptsMap.has(h));
-          setDynamicHeaders(filteredHeaders);
-
-          const final = builtMatrix.map(s => ({
-            ...s,
-            concepts: potentialTopics
-              .map((h, i) => ({ h, v: s.rawConcepts[i] }))
-              .filter(it => activeConceptsMap.has(it.h))
-              .map(it => it.v),
-          })).sort((a, b) => a.name.localeCompare(b.name));
-
-          const avgs = filteredHeaders.map((_, idx) => {
-            let sum = 0, count = 0;
-            final.forEach(st => { if (st.concepts[idx] > 0) { sum += st.concepts[idx]; count++; } });
-            return count > 0 ? Math.round(sum / count) : 0;
-          });
-
-          setClassAverages(avgs);
-          setMasteryData(final);
-          setLoading(false);
-        };
-
-        onSnapshot(query(collection(db, "enrollments"), where("classId", "==", targetClassId)), (enrollSnap) => {
-          const roster = enrollSnap.docs.map((d, idx) => {
-            const e = d.data();
-            return {
-              id: d.id,
-              realId: e.studentId,
-              email: e.studentEmail,
-              name: e.studentName,
-              initials: e.studentName?.substring(0, 2).toUpperCase() || "SC",
-              color: avatarColors[idx % avatarColors.length],
-            };
-          });
-
-          onSnapshot(query(collection(db, "test_scores"), where("classId", "==", targetClassId)), (snap) => { s1 = snap.docs.map(d => d.data()); processMatrix(roster); });
-          onSnapshot(query(collection(db, "gradebook_scores"), where("classId", "==", targetClassId)), (snap) => { s2 = snap.docs.map(d => d.data()); processMatrix(roster); });
-          onSnapshot(query(collection(db, "results"), where("classId", "==", targetClassId)), (snap) => { s3 = snap.docs.map(d => d.data()); processMatrix(roster); });
+          return count > 0 ? Math.round(total / count) : 0;
         });
+        return { ...s, rawConcepts: conceptScores };
       });
-    });
 
-    return () => unsubRegistry();
+      const filteredHeaders = potentialTopics.filter(h => activeConceptsMap.has(h));
+      setDynamicHeaders(filteredHeaders);
+
+      const final = builtMatrix.map(s => ({
+        ...s,
+        concepts: potentialTopics
+          .map((h, i) => ({ h, v: s.rawConcepts[i] }))
+          .filter(it => activeConceptsMap.has(it.h))
+          .map(it => it.v),
+      })).sort((a, b) => a.name.localeCompare(b.name));
+
+      const avgs = filteredHeaders.map((_, idx) => {
+        let sum = 0, count = 0;
+        final.forEach(st => { if (st.concepts[idx] > 0) { sum += st.concepts[idx]; count++; } });
+        return count > 0 ? Math.round(sum / count) : 0;
+      });
+
+      setClassAverages(avgs);
+      setMasteryData(final);
+      setLoading(false);
+    };
+
+    // 6 parallel flat listeners — all cleaned up on unmount
+    const unsub1 = onSnapshot(
+      query(collection(db, "gradebook_columns"), where("classId", "==", targetClassId), ...SC),
+      (snap) => { gbCols = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); }
+    );
+    const unsub2 = onSnapshot(
+      query(collection(db, "tests_registry"), where("classId", "==", targetClassId), ...SC),
+      (snap) => { classTests = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); }
+    );
+    const unsub3 = onSnapshot(
+      query(collection(db, "enrollments"), where("classId", "==", targetClassId), ...SC),
+      (snap) => {
+        roster = snap.docs.map((d, idx) => {
+          const e = d.data();
+          return {
+            id: d.id,
+            realId: e.studentId,
+            email: e.studentEmail,
+            name: e.studentName,
+            initials: e.studentName?.substring(0, 2).toUpperCase() || "SC",
+            color: avatarColors[idx % avatarColors.length],
+          };
+        });
+        scheduleCompute();
+      }
+    );
+    const unsub4 = onSnapshot(
+      query(collection(db, "test_scores"), where("classId", "==", targetClassId), ...SC),
+      (snap) => { s1 = snap.docs.map(d => d.data()); scheduleCompute(); }
+    );
+    const unsub5 = onSnapshot(
+      query(collection(db, "gradebook_scores"), where("classId", "==", targetClassId), ...SC),
+      (snap) => { s2 = snap.docs.map(d => d.data()); scheduleCompute(); }
+    );
+    const unsub6 = onSnapshot(
+      query(collection(db, "results"), where("classId", "==", targetClassId), ...SC),
+      (snap) => { s3 = snap.docs.map(d => d.data()); scheduleCompute(); }
+    );
+
+    return () => {
+      if (computeTimer) clearTimeout(computeTimer);
+      unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6();
+    };
   }, [teacherData?.id, selectedClassId, classes]);
 
   const filtered = masteryData.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()));

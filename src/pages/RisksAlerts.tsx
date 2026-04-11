@@ -48,32 +48,65 @@ const RisksAlerts = () => {
     if (!teacherData?.id) return;
     setLoading(true);
 
-    const qEnroll = query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id));
-    const unsubscribe = onSnapshot(qEnroll, async (snapshot) => {
-      const enrolls = snapshot.docs.map(d => ({ enrollId: d.id, ...d.data() })) as any[];
-      if (enrolls.length === 0) { setLoading(false); return; }
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
 
-      const rosterMap = new Map();
-      enrolls.forEach(e => {
-        const key = (e.studentId || e.studentEmail || e.studentName).toLowerCase();
-        if (!rosterMap.has(key)) rosterMap.set(key, e);
-      });
-      const uniqueRoster = Array.from(rosterMap.values());
+    // 21-day cutoff — RisksAlerts analyses only last 3 weeks of attendance.
+    // Fixes: (1) attendance had no date filter → was downloading ALL-TIME records
+    //        (2) enrollment docs don't have teacherId → must query by classIds instead
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 21);
+    const cutoffStr = cutoff.toLocaleDateString("en-CA");
 
+    const chunkArr = <T,>(arr: T[], n: number): T[][] =>
+      Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, (i + 1) * n));
+
+    // Listen on teacher's classes — when classes change, re-compute all alerts
+    const qClasses = query(collection(db, "classes"), where("teacherId", "==", teacherData.id), ...SC);
+    const unsubscribe = onSnapshot(qClasses, async (classSnap) => {
       try {
-        const classIds = [...new Set(enrolls.map((e: any) => e.classId).filter(Boolean))] as string[];
+        // Also pick up admin-assigned teaching_assignments
+        const taSnap = await getDocs(query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), ...SC));
+        const classIdSet = new Set<string>([
+          ...classSnap.docs.map(d => d.id),
+          ...taSnap.docs.map(d => d.data().classId).filter(Boolean),
+        ]);
+        const classIds = Array.from(classIdSet);
+
+        if (classIds.length === 0) { setAlerts([]); setLoading(false); return; }
+
+        // Enrollments by classIds — enrollment docs don't store teacherId
+        const enrollSnaps = await Promise.all(
+          chunkArr(classIds, 10).map(ch => getDocs(query(collection(db, "enrollments"), where("classId", "in", ch), ...SC)))
+        );
+        const enrolls = enrollSnaps.flatMap(s => s.docs).map(d => ({ enrollId: d.id, ...d.data() })) as any[];
+
+        if (enrolls.length === 0) { setAlerts([]); setLoading(false); return; }
+
+        const rosterMap = new Map();
+        enrolls.forEach(e => {
+          const key = (e.studentId || e.studentEmail || e.studentName || "").toLowerCase();
+          if (!rosterMap.has(key)) rosterMap.set(key, e);
+        });
+        const uniqueRoster = Array.from(rosterMap.values());
+
+        const gbSnapPromise = classIds.length > 0
+          ? Promise.all(chunkArr(classIds, 10).map(ch => getDocs(query(collection(db, "gradebook_scores"), where("classId", "in", ch), ...SC))))
+              .then(snaps => ({ docs: snaps.flatMap(s => s.docs) }))
+          : Promise.resolve({ docs: [] } as any);
 
         const [attSnap, tsSnap, gbSnap, assignSnap, subsSnap, manualSnap, resultsSnap, notesSnap] = await Promise.all([
-          getDocs(query(collection(db, "attendance"),    where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "test_scores"),   where("teacherId", "==", teacherData.id))),
-          classIds.length > 0
-            ? getDocs(query(collection(db, "gradebook_scores"), where("classId", "in", classIds)))
-            : Promise.resolve({ docs: [] } as any),
-          getDocs(query(collection(db, "assignments"),   where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "submissions"),   where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "risks"),         where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "results"),       where("teacherId", "==", teacherData.id))),
-          getDocs(query(collection(db, "parent_notes"),  where("teacherId", "==", teacherData.id))),
+          getDocs(query(collection(db, "attendance"),    where("teacherId", "==", teacherData.id), where("date", ">=", cutoffStr), ...SC)),
+          getDocs(query(collection(db, "test_scores"),   where("teacherId", "==", teacherData.id), ...SC)),
+          gbSnapPromise,
+          getDocs(query(collection(db, "assignments"),   where("teacherId", "==", teacherData.id), ...SC)),
+          getDocs(query(collection(db, "submissions"),   where("teacherId", "==", teacherData.id), ...SC)),
+          getDocs(query(collection(db, "risks"),         where("teacherId", "==", teacherData.id), ...SC)),
+          getDocs(query(collection(db, "results"),       where("teacherId", "==", teacherData.id), ...SC)),
+          getDocs(query(collection(db, "parent_notes"),  where("teacherId", "==", teacherData.id), ...SC)),
         ]);
 
         const allAtt     = attSnap.docs.map(d => d.data());
@@ -273,8 +306,13 @@ const RisksAlerts = () => {
 
   const fetchContact = async (sId: string, sName: string) => {
     setFetchingContact(true);
+    const schoolId = teacherData?.schoolId as string | undefined;
+    const branchId = teacherData?.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
     try {
-      const q = query(collection(db, "enrollments"), where("studentId", "==", sId));
+      const q = query(collection(db, "enrollments"), where("studentId", "==", sId), ...SC);
       const snap = await getDocs(q);
       let phone = "+91 98765 43210", parent = "Parent/Guardian";
       if (!snap.empty) {

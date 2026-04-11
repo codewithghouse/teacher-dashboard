@@ -10,6 +10,19 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+// ── Module-level dashboard cache ─────────────────────────────────────────────
+// Prevents the 8-query read storm on every navigation back to Dashboard.
+// Keyed by teacherId; expires after 5 minutes. The real-time attendance
+// onSnapshot (separate effect) still updates avgAttendance live.
+interface _DashboardSnapshot {
+  stats: { avgAttendance: number; pendingGrading: number; atRiskCount: number; activeClasses: number };
+  todayClasses: any[];
+  pendingTasks: any[];
+  criticalStudents: any[];
+}
+let _dashCache: { teacherId: string; expiresAt: number; snapshot: _DashboardSnapshot } | null = null;
+const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 const StatCard = ({ label, value, tag, tagColor, iconBg, unit = "" }: any) => {
    return (
       <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-2xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -49,10 +62,20 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Real-time attendance rate — updates immediately after teacher marks attendance
+  // Real-time attendance rate — scoped + date-filtered (last 30 days only)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id));
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toLocaleDateString("en-CA");
+
+    const q = query(collection(db, "attendance"), where("teacherId", "==", teacherData.id), where("date", ">=", cutoffStr), ...SC);
     return onSnapshot(q, (snap) => {
       const att = snap.docs.map(d => d.data());
       const totalPres = att.filter((a: any) => a.status === 'present' || a.status === 'late').length;
@@ -62,33 +85,56 @@ const Dashboard = () => {
   }, [teacherData?.id]);
 
   useEffect(() => {
-    if (!teacherData?.email && !teacherData?.id) return;
+    if (!teacherData?.id) return;
     setLoading(true);
 
     const tId = teacherData.id;
     const tEmail = teacherData.email?.toLowerCase();
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
 
-    // 1. DATA HARVESTING - WIDER NET (Assignments + Classes by ID/Email)
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toLocaleDateString("en-CA");
+
+    // 1. DATA HARVESTING — scoped by school + 5-min module-level cache
     const harvestAssignments = async () => {
-       try {
-         // Query assignments by ID
-         const q1 = query(collection(db, "teaching_assignments"), where("teacherId", "==", tId));
-         const q2 = query(collection(db, "classes"), where("teacherId", "==", tId));
-         
-         // Query by email (common secondary identifier)
-         const q3 = query(collection(db, "teaching_assignments"), where("teacherEmail", "==", tEmail));
-         const q4 = query(collection(db, "classes"), where("teacherEmail", "==", tEmail));
-         const q5 = query(collection(db, "classes"), where("teacher_id", "==", tId)); // Underscore check
+       // Serve from cache on fast re-navigation — skips 8 cold Firestore reads
+       if (_dashCache && _dashCache.teacherId === tId && _dashCache.expiresAt > Date.now()) {
+         const c = _dashCache.snapshot;
+         setStats(c.stats);
+         setTodayClasses(c.todayClasses);
+         setPendingTasks(c.pendingTasks);
+         setCriticalStudents(c.criticalStudents);
+         setLoading(false);
+         return;
+       }
 
-         const [s1, s2, s3, s4, s5] = await Promise.all([
-            getDocs(q1), getDocs(q2), getDocs(q3), getDocs(q4), getDocs(q5)
+       try {
+         // q1: teaching_assignments by teacherId (primary, immutable)
+         const q1 = query(collection(db, "teaching_assignments"), where("teacherId", "==", tId), ...SC);
+         const q2 = query(collection(db, "classes"), where("teacherId", "==", tId), ...SC);
+         // q3: teaching_assignments by email (legacy fallback — older records may lack teacherId).
+         // Guard: tEmail must be defined — passing undefined to Firestore throws a query error.
+         const q3 = tEmail
+           ? query(collection(db, "teaching_assignments"), where("teacherEmail", "==", tEmail), ...SC)
+           : null;
+         // q4 (classes by teacherEmail) removed — q2 + q5 cover all class lookup patterns.
+         const q5 = query(collection(db, "classes"), where("teacher_id", "==", tId), ...SC);
+
+         const [s1, s2, s3, s5] = await Promise.all([
+            getDocs(q1), getDocs(q2),
+            q3 ? getDocs(q3) : Promise.resolve({ docs: [] as any[] }),
+            getDocs(q5)
          ]);
 
          const allAssignments = [
             ...s1.docs.map(d => ({ id: d.id, ...d.data() })),
             ...s3.docs.map(d => ({ id: d.id, ...d.data() })),
             ...s2.docs.map(d => ({ id: d.id, ...d.data(), classId: d.id, className: d.data().name })),
-            ...s4.docs.map(d => ({ id: d.id, ...d.data(), classId: d.id, className: d.data().name })),
             ...s5.docs.map(d => ({ id: d.id, ...d.data(), classId: d.id, className: d.data().name }))
          ];
 
@@ -100,7 +146,12 @@ const Dashboard = () => {
          const assignments = Array.from(uniqueAssignmentsMap.values());
 
          if (assignments.length === 0) {
-            setStats({ avgAttendance: 0, pendingGrading: 0, atRiskCount: 0, activeClasses: 0 });
+            const emptySnap: _DashboardSnapshot = {
+              stats: { avgAttendance: 0, pendingGrading: 0, atRiskCount: 0, activeClasses: 0 },
+              todayClasses: [], pendingTasks: [], criticalStudents: []
+            };
+            _dashCache = { teacherId: tId, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS, snapshot: emptySnap };
+            setStats(emptySnap.stats);
             setTodayClasses([]);
             setPendingTasks([]);
             setCriticalStudents([]);
@@ -109,13 +160,22 @@ const Dashboard = () => {
          }
 
          const classIds = assignments.map(a => a.classId || a.id);
-         
-         // 2. CHILD CONTEXT HARVESTING
-         const [studentsSnap, attSnap, scoresSnap, resultsSnap] = await Promise.all([
-            getDocs(query(collection(db, "enrollments"), where("classId", "in", classIds))),
-            getDocs(query(collection(db, "attendance"), where("teacherId", "==", tId))),
-            getDocs(query(collection(db, "gradebook_scores"), where("teacherId", "==", tId))),
-            getDocs(query(collection(db, "results"), where("teacherId", "==", tId)))
+
+         // 2. CHILD CONTEXT HARVESTING — scoped + date-filtered
+         // Chunk classIds into batches of 10 (Firestore "in" operator limit)
+         const chunkArr = <T,>(arr: T[], n: number): T[][] =>
+           Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, (i + 1) * n));
+         const classChunks = chunkArr(classIds, 10);
+
+         const studentsSnap = classChunks.length > 0
+           ? await Promise.all(classChunks.map(ch => getDocs(query(collection(db, "enrollments"), where("classId", "in", ch), ...SC))))
+               .then(snaps => ({ docs: snaps.flatMap(s => s.docs) }))
+           : { docs: [] as any[] };
+
+         const [attSnap, scoresSnap, resultsSnap] = await Promise.all([
+            getDocs(query(collection(db, "attendance"), where("teacherId", "==", tId), where("date", ">=", cutoffStr), ...SC)),
+            getDocs(query(collection(db, "gradebook_scores"), where("teacherId", "==", tId), ...SC)),
+            getDocs(query(collection(db, "results"), where("teacherId", "==", tId), ...SC))
          ]);
 
          const students = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
@@ -127,23 +187,13 @@ const Dashboard = () => {
          const avgAtnd = att.length > 0 ? (totalPres / att.length) * 100 : 0;
          const pendingRev = scores.filter(s => s.status === 'pending').length;
 
-         setStats({
-            avgAttendance: Number(avgAtnd.toFixed(1)),
-            pendingGrading: pendingRev,
-            atRiskCount: 0, // Calculated below
-            activeClasses: assignments.length
-         });
-
-         // Pending Tasks Logic
+         // Pending Tasks
          const tasks: any[] = [];
-         const todayStr = new Date().toISOString().split('T')[0];
-         const markedToday = new Set(att.filter(a => a.date === todayStr).map(a => a.classId || a.assignmentId));
+         const todayDateStr = new Date().toISOString().split('T')[0];
+         const markedToday = new Set(att.filter(a => a.date === todayDateStr).map(a => a.classId || a.assignmentId));
          const pendingClasses = assignments.filter(a => !markedToday.has(a.classId || a.id));
-
          if (pendingRev > 0) tasks.push({ title: 'Grade Unit Test Papers', sub: `Due Today`, count: pendingRev, color: 'bg-rose-500', bgLight: 'bg-rose-50' });
          if (pendingClasses.length > 0) tasks.push({ title: 'Mark Attendance', sub: `${pendingClasses.length} class${pendingClasses.length > 1 ? 'es' : ''} • Pending`, color: 'bg-amber-500', bgLight: 'bg-amber-50' });
-
-         setPendingTasks(tasks);
 
          // Risks & Trajectory
          let rCount = 0;
@@ -154,7 +204,6 @@ const Dashboard = () => {
             const sScores = f(scores);
             const sA = sAtt.length > 0 ? (sAtt.filter(a => a.status === 'present' || a.status === 'late').length / sAtt.length) * 100 : 100;
             const sM = sScores.length > 0 ? (sScores.reduce((acc, c) => acc + Number(c.percentage || (c.mark/c.maxMarks*100) || c.score || 0), 0) / sScores.length) : 80;
-            
             let lvl = "stable";
             let trig = "On Track";
             if (sA < 75 || sM < 60) {
@@ -168,19 +217,31 @@ const Dashboard = () => {
             return { ...s, level: lvl, trigger: trig, score: sM, atnd: sA };
          }).filter(s => s.level !== "stable").sort((a,b) => (a.level === 'critical' ? -1 : 1)).slice(0, 4);
 
-         setStats(prev => ({ ...prev, atRiskCount: rCount }));
-         setCriticalStudents(rList);
-         
-         const classTimes = ['09:00', '10:30', '12:00', '02:00'];
-         const classPeriods = ['AM', 'AM', 'PM', 'PM'];
-         setTodayClasses(assignments.slice(0, 4).map((a, i) => ({
-            time: classTimes[i] || '09:00',
-            period: classPeriods[i] || 'AM',
-            subject: a.subjectName || a.subject || "Subject",
-            class: a.className || a.name || "Class",
-            students: students.filter(s => s.classId === (a.classId || a.id)).length,
-            isNow: i === 0
-         })));
+         // Build final snapshot — cache + set state in one pass (no double setState)
+         const finalSnap: _DashboardSnapshot = {
+           stats: {
+             avgAttendance: Number(avgAtnd.toFixed(1)),
+             pendingGrading: pendingRev,
+             atRiskCount: rCount,
+             activeClasses: assignments.length
+           },
+           todayClasses: assignments.slice(0, 4).map((a, i) => ({
+             time: a.startTime || a.scheduleTime || "—",
+             period: a.period || "",
+             subject: a.subjectName || a.subject || "Subject",
+             class: a.className || a.name || "Class",
+             students: students.filter(s => s.classId === (a.classId || a.id)).length,
+             isNow: i === 0
+           })),
+           pendingTasks: tasks,
+           criticalStudents: rList,
+         };
+
+         _dashCache = { teacherId: tId, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS, snapshot: finalSnap };
+         setStats(finalSnap.stats);
+         setTodayClasses(finalSnap.todayClasses);
+         setPendingTasks(finalSnap.pendingTasks);
+         setCriticalStudents(finalSnap.criticalStudents);
 
        } catch (error) {
          console.error("Dashboard Harvest Failure:", error);

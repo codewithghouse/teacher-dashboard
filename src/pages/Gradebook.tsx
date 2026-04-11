@@ -55,35 +55,57 @@ export default function Gradebook() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Fetch Classes
+  // 1. Fetch Classes (scoped by school — no full collection scan)
   useEffect(() => {
     if (!teacherData?.id) return;
-    const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), where("status", "==", "active"));
-    const unsub = onSnapshot(q, async (snap) => {
-      const assignments = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-      const classSnap = await getDocs(query(collection(db, "classes")));
-      const classMap = new Map();
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    let unsub: (() => void) | null = null;
+    let cancelled = false; // Guard against orphaned listeners if component unmounts during getDocs
+
+    // Fetch all school classes ONCE before setting up the listener.
+    // Fixes getDocs-inside-onSnapshot read storm and the "active"/"Active" casing bug.
+    const init = async () => {
+      const classSnap = await getDocs(query(collection(db, "classes"), ...SC));
+      if (cancelled) return; // Component unmounted while getDocs was in flight — abort
+      const classMap = new Map<string, any>();
       classSnap.docs.forEach(d => classMap.set(d.id, d.data()));
+      // Legacy options: classes directly owned by this teacher (subset of classSnap)
+      const legacyOptions: ClassData[] = classSnap.docs
+        .filter(d => d.data().teacherId === teacherData.id)
+        .map(d => ({ id: d.id, classId: d.id, name: d.data().name }));
 
-      let options = assignments.map(a => ({
-        id: a.id,
-        classId: a.classId,
-        name: `${classMap.get(a.classId)?.name || "Class"} - ${a.subjectName || a.subject || "Subject"}`
-      }));
+      // No status filter in Firestore query — filter in memory.
+      // Handles "active"/"Active" casing mismatch and legacy docs without a status field.
+      const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), ...SC);
+      unsub = onSnapshot(q, (snap) => {
+        const assignments = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as any))
+          .filter(a => !a.status || a.status.toLowerCase() === "active");
 
-      if (options.length === 0) {
-        const legacySnap = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
-        options = legacySnap.docs.map(d => ({ id: d.id, classId: d.id, name: d.data().name }));
-      }
+        let options: ClassData[] = assignments.map(a => ({
+          id: a.id,
+          classId: a.classId,
+          name: `${classMap.get(a.classId)?.name || "Class"} - ${a.subjectName || a.subject || "Subject"}`
+        }));
 
-      setClasses(options);
-      if (options.length > 0 && !selectedClassId) setSelectedClassId(options[0].id);
-      else if (options.length === 0) setLoading(false);
-    });
-    return () => unsub();
+        if (options.length === 0) options = legacyOptions;
+
+        setClasses(options);
+        if (options.length > 0 && !selectedClassId) setSelectedClassId(options[0].id);
+        else if (options.length === 0) setLoading(false);
+      });
+    };
+
+    init();
+    return () => { cancelled = true; unsub?.(); };
   }, [teacherData?.id]);
 
-  // 2. Fetch Roster & Scores
+  // 2. Fetch Roster & Scores (scoped by school)
   useEffect(() => {
     if (!teacherData?.id || !selectedClassId) return;
     setLoading(true);
@@ -91,7 +113,13 @@ export default function Gradebook() {
     const selAssignment = classes.find(c => c.id === selectedClassId);
     const targetClassId = selAssignment?.classId || selectedClassId;
 
-    const u1 = onSnapshot(query(collection(db, "enrollments"), where("classId", "==", targetClassId)), (snap) => {
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    const u1 = onSnapshot(query(collection(db, "enrollments"), where("classId", "==", targetClassId), ...SC), (snap) => {
       const studs = snap.docs.map(d => {
         const e = d.data();
         return {
@@ -106,11 +134,11 @@ export default function Gradebook() {
       setStudents(Array.from(new Map(studs.map(i => [i.email || i.id, i])).values()).sort((a, b) => a.name.localeCompare(b.name)));
     });
 
-    const u2 = onSnapshot(query(collection(db, "gradebook_columns"), where("assignmentId", "==", selectedClassId)), (snap) => {
+    const u2 = onSnapshot(query(collection(db, "gradebook_columns"), where("assignmentId", "==", selectedClassId), ...SC), (snap) => {
       setColumns(snap.docs.map(d => ({ id: d.id, ...d.data() } as CustomColumn)).sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0)));
     });
 
-    const u3 = onSnapshot(query(collection(db, "gradebook_scores"), where("assignmentId", "==", selectedClassId)), (snap) => {
+    const u3 = onSnapshot(query(collection(db, "gradebook_scores"), where("assignmentId", "==", selectedClassId), ...SC), (snap) => {
       const fetched: any = {};
       snap.docs.forEach(d => {
         const data = d.data();
@@ -133,6 +161,8 @@ export default function Gradebook() {
       assignmentId: selectedClassId,
       classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId,
       teacherId: teacherData.id,
+      schoolId: teacherData.schoolId || "",
+      branchId: teacherData.branchId || "",
       name: newColName.trim(),
       maxMarks: Number(newColMax) || 100,
       createdAt: Date.now()
@@ -164,6 +194,8 @@ export default function Gradebook() {
             studentEmail: stu.email?.toLowerCase() || "",
             studentName: stu.name,
             teacherId: teacherData.id,
+            schoolId: teacherData.schoolId || "",
+            branchId: teacherData.branchId || "",
             columnId: col.id,
             columnName: col.name,
             assignmentId: selectedClassId,

@@ -25,17 +25,25 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
 
   useEffect(() => {
     if (!test?.classId || !teacherData?.id) return;
-    
-    // Fetch Enrollments to get roster
+
+    const schoolId = teacherData.schoolId as string | undefined;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC: any[] = [];
+    if (schoolId) SC.push(where("schoolId", "==", schoolId));
+    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    // Fetch Enrollments to get roster (scoped by school)
+    // Enrollment docs don't store teacherId — they're keyed by classId + schoolId.
+    // Adding where("teacherId",...) here would always return 0 students.
     const qRoster = query(
-      collection(db, "enrollments"), 
+      collection(db, "enrollments"),
       where("classId", "==", test.classId),
-      where("teacherId", "==", teacherData.id)
+      ...SC
     );
-    
+
     const unsub = onSnapshot(qRoster, async (snap) => {
       // Get existing scores if they were already saved previously
-      const qScores = query(collection(db, "test_scores"), where("testId", "==", test.id));
+      const qScores = query(collection(db, "test_scores"), where("testId", "==", test.id), ...SC);
       const scoresSnap = await getDocs(qScores);
       const existingScores = scoresSnap.docs.map(d => d.data());
 
@@ -49,7 +57,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
           id: studentId,
           name: data.studentName,
           email: data.studentEmail,
-          rollNo: data.rollNo || (800 + Math.floor(Math.random() * 100)),
+          rollNo: data.rollNo || "—",
           initials: data.studentName?.substring(0, 2).toUpperCase() || "ST",
           score: existing ? existing.score.toString() : "",
           isAbsent: existing ? existing.isAbsent : false
@@ -179,8 +187,9 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Global Save Architecture to test_scores collection
-      const promises = students.map(s => {
+      // Only save students that have been scored or marked absent.
+      // Saving ALL students would null-out any scores entered in a previous partial save session.
+      const promises = students.filter(s => s.score !== "" || s.isAbsent).map(s => {
          const scoreDocRef = doc(db, "test_scores", `${test.id}_${s.id}`);
          const metrics = getMetrics(s.score);
          return setDoc(scoreDocRef, {
@@ -192,7 +201,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
             classId: test.classId,
             teacherId: teacherData?.id,
             schoolId: teacherData?.schoolId || "",
-            branch: teacherData?.branch || "Main",
+            branchId: teacherData?.branchId || "",
             score: s.score === "" ? null : parseFloat(s.score),
             maxScore: maxScore,
             percentage: metrics.pct,
