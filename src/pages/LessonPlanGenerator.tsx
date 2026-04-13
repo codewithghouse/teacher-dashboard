@@ -172,10 +172,8 @@ const LessonPlanGenerator = () => {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-8">
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <span className="w-10 h-10 rounded-2xl bg-[#1e3a8a] flex items-center justify-center flex-shrink-0">
+        <div>          <h1 className="ds-page-title flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-[#1e3272] flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-5 h-5 text-white" />
             </span>
             AI Lesson Planner
@@ -184,9 +182,9 @@ const LessonPlanGenerator = () => {
             Generate classroom-ready lesson plans in seconds.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-[2rem] shadow-sm self-start">
-          <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3a8a]" />
-          <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">
+        <div className="flex items-center gap-2 ds-card px-4 sm:px-6 py-3 sm:py-4 self-start">
+          <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3272]" />
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">
             {teacherData?.schoolName || "EduIntellect"}
           </span>
         </div>
@@ -201,9 +199,9 @@ const LessonPlanGenerator = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
               activeTab === tab.key
-                ? "bg-[#1e3a8a] text-white shadow-lg shadow-blue-900/20"
+                ? "bg-[#1e3272] text-white shadow-lg shadow-blue-900/20"
                 : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -219,7 +217,7 @@ const LessonPlanGenerator = () => {
           {history.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-[2.5rem] p-16 flex flex-col items-center justify-center text-center shadow-sm">
               <BookMarked className="w-12 h-12 text-slate-200 mb-4" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No saved lesson plans yet</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No saved lesson plans yet</p>
               <p className="text-xs text-slate-300 mt-1">Generate and save your first plan to see it here.</p>
             </div>
           ) : (
@@ -230,12 +228,12 @@ const LessonPlanGenerator = () => {
                 onClick={() => loadFromHistory(h)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#1e3a8a]/10 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-6 h-6 text-[#1e3a8a]" />
+                  <div className="w-12 h-12 rounded-2xl bg-[#1e3272]/10 flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-6 h-6 text-[#1e3272]" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-slate-900">{h.plan?.plan_title || h.topic}</p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                    <p className="text-sm font-bold text-slate-900">{h.plan?.plan_title || h.topic}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                       {h.subject} • {h.grade} • {h.board} • {h.plan?.lessons?.length || 1} lesson(s)
                     </p>
                     <p className="text-[10px] text-slate-300 mt-0.5">
@@ -243,7 +241,7 @@ const LessonPlanGenerator = () => {
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#1e3a8a] transition-colors flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#1e3272] transition-colors flex-shrink-0" />
               </div>
             ))
           )}
@@ -261,15 +259,15 @@ const LessonPlanGenerator = () => {
                   <Pencil className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-slate-900">Plan Details</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fill in to generate</p>
+                  <p className="text-sm font-bold text-slate-900">Plan Details</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fill in to generate</p>
                 </div>
               </div>
 
               <div className="space-y-5">
                 {/* Subject */}
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                     Subject *
                   </label>
                   <input
@@ -277,13 +275,13 @@ const LessonPlanGenerator = () => {
                     value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}
                     placeholder="e.g. Mathematics, Science, English"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all"
                   />
                 </div>
 
                 {/* Topic */}
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                     Topic / Chapter *
                   </label>
                   <input
@@ -291,32 +289,32 @@ const LessonPlanGenerator = () => {
                     value={form.topic}
                     onChange={(e) => setForm({ ...form, topic: e.target.value })}
                     placeholder="e.g. Fractions, Photosynthesis, The Mughal Empire"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all"
                   />
                 </div>
 
                 {/* Grade + Board row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                       Grade
                     </label>
                     <select
                       value={form.grade}
                       onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all bg-white"
                     >
                       {GRADES.map((g) => <option key={g}>{g}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                       Board
                     </label>
                     <select
                       value={form.board}
                       onChange={(e) => setForm({ ...form, board: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all bg-white"
                     >
                       {BOARDS.map((b) => <option key={b}>{b}</option>)}
                     </select>
@@ -326,25 +324,25 @@ const LessonPlanGenerator = () => {
                 {/* Duration + Lessons row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                       Duration / Lesson
                     </label>
                     <select
                       value={form.duration_per_lesson}
                       onChange={(e) => setForm({ ...form, duration_per_lesson: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all bg-white"
                     >
                       {DURATIONS.map((d) => <option key={d}>{d}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                       No. of Lessons
                     </label>
                     <select
                       value={form.num_lessons}
                       onChange={(e) => setForm({ ...form, num_lessons: Number(e.target.value) })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all bg-white"
                     >
                       {LESSON_COUNTS.map((n) => <option key={n}>{n}</option>)}
                     </select>
@@ -353,7 +351,7 @@ const LessonPlanGenerator = () => {
 
                 {/* Learning Goals */}
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                     Learning Goals <span className="normal-case font-medium text-slate-300">(optional)</span>
                   </label>
                   <textarea
@@ -361,13 +359,13 @@ const LessonPlanGenerator = () => {
                     onChange={(e) => setForm({ ...form, learning_goals: e.target.value })}
                     placeholder="What should students know or be able to do after this lesson?"
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all resize-none"
                   />
                 </div>
 
                 {/* Special Considerations */}
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                     Special Considerations <span className="normal-case font-medium text-slate-300">(optional)</span>
                   </label>
                   <textarea
@@ -375,7 +373,7 @@ const LessonPlanGenerator = () => {
                     onChange={(e) => setForm({ ...form, special_considerations: e.target.value })}
                     placeholder="e.g. Mixed ability class, students struggled with algebra, no projector available..."
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1e3272]/30 focus:border-[#1e3272] transition-all resize-none"
                   />
                 </div>
 
@@ -392,7 +390,7 @@ const LessonPlanGenerator = () => {
                   <button
                     onClick={handleGenerate}
                     disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#1e3a8a] text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#1e4fc0] transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="ds-btn-primary ds-btn-lg flex-1 justify-center"
                   >
                     {loading ? (
                       <>
@@ -428,7 +426,7 @@ const LessonPlanGenerator = () => {
                 <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center mb-6">
                   <Sparkles className="w-10 h-10 text-slate-200" />
                 </div>
-                <p className="text-lg font-black text-slate-300 tracking-tight">Your lesson plan will appear here</p>
+                <p className="text-lg font-bold text-slate-300 tracking-tight">Your lesson plan will appear here</p>
                 <p className="text-[11px] font-bold text-slate-200 uppercase tracking-widest mt-2">Fill the form and click Generate Plan</p>
               </div>
             )}
@@ -436,12 +434,12 @@ const LessonPlanGenerator = () => {
             {/* Loading skeleton */}
             {loading && (
               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm space-y-6 min-h-[400px] flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-[#1e3a8a]/10 flex items-center justify-center animate-pulse">
-                  <Brain className="w-8 h-8 text-[#1e3a8a]" />
+                <div className="w-16 h-16 rounded-2xl bg-[#1e3272]/10 flex items-center justify-center animate-pulse">
+                  <Brain className="w-8 h-8 text-[#1e3272]" />
                 </div>
                 <div className="text-center space-y-2">
-                  <p className="text-sm font-black text-slate-700">AI is crafting your lesson plan...</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">This may take 10-20 seconds</p>
+                  <p className="text-sm font-bold text-slate-700">AI is crafting your lesson plan...</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This may take 10-20 seconds</p>
                 </div>
                 <div className="w-full max-w-sm space-y-3">
                   {[80, 60, 90, 50].map((w, i) => (
@@ -460,26 +458,26 @@ const LessonPlanGenerator = () => {
                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
                   <div className="relative">
                     <div className="flex items-center gap-2 mb-4">
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest">{plan.board}</span>
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest">{plan.grade}</span>
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest">{plan.total_duration}</span>
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest">{plan.board}</span>
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest">{plan.grade}</span>
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest">{plan.total_duration}</span>
                     </div>
-                    <h2 className="text-2xl font-black tracking-tight leading-tight mb-3">{plan.plan_title}</h2>
+                    <h2 className="text-2xl font-bold tracking-tight leading-tight mb-3">{plan.plan_title}</h2>
                     <p className="text-sm font-medium text-blue-200 leading-relaxed">{plan.overview}</p>
 
                     <div className="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-blue-300" />
-                        <span className="text-xs font-black text-blue-200 uppercase tracking-widest">{plan.subject}</span>
+                        <span className="text-xs font-bold text-blue-200 uppercase tracking-widest">{plan.subject}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-blue-300" />
-                        <span className="text-xs font-black text-blue-200 uppercase tracking-widest">{plan.lessons?.length} Lesson(s)</span>
+                        <span className="text-xs font-bold text-blue-200 uppercase tracking-widest">{plan.lessons?.length} Lesson(s)</span>
                       </div>
                       {/* Save Button */}
                       <div className="ml-auto">
                         {saved ? (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-xl text-white text-[10px] font-black uppercase tracking-widest">
+                          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-xl text-white text-[10px] font-bold uppercase tracking-widest">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Saved
                           </div>
@@ -487,7 +485,7 @@ const LessonPlanGenerator = () => {
                           <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-60"
                           >
                             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                             {saving ? "Saving..." : "Save Plan"}
@@ -505,7 +503,7 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
                         <Target className="w-4 h-4 text-blue-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Learning Objectives</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Learning Objectives</p>
                     </div>
                     <ul className="space-y-2">
                       {plan.learning_objectives?.map((obj: string, i: number) => (
@@ -522,18 +520,18 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                         <ClipboardList className="w-4 h-4 text-amber-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Materials Needed</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Materials Needed</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {plan.materials_needed?.map((m: string, i: number) => (
-                        <span key={i} className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                        <span key={i} className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                           {m}
                         </span>
                       ))}
                     </div>
                     {plan.prior_knowledge && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prior Knowledge Required</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Prior Knowledge Required</p>
                         <p className="text-xs font-semibold text-slate-600">{plan.prior_knowledge}</p>
                       </div>
                     )}
@@ -542,7 +540,7 @@ const LessonPlanGenerator = () => {
 
                 {/* Lessons */}
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lesson Breakdown</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lesson Breakdown</p>
                   {plan.lessons?.map((lesson: any, li: number) => (
                     <div key={li} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm overflow-hidden">
                       {/* Lesson Header */}
@@ -551,17 +549,17 @@ const LessonPlanGenerator = () => {
                         onClick={() => setExpandedLesson(expandedLesson === li ? -1 : li)}
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] flex items-center justify-center text-white text-sm font-black flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#1e3272] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                             {lesson.lesson_number}
                           </div>
                           <div className="text-left">
-                            <p className="text-sm font-black text-slate-900">{lesson.title}</p>
+                            <p className="text-sm font-bold text-slate-900">{lesson.title}</p>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                                 <Clock className="w-3 h-3" />{lesson.duration}
                               </span>
                               {lesson.learning_focus && (
-                                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{lesson.learning_focus}</span>
+                                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{lesson.learning_focus}</span>
                               )}
                             </div>
                           </div>
@@ -581,24 +579,24 @@ const LessonPlanGenerator = () => {
                               className={`p-4 rounded-2xl border ${getSectionColor(section.name)}`}
                             >
                               <div className="flex items-center justify-between mb-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest">{section.name}</p>
-                                <span className="text-[10px] font-black opacity-70 flex items-center gap-1">
+                                <p className="text-[10px] font-bold uppercase tracking-widest">{section.name}</p>
+                                <span className="text-[10px] font-bold opacity-70 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />{section.duration}
                                 </span>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Teacher Activity</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mb-1">Teacher Activity</p>
                                   <p className="text-xs font-semibold leading-relaxed opacity-90">{section.teacher_activity}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Student Activity</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mb-1">Student Activity</p>
                                   <p className="text-xs font-semibold leading-relaxed opacity-90">{section.student_activity}</p>
                                 </div>
                               </div>
                               {section.key_questions?.length > 0 && (
                                 <div className="mt-3 pt-3 border-t border-current/10">
-                                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1.5">Key Questions</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mb-1.5">Key Questions</p>
                                   <div className="space-y-1">
                                     {section.key_questions.map((q: string, qi: number) => (
                                       <p key={qi} className="text-[11px] font-semibold opacity-80 flex items-start gap-1.5">
@@ -624,7 +622,7 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
                         <ListChecks className="w-4 h-4 text-emerald-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assessment Strategies</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Assessment Strategies</p>
                     </div>
                     <ul className="space-y-2">
                       {plan.assessment_strategies?.map((a: string, i: number) => (
@@ -642,16 +640,16 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
                         <Home className="w-4 h-4 text-violet-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Homework / Follow-up</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Homework / Follow-up</p>
                     </div>
                     <p className="text-xs font-semibold text-slate-700 leading-relaxed">{plan.homework}</p>
 
                     {plan.cross_curricular_connections?.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Cross-Curricular Links</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Cross-Curricular Links</p>
                         <div className="flex flex-wrap gap-2">
                           {plan.cross_curricular_connections.map((c: string, i: number) => (
-                            <span key={i} className="px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-100 rounded-lg text-[10px] font-black">
+                            <span key={i} className="px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-100 rounded-lg text-[10px] font-bold">
                               {c}
                             </span>
                           ))}
@@ -668,7 +666,7 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
                         <Users className="w-4 h-4 text-rose-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Differentiation Strategies</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Differentiation Strategies</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[
@@ -677,7 +675,7 @@ const LessonPlanGenerator = () => {
                         { key: "for_ell_students", label: "ELL Students", color: "bg-amber-50 border-amber-100 text-amber-700" },
                       ].map(({ key, label, color }) => plan.differentiation[key] && (
                         <div key={key} className={`p-4 rounded-2xl border ${color}`}>
-                          <p className="text-[9px] font-black uppercase tracking-widest opacity-70 mb-2">{label}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-70 mb-2">{label}</p>
                           <p className="text-xs font-semibold leading-relaxed">{plan.differentiation[key]}</p>
                         </div>
                       ))}
@@ -692,7 +690,7 @@ const LessonPlanGenerator = () => {
                       <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
                       </div>
-                      <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Teacher Reflection Prompts</p>
+                      <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Teacher Reflection Prompts</p>
                     </div>
                     <div className="space-y-2">
                       {plan.teacher_reflection_prompts.map((p: string, i: number) => (

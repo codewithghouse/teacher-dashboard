@@ -252,9 +252,7 @@ export default function Gradebook() {
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Gradebook</h1>
+          <div>            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Gradebook</h1>
             <p className="text-sm text-slate-400 mt-1">
               {selectedClass ? `Complete academic record for ${selectedClass.name}` : "Select a class to view gradebook"}
             </p>
@@ -265,7 +263,7 @@ export default function Gradebook() {
             disabled={saving || !hasUnsaved}
             className={`self-start sm:self-auto h-10 px-5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
               hasUnsaved
-                ? "bg-[#1e3a8a] text-white hover:bg-blue-900"
+                ? "bg-[#1e3272] text-white hover:bg-blue-900"
                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
             }`}
           >
@@ -319,7 +317,7 @@ export default function Gradebook() {
 
       {/* Add Column Panel */}
       {showAddCol && (
-        <div className="mb-5 bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-end gap-4">
+        <div className="mb-5 bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col md:flex-row items-end gap-4">
           <div className="flex-1">
             <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Column Name</label>
             <input
@@ -341,13 +339,13 @@ export default function Gradebook() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowAddCol(false)} className="h-10 px-4 border border-slate-200 rounded-xl text-sm text-slate-500 bg-white hover:bg-slate-50">Cancel</button>
-            <button onClick={handleAddColumn} className="h-10 px-5 bg-[#1e3a8a] text-white rounded-xl text-sm font-semibold hover:bg-blue-900 transition-all">Add</button>
+            <button onClick={handleAddColumn} className="ds-btn-primary h-10">Add</button>
           </div>
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-300">
             <Loader2 className="w-10 h-10 animate-spin mb-3" />
@@ -358,7 +356,7 @@ export default function Gradebook() {
             <Settings2 className="w-12 h-12 mb-4 text-slate-200" />
             <p className="text-base font-semibold text-slate-400">No columns yet</p>
             <p className="text-sm text-slate-300 mt-1 mb-5">Click "Add Column" to get started</p>
-            <button onClick={() => setShowAddCol(true)} className="px-5 py-2.5 bg-[#1e3a8a] text-white rounded-xl text-sm font-semibold hover:bg-blue-900 transition-all">
+            <button onClick={() => setShowAddCol(true)} className="ds-btn-primary">
               Add First Column
             </button>
           </div>

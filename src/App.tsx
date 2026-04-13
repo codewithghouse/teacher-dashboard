@@ -33,11 +33,11 @@ const AppRoutes = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-3xl bg-[#1e3a8a] flex items-center justify-center text-white animate-bounce shadow-xl">
+        <div className="w-16 h-16 rounded-3xl bg-[#1e3272] flex items-center justify-center text-white animate-bounce shadow-xl">
           <GraduationCap className="w-8 h-8" />
         </div>
         <div className="flex flex-col items-center gap-1">
-          <Loader2 className="w-6 h-6 animate-spin text-[#1e3a8a]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" />
           <p className="text-xs font-black text-[#1e294b] uppercase tracking-widest mt-2">Checking Access</p>
         </div>
       </div>

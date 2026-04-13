@@ -79,7 +79,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
             <ChevronLeft className="w-5 h-5 text-slate-500" />
           </button>
           <div
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 ${student.color || "bg-[#1e3a8a]"}`}
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 ${student.color || "bg-[#1e3272]"}`}
           >
             {student.initials}
           </div>
@@ -95,7 +95,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
           <button className="px-4 py-2 text-sm font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
             View Profile
           </button>
-          <button className="px-4 py-2 text-sm font-semibold bg-[#1e3a8a] text-white rounded-xl hover:bg-[#1e3a8a]/90 transition-colors">
+          <button className="px-4 py-2 text-sm font-semibold bg-[#1e3272] text-white rounded-xl hover:bg-[#1e3272]/90 transition-colors">
             Contact Parent
           </button>
         </div>

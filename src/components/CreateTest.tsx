@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
 import { collection, query, where, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
@@ -92,206 +92,383 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     }
   };
 
+  // Design tokens
+  const T = {
+    ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
+    s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
+    blue: '#3B5BDB', blueL: '#EDF2FF', blueB: '#BAC8FF',
+    green2: '#2F9E44', greenL: '#EBFBEE',
+    red: '#C92A2A',
+  };
+
+  const inp = {
+    width: '100%', padding: '10px 12px', borderRadius: 11,
+    border: `1px solid ${T.bdr}`, background: T.s1,
+    fontSize: 13, color: T.ink1, fontFamily: 'inherit', outline: 'none',
+  };
+  const lbl = {
+    fontSize: 10, fontWeight: 500, color: T.ink2,
+    letterSpacing: '0.07em', textTransform: 'uppercase',
+    display: 'flex', alignItems: 'center', gap: 4,
+  };
+  const divider = <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />;
+  const section = (children: React.ReactNode) => (
+    <div style={{ padding: 14 }}>{children}</div>
+  );
+
   return (
-    <div className="animate-in fade-in duration-500 pb-20 text-left">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <div>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">RESULT OF CLICK: "CREATE TEST"</p>
-           <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">Create Test</h1>
-           <p className="text-sm font-medium text-slate-500 mt-2">Set up a new test for your class.</p>
-        </div>
-        <div className="flex items-center gap-3">
-           <button onClick={onCancel} className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-slate-50">
-              Cancel
-           </button>
-           <button 
-              onClick={handleSave} 
-              disabled={isSaving}
-              className="bg-[#1e3a8a] text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-blue-900 transition-all flex items-center gap-2 disabled:opacity-50"
-           >
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : null} Create Test
-           </button>
+    <div style={{ background: T.s1, fontFamily: 'inherit', minHeight: '100vh' }} className="text-left pb-10">
+
+      {/* ── Dark Hero ─────────────────────────────────────────────────────── */}
+      <div
+        style={{ background: T.ink0 }}
+        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-[22px] pb-5"
+      >
+        {/* Back link */}
+        <button
+          onClick={onCancel}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.blue} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9,2 4,7 9,12"/>
+          </svg>
+          <span style={{ fontSize: 12, color: T.blue }}>Back to tests</span>
+        </button>
+
+        <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.30)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 5 }}>
+          New test
+        </p>
+        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.1 }}>
+          Create<br />test
+        </h1>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 4 }}>
+          Set up a new test and publish to your class.
+        </p>
+
+        {/* Hero actions */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '9px 16px', borderRadius: 11,
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.07)',
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            style={{
+              flex: 1, padding: '9px 14px', borderRadius: 11,
+              background: T.blue, border: 'none',
+              color: '#fff', fontSize: 12, fontWeight: 500,
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', opacity: isSaving ? 0.7 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            }}
+          >
+            {isSaving ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1.5,6.5 4.5,10 10.5,2.5"/>
+                </svg>
+                Create test
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-left grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-         
-         {/* LEFT COLUMN */}
-         <div className="space-y-6">
-            <div>
-               <label className="block text-sm font-bold text-slate-900 mb-2">Test Name <span className="text-rose-500">*</span></label>
-               <input type="text" value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
-            </div>
-            
-            <div>
-               <label className="block text-sm font-bold text-slate-900 mb-2">Description</label>
-               <textarea value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full h-32 px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500 resize-none" />
-            </div>
+      {/* ── Form ──────────────────────────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 md:px-0 pt-4 flex flex-col gap-3">
 
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Class <span className="text-rose-500">*</span></label>
-                  <select 
-                     value={formData.classId} 
-                     onChange={e => {
-                        const sel = classes.find(c => c.id === e.target.value);
-                        setFormData({...formData, classId: sel?.id, className: sel?.name});
-                     }} 
-                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500 appearance-none bg-no-repeat bg-[right_1rem_center]" 
-                     style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")' }}
+        <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden', padding: 0 }}>
+
+          {/* Select class */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>Select class</div>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                {classes.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setFormData({ ...formData, classId: c.id, className: c.name })}
+                    style={{
+                      padding: '7px 14px', borderRadius: 20, fontSize: 12,
+                      fontWeight: formData.classId === c.id ? 500 : 400,
+                      border: `1px solid ${formData.classId === c.id ? T.ink0 : T.bdr}`,
+                      background: formData.classId === c.id ? T.ink0 : T.s1,
+                      color: formData.classId === c.id ? '#fff' : T.ink2,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
                   >
-                     {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-               </div>
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Category</label>
-                  <select 
-                     value={(formData as any).category || "Unit Test"} 
-                     onChange={e => setFormData({...formData, category: e.target.value} as any)}
-                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500 appearance-none bg-no-repeat bg-[right_1rem_center]"
-                     style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")' }}
-                  >
-                     <option value="Unit Test">Unit Test (Normal)</option>
-                     <option value="Quiz">Quick Quiz</option>
-                     <option value="Final Exam">Final Examination</option>
-                  </select>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Subject</label>
-                  <input type="text" value={formData.subject} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
-               </div>
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Total Marks <span className="text-rose-500">*</span></label>
-                  <input type="number" value={formData.marks} onChange={e=>setFormData({...formData, marks: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
-               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Test Date <span className="text-rose-500">*</span></label>
-                  <input type="date" value={formData.testDate} onChange={e=>setFormData({...formData, testDate: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500 text-slate-500" />
-               </div>
-               <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Duration <span className="text-rose-500">*</span></label>
-                  <input type="text" placeholder="e.g. 45 mins" value={formData.duration} onChange={e=>setFormData({...formData, duration: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 ring-blue-500" />
-               </div>
-            </div>
-            
-            {/* Custom Requested PDF Upload Feature */}
-            <div className="mt-8 border-t border-slate-100 pt-6">
-               <label className="block text-[15px] font-bold text-[#1e3a8a] mb-2">Attach Official Paper (PDF)</label>
-               <p className="text-xs font-semibold text-slate-500 mb-4">Students and Parents will be able to download the blueprint if you make it available.</p>
-               
-               <div className="w-full relative">
-                  <input 
-                     type="file" 
-                     accept=".pdf"
-                     onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                           setPdfFile(e.target.files[0]);
-                        }
-                     }}
-                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                  />
-                  <div className={`w-full py-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-colors ${pdfFile ? 'border-emerald-500 bg-emerald-50' : 'border-blue-200 bg-blue-50/50 hover:bg-blue-50'}`}>
-                     {pdfFile ? (
-                        <>
-                           <FileText className="w-8 h-8 text-emerald-600 mb-2" />
-                           <p className="text-sm font-bold text-emerald-800">{pdfFile.name}</p>
-                           <p className="text-xs font-semibold text-emerald-600">Document Attached</p>
-                        </>
-                     ) : (
-                        <>
-                           <UploadCloud className="w-8 h-8 text-blue-500 mb-2" />
-                           <p className="text-sm font-bold text-[#1e3a8a]">Click to upload PDF Blueprint</p>
-                           <p className="text-xs font-semibold text-slate-500">Max size: 5MB</p>
-                        </>
-                     )}
-                  </div>
-                  {pdfFile && (
-                     <button 
-                        onClick={(e) => { e.preventDefault(); setPdfFile(null); }}
-                        className="absolute right-4 top-4 z-20 p-1.5 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200"
-                     >
-                        <X className="w-4 h-4" />
-                     </button>
-                  )}
-               </div>
-            </div>
-         </div>
-
-         {/* RIGHT COLUMN */}
-         <div className="space-y-8">
-            <div>
-               <label className="block text-sm font-bold text-slate-900 mb-3">Topics Covered</label>
-               <div className="space-y-3">
-                  {topics.map((t, idx) => (
-                     <div key={idx} className="w-full px-5 py-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 bg-white flex justify-between items-center">
-                        {t}
-                        <button onClick={() => setTopics(topics.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
-                     </div>
-                  ))}
-                  <div className="flex gap-2">
-                     <input type="text" value={newTopic} onChange={e=>setNewTopic(e.target.value)} onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newTopic) {
-                           setTopics([...topics, newTopic]);
-                           setNewTopic('');
-                        }
-                     }} placeholder="Add new topic..." className="flex-1 h-12 px-4 border border-slate-200 rounded-lg text-sm focus:outline-none" />
-                     <button onClick={() => { if(newTopic){ setTopics([...topics, newTopic]); setNewTopic(''); } }} className="h-12 px-6 bg-slate-100 text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-200">Add</button>
-                  </div>
-               </div>
-            </div>
-
-            <div>
-               <label className="block text-sm font-bold text-slate-900 mb-4">Question Types</label>
-               <div className="flex flex-wrap gap-3 mb-3">
-                  {qTypes.map((q, idx) => (
-                     <div key={idx} className="bg-blue-100/60 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
-                        {q}
-                        <button onClick={() => setQTypes(qTypes.filter((_, i) => i !== idx))} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
-                     </div>
-                  ))}
-                  <button className="bg-white border border-slate-200 text-slate-500 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-50">
-                     + Add
+                    {c.name}
                   </button>
-               </div>
+                ))}
+              </div>
             </div>
+          )}
+          {divider}
 
-            <div className="pt-2">
-               <label className="block text-base font-bold text-slate-900 mb-4">Additional Settings</label>
-               <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${settings.immediateResults ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}>
-                        {settings.immediateResults && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                     </div>
-                     <span className="text-sm font-medium text-slate-700">Show results to students immediately</span>
-                     <input type="checkbox" checked={settings.immediateResults} onChange={e=>setSettings({...settings, immediateResults: e.target.checked})} className="hidden" />
-                  </label>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer">
-                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${settings.allowRetake ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}>
-                        {settings.allowRetake && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                     </div>
-                     <span className="text-sm font-medium text-slate-700">Allow retake for failed students</span>
-                     <input type="checkbox" checked={settings.allowRetake} onChange={e=>setSettings({...settings, allowRetake: e.target.checked})} className="hidden" />
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${settings.shuffleQuestions ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}>
-                        {settings.shuffleQuestions && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                     </div>
-                     <span className="text-sm font-medium text-slate-700">Shuffle questions for each student</span>
-                     <input type="checkbox" checked={settings.shuffleQuestions} onChange={e=>setSettings({...settings, shuffleQuestions: e.target.checked})} className="hidden" />
-                  </label>
-               </div>
+          {/* Test name */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>
+                Test name <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.red }} />
+              </div>
+              <input style={inp} type="text" placeholder="e.g. Chapter 5 Unit Test"
+                value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
             </div>
+          )}
+          {divider}
 
-         </div>
+          {/* Description */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>Description</div>
+              <textarea
+                style={{ ...inp, resize: 'none', minHeight: 72, lineHeight: 1.5 }}
+                placeholder="Describe the test scope and instructions..."
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+          )}
+          {divider}
+
+          {/* Category + Subject */}
+          {section(
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={lbl}>Category</div>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    style={{ ...inp, appearance: 'none', WebkitAppearance: 'none', paddingRight: 28 }}
+                    value={(formData as any).category || "Unit Test"}
+                    onChange={e => setFormData({ ...formData, category: e.target.value } as any)}
+                  >
+                    <option value="Unit Test">Unit Test</option>
+                    <option value="Mid-term">Mid-term</option>
+                    <option value="Final">Final</option>
+                  </select>
+                  <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+                    width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round">
+                    <polyline points="3,5 7,9 11,5"/>
+                  </svg>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={lbl}>Subject</div>
+                <input style={inp} type="text" placeholder="e.g. English"
+                  value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} />
+              </div>
+            </div>
+          )}
+          {divider}
+
+          {/* Total marks + Duration */}
+          {section(
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={lbl}>
+                  Total marks <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.red }} />
+                </div>
+                <input style={inp} type="number" placeholder="e.g. 100"
+                  value={formData.marks} onChange={e => setFormData({ ...formData, marks: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={lbl}>
+                  Duration <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.red }} />
+                </div>
+                <input style={inp} type="text" placeholder="e.g. 45 mins"
+                  value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} />
+              </div>
+            </div>
+          )}
+          {divider}
+
+          {/* Test date */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>
+                Test date <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.red }} />
+              </div>
+              <input style={inp} type="date"
+                value={formData.testDate} onChange={e => setFormData({ ...formData, testDate: e.target.value })} />
+            </div>
+          )}
+          {divider}
+
+          {/* PDF upload */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>Attach paper (PDF · optional)</div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="file" accept=".pdf"
+                  onChange={e => { if (e.target.files?.[0]) setPdfFile(e.target.files[0]); }}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
+                />
+                <div style={{
+                  border: `1.5px dashed ${T.bdr}`, borderRadius: 13, padding: '20px 14px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                  background: pdfFile ? T.greenL : T.s1,
+                  borderColor: pdfFile ? T.green2 : T.bdr,
+                }}>
+                  {pdfFile ? (
+                    <>
+                      <FileText size={20} style={{ color: T.green2 }} />
+                      <div style={{ fontSize: 12, fontWeight: 500, color: T.green2 }}>{pdfFile.name}</div>
+                      <div style={{ fontSize: 10, color: T.ink2 }}>Document attached</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ width: 36, height: 36, borderRadius: 11, background: T.blueL, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UploadCloud size={15} style={{ color: T.blue }} />
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Upload PDF blueprint</div>
+                      <div style={{ fontSize: 10, color: T.ink2 }}>Students can download · Max 5 MB</div>
+                    </>
+                  )}
+                </div>
+                {pdfFile && (
+                  <button
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); setPdfFile(null); }}
+                    style={{ position: 'absolute', right: 10, top: 10, zIndex: 20, background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 8, padding: 4, cursor: 'pointer' }}
+                  >
+                    <X size={12} style={{ color: T.red }} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          {divider}
+
+          {/* Topics */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={lbl}>Topics covered</div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <input
+                  style={{ ...inp, flex: 1 }} type="text" placeholder="Add new topic..."
+                  value={newTopic} onChange={e => setNewTopic(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && newTopic.trim()) { setTopics([...topics, newTopic.trim()]); setNewTopic(''); } }}
+                />
+                <button
+                  onClick={() => { if (newTopic.trim()) { setTopics([...topics, newTopic.trim()]); setNewTopic(''); } }}
+                  style={{ padding: '10px 14px', borderRadius: 11, background: T.ink0, border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Question type tags + topic tags */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                {qTypes.map((q, idx) => (
+                  <div key={idx} style={{
+                    padding: '5px 10px', borderRadius: 20, background: T.blueL, color: T.blue,
+                    fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5,
+                    border: `1px solid ${T.blueB}`,
+                  }}>
+                    {q}
+                    <button onClick={() => setQTypes(qTypes.filter((_, i) => i !== idx))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                      <X size={9} style={{ color: T.blue }} />
+                    </button>
+                  </div>
+                ))}
+                {topics.map((t, idx) => (
+                  <div key={idx} style={{
+                    padding: '5px 10px', borderRadius: 20, background: T.blueL, color: T.blue,
+                    fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5,
+                    border: `1px solid ${T.blueB}`,
+                  }}>
+                    {t}
+                    <button onClick={() => setTopics(topics.filter((_, i) => i !== idx))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                      <X size={9} style={{ color: T.blue }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {divider}
+
+          {/* Settings */}
+          {section(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ ...lbl as any, marginBottom: 10 }}>Additional settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { key: 'immediateResults', label: 'Show results to students immediately' },
+                  { key: 'allowRetake',      label: 'Allow retake for failed students' },
+                  { key: 'shuffleQuestions', label: 'Shuffle questions for each student' },
+                ].map(({ key, label }) => {
+                  const on = (settings as any)[key];
+                  return (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => setSettings({ ...settings, [key]: !on })}>
+                      <div style={{
+                        width: 18, height: 18, borderRadius: 5,
+                        border: `1.5px solid ${on ? T.blue : T.bdr}`,
+                        background: on ? T.blue : T.s1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        {on && (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="1.5,5.5 4,8.5 8.5,2"/>
+                          </svg>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 12, color: T.ink2 }}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Publish footer */}
+        <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 16, padding: '13px 14px', display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            style={{
+              flex: 1, padding: 11, borderRadius: 11, background: T.blue, border: 'none',
+              color: '#fff', fontSize: 13, fontWeight: 500, cursor: isSaving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', opacity: isSaving ? 0.7 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="2,7 5.5,11 11.5,2.5"/>
+                </svg>
+                Create &amp; publish
+              </>
+            )}
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '11px 14px', borderRadius: 11, background: T.s1,
+              border: `1px solid ${T.bdr}`, color: T.ink2,
+              fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Save draft
+          </button>
+        </div>
 
       </div>
     </div>

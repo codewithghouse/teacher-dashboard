@@ -357,10 +357,10 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           <div className="print:hidden">
             <DialogHeader className="mb-8 text-left">
                 <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mb-10 shadow-2xl bg-white border border-slate-100`}>
-                    {report && <report.icon className="w-8 h-8 text-[#1e3a8a]" />}
+                    {report && <report.icon className="w-8 h-8 text-[#1e3272]" />}
                 </div>
                 <DialogTitle className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none group">
-                Intelligence <span className="text-[#1e3a8a]">Manifest</span>
+                Intelligence <span className="text-[#1e3272]">Manifest</span>
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[11px] mt-4 flex items-center gap-3">
                    <ShieldCheck className="w-4 h-4 text-emerald-500"/> Verified Registry Source • Neural Link Active
@@ -410,21 +410,21 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                   <Label className="text-[11px] font-black uppercase text-slate-500 tracking-widest ml-2">Export Foundation</Label>
                   <div className="flex gap-6">
                     {['pdf', 'excel'].map((f) => (
-                      <button key={f} onClick={() => setParams({ ...params, format: f })} className={`flex-1 h-20 rounded-[1.8rem] border-[3px] text-[12px] font-black uppercase tracking-widest transition-all ${params.format === f ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-2xl' : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200'}`}>
+                      <button key={f} onClick={() => setParams({ ...params, format: f })} className={`flex-1 h-20 rounded-[1.8rem] border-[3px] text-[12px] font-black uppercase tracking-widest transition-all ${params.format === f ? 'bg-[#1e3272] text-white border-[#1e3272] shadow-2xl' : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200'}`}>
                         {f === 'pdf' ? <div className="flex items-center justify-center gap-3"><FileText size={20}/> Print PDF</div> : <div className="flex items-center justify-center gap-3"><TableIcon size={20}/> Excel Ledger</div>}
                       </button>
                     ))}
                   </div>
                 </div>
                 <DialogFooter className="pt-10">
-                  <button onClick={handleGenerate} disabled={isGenerating} className="w-full h-24 rounded-[2.5rem] bg-[#1e3a8a] text-white text-[13px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 disabled:opacity-50">
+                  <button onClick={handleGenerate} disabled={isGenerating} className="w-full h-24 rounded-[2.5rem] bg-[#1e3272] text-white text-[13px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 disabled:opacity-50">
                     {isGenerating ? <><Loader2 className="w-6 h-6 animate-spin" /> Establishing Sync...</> : <><Sparkles className="w-6 h-6" /> Extract Institutional Merit</>}
                   </button>
                 </DialogFooter>
              </div>
           ) : (
             <div className="space-y-12 animate-in slide-in-from-bottom-8 duration-700 mt-0 print:m-0 print:space-y-16 text-left">
-               <div className="hidden print:block border-b-8 border-[#1e3a8a] pb-16 mb-16">
+               <div className="hidden print:block border-b-8 border-[#1e3272] pb-16 mb-16">
                   <h1 className="text-6xl font-black text-slate-900 uppercase tracking-tighter italic">Registry Intelligence</h1>
                   <p className="text-sm font-black text-slate-400 uppercase tracking-widest mt-3">Institution: {teacherData?.schoolName || 'EDU-INTELLECT MAIN NODE'} • ID: {currentReportId?.substring(0,8)}</p>
                </div>
@@ -479,7 +479,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                     )}
 
                     <div className="bg-white border border-slate-100 p-12 rounded-[4rem] shadow-sm print:border-slate-200">
-                       <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest mb-12 flex items-center gap-3 italic"><BarChart3 className="w-5 h-5 text-[#1e3a8a]"/> Institutional Merit Distribution</p>
+                       <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest mb-12 flex items-center gap-3 italic"><BarChart3 className="w-5 h-5 text-[#1e3272]"/> Institutional Merit Distribution</p>
                        <div className="h-[320px] w-full">
                           <ResponsiveContainer width="100%" height="100%">
                              <BarChart data={reportResult.chartData}>
@@ -489,7 +489,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 50px 100px -20px rgb(0 0 0 / 0.15)', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' }}/>
                                 <Bar dataKey="score" radius={[16, 16, 16, 16]} barSize={40}>
                                    {reportResult.chartData?.map((_:any, index:number) => (
-                                      <Cell key={`cell-${index}`} fill={['#1e3a8a', '#4f46e5', '#818cf8', '#c7d2fe', '#6366f1'][index % 5]} />
+                                      <Cell key={`cell-${index}`} fill={['#1e3272', '#4f46e5', '#818cf8', '#c7d2fe', '#6366f1'][index % 5]} />
                                    ))}
                                 </Bar>
                              </BarChart>
@@ -514,7 +514,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                      <div className="flex flex-col gap-3">
                        <ReportPanel title="Academic Performance" color="blue">
                          <div className="flex items-baseline gap-2 mb-1">
-                           <span className="text-3xl font-black text-[#1e3a8a]">{reportResult.score}%</span>
+                           <span className="text-3xl font-black text-[#1e3272]">{reportResult.score}%</span>
                            <span className="text-[10px] font-bold text-slate-400 uppercase">Score</span>
                          </div>
                          <div className="flex gap-2 flex-wrap mb-2">
@@ -568,7 +568,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                      </div>
 
                      {/* CENTER — Student Card */}
-                     <div className="flex flex-col items-center rounded-2xl border border-[#1e3a8a]/10 bg-gradient-to-b from-[#1e3a8a]/5 to-white px-3 py-4 gap-2">
+                     <div className="flex flex-col items-center rounded-2xl border border-[#1e3272]/10 bg-gradient-to-b from-[#1e3272]/5 to-white px-3 py-4 gap-2">
                        <div className="text-center">
                          <h2 className="text-sm font-black text-[#1e294b] tracking-tight leading-snug">{reportResult.student_name}</h2>
                          <div className="text-[9px] text-slate-400 font-bold mt-1 leading-relaxed space-y-0.5">
@@ -611,7 +611,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                        <ReportPanel title="AI Analysis" color="blue">
                          <div>
                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Predicted Score</div>
-                           <div className="text-2xl font-black text-[#1e3a8a]">{reportResult.predictedScore}%</div>
+                           <div className="text-2xl font-black text-[#1e3272]">{reportResult.predictedScore}%</div>
                          </div>
                          <div className="flex items-center gap-2 mt-1">
                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Risk:</span>
@@ -657,10 +657,10 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                   <button onClick={()=>handleSendToPortal('parent')} disabled={isSending || isSent} className={`h-28 bg-emerald-600 text-white rounded-[2.8rem] text-[13px] font-black uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group ${(report.id === "at_risk" || report.id === "attendance_summary") ? 'md:col-span-1' : 'col-span-full'}`}>
                     {isSending ? <Loader2 className="w-8 h-8 animate-spin"/> : <><div className="flex items-center gap-3"><CheckCircle2 className="w-7 h-7 group-hover:scale-110 transition-all"/> Sync to Parent</div><span className="text-[9px] opacity-60 font-bold">Portal Manifest Update</span></>}
                   </button>
-                  <button onClick={()=>handleSendToPortal('principal')} disabled={isSending || isSent} className={`h-28 bg-[#1e3a8a] text-white rounded-[2.8rem] text-[13px] font-black uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group ${(report.id === "at_risk" || report.id === "attendance_summary") ? 'md:col-span-1' : 'col-span-full'}`}>
+                  <button onClick={()=>handleSendToPortal('principal')} disabled={isSending || isSent} className={`h-28 bg-[#1e3272] text-white rounded-[2.8rem] text-[13px] font-black uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group ${(report.id === "at_risk" || report.id === "attendance_summary") ? 'md:col-span-1' : 'col-span-full'}`}>
                     {isSending ? <Loader2 className="w-8 h-8 animate-spin"/> : <><div className="flex items-center gap-3"><ShieldCheck className="w-7 h-7 group-hover:rotate-12 transition-all"/> Transmit to Principal</div><span className="text-[9px] opacity-60 font-bold">Administrative Filing</span></>}
                   </button>
-                  <button onClick={handleDownload} className="col-span-full h-24 bg-white border border-slate-100 text-[#1e3a8a] rounded-[2.8rem] text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-4 shadow-xl hover:bg-slate-50 transition-all active:scale-95">
+                  <button onClick={handleDownload} className="col-span-full h-24 bg-white border border-slate-100 text-[#1e3272] rounded-[2.8rem] text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-4 shadow-xl hover:bg-slate-50 transition-all active:scale-95">
                     <Download className="w-7 h-7"/> {params.format === 'pdf' ? 'Initiate Print Protocol' : 'Export Excel Data Registry'}
                   </button>
                </div>

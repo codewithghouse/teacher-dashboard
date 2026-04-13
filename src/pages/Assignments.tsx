@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import CreateAssignment from "@/components/CreateAssignment";
 import GradeAssignment from "@/components/GradeAssignment";
 import { db } from "../lib/firebase";
@@ -7,38 +8,146 @@ import {
   doc, deleteDoc, getDocs
 } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
-import {
-  Loader2, Plus, Search, Trash2, ChevronLeft, ChevronRight
-} from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
-const ITEMS_PER_PAGE = 8;
-
-const statusStyle = (status: string) => {
-  if (status.includes("To Grade"))      return "bg-amber-50 text-amber-700";
-  if (status === "Fully Submitted")     return "bg-emerald-50 text-emerald-700";
-  if (status === "Completed")           return "bg-slate-100 text-slate-500";
-  if (status === "Active")              return "bg-blue-50 text-blue-700";
-  return "bg-slate-50 text-slate-500";
+// ── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
+  s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
+  blue: '#3B5BDB', blueL: '#EDF2FF', blueB: '#BAC8FF',
+  green: '#087F5B', greenL: '#EBFBEE', green2: '#2F9E44',
+  red: '#C92A2A', redL: '#FFF5F5',
+  amber: '#C87014', amberL: '#FFF9DB',
+  teal: '#0C8599', tealL: '#E3FAFC',
 };
 
+// ── SVG icons ────────────────────────────────────────────────────────────────
+const IcoDoc = ({ color = T.blue }: { color?: string }) => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="1.5" width="10" height="11" rx="1.5"/>
+    <line x1="4.5" y1="5" x2="9.5" y2="5"/>
+    <line x1="4.5" y1="7.5" x2="8" y2="7.5"/>
+    <line x1="4.5" y1="10" x2="7" y2="10"/>
+  </svg>
+);
+const IcoCal = ({ color = T.amber }: { color?: string }) => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="10" height="10.5" rx="1.5"/>
+    <line x1="5" y1="1" x2="5" y2="3.5"/>
+    <line x1="9" y1="1" x2="9" y2="3.5"/>
+    <line x1="2" y1="5.5" x2="12" y2="5.5"/>
+  </svg>
+);
+const IcoAlert = ({ color = T.red }: { color?: string }) => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="7" cy="7" r="5.5"/>
+    <line x1="7" y1="4.5" x2="7" y2="7.5"/>
+    <circle cx="7" cy="9.5" r="0.7" fill={color} stroke="none"/>
+  </svg>
+);
+const IcoCheck2 = ({ color = T.green }: { color?: string }) => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2,7.5 5.5,11 12,3.5"/>
+  </svg>
+);
+const IcoPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+    <line x1="7" y1="2" x2="7" y2="12"/>
+    <line x1="2" y1="7" x2="12" y2="7"/>
+  </svg>
+);
+const IcoTrash = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.red} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2,3.5 11,3.5"/>
+    <path d="M4.5,3.5v-1.5a1,1 0 0,1 1-1h2a1,1 0 0,1 1,1v1.5"/>
+    <path d="M5,5.5v4"/><path d="M8,5.5v4"/>
+    <rect x="2.5" y="3.5" width="8" height="8" rx="1.5"/>
+  </svg>
+);
+const IcoHome2 = ({ color = T.ink2 }: { color?: string }) => (
+  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 10V6L6 3l4 3v4"/>
+    <rect x="4.5" y="7.5" width="3" height="2.5" rx=".5"/>
+  </svg>
+);
+const IcoClock = ({ color = T.red }: { color?: string }) => (
+  <svg width="10" height="10" viewBox="0 0 11 11" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round">
+    <circle cx="5.5" cy="5.5" r="4"/>
+    <polyline points="5.5,3 5.5,5.5 7.5,5.5"/>
+  </svg>
+);
+const IcoGradeCheck = () => (
+  <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2,7 5.5,11 11.5,2.5"/>
+  </svg>
+);
+// Tab bar icons
+const IcoGrid = ({ active }: { active: boolean }) => (
+  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="11" y="2" width="5" height="5" rx="1.2"/>
+    <rect x="2" y="11" width="5" height="5" rx="1.2"/><rect x="11" y="11" width="5" height="5" rx="1.2"/>
+  </svg>
+);
+const IcoAtnd = ({ active }: { active: boolean }) => (
+  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2.5,8.5 6,12 13.5,4"/>
+  </svg>
+);
+const IcoAssign = ({ active }: { active: boolean }) => (
+  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="14" height="14" rx="2"/>
+    <line x1="5.5" y1="7" x2="12.5" y2="7"/>
+    <line x1="5.5" y1="10" x2="10" y2="10"/>
+  </svg>
+);
+const IcoUser2 = ({ active }: { active: boolean }) => (
+  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="7" r="3"/>
+    <path d="M3 17c0 0 1.5-4 6-4s6 4 6 4"/>
+  </svg>
+);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const timeRemaining = (date: Date) => {
   const diff = Math.ceil((date.getTime() - Date.now()) / 86400000);
-  if (diff === 0)  return "Due Today";
-  if (diff === 1)  return "Tomorrow";
-  if (diff < 0)   return `${Math.abs(diff)}d ago`;
-  return `${diff} days left`;
+  if (diff === 0) return "Due Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff < 0)  return `${Math.abs(diff)}d ago`;
+  return `${diff}d left`;
 };
 
+const isDuePast = (date: Date) => date.getTime() < Date.now();
+
+const accentColor = (status: string) => {
+  if (status.includes("To Grade")) return T.amber;
+  if (status === "Fully Submitted") return T.green2;
+  if (status === "Active") return T.blue;
+  return T.ink2;
+};
+
+const statusBadge = (status: string) => {
+  if (status.includes("To Grade"))  return { bg: T.amberL, color: T.amber, text: status };
+  if (status === "Fully Submitted") return { bg: T.greenL, color: T.green, text: "All submitted" };
+  if (status === "Active")          return { bg: T.blueL,  color: T.blue,  text: "Active" };
+  return { bg: T.s2, color: T.ink2, text: status };
+};
+
+type FilterKey = "All" | "To grade" | "Submitted" | "Draft";
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const Assignments = () => {
   const { teacherData } = useAuth();
-  const [view, setView]                     = useState<"list" | "create" | "grade">("list");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [view, setView]                         = useState<"list" | "create" | "grade">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  const [assignments, setAssignments]       = useState<any[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [search, setSearch]                 = useState("");
-  const [page, setPage]                     = useState(1);
-  const [stats, setStats]                   = useState({
+  const [assignments, setAssignments]           = useState<any[]>([]);
+  const [loading, setLoading]                   = useState(true);
+  const [search, setSearch]                     = useState("");
+  const [filter, setFilter]                     = useState<FilterKey>("All");
+  const [stats, setStats] = useState({
     totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0,
   });
 
@@ -54,12 +163,10 @@ const Assignments = () => {
       ),
       async (assignSnap) => {
         const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-        const assignedClassIds    = teachingAssignments.map(t => t.classId).filter(Boolean);
-
-        // Legacy classes
-        const legacySnap    = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
-        const legacyIds     = legacySnap.docs.map(d => d.id);
-        const allClassIds   = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+        const assignedClassIds    = teachingAssignments.map((t: any) => t.classId).filter(Boolean);
+        const legacySnap          = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
+        const legacyIds           = legacySnap.docs.map(d => d.id);
+        const allClassIds         = Array.from(new Set([...assignedClassIds, ...legacyIds]));
 
         if (!allClassIds.length) {
           setAssignments([]);
@@ -68,7 +175,6 @@ const Assignments = () => {
           return;
         }
 
-        // Fetch assignments from all class IDs
         const snaps = await Promise.all(
           allClassIds.map(cid =>
             getDocs(query(collection(db, "assignments"), where("classId", "==", cid), where("teacherId", "==", teacherData.id)))
@@ -84,16 +190,14 @@ const Assignments = () => {
         const nextWeek = new Date(now.getTime() + 7 * 86400000);
 
         const enriched = await Promise.all(raw.map(async (a: any) => {
-          // Parse deadline
           let deadline: Date;
-          if      (a.dueDate?.toDate)  deadline = a.dueDate.toDate();
-          else if (a.dueDate)          deadline = new Date(a.dueDate);
-          else if (a.deadline)         deadline = new Date(a.deadline);
+          if      (a.dueDate?.toDate)   deadline = a.dueDate.toDate();
+          else if (a.dueDate)           deadline = new Date(a.dueDate);
+          else if (a.deadline)          deadline = new Date(a.deadline);
           else if (a.createdAt?.toDate) deadline = new Date(a.createdAt.toDate().getTime() + 7 * 86400000);
           else                          deadline = new Date();
           if (isNaN(deadline.getTime())) deadline = new Date();
 
-          // Submissions
           const [s1, s2] = await Promise.all([
             getDocs(query(collection(db, "submissions"), where("homeworkId",   "==", a.id))),
             getDocs(query(collection(db, "submissions"), where("assignmentId", "==", a.id))),
@@ -104,16 +208,16 @@ const Assignments = () => {
           const subCount = subMap.size;
 
           const [resSnap, enrollSnap] = await Promise.all([
-            getDocs(query(collection(db, "results"), where("assignmentId", "==", a.id))),
-            getDocs(query(collection(db, "enrollments"), where("classId",   "==", a.classId))),
+            getDocs(query(collection(db, "results"),     where("assignmentId", "==", a.id))),
+            getDocs(query(collection(db, "enrollments"), where("classId",      "==", a.classId))),
           ]);
-          const expected    = enrollSnap.size || 1;
+          const expected       = enrollSnap.size || 1;
           const pendingGrading = Math.max(0, subCount - resSnap.size);
 
           let status = "Active";
-          if (pendingGrading > 0)                          status = `${pendingGrading} To Grade`;
-          else if (subCount >= expected && expected > 0)   status = "Fully Submitted";
-          else if (deadline < now)                          status = "Completed";
+          if (pendingGrading > 0)                       status = `${pendingGrading} To Grade`;
+          else if (subCount >= expected && expected > 0) status = "Fully Submitted";
+          else if (deadline < now)                       status = "Completed";
 
           return { ...a, deadline, subCount, expected, pendingGrading, status };
         }));
@@ -127,10 +231,10 @@ const Assignments = () => {
         const totalStudents = enriched.reduce((acc, a) => acc + a.expected, 0);
         const totalSubs     = enriched.reduce((acc, a) => acc + a.subCount, 0);
         setStats({
-          totalActive:   active,
-          dueThisWeek:   dueSoon,
+          totalActive:    active,
+          dueThisWeek:    dueSoon,
           pendingGrading: pending,
-          avgSubmission: totalStudents > 0 ? Math.round((totalSubs / totalStudents) * 100) : 0,
+          avgSubmission:  totalStudents > 0 ? Math.round((totalSubs / totalStudents) * 100) : 0,
         });
         setLoading(false);
       }
@@ -148,222 +252,365 @@ const Assignments = () => {
     }
   };
 
+  // Sub-views
   if (view === "create") return <CreateAssignment onCancel={() => setView("list")} onCreate={() => setView("list")} />;
-  if (view === "grade")  return <GradeAssignment assignment={selectedAssignment} onBack={() => setView("list")} />;
+  if (view === "grade")  return <GradeAssignment  assignment={selectedAssignment}  onBack={() => setView("list")} />;
 
-  const filtered  = assignments.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()));
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  // Filter
+  const filtered = assignments.filter(a => {
+    const matchSearch = a.title?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (filter === "To grade")  return a.pendingGrading > 0;
+    if (filter === "Submitted") return a.subCount >= a.expected && a.expected > 0;
+    if (filter === "Draft")     return a.status === "Draft";
+    return true;
+  });
+
+  // Tab bar nav
+  const tabs = [
+    { label: "Dashboard",   path: "/",            icon: (a: boolean) => <IcoGrid   active={a} /> },
+    { label: "Attendance",  path: "/attendance",  icon: (a: boolean) => <IcoAtnd   active={a} /> },
+    { label: "Assignments", path: "/assignments", icon: (a: boolean) => <IcoAssign active={a} /> },
+    { label: "Profile",     path: "/settings",    icon: (a: boolean) => <IcoUser2  active={a} /> },
+  ];
+  const activePath = location.pathname;
+
+  // Metric cards config
+  const metrics = [
+    {
+      ico: <IcoDoc color={T.blue} />,
+      icoBg: T.blueL,
+      val: stats.totalActive,
+      valColor: T.ink1,
+      lbl: "Total active",
+      badgeTxt: "Active",
+      badgeBg: T.s2, badgeColor: T.ink2,
+      barFill: T.blue,
+      barW: stats.totalActive > 0 ? Math.min(100, stats.totalActive * 20) : 0,
+    },
+    {
+      ico: <IcoCal color={T.amber} />,
+      icoBg: T.amberL,
+      val: stats.dueThisWeek,
+      valColor: T.ink1,
+      lbl: "Due this week",
+      badgeTxt: stats.dueThisWeek === 0 ? "All clear" : "Due soon",
+      badgeBg: stats.dueThisWeek === 0 ? T.greenL : T.amberL,
+      badgeColor: stats.dueThisWeek === 0 ? T.green : T.amber,
+      barFill: T.amber,
+      barW: stats.dueThisWeek > 0 ? Math.min(100, stats.dueThisWeek * 20) : 0,
+    },
+    {
+      ico: <IcoAlert color={T.red} />,
+      icoBg: T.redL,
+      val: stats.pendingGrading,
+      valColor: stats.pendingGrading > 0 ? T.red : T.ink1,
+      lbl: "Pending grading",
+      badgeTxt: stats.pendingGrading > 0 ? "Needs review" : "All graded",
+      badgeBg: stats.pendingGrading > 0 ? T.amberL : T.greenL,
+      badgeColor: stats.pendingGrading > 0 ? T.amber : T.green,
+      barFill: T.red,
+      barW: stats.pendingGrading > 0 ? Math.min(100, stats.pendingGrading * 20) : 0,
+    },
+    {
+      ico: <IcoCheck2 color={T.green} />,
+      icoBg: T.greenL,
+      val: `${stats.avgSubmission}%`,
+      valColor: stats.avgSubmission >= 80 ? T.green : T.ink1,
+      lbl: "Avg. submission",
+      badgeTxt: stats.avgSubmission >= 80 ? "Great" : "In progress",
+      badgeBg: stats.avgSubmission >= 80 ? T.greenL : T.amberL,
+      badgeColor: stats.avgSubmission >= 80 ? T.green : T.amber,
+      barFill: T.green2,
+      barW: stats.avgSubmission,
+    },
+  ];
+
+  const filterChips: FilterKey[] = ["All", "To grade", "Submitted", "Draft"];
 
   return (
-    <div className="text-left space-y-5 sm:space-y-6">
+    <div style={{ background: T.s1, fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
-            Teacher Dashboard
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Assignments</h1>
-          <p className="text-slate-500 text-sm mt-1">Create, manage and grade student assignments.</p>
-        </div>
+      {/* ── Dark Hero ───────────────────────────────────────────────────────── */}
+      <div
+        style={{ background: T.ink0 }}
+        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-[22px] pb-6"
+      >
+        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', marginBottom: 3 }}>
+          Assignments
+        </h1>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+          Create, manage and grade student work.
+        </p>
+      </div>
+
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 md:px-0 pt-4 flex flex-col gap-3">
+
+        {/* Create CTA */}
         <button
           onClick={() => setView("create")}
-          className="self-start sm:self-auto flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all shadow-sm"
+          style={{
+            width: '100%', padding: '13px', borderRadius: 13,
+            background: T.blue, border: 'none', color: '#fff',
+            fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 7,
+          }}
         >
-          <Plus size={16} /> Create Assignment
+          <IcoPlus /> Create assignment
         </button>
-      </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          { label: "Total Active",     value: stats.totalActive,    color: "bg-blue-100"    },
-          { label: "Due This Week",    value: stats.dueThisWeek,    color: "bg-amber-100"   },
-          { label: "Pending Grading",  value: stats.pendingGrading, color: "bg-rose-100"    },
-          { label: "Avg. Submission",  value: `${stats.avgSubmission}%`, color: "bg-emerald-100" },
-        ].map(c => (
-          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${c.color}`} />
-            <div>
-              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{c.value}</p>
-              <p className="text-xs text-slate-500 font-medium">{c.label}</p>
+        {/* Metric grid */}
+        <div className="grid grid-cols-2 gap-[9px]">
+          {metrics.map((m, i) => (
+            <div key={i} style={{
+              background: T.s0, border: `1px solid ${T.bdr}`,
+              borderRadius: 16, padding: 13,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 9,
+                  background: m.icoBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {m.ico}
+                </div>
+                <span style={{
+                  padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500,
+                  background: m.badgeBg, color: m.badgeColor, whiteSpace: 'nowrap',
+                }}>
+                  {m.badgeTxt}
+                </span>
+              </div>
+              <div style={{ fontSize: 21, fontWeight: 500, letterSpacing: '-0.5px', lineHeight: 1, color: m.valColor }}>
+                {m.val}
+              </div>
+              <div style={{ fontSize: 11, color: T.ink2, marginTop: 3, lineHeight: 1.3 }}>{m.lbl}</div>
+              <div style={{ height: 3, borderRadius: 2, background: T.s2, marginTop: 9, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 2, background: m.barFill, width: `${m.barW}%`, transition: 'width 0.6s ease' }} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search assignments..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-4 h-9 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
+          ))}
         </div>
 
-        {/* Loading / empty states */}
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <Search style={{
+            position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+            width: 14, height: 14, color: T.ink2, pointerEvents: 'none',
+          }} />
+          <input
+            type="text"
+            placeholder="Search assignments..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', padding: '10px 12px 10px 33px',
+              borderRadius: 12, border: `1px solid ${T.bdr}`,
+              background: T.s0, fontSize: 13, color: T.ink1,
+              fontFamily: 'inherit', outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Filter chips */}
+        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}
+             className="scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+          {filterChips.map(key => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              style={{
+                padding: '6px 13px', borderRadius: 20, fontSize: 11, whiteSpace: 'nowrap',
+                fontWeight: filter === key ? 500 : 400,
+                background: filter === key ? T.ink0 : T.s0,
+                color: filter === key ? '#fff' : T.ink2,
+                border: `1px solid ${filter === key ? T.ink0 : T.bdr}`,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading */}
         {loading ? (
-          <div className="py-16 flex justify-center">
-            <Loader2 className="w-6 h-6 text-[#1e3272] animate-spin" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: T.blue }} />
           </div>
-        ) : paginated.length === 0 ? (
-          <div className="py-16 text-center text-sm text-slate-300 font-semibold">
-            No assignments found. Create your first one!
+        ) : filtered.length === 0 ? (
+
+          /* Empty state */
+          <div style={{
+            background: T.s0, border: `1.5px dashed ${T.bdr}`, borderRadius: 16,
+            padding: '20px 14px', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 8,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11, background: T.blueL,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <IcoPlus />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>
+              {filter === "All" ? "No assignments yet" : `No "${filter}" assignments`}
+            </div>
+            <div style={{ fontSize: 10, color: T.ink2, textAlign: 'center', lineHeight: 1.4 }}>
+              {filter === "All"
+                ? "Create your first assignment to track student progress."
+                : "Try a different filter or create a new assignment."}
+            </div>
           </div>
+
         ) : (
-          <>
-            {/* ── Mobile: card list (hidden on md+) ── */}
-            <div className="md:hidden divide-y divide-slate-100">
-              {paginated.map(a => (
-                <div key={a.id} className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 leading-tight">{a.title}</p>
-                      {a.description && (
-                        <p className="text-xs text-slate-400 mt-0.5 truncate">{a.description}</p>
-                      )}
+
+          /* Assignment cards */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filtered.map(a => {
+              const badge   = statusBadge(a.status);
+              const accent  = accentColor(a.status);
+              const subPct  = Math.min(100, (a.subCount / (a.expected || 1)) * 100);
+              const pastDue = isDuePast(a.deadline);
+
+              return (
+                <div key={a.id} style={{
+                  background: T.s0, border: `1px solid ${T.bdr}`,
+                  borderRadius: 18, overflow: 'hidden',
+                }}>
+                  {/* Colored accent strip */}
+                  <div style={{ height: 4, background: accent }} />
+
+                  <div style={{ padding: 14 }}>
+                    {/* Title + badge */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: T.ink1, letterSpacing: '-0.1px', lineHeight: 1.3 }}>
+                          {a.title}
+                        </div>
+                        {a.description && (
+                          <div style={{ fontSize: 11, color: T.ink2, marginTop: 2, lineHeight: 1.4,
+                            overflow: 'hidden', display: '-webkit-box',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                            {a.description}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{
+                        padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500,
+                        background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>
+                        {badge.text}
+                      </span>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap ${statusStyle(a.status)}`}>
-                      {a.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span>Class: <strong className="text-slate-700">{a.className || "—"}</strong></span>
-                    <span>Due: <strong className="text-slate-700">{timeRemaining(a.deadline)}</strong></span>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-slate-500">
-                      <span>Submissions</span>
-                      <span className="font-semibold text-slate-700">{a.subCount} / {a.expected}</span>
+
+                    {/* Class + due date */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: T.ink1 }}>
+                        <IcoHome2 />
+                        {a.className || "—"}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11,
+                        color: pastDue ? T.red : T.ink2, fontWeight: pastDue ? 500 : 400 }}>
+                        <IcoClock color={pastDue ? T.red : T.ink2} />
+                        {timeRemaining(a.deadline)}
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }} />
+
+                    {/* Submission bar */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: T.ink2, marginBottom: 5 }}>
+                        <span>Submissions</span>
+                        <span style={{ fontWeight: 500, color: T.ink1 }}>{a.subCount} / {a.expected}</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: T.s2, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 3, background: T.green2, width: `${subPct}%`, transition: 'width 0.5s ease' }} />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => { setSelectedAssignment(a); setView("grade"); }}
-                      className="flex-1 py-2 text-xs font-semibold text-white bg-[#1e3272] rounded-xl hover:bg-[#162558] transition-all"
-                    >
-                      Grade
-                    </button>
-                    <button
-                      onClick={() => handleDelete(a.id, a.title)}
-                      className="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${T.s2}`, paddingTop: 12 }}>
+                      <button
+                        onClick={() => { setSelectedAssignment(a); setView("grade"); }}
+                        style={{
+                          flex: 1, padding: 10, borderRadius: 11, background: T.blue,
+                          border: 'none', color: '#fff', fontSize: 12, fontWeight: 500,
+                          cursor: 'pointer', fontFamily: 'inherit',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}
+                      >
+                        <IcoGradeCheck /> Grade submissions
+                      </button>
+                      <button
+                        onClick={() => handleDelete(a.id, a.title)}
+                        style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          border: `1px solid ${T.bdr}`, background: T.s1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', flexShrink: 0,
+                        }}
+                      >
+                        <IcoTrash />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
 
-            {/* ── Desktop: table (hidden on mobile) ── */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Assignment</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Class</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500">Due Date</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Submissions</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-center">Status</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {paginated.map(a => (
-                    <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e3272] transition-colors">{a.title}</p>
-                        {a.description && (
-                          <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">{a.description}</p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{a.className || "—"}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{timeRemaining(a.deadline)}</td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-sm font-semibold text-slate-700">
-                            {a.subCount}<span className="text-slate-400 font-normal"> / {a.expected}</span>
-                          </span>
-                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (a.subCount / a.expected) * 100)}%` }} />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusStyle(a.status)}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => { setSelectedAssignment(a); setView("grade"); }}
-                            className="px-3 py-1.5 text-xs font-semibold text-[#1e3272] hover:bg-blue-50 rounded-lg transition-all"
-                          >
-                            Grade
-                          </button>
-                          <button
-                            onClick={() => handleDelete(a.id, a.title)}
-                            className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {/* Pagination */}
-        {!loading && filtered.length > ITEMS_PER_PAGE && (
-          <div className="px-4 sm:px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-500 hidden sm:block">
-              Showing {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
-            </p>
-            <div className="flex items-center gap-1.5 ml-auto">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`w-8 h-8 rounded-lg text-xs font-semibold ${
-                    p === page ? "bg-[#1e3272] text-white" : "border border-slate-200 text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronRight size={14} />
-              </button>
+            {/* Add more hint */}
+            <div style={{
+              background: T.s0, border: `1.5px dashed ${T.bdr}`, borderRadius: 16,
+              padding: '20px 14px', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 8, cursor: 'pointer',
+            }} onClick={() => setView("create")}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 11, background: T.blueL,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round">
+                  <line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>Add another assignment</div>
+              <div style={{ fontSize: 10, color: T.ink2, textAlign: 'center', lineHeight: 1.4 }}>
+                Create more assignments to track student progress across classes.
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* ── Mobile bottom tab bar ────────────────────────────────────────────── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40" style={{
+        background: T.s0, borderTop: `1px solid ${T.bdr}`,
+        padding: '9px 18px 17px',
+        display: 'flex', justifyContent: 'space-between',
+      }}>
+        {tabs.map(tab => {
+          const isActive = tab.path === activePath;
+          return (
+            <button
+              key={tab.path}
+              onClick={() => navigate(tab.path)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                cursor: 'pointer', background: 'none', border: 'none', padding: 0,
+                fontFamily: 'inherit',
+              }}
+            >
+              {tab.icon(isActive)}
+              <span style={{ fontSize: 9, color: isActive ? T.blue : T.ink2, fontWeight: isActive ? 500 : 400 }}>
+                {tab.label}
+              </span>
+              {isActive && (
+                <div style={{ width: 13, height: 2.5, borderRadius: 2, background: T.blue, marginTop: -2 }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
     </div>
   );
 };

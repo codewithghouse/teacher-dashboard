@@ -119,9 +119,7 @@ const SummarizeLesson = () => {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-8">
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+        <div>          <h1 className="ds-page-title flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center flex-shrink-0">
               <ScrollText className="w-5 h-5 text-white" />
             </span>
@@ -131,9 +129,9 @@ const SummarizeLesson = () => {
             Upload any PDF — AI reads & summarizes it instantly.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-[2rem] shadow-sm self-start">
-          <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3a8a]" />
-          <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">
+        <div className="flex items-center gap-2 ds-card px-4 sm:px-6 py-3 sm:py-4 self-start">
+          <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3272]" />
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">
             {teacherData?.schoolName || "EduIntellect"}
           </span>
         </div>
@@ -148,8 +146,8 @@ const SummarizeLesson = () => {
                 <Upload className="w-5 h-5 text-violet-600" />
               </div>
               <div>
-                <p className="text-sm font-black text-slate-900">Upload PDF</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Max 20MB • Text-based PDF</p>
+                <p className="text-sm font-bold text-slate-900">Upload PDF</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Max 20MB • Text-based PDF</p>
               </div>
             </div>
 
@@ -170,7 +168,7 @@ const SummarizeLesson = () => {
                   <FileText className="w-8 h-8 text-violet-500" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-black text-slate-700">Drop PDF here</p>
+                  <p className="text-sm font-bold text-slate-700">Drop PDF here</p>
                   <p className="text-xs font-semibold text-slate-400 mt-1">or click to browse</p>
                 </div>
                 <input
@@ -191,8 +189,8 @@ const SummarizeLesson = () => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-slate-800 truncate">{file.name}</p>
-                  <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mt-0.5">
+                  <p className="text-sm font-bold text-slate-800 truncate">{file.name}</p>
+                  <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest mt-0.5">
                     {extracting ? "Reading PDF..." : `${pageCount} pages • ${(file.size / 1024).toFixed(0)} KB`}
                   </p>
                 </div>
@@ -215,7 +213,7 @@ const SummarizeLesson = () => {
 
             {/* What you'll get */}
             <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">What you'll get</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">What you'll get</p>
               {[
                 { icon: Brain, label: "Brief Summary", color: "text-violet-600 bg-violet-50" },
                 { icon: Target, label: "Key Concepts", color: "text-blue-600 bg-blue-50" },
@@ -239,7 +237,7 @@ const SummarizeLesson = () => {
               <button
                 onClick={handleGenerate}
                 disabled={!file || extracting || loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />Summarizing...</>
@@ -267,7 +265,7 @@ const SummarizeLesson = () => {
               <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center mb-6">
                 <ScrollText className="w-10 h-10 text-slate-200" />
               </div>
-              <p className="text-lg font-black text-slate-300 tracking-tight">Your summary will appear here</p>
+              <p className="text-lg font-bold text-slate-300 tracking-tight">Your summary will appear here</p>
               <p className="text-[11px] font-bold text-slate-200 uppercase tracking-widest mt-2">Upload a PDF and click Summarize</p>
             </div>
           )}
@@ -279,8 +277,8 @@ const SummarizeLesson = () => {
                 <Brain className="w-8 h-8 text-violet-600" />
               </div>
               <div className="text-center space-y-2">
-                <p className="text-sm font-black text-slate-700">AI is reading and summarizing...</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">This may take 15-30 seconds</p>
+                <p className="text-sm font-bold text-slate-700">AI is reading and summarizing...</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This may take 15-30 seconds</p>
               </div>
               <div className="w-full max-w-sm space-y-3">
                 {[90, 65, 80, 50, 75].map((w, i) => (
@@ -299,25 +297,25 @@ const SummarizeLesson = () => {
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
                 <div className="relative">
                   <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest">
+                    <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest">
                       {summary.subject || "General"}
                     </span>
                     {summary.difficulty_level && (
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest">
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest">
                         {summary.difficulty_level}
                       </span>
                     )}
                     {summary.estimated_study_time && (
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
                         <Clock className="w-3 h-3" />{summary.estimated_study_time}
                       </span>
                     )}
                   </div>
-                  <h2 className="text-2xl font-black tracking-tight leading-tight mb-3">{summary.title || file?.name}</h2>
+                  <h2 className="text-2xl font-bold tracking-tight leading-tight mb-3">{summary.title || file?.name}</h2>
                   <p className="text-sm font-medium text-blue-100 leading-relaxed">{summary.brief_summary}</p>
                   <div className="mt-5 pt-5 border-t border-white/10 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-violet-300" />
-                    <span className="text-[10px] font-black text-violet-200 uppercase tracking-widest">{file?.name} • {pageCount} pages</span>
+                    <span className="text-[10px] font-bold text-violet-200 uppercase tracking-widest">{file?.name} • {pageCount} pages</span>
                   </div>
                 </div>
               </div>
@@ -329,12 +327,12 @@ const SummarizeLesson = () => {
                     <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                       <Zap className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest">Quick Revision Points</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Quick Revision Points</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {summary.quick_revision.map((point: string, i: number) => (
                       <div key={i} className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5">{i + 1}</span>
+                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
                         <p className="text-xs font-semibold leading-snug">{point}</p>
                       </div>
                     ))}
@@ -349,12 +347,12 @@ const SummarizeLesson = () => {
                     <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
                       <Target className="w-4 h-4 text-blue-600" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Key Concepts</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Key Concepts</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {summary.key_concepts.map((kc: any, i: number) => (
                       <div key={i} className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                        <p className="text-xs font-black text-blue-800 mb-1">{kc.concept}</p>
+                        <p className="text-xs font-bold text-blue-800 mb-1">{kc.concept}</p>
                         <p className="text-[11px] font-semibold text-blue-700 leading-snug">{kc.explanation}</p>
                       </div>
                     ))}
@@ -369,7 +367,7 @@ const SummarizeLesson = () => {
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
                       <BookOpen className="w-4 h-4 text-emerald-600" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Section Breakdown</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Section Breakdown</p>
                   </div>
                   {summary.section_breakdown.map((sec: any, i: number) => (
                     <div key={i} className="border border-slate-100 rounded-2xl overflow-hidden">
@@ -378,10 +376,10 @@ const SummarizeLesson = () => {
                         className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-[10px] font-black text-emerald-700 flex-shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-[10px] font-bold text-emerald-700 flex-shrink-0">
                             {i + 1}
                           </div>
-                          <p className="text-sm font-black text-slate-800">{sec.section}</p>
+                          <p className="text-sm font-bold text-slate-800">{sec.section}</p>
                         </div>
                         {expandedSections[i]
                           ? <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -412,12 +410,12 @@ const SummarizeLesson = () => {
                       <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                         <ScrollText className="w-4 h-4 text-amber-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Definitions</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Definitions</p>
                     </div>
                     <div className="space-y-3">
                       {summary.important_definitions.map((d: any, i: number) => (
                         <div key={i} className="pb-3 border-b border-slate-50 last:border-0 last:pb-0">
-                          <p className="text-xs font-black text-slate-800">{d.term}</p>
+                          <p className="text-xs font-bold text-slate-800">{d.term}</p>
                           <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-snug">{d.definition}</p>
                         </div>
                       ))}
@@ -432,7 +430,7 @@ const SummarizeLesson = () => {
                       <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
                         <FlaskConical className="w-4 h-4 text-rose-600" />
                       </div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Formulas & Rules</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Formulas & Rules</p>
                     </div>
                     <div className="space-y-2">
                       {summary.key_formulas_or_rules.map((f: string, i: number) => (
@@ -452,7 +450,7 @@ const SummarizeLesson = () => {
                     <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
                       <GraduationCap className="w-4 h-4 text-yellow-300" />
                     </div>
-                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Exam Important Points</p>
+                    <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Exam Important Points</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {summary.exam_important_points.map((pt: string, i: number) => (
@@ -468,11 +466,11 @@ const SummarizeLesson = () => {
               {/* Difficulty badge */}
               {summary.difficulty_level && (
                 <div className="flex items-center justify-center gap-3 py-2">
-                  <div className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest ${DIFFICULTY_COLORS[summary.difficulty_level] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                  <div className={`px-4 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest ${DIFFICULTY_COLORS[summary.difficulty_level] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
                     {summary.difficulty_level} Level
                   </div>
                   {summary.estimated_study_time && (
-                    <div className="px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                    <div className="px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" /> {summary.estimated_study_time}
                     </div>
                   )}

@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { AIController } from "../ai/controller/ai-controller";
-import { X, Check, Loader2, ChevronLeft, FileText, UploadCloud } from 'lucide-react';
+import { X, Loader2, FileText, UploadCloud } from 'lucide-react';
 import { toast } from "sonner";
 
 const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) => {
@@ -99,121 +98,249 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     }
   };
 
+  // Design tokens (matches Assignments.tsx)
+  const T = {
+    ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
+    s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
+    blue: '#3B5BDB', blueL: '#EDF2FF',
+    green2: '#2F9E44', greenL: '#EBFBEE',
+    red: '#C92A2A', redL: '#FFF5F5',
+    amber: '#C87014', amberL: '#FFF9DB',
+  };
+
+  const selClass = classes.find(c => c.id === selectedClassId);
+
   return (
-    <div className="text-left space-y-6 pb-10">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button onClick={onCancel} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 mb-2 transition-colors">
-            <ChevronLeft size={14} /> Back to Assignments
-          </button>
-          <h1 className="text-2xl font-bold text-slate-800">Create Assignment</h1>
-          <p className="text-sm text-slate-500 mt-1">Fill in the details and publish to your class.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={onCancel} className="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all">
+    <div style={{ background: T.s1, fontFamily: 'inherit', minHeight: '100vh' }} className="text-left pb-10">
+
+      {/* ── Dark Hero ─────────────────────────────────────────────────────── */}
+      <div
+        style={{ background: T.ink0 }}
+        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-[22px] pb-5"
+      >
+        <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.30)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 5 }}>
+          New assignment
+        </p>
+        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.15 }}>
+          Create<br />assignment
+        </h1>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', marginTop: 5 }}>
+          Fill in details and publish to your class.
+        </p>
+
+        {/* Hero actions */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '9px 16px', borderRadius: 11,
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.07)',
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all flex items-center gap-2 disabled:opacity-50"
+            style={{
+              flex: 1, padding: '9px 14px', borderRadius: 11,
+              background: T.green2, border: 'none',
+              color: '#fff', fontSize: 12, fontWeight: 500,
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', opacity: isSaving ? 0.7 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            }}
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check size={14} /> Publish</>}
+            {isSaving ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1.5,6.5 4.5,10 10.5,2.5"/>
+                </svg>
+                Publish now
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-        {/* Class selector */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Class</label>
-          <div className="flex flex-wrap gap-3">
-            {classes.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedClassId(c.id)}
-                className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                  selectedClassId === c.id
-                    ? "border-[#1e3272] bg-blue-50 text-[#1e3272]"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* ── Form body ─────────────────────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 md:px-0 pt-4 flex flex-col gap-3">
 
-        {/* Title + Due Date */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assignment Title</label>
+        {/* Form card */}
+        <div style={{
+          background: T.s0, border: `1px solid ${T.bdr}`,
+          borderRadius: 18, overflow: 'hidden',
+          padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+
+          {/* Select class */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+              Select class
+            </div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {classes.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedClassId(c.id)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 20, fontSize: 12,
+                    fontWeight: selectedClassId === c.id ? 500 : 400,
+                    border: `1px solid ${selectedClassId === c.id ? T.ink0 : T.bdr}`,
+                    background: selectedClassId === c.id ? T.ink0 : T.s1,
+                    color: selectedClassId === c.id ? '#fff' : T.ink2,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />
+
+          {/* Title */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+              Assignment title
+            </div>
             <input
               type="text"
               value={formData.title}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. Chapter 5 Worksheet"
-              className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 bg-slate-50"
+              style={{
+                width: '100%', padding: '11px 12px', borderRadius: 12,
+                border: `1px solid ${T.bdr}`, background: T.s1,
+                fontSize: 13, color: T.ink1, fontFamily: 'inherit', outline: 'none',
+              }}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</label>
+
+          <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />
+
+          {/* Due date */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+              Due date
+            </div>
             <input
               type="date"
               value={formData.dueDate}
               onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 bg-slate-50 text-[#1e3272] font-medium"
+              style={{
+                width: '100%', padding: '11px 12px', borderRadius: 12,
+                border: `1px solid ${T.bdr}`, background: T.s1,
+                fontSize: 13, color: T.ink1, fontFamily: 'inherit', outline: 'none',
+              }}
             />
           </div>
-        </div>
 
-        {/* Description */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Instructions</label>
-          <textarea
-            rows={4}
-            value={formData.description}
-            onChange={e => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Describe the assignment objectives and what students need to submit..."
-            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 bg-slate-50 resize-none"
-          />
-        </div>
+          <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />
 
-        {/* PDF Upload */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Attachment (PDF)</label>
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full border-2 border-dashed border-slate-200 rounded-xl p-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center gap-2"
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={e => setSelectedFile(e.target.files?.[0] || null)}
-              className="hidden"
-              accept=".pdf"
+          {/* Instructions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+              Instructions
+            </div>
+            <textarea
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe the assignment objectives and what students need to submit..."
+              rows={4}
+              style={{
+                width: '100%', padding: '11px 12px', borderRadius: 12,
+                border: `1px solid ${T.bdr}`, background: T.s1,
+                fontSize: 13, color: T.ink1, fontFamily: 'inherit', outline: 'none',
+                resize: 'none', lineHeight: 1.5,
+              }}
             />
-            {selectedFile ? (
-              <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-blue-200 shadow-sm">
-                <FileText size={18} className="text-blue-600" />
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-slate-800">{selectedFile.name}</p>
-                  <p className="text-xs text-slate-400">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+          </div>
+
+          <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />
+
+          {/* PDF upload */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+              Attachment (PDF · optional)
+            </div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                border: `1.5px dashed ${T.bdr}`, borderRadius: 14,
+                padding: '24px 14px', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 8, cursor: 'pointer', background: T.s1,
+              }}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                className="hidden"
+                accept=".pdf"
+              />
+              {selectedFile ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: T.s0, padding: '10px 14px', borderRadius: 12,
+                  border: `1px solid ${T.bdr}`, width: '100%',
+                }}>
+                  <FileText size={16} style={{ color: T.blue, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selectedFile.name}
+                    </p>
+                    <p style={{ fontSize: 10, color: T.ink2 }}>{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setSelectedFile(null); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                  >
+                    <X size={14} style={{ color: T.red }} />
+                  </button>
                 </div>
-                <button onClick={e => { e.stopPropagation(); setSelectedFile(null); }} className="p-1 hover:bg-rose-50 rounded-lg text-rose-400 ml-2">
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <>
-                <UploadCloud size={28} className="text-slate-300" />
-                <p className="text-sm font-semibold text-slate-400">Click to upload PDF</p>
-                <p className="text-xs text-slate-300">Max 5MB</p>
-              </>
-            )}
+              ) : (
+                <>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 12, background: T.blueL,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <UploadCloud size={16} style={{ color: T.blue }} />
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Click to upload PDF</div>
+                  <div style={{ fontSize: 10, color: T.ink2 }}>Max file size 5 MB</div>
+                </>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Preview card */}
+        <div style={{
+          background: T.s0, border: `1px solid ${T.bdr}`,
+          borderRadius: 16, padding: '12px 13px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.amber }} />
+            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Preview</div>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: T.ink1, marginBottom: 2 }}>
+            {formData.title || "Assignment title"}
+          </div>
+          <div style={{ fontSize: 10, color: T.ink2, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>{selClass?.name || "Select a class"}</span>
+            <span>·</span>
+            <span>Due {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</span>
           </div>
         </div>
+
       </div>
     </div>
   );

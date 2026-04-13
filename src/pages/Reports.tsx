@@ -102,50 +102,48 @@ const Reports = () => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 text-left">
       <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-6 sm:mb-10">
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">Reports</h1>
+        <div>          <h1 className="ds-page-title">Reports</h1>
           <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none">Generate and download academic reports.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-[2rem] shadow-sm self-start">
-           <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3a8a]"/>
-           <span className="text-xs font-black uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">{teacherData?.schoolName || 'EduIntellect Main'}</span>
+        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-2xl shadow-sm self-start">
+           <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e3272]"/>
+           <span className="text-xs font-bold uppercase tracking-widest text-slate-600 italic truncate max-w-[160px]">{teacherData?.schoolName || 'EduIntellect Main'}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
         {reports_config.map((r) => (
-          <div key={r.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden flex flex-col h-full">
+          <div key={r.id} className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group relative overflow-hidden flex flex-col h-full">
             <div className="flex justify-between items-start mb-6">
               <div className={`w-16 h-16 rounded-2xl ${r.color} flex items-center justify-center shadow-inner`}>
                 <r.icon className="w-8 h-8" />
               </div>
               {r.popular && (
-                <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20">
                   Popular
                 </div>
               )}
             </div>
 
-            <h2 className="text-2xl font-black text-slate-900 mb-3 group-hover:text-[#1e3a8a] transition-colors">{r.title}</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-[#1e3272] transition-colors">{r.title}</h2>
             <p className="text-sm font-semibold text-slate-400 leading-relaxed mb-8 flex-grow">{r.desc}</p>
             
             <div className="flex gap-2 mb-8">
               {r.formats.map(f => (
-                <span key={f} className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:border-indigo-100 group-hover:text-indigo-600 transition-all">{f}</span>
+                <span key={f} className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-bold text-slate-400 uppercase tracking-widest group-hover:border-indigo-100 group-hover:text-indigo-600 transition-all">{f}</span>
               ))}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => handleOpenGenerate(r)}
-                className="bg-[#1e3a8a] text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#1e4fc0] transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 group-active:scale-95"
+                className="ds-btn-primary ds-btn-lg w-full justify-center"
               >
                 Generate
               </button>
               <button 
                 onClick={() => handleOpenGenerate(r)}
-                className="bg-white text-slate-900 py-4 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group-active:scale-95"
+                className="bg-white text-slate-900 py-4 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group-active:scale-95"
               >
                 Preview
               </button>
@@ -157,21 +155,21 @@ const Reports = () => {
         <div className="col-span-full mt-12 pb-20">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                   <h3 className="text-2xl font-black text-slate-900 tracking-tight italic">Intelligence Output History</h3>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none mt-1">Audit trail of generated academic documents</p>
+                   <h3 className="text-2xl font-bold text-slate-900 tracking-tight italic">Intelligence Output History</h3>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic leading-none mt-1">Audit trail of generated academic documents</p>
                 </div>
-                <button className="flex items-center gap-2 text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline"><TrendingUp className="w-4 h-4"/> View Full Audit</button>
+                <button className="flex items-center gap-2 text-indigo-600 text-[10px] font-bold uppercase tracking-widest hover:underline"><TrendingUp className="w-4 h-4"/> View Full Audit</button>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-[3rem] p-4 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
                 {history.length === 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-10">
-                      <div className="p-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center group">
+                      <div className="p-8 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center group">
                           <PlusCircle className="w-10 h-10 text-slate-200 group-hover:text-indigo-400 transition-colors mb-4" />
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No Recent Exports</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">No Recent Exports</p>
                       </div>
                       <div className="col-span-2 space-y-4 flex flex-col justify-center">
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic leading-relaxed">Generated reports will appear here for 30 days. You can sync individual reports directly to parent portals from the generation screen.</p>
+                          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic leading-relaxed">Generated reports will appear here for 30 days. You can sync individual reports directly to parent portals from the generation screen.</p>
                           <div className="h-px bg-slate-100 w-full" />
                           <div className="flex items-center gap-6 opacity-30">
                              <FileJson size={32}/><FileSpreadsheet size={32}/><FileText size={32}/>
@@ -181,14 +179,14 @@ const Reports = () => {
                 ) : (
                    <div className="space-y-3">
                       {history.map(h => (
-                         <div key={h.id} className="flex items-center justify-between p-6 bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-100 rounded-[2rem] transition-all group">
+                         <div key={h.id} className="flex items-center justify-between p-6 bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all group">
                             <div className="flex items-center gap-4">
                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-indigo-600">
                                   <FileText className="w-6 h-6"/>
                                </div>
                                <div>
-                                  <p className="text-sm font-black text-slate-800">{h.title} - {h.grade}</p>
-                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                  <p className="text-sm font-bold text-slate-800">{h.title} - {h.grade}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" /> {h.status} • {h.format?.toUpperCase()} FORMAT • {h.createdAt?.toDate?.().toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                </div>

@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import {
-  ChevronLeft, Loader2, Star, AlertTriangle, Trophy, TrendingUp, TrendingDown,
-  CheckCircle, Phone, BookOpen, Activity, MessageSquare
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import {
   collection, query, where, getDocs, doc, getDoc, onSnapshot,
@@ -15,6 +12,81 @@ interface StudentProfileProps {
   student: any;
   onBack: () => void;
 }
+
+// ── Design tokens (matches Students.tsx) ──────────────────────────────────────
+const T = {
+  ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
+  s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
+  blue: '#3B5BDB', blueL: '#EDF2FF',
+  green2: '#2F9E44', greenL: '#EBFBEE',
+  red: '#C92A2A', redL: '#FFF5F5',
+  amber: '#C87014', amberL: '#FFF9DB',
+  purple: '#6741D9', purpleL: '#F3F0FF',
+};
+
+// ── Avatar color palette (same as Students.tsx) ───────────────────────────────
+const AV_PALETTES = [
+  { bg: '#E8F4FD', color: '#1971C2' },
+  { bg: '#EBFBEE', color: '#2F9E44' },
+  { bg: '#FFF9DB', color: '#C87014' },
+  { bg: '#FFE8CC', color: '#D9480F' },
+  { bg: '#F3F0FF', color: '#6741D9' },
+  { bg: '#FFF0F6', color: '#C2255C' },
+  { bg: '#E6FCF5', color: '#0C8599' },
+];
+const avStyle = (name: string) => {
+  const sum = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return AV_PALETTES[sum % AV_PALETTES.length];
+};
+const getInitials = (name: string) => {
+  const p = (name || '').trim().split(' ');
+  return (p.length >= 2 ? p[0][0] + p[1][0] : (p[0]?.[0] || '?')).toUpperCase();
+};
+
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
+const IcoChevronLeft = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="10,3 5,8 10,13" />
+  </svg>
+);
+const IcoStar = ({ filled }: { filled?: boolean }) => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+    <polygon points="7.5,1.5 9.5,5.5 14,6.2 10.8,9.3 11.6,13.8 7.5,11.7 3.4,13.8 4.2,9.3 1,6.2 5.5,5.5" />
+  </svg>
+);
+const IcoCheck = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="1.5,7 5,10.5 11.5,3" />
+  </svg>
+);
+const IcoAlert = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6.5,1.5 L11.5,10.5 L1.5,10.5 Z" /><line x1="6.5" y1="5.5" x2="6.5" y2="7.5" /><circle cx="6.5" cy="9" r="0.5" fill="currentColor" />
+  </svg>
+);
+const IcoTrend = ({ up }: { up: boolean }) => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={up ? T.green2 : T.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {up
+      ? <><polyline points="1,9 5,5 8,7 12,3" /><polyline points="9,3 12,3 12,6" /></>
+      : <><polyline points="1,3 5,7 8,5 12,9" /><polyline points="9,9 12,9 12,6" /></>
+    }
+  </svg>
+);
+const IcoMsg = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1,1 h12 a1,1 0 0 1 1,1 v7 a1,1 0 0 1,-1,1 H4 L1,13 V2 a1,1 0 0 1,1,-1z" />
+  </svg>
+);
+const IcoPhone = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1,1 h3 l1.5,3.5 -1.5,1.5 a9,9 0 0 0 3.5,3.5 l1.5,-1.5 L12.5,9.5 v2.5 a1,1 0 0 1,-1,1 C5.5,13 1,8 1,2 a1,1 0 0 1,1,-1z" />
+  </svg>
+);
+const IcoBook = () => (
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4,5 h8 a3,3 0 0 1 3,3 v13 a3,3 0 0 0,-3,-3 H4 Z" /><path d="M24,5 h-8 a3,3 0 0 0,-3,3 v13 a3,3 0 0 1,3,-3 H24 Z" />
+  </svg>
+);
 
 export default function StudentProfile({ student, onBack }: StudentProfileProps) {
   const { teacherData } = useAuth();
@@ -73,15 +145,15 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
         const acts = sorted.slice(0, 3).map((s: any, i: number) => ({
           type: 'test',
           title: `Scored ${s.percentage?.toFixed(0) || 0}% in ${s.testName || 'Assessment'}`,
-          subtitle: `${s.subject || s.testName || 'Test'} • ${
+          subtitle: `${s.subject || s.testName || 'Test'} · ${
             s.timestamp
               ? formatTimeAgo(new Date(s.timestamp.seconds * 1000))
               : 'Recently'
           }`,
-          dotColor: i === 0 ? 'bg-green-400' : i === 1 ? 'bg-blue-400' : 'bg-yellow-400',
+          dotColor: i === 0 ? T.green2 : i === 1 ? T.blue : T.amber,
         }));
         if (acts.length === 0)
-          acts.push({ type: 'info', title: 'Academic log started', subtitle: 'No recent activity', dotColor: 'bg-slate-300' });
+          acts.push({ type: 'info', title: 'Academic log started', subtitle: 'No recent activity', dotColor: T.ink2 });
         setRecentActivity(acts);
 
         // Concept mastery
@@ -185,7 +257,6 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
         timestamp: serverTimestamp(),
       });
       setFeedbackContent('');
-      alert('Feedback saved!');
     } catch (e) { console.error(e); }
     finally { setIsSubmitting(false); }
   };
@@ -234,7 +305,6 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
 
       setPositiveNote('');
       setImprovementNote('');
-      alert('Behaviour note sent to Parent Dashboard!');
     } catch (e) { console.error(e); }
     finally { setIsSubmittingBehaviour(false); }
   };
@@ -249,11 +319,8 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
     return Number((recentAvg - previousAvg).toFixed(1));
   })();
 
-  const getBarColor = (score: number) =>
-    score >= 88 ? 'bg-emerald-500' : 'bg-[#1e3a8a]';
-
-  const getConceptColor = (score: number) =>
-    score >= 90 ? 'text-emerald-500' : score >= 80 ? 'text-amber-500' : score >= 70 ? 'text-orange-500' : 'text-red-500';
+  const scoreBarColor = (score: number) =>
+    score >= 75 ? T.green2 : score >= 50 ? T.amber : T.red;
 
   const isAtRisk = avgPct < 50 || attPct < 75;
 
@@ -299,523 +366,625 @@ export default function StudentProfile({ student, onBack }: StudentProfileProps)
     }));
   })();
 
+  const av = avStyle(student.name || '');
+  const initials = getInitials(student.name || '');
+  const conceptColor = (score: number) =>
+    score >= 90 ? T.green2 : score >= 75 ? T.amber : T.red;
+
+  // ─── Input style ──────────────────────────────────────────────────────────
+  const inp = {
+    width: '100%', padding: '11px 12px', borderRadius: 12,
+    border: `1px solid ${T.bdr}`, background: T.s1,
+    fontSize: 13, color: T.ink1, fontFamily: 'inherit', outline: 'none',
+    resize: 'none' as const, lineHeight: 1.5,
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="animate-in fade-in duration-300 text-left pb-20">
+    <div style={{ fontFamily: 'inherit', minHeight: '100vh', background: T.s1 }} className="text-left pb-24">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#1e3a8a] hover:border-[#1e3a8a] transition-colors shadow-sm"
-          >
-            <ChevronLeft size={18} />
-          </button>
+      {/* ── Dark Hero Header ──────────────────────────────────────────────── */}
+      <div
+        style={{ background: T.ink0 }}
+        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-[22px] pb-6"
+      >
+        {/* Back link */}
+        <button
+          onClick={onBack}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 500,
+            fontFamily: 'inherit', padding: '14px 0 10px 0',
+          }}
+        >
+          <IcoChevronLeft />
+          All students
+        </button>
 
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="w-12 h-12 rounded-xl bg-[#1e3a8a] flex items-center justify-center text-white text-sm font-bold shadow-md select-none">
-              {student.initials || student.name?.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mb-0.5">
-                Student Profile
-              </p>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">{student.name}</h1>
-              <p className="text-sm text-slate-500">
-                Class {student.className}
-                {student.rollNo ? ` • Roll: ${student.rollNo}` : ''}
-                {student.email ? ` • ${student.email}` : ''}
-              </p>
-            </div>
+        {/* Avatar + name row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14,
+            background: av.bg, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontWeight: 700, fontSize: 18,
+            color: av.color, flexShrink: 0, letterSpacing: '-0.5px',
+          }}>
+            {initials}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.30)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
+              Student profile
+            </p>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: '#fff', letterSpacing: '-0.3px', lineHeight: 1.2, marginBottom: 4 }}>
+              {student.name}
+            </h1>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+              {[
+                student.className && `Class ${student.className}`,
+                student.rollNo && `Roll ${student.rollNo}`,
+                student.email,
+              ].filter(Boolean).join(' · ')}
+            </p>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4 md:mt-0">
-          <button className="h-9 px-5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:border-slate-300 transition-colors shadow-sm flex items-center gap-2">
-            <MessageSquare size={14} />
+        {/* Hero action buttons */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{
+            flex: 1, padding: '9px 14px', borderRadius: 11,
+            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.07)',
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            <IcoMsg />
             Message
           </button>
-          <button className="h-9 px-5 rounded-lg bg-[#1e3a8a] text-white text-sm font-medium hover:bg-[#1e40af] transition-colors shadow-sm flex items-center gap-2">
-            <Phone size={14} />
-            Contact Parent
+          <button style={{
+            flex: 1, padding: '9px 14px', borderRadius: 11,
+            background: T.blue, border: 'none',
+            color: '#fff', fontSize: 12, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            <IcoPhone />
+            Contact parent
           </button>
         </div>
       </div>
 
-      {/* ── TABS ── */}
-      <div className="flex gap-0 border-b border-slate-200 mb-6 overflow-x-auto">
-        {tabs.map(t => (
+      {/* ── Scrollable tab bar ────────────────────────────────────────────── */}
+      <div style={{
+        background: T.s0, borderBottom: `1px solid ${T.bdr}`,
+        overflowX: 'auto', display: 'flex', gap: 0,
+        scrollbarWidth: 'none',
+      }}
+        className="-mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8"
+      >
+        {tabs.map(tab => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`px-4 pb-3 pt-1 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px ${
-              activeTab === t
-                ? 'text-[#1e3a8a] border-[#1e3a8a]'
-                : 'text-slate-500 border-transparent hover:text-slate-700'
-            }`}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: '13px 14px 11px',
+              fontSize: 12, fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? T.ink0 : T.ink2,
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
+              borderBottom: activeTab === tab ? `2px solid ${T.ink0}` : '2px solid transparent',
+              transition: 'color 0.15s',
+            }}
           >
-            {t}
+            {tab}
           </button>
         ))}
       </div>
 
-      {/* ── OVERVIEW TAB ── */}
-      {activeTab === 'Overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* ── Tab content ───────────────────────────────────────────────────── */}
+      <div className="px-0 sm:px-0 md:px-0 pt-4 flex flex-col gap-3">
 
-          {/* Left Column */}
-          <div className="lg:col-span-4 space-y-4">
-
-            {/* Personal Information */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Personal Information</h3>
-              <div className="space-y-3">
-                <InfoRow label="Full Name"      value={student.name} />
-                <InfoRow label="Roll Number"    value={student.rollNo || '—'} />
-                <InfoRow label="Class"          value={student.className || '—'} />
-                <InfoRow
-                  label="Date of Birth"
-                  value={masterProfile?.dob
-                    ? formatDOB(masterProfile.dob)
-                    : '—'}
-                />
-                <InfoRow
-                  label="Parent Contact"
-                  value={masterProfile?.parentPhone || masterProfile?.contact || '—'}
-                />
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Quick Stats</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <StatBox value={`${attPct.toFixed(0)}%`} label="Attendance"   color="text-emerald-500" />
-                <StatBox value={avgPct > 0 ? `${avgPct.toFixed(1)}%` : 'N/A'} label="Avg. Score" color="text-[#1e3a8a]" />
-                <StatBox
-                  value={submissionPct != null ? `${submissionPct}%` : 'N/A'}
-                  label="Submission"
-                  color="text-[#1e3a8a]"
-                />
-                <StatBox value={String(allTests.length)} label="Tests Taken" color="text-slate-700" />
-              </div>
-            </div>
-          </div>
-
-          {/* Middle Column — Academic Performance */}
-          <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <div className="flex items-start justify-between mb-1">
-              <h3 className="text-sm font-semibold text-slate-800">Academic Performance</h3>
-            </div>
-            <p className="text-xs text-slate-400 mb-5">Last {recentTests.length} assessments</p>
-
-            {loading ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-              </div>
-            ) : recentTests.length > 0 ? (
-              <div className="space-y-4">
-                {recentTests.map((t, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-sm text-slate-600 truncate max-w-[70%]">{t.testName || `Test ${i + 1}`}</span>
-                      <span className="text-sm font-semibold text-slate-800">{t.percentage?.toFixed(0) || 0}%</span>
-                    </div>
-                    <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${getBarColor(t.percentage || 0)} rounded-full transition-all duration-700`}
-                        style={{ width: `${t.percentage || 0}%` }}
-                      />
-                    </div>
+        {/* ══ OVERVIEW TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'Overview' && (
+          <>
+            {/* Quick stats 2×2 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Attendance', value: `${attPct.toFixed(0)}%`, color: attPct >= 85 ? T.green2 : attPct >= 75 ? T.amber : T.red, pct: attPct },
+                { label: 'Avg. Score', value: avgPct > 0 ? `${avgPct.toFixed(1)}%` : 'N/A', color: avgPct >= 75 ? T.green2 : avgPct >= 50 ? T.amber : T.red, pct: avgPct },
+                { label: 'Submission', value: submissionPct != null ? `${submissionPct}%` : 'N/A', color: T.blue, pct: submissionPct ?? 0 },
+                { label: 'Tests Taken', value: String(allTests.length), color: T.purple, pct: null },
+              ].map((m, i) => (
+                <div key={i} style={{
+                  background: T.s0, border: `1px solid ${T.bdr}`,
+                  borderRadius: 16, padding: '14px 13px',
+                }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: m.color, letterSpacing: '-0.5px', lineHeight: 1, marginBottom: 4 }}>
+                    {m.value}
                   </div>
-                ))}
-
-                {/* Overall Trend */}
-                {overallTrend !== null && (
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-2">
-                    <span className="text-sm text-slate-500">Overall Trend</span>
-                    <span className={`text-sm font-semibold flex items-center gap-1 ${overallTrend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {overallTrend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                      {overallTrend >= 0 ? '+' : ''}{overallTrend}%
-                    </span>
+                  <div style={{ fontSize: 10, color: T.ink2, fontWeight: 500, marginBottom: m.pct !== null ? 8 : 0 }}>
+                    {m.label}
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-slate-300">
-                <BookOpen size={36} className="mb-2" />
-                <p className="text-xs">No test records yet</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-3 space-y-4">
-
-            {/* Recent Activity */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                {recentActivity.map((act, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${act.dotColor}`} />
-                    <div>
-                      <p className="text-sm text-slate-700 font-medium leading-snug">{act.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{act.subtitle}</p>
+                  {m.pct !== null && (
+                    <div style={{ height: 3, background: T.s2, borderRadius: 99 }}>
+                      <div style={{ height: 3, width: `${Math.min(100, m.pct)}%`, background: m.color, borderRadius: 99, transition: 'width 0.7s' }} />
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
 
-            {/* Concept Mastery */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Concept Mastery</h3>
-              {conceptMastery.length > 0 ? (
-                <>
-                  <div className="space-y-2.5">
-                    {conceptMastery.map((c, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">{c.name}</span>
-                        <span className={`text-sm font-semibold ${getConceptColor(c.score)}`}>{c.score}%</span>
+            {/* Personal info card */}
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden' }}>
+              <div style={{ padding: '13px 14px 10px', borderBottom: `1px solid ${T.s2}` }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  Personal info
+                </div>
+              </div>
+              {[
+                { label: 'Full name', value: student.name },
+                { label: 'Roll number', value: student.rollNo || '—' },
+                { label: 'Class', value: student.className || '—' },
+                { label: 'Date of birth', value: masterProfile?.dob ? formatDOB(masterProfile.dob) : '—' },
+                { label: 'Parent contact', value: masterProfile?.parentPhone || masterProfile?.contact || '—' },
+                { label: 'Email', value: student.email || '—' },
+              ].map((row, i, arr) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '11px 14px',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${T.s2}` : 'none',
+                }}>
+                  <span style={{ fontSize: 12, color: T.ink2 }}>{row.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: T.ink1, textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Academic performance card */}
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  Academic performance
+                </div>
+                <span style={{ fontSize: 10, color: T.ink2 }}>Last {recentTests.length} tests</span>
+              </div>
+              {loading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80 }}>
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: T.ink2 }} />
+                </div>
+              ) : recentTests.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {recentTests.map((t, i) => (
+                    <div key={i}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, color: T.ink1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                          {t.testName || `Test ${i + 1}`}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: scoreBarColor(t.percentage || 0) }}>
+                          {t.percentage?.toFixed(0) || 0}%
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('Concepts')}
-                    className="w-full mt-4 h-8 rounded-lg border border-slate-200 text-xs font-medium text-[#1e3a8a] hover:bg-blue-50 transition-colors"
-                  >
-                    View Full Analysis
-                  </button>
-                </>
+                      <div style={{ height: 4, background: T.s2, borderRadius: 99 }}>
+                        <div style={{
+                          height: 4, width: `${t.percentage || 0}%`,
+                          background: scoreBarColor(t.percentage || 0),
+                          borderRadius: 99, transition: 'width 0.7s',
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                  {overallTrend !== null && (
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      paddingTop: 10, borderTop: `1px solid ${T.s2}`,
+                    }}>
+                      <span style={{ fontSize: 11, color: T.ink2 }}>Overall trend</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: overallTrend >= 0 ? T.green2 : T.red, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <IcoTrend up={overallTrend >= 0} />
+                        {overallTrend >= 0 ? '+' : ''}{overallTrend}%
+                      </span>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <p className="text-xs text-slate-400 text-center py-3">No concepts tracked yet</p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 80, color: T.ink2 }}>
+                  <IcoBook />
+                  <p style={{ fontSize: 11, marginTop: 6 }}>No test records yet</p>
+                </div>
               )}
             </div>
 
-            {/* Risk Alert */}
-            {isAtRisk ? (
-              <div className="bg-red-50 border border-red-100 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle size={14} className="text-red-500" />
-                  <h4 className="text-sm font-semibold text-red-700">Risk Alert</h4>
-                </div>
-                <p className="text-xs text-red-600">
-                  {avgPct < 50 ? 'Low academic performance. ' : ''}
-                  {attPct < 75 ? 'Attendance below threshold.' : ''}
+            {/* Recent activity */}
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>
+                Recent activity
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {recentActivity.map((act, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: act.dotColor, marginTop: 4, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, lineHeight: 1.4 }}>{act.title}</p>
+                      <p style={{ fontSize: 10, color: T.ink2, marginTop: 2 }}>{act.subtitle}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk / no-risk alert */}
+            <div style={{
+              background: isAtRisk ? '#FFF5F5' : '#EBFBEE',
+              border: `1px solid ${isAtRisk ? '#FFD8D8' : '#C3FAD4'}`,
+              borderRadius: 16, padding: '12px 13px',
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+            }}>
+              <div style={{ color: isAtRisk ? T.red : T.green2, marginTop: 1 }}>
+                {isAtRisk ? <IcoAlert /> : <IcoCheck />}
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: isAtRisk ? T.red : T.green2, marginBottom: 2 }}>
+                  {isAtRisk ? 'Risk alert' : 'No risk alerts'}
+                </p>
+                <p style={{ fontSize: 11, color: isAtRisk ? '#C92A2A' : '#2F9E44' }}>
+                  {isAtRisk
+                    ? [avgPct < 50 && 'Low academic performance.', attPct < 75 && 'Attendance below threshold.'].filter(Boolean).join(' ')
+                    : 'Student is performing well across all metrics.'
+                  }
                 </p>
               </div>
+            </div>
+          </>
+        )}
+
+        {/* ══ ACADEMIC TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'Academic' && (
+          <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden' }}>
+            <div style={{ padding: '13px 14px', borderBottom: `1px solid ${T.s2}` }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                All test scores
+              </div>
+            </div>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 100 }}>
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: T.ink2 }} />
+              </div>
+            ) : allTests.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {allTests.map((t, i) => (
+                  <div key={i} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 14px',
+                    borderBottom: i < allTests.length - 1 ? `1px solid ${T.s2}` : 'none',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.testName || 'Assessment'}
+                      </p>
+                      <p style={{ fontSize: 10, color: T.ink2, marginTop: 2 }}>
+                        {t.subject || '—'} · {t.timestamp ? new Date(t.timestamp.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                      </p>
+                    </div>
+                    <div style={{
+                      fontSize: 13, fontWeight: 700,
+                      color: scoreBarColor(t.percentage || 0),
+                      marginLeft: 12, flexShrink: 0,
+                    }}>
+                      {t.percentage?.toFixed(0) || 0}%
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle size={14} className="text-emerald-500" />
-                  <h4 className="text-sm font-semibold text-emerald-700">No Risk Alerts</h4>
-                </div>
-                <p className="text-xs text-emerald-600">Student is performing well across all metrics.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 100, color: T.ink2 }}>
+                <IcoBook />
+                <p style={{ fontSize: 11, marginTop: 6 }}>No test records found</p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── ACADEMIC TAB ── */}
-      {activeTab === 'Academic' && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-800">All Test Scores</h3>
-          </div>
-          {loading ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
+        {/* ══ ATTENDANCE TAB ════════════════════════════════════════════════ */}
+        {activeTab === 'Attendance' && (
+          <>
+            <div style={{
+              background: T.s0, border: `1px solid ${T.bdr}`,
+              borderRadius: 18, padding: '20px 14px', textAlign: 'center',
+            }}>
+              <div style={{
+                fontSize: 48, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1,
+                color: attPct >= 85 ? T.green2 : attPct >= 75 ? T.amber : T.red, marginBottom: 4,
+              }}>
+                {attPct.toFixed(0)}%
+              </div>
+              <div style={{ fontSize: 12, color: T.ink2 }}>Overall attendance</div>
+              <div style={{ height: 6, background: T.s2, borderRadius: 99, margin: '14px 0 0' }}>
+                <div style={{ height: 6, width: `${attPct}%`, borderRadius: 99, transition: 'width 0.7s', background: attPct >= 85 ? T.green2 : attPct >= 75 ? T.amber : T.red }} />
+              </div>
             </div>
-          ) : allTests.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
-                <tr>
-                  <th className="text-left px-5 py-3 font-medium">Test Name</th>
-                  <th className="text-left px-5 py-3 font-medium">Subject</th>
-                  <th className="text-left px-5 py-3 font-medium">Score</th>
-                  <th className="text-left px-5 py-3 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {allTests.map((t, i) => (
-                  <tr key={i} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 text-slate-700 font-medium">{t.testName || 'Assessment'}</td>
-                    <td className="px-5 py-3 text-slate-500">{t.subject || '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`font-semibold ${(t.percentage || 0) >= 75 ? 'text-emerald-600' : (t.percentage || 0) >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {t.percentage?.toFixed(0) || 0}%
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-slate-400 text-xs">
-                      {t.timestamp ? new Date(t.timestamp.seconds * 1000).toLocaleDateString() : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-              <BookOpen size={32} className="mb-2" />
-              <p className="text-xs">No test records found</p>
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '20px 14px', textAlign: 'center', color: T.ink2, fontSize: 12 }}>
+              Detailed attendance records will appear here as data is recorded.
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
 
-      {/* ── ATTENDANCE TAB ── */}
-      {activeTab === 'Attendance' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm text-center">
-            <p className={`text-4xl font-bold mb-1 ${attPct >= 85 ? 'text-emerald-500' : attPct >= 75 ? 'text-amber-500' : 'text-red-500'}`}>
-              {attPct.toFixed(0)}%
-            </p>
-            <p className="text-sm text-slate-500">Overall Attendance</p>
-          </div>
-          <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-center text-slate-400 text-sm">
-            Detailed attendance records will appear here as data is recorded.
-          </div>
-        </div>
-      )}
-
-      {/* ── ASSIGNMENTS TAB ── */}
-      {activeTab === 'Assignments' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm text-center">
-            <p className={`text-4xl font-bold mb-1 text-[#1e3a8a]`}>
-              {submissionPct != null ? `${submissionPct}%` : 'N/A'}
-            </p>
-            <p className="text-sm text-slate-500">Submission Rate</p>
-          </div>
-          <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-center text-slate-400 text-sm">
-            Assignment submission history will appear here.
-          </div>
-        </div>
-      )}
-
-      {/* ── CONCEPTS TAB ── */}
-      {activeTab === 'Concepts' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-800 mb-5">Concept Mastery Analysis</h3>
-          {conceptMastery.length > 0 ? (
-            <div className="space-y-5">
-              {conceptMastery.map((c, i) => (
-                <div key={i}>
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-sm text-slate-700 font-medium">{c.name}</span>
-                    <span className={`text-sm font-semibold ${getConceptColor(c.score)}`}>{c.score}%</span>
-                  </div>
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        c.score >= 90 ? 'bg-emerald-500' : c.score >= 80 ? 'bg-amber-500' : c.score >= 70 ? 'bg-orange-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${c.score}%` }}
-                    />
-                  </div>
+        {/* ══ ASSIGNMENTS TAB ═══════════════════════════════════════════════ */}
+        {activeTab === 'Assignments' && (
+          <>
+            <div style={{
+              background: T.s0, border: `1px solid ${T.bdr}`,
+              borderRadius: 18, padding: '20px 14px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1, color: T.blue, marginBottom: 4 }}>
+                {submissionPct != null ? `${submissionPct}%` : 'N/A'}
+              </div>
+              <div style={{ fontSize: 12, color: T.ink2 }}>Submission rate</div>
+              {submissionPct != null && (
+                <div style={{ height: 6, background: T.s2, borderRadius: 99, margin: '14px 0 0' }}>
+                  <div style={{ height: 6, width: `${submissionPct}%`, borderRadius: 99, background: T.blue, transition: 'width 0.7s' }} />
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-slate-300">
-              <Activity size={32} className="mb-2" />
-              <p className="text-xs">No concept data available yet</p>
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '20px 14px', textAlign: 'center', color: T.ink2, fontSize: 12 }}>
+              Assignment submission history will appear here.
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
 
-      {/* ── FEEDBACK TAB ── */}
-      {activeTab === 'Feedback' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4">Write Growth Feedback</h3>
-            <textarea
-              value={feedbackContent}
-              onChange={e => setFeedbackContent(e.target.value)}
-              placeholder="Enter feedback for this student..."
-              className="w-full h-48 bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all mb-4 placeholder:text-slate-400"
-            />
-            <button
-              onClick={handleSaveFeedback}
-              disabled={isSubmitting || !feedbackContent.trim()}
-              className="w-full h-10 bg-[#1e3a8a] text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#1e40af] disabled:opacity-50 transition-colors"
-            >
-              {isSubmitting ? <Loader2 size={15} className="animate-spin" /> : <Star size={15} />}
-              Send Feedback
-            </button>
+        {/* ══ CONCEPTS TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'Concepts' && (
+          <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 14 }}>
+              Concept mastery
+            </div>
+            {conceptMastery.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {conceptMastery.map((c, i) => (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: T.ink1, fontWeight: 500 }}>{c.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: conceptColor(c.score) }}>{c.score}%</span>
+                    </div>
+                    <div style={{ height: 5, background: T.s2, borderRadius: 99 }}>
+                      <div style={{ height: 5, width: `${c.score}%`, borderRadius: 99, background: conceptColor(c.score), transition: 'width 0.7s' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 80, color: T.ink2 }}>
+                <IcoBook />
+                <p style={{ fontSize: 11, marginTop: 6 }}>No concept data available yet</p>
+              </div>
+            )}
           </div>
+        )}
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4">Past Feedback</h3>
-            <div className="space-y-3 max-h-72 overflow-y-auto">
+        {/* ══ FEEDBACK TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'Feedback' && (
+          <>
+            {/* Write feedback */}
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                Write feedback
+              </div>
+              <textarea
+                value={feedbackContent}
+                onChange={e => setFeedbackContent(e.target.value)}
+                placeholder="Enter growth feedback for this student..."
+                rows={4}
+                style={inp}
+              />
+              <button
+                onClick={handleSaveFeedback}
+                disabled={isSubmitting || !feedbackContent.trim()}
+                style={{
+                  padding: '11px 14px', borderRadius: 12, background: T.green2, border: 'none',
+                  color: '#fff', fontSize: 12, fontWeight: 600, cursor: isSubmitting || !feedbackContent.trim() ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', opacity: isSubmitting || !feedbackContent.trim() ? 0.6 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <IcoCheck />}
+                Send feedback
+              </button>
+            </div>
+
+            {/* Past feedbacks */}
+            <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden' }}>
+              <div style={{ padding: '13px 14px', borderBottom: `1px solid ${T.s2}` }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  Past feedback
+                </div>
+              </div>
               {pastFeedbacks.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">No past feedback yet</p>
-              ) : pastFeedbacks.map((fb, i) => (
-                <div key={i} className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-                  <p className="text-sm text-slate-700 leading-relaxed mb-2">"{fb.content}"</p>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>{fb.subject} • {fb.teacherName}</span>
-                    <span>{fb.timestamp?.toDate ? fb.timestamp.toDate().toLocaleDateString() : 'Syncing...'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── BEHAVIOUR TAB ── */}
-      {activeTab === 'Behaviour' && (() => {
-        const pNotes = pastBehaviours.filter(b => b.category === 'positive');
-        const iNotes = pastBehaviours.filter(b => b.category === 'improvement');
-        const calcRating = pastBehaviours.length === 0
-          ? 5.0
-          : Math.min(5, Math.max(1, 5 - iNotes.length * 0.3 + pNotes.length * 0.1));
-        const finalRating = manualRating || calcRating;
-
-        return (
-          <div className="space-y-5">
-            {/* Rating */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <Star size={18} className="text-amber-400" fill="currentColor" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Behaviour Rating</p>
-                  <p className="text-xs text-slate-400">{manualRating ? 'Manual override active' : 'Auto-calculated'}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => setManualRating(star)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                      finalRating >= star
-                        ? 'bg-amber-400 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Star size={16} fill={finalRating >= star ? 'currentColor' : 'none'} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Notes inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <Trophy size={15} className="text-emerald-500" />
-                  <p className="text-sm font-semibold text-slate-700">Positive Highlights</p>
-                </div>
-                <textarea
-                  value={positiveNote}
-                  onChange={e => setPositiveNote(e.target.value)}
-                  placeholder="e.g. Highly engaged in group project..."
-                  className="w-full h-36 bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 transition-all placeholder:text-slate-400"
-                />
-              </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle size={15} className="text-amber-500" />
-                  <p className="text-sm font-semibold text-slate-700">Areas for Improvement</p>
-                </div>
-                <textarea
-                  value={improvementNote}
-                  onChange={e => setImprovementNote(e.target.value)}
-                  placeholder="e.g. Needs more focus during labs..."
-                  className="w-full h-36 bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={handleSaveBehaviour}
-              disabled={isSubmittingBehaviour || (!positiveNote.trim() && !improvementNote.trim())}
-              className="w-full h-10 bg-slate-800 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-900 disabled:opacity-50 transition-colors"
-            >
-              {isSubmittingBehaviour ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-              Send to Parent Dashboard
-            </button>
-
-            {/* Behaviour Chart */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Behaviour Trend</h3>
-              <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={behaviourChartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="bGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                    <YAxis domain={[1, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                    />
-                    <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2.5} fill="url(#bGrad)" dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Behaviour history */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-800 mb-4">Behaviour History</h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {pastBehaviours.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">No notes yet</p>
-                ) : pastBehaviours.map((b, i) => {
-                  const isNeg = b.category === 'improvement';
-                  return (
-                    <div key={i} className={`flex gap-3 items-start p-3 rounded-lg ${isNeg ? 'bg-amber-50 border border-amber-100' : 'bg-emerald-50 border border-emerald-100'}`}>
-                      <div className={`mt-0.5 ${isNeg ? 'text-amber-500' : 'text-emerald-500'}`}>
-                        {isNeg ? <AlertTriangle size={14} /> : <Trophy size={14} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-700 leading-relaxed">"{b.content}"</p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString() : 'Syncing...'}
-                        </p>
+                <div style={{ textAlign: 'center', padding: '28px 14px', color: T.ink2, fontSize: 12 }}>No past feedback yet</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {pastFeedbacks.map((fb, i) => (
+                    <div key={i} style={{
+                      padding: '12px 14px',
+                      borderBottom: i < pastFeedbacks.length - 1 ? `1px solid ${T.s2}` : 'none',
+                    }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: T.green2, marginTop: 4, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 12, color: T.ink1, lineHeight: 1.55, marginBottom: 4 }}>"{fb.content}"</p>
+                          <p style={{ fontSize: 10, color: T.ink2 }}>
+                            {fb.subject} · {fb.teacherName} · {fb.timestamp?.toDate ? fb.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : 'Syncing...'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        );
-      })()}
+          </>
+        )}
 
-    </div>
-  );
-}
+        {/* ══ BEHAVIOUR TAB ═════════════════════════════════════════════════ */}
+        {activeTab === 'Behaviour' && (() => {
+          const pNotes = pastBehaviours.filter(b => b.category === 'positive');
+          const iNotes = pastBehaviours.filter(b => b.category === 'improvement');
+          const calcRating = pastBehaviours.length === 0
+            ? 5.0
+            : Math.min(5, Math.max(1, 5 - iNotes.length * 0.3 + pNotes.length * 0.1));
+          const finalRating = manualRating || calcRating;
 
-// ─── Helper Components ────────────────────────────────────────────────────────
+          return (
+            <>
+              {/* Behaviour rating */}
+              <div style={{
+                background: T.s0, border: `1px solid ${T.bdr}`,
+                borderRadius: 18, padding: '14px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+              }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
+                    Behaviour rating
+                  </div>
+                  <div style={{ fontSize: 11, color: T.ink2 }}>{manualRating ? 'Manual override active' : 'Auto-calculated'}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setManualRating(star)}
+                      style={{
+                        width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: finalRating >= star ? T.amber : T.s2,
+                        color: finalRating >= star ? '#fff' : T.ink2,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <IcoStar filled={finalRating >= star} />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-function InfoRow({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-sm font-semibold text-slate-800 text-right">{value}</span>
-    </div>
-  );
-}
+              {/* Notes */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Positive highlights */}
+                <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.green2 }} />
+                    <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                      Positive highlights
+                    </div>
+                  </div>
+                  <textarea
+                    value={positiveNote}
+                    onChange={e => setPositiveNote(e.target.value)}
+                    placeholder="e.g. Highly engaged in group project..."
+                    rows={3}
+                    style={inp}
+                  />
+                </div>
 
-function StatBox({ value, label, color }: { value: string; label: string; color: string }) {
-  return (
-    <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-      <p className={`text-2xl font-bold ${color} leading-none mb-1`}>{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+                {/* Areas for improvement */}
+                <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.amber }} />
+                    <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                      Areas for improvement
+                    </div>
+                  </div>
+                  <textarea
+                    value={improvementNote}
+                    onChange={e => setImprovementNote(e.target.value)}
+                    placeholder="e.g. Needs more focus during labs..."
+                    rows={3}
+                    style={inp}
+                  />
+                </div>
+              </div>
+
+              {/* Send to parent button */}
+              <button
+                onClick={handleSaveBehaviour}
+                disabled={isSubmittingBehaviour || (!positiveNote.trim() && !improvementNote.trim())}
+                style={{
+                  width: '100%', padding: '13px 14px', borderRadius: 13, background: T.ink0, border: 'none',
+                  color: '#fff', fontSize: 12, fontWeight: 600, cursor: isSubmittingBehaviour || (!positiveNote.trim() && !improvementNote.trim()) ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', opacity: isSubmittingBehaviour || (!positiveNote.trim() && !improvementNote.trim()) ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {isSubmittingBehaviour ? <Loader2 className="w-3 h-3 animate-spin" /> : <IcoCheck />}
+                Send to parent dashboard
+              </button>
+
+              {/* Behaviour trend chart */}
+              <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: '14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12 }}>
+                  Behaviour trend
+                </div>
+                <div style={{ height: 180 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={behaviourChartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="bGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={T.purple} stopOpacity={0.25} />
+                          <stop offset="95%" stopColor={T.purple} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.s2} />
+                      <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: T.ink2 }} />
+                      <YAxis domain={[1, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: T.ink2 }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 10, border: `1px solid ${T.bdr}`, fontSize: 11, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                      />
+                      <Area type="monotone" dataKey="score" stroke={T.purple} strokeWidth={2.5} fill="url(#bGrad)" dot={{ r: 3.5, fill: T.purple, strokeWidth: 2, stroke: '#fff' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Behaviour history */}
+              <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden' }}>
+                <div style={{ padding: '13px 14px', borderBottom: `1px solid ${T.s2}` }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                    Behaviour history
+                  </div>
+                </div>
+                {pastBehaviours.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px 14px', color: T.ink2, fontSize: 12 }}>No notes yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {pastBehaviours.map((b, i) => {
+                      const isNeg = b.category === 'improvement';
+                      return (
+                        <div key={i} style={{
+                          padding: '12px 14px',
+                          borderBottom: i < pastBehaviours.length - 1 ? `1px solid ${T.s2}` : 'none',
+                          background: isNeg ? T.amberL : T.greenL,
+                        }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: isNeg ? T.amber : T.green2, marginTop: 4, flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 12, color: T.ink1, lineHeight: 1.5, marginBottom: 3 }}>"{b.content}"</p>
+                              <p style={{ fontSize: 10, color: T.ink2 }}>
+                                {b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : 'Syncing...'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
+
+      </div>
     </div>
   );
 }

@@ -229,7 +229,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
           <div className="overflow-x-auto text-left">
              <table className="w-full text-left">
                 <thead>

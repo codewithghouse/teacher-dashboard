@@ -256,9 +256,7 @@ const ConceptMastery = () => {
     <div className="animate-in fade-in duration-500 pb-20">
 
       {/* Header */}
-      <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="mb-6">        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Concept Mastery</h1>
             <p className="text-sm text-slate-400 mt-1">Track student understanding across all assessed concepts.</p>

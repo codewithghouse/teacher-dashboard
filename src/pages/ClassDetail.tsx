@@ -311,7 +311,7 @@ const ClassDetail = () => {
           { label: "Avg. Score", value: stats.avgScore, color: "bg-blue-100" },
           { label: "At Risk", value: stats.atRiskCount, color: "bg-rose-100" },
         ].map(card => (
-          <div key={card.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div key={card.label} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${card.color}`} />
             <div>
               <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{card.value}</p>
@@ -323,7 +323,7 @@ const ClassDetail = () => {
 
       {/* Students Tab Content */}
       {activeTab === "Students" && (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           {/* Table Header */}
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-800">Student List</h2>
@@ -470,7 +470,7 @@ const ClassDetail = () => {
 
       {/* Other Tabs — Placeholder */}
       {activeTab !== "Students" && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-sm font-semibold shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 text-sm font-semibold shadow-sm">
           {activeTab} view — coming soon
         </div>
       )}

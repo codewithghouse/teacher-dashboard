@@ -23,7 +23,7 @@ const Login = () => {
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-[#1e3a8a] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-900/20 rotate-3 hover:rotate-0 transition-transform duration-500">
+          <div className="w-20 h-20 bg-[#1e3272] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-900/20 rotate-3 hover:rotate-0 transition-transform duration-500">
             <GraduationCap className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-black text-[#1e294b] tracking-tight mb-2">EduIntellect</h1>
@@ -51,7 +51,7 @@ const Login = () => {
             className="w-full h-16 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center gap-4 hover:bg-slate-50 hover:border-slate-200 transition-all duration-300 group disabled:opacity-50"
           >
             {isLoggingIn ? (
-              <Loader2 className="w-6 h-6 text-[#1e3a8a] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[#1e3272] animate-spin" />
             ) : (
               <>
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />

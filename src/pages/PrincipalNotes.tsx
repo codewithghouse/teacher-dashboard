@@ -118,7 +118,7 @@ const PrincipalNotes = () => {
       {/* Chat */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-2 bg-[#1e3a8a] shrink-0">
+        <div className="flex items-center gap-3 px-4 py-2 bg-[#1e3272] shrink-0">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
             <School className="w-5 h-5 text-white" />
           </div>
@@ -154,13 +154,13 @@ const PrincipalNotes = () => {
                 return (
                   <div key={n.id} className={`flex mb-1 ${isTeacher ? "justify-end" : "justify-start"}`}>
                     {!isTeacher && (
-                      <div className="w-7 h-7 rounded-full bg-[#1e3a8a] flex items-center justify-center text-white text-[10px] font-bold mr-1 mt-1 shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-[#1e3272] flex items-center justify-center text-white text-[10px] font-bold mr-1 mt-1 shrink-0">
                         {principalName.substring(0, 1).toUpperCase()}
                       </div>
                     )}
                     <div className={`max-w-[70%] px-3 py-2 shadow-sm ${isTeacher ? "bubble-sent bg-[#d9fdd3]" : "bubble-recv bg-white"}`}>
                       {!isTeacher && (
-                        <p className="text-[11px] font-semibold text-[#1e3a8a] mb-1">{principalName}</p>
+                        <p className="text-[11px] font-semibold text-[#1e3272] mb-1">{principalName}</p>
                       )}
                       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{n.message}</p>
                       <div className="flex items-center justify-end gap-1 mt-1">
@@ -195,7 +195,7 @@ const PrincipalNotes = () => {
           <button
             onClick={handleSend}
             disabled={!messageContent.trim()}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${messageContent.trim() ? "bg-[#1e3a8a] text-white" : "bg-gray-300 text-gray-400"}`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${messageContent.trim() ? "bg-[#1e3272] text-white" : "bg-gray-300 text-gray-400"}`}
           >
             <Send className="w-5 h-5" />
           </button>

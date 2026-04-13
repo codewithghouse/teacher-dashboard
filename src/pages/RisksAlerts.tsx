@@ -25,13 +25,13 @@ const getAvatarColor = (name: string) => AVATAR_COLORS[(name?.charCodeAt(0) || 0
 const severityBorder = {
   Critical:          "border-l-rose-500",
   "High Priority":   "border-l-amber-400",
-  "Medium Priority": "border-l-[#1e3a8a]",
+  "Medium Priority": "border-l-[#1e3272]",
 };
 
 const severityBadge = {
   Critical:          "bg-rose-500 text-white",
   "High Priority":   "bg-amber-400 text-white",
-  "Medium Priority": "bg-[#1e3a8a] text-white",
+  "Medium Priority": "bg-[#1e3272] text-white",
 };
 
 const RisksAlerts = () => {
@@ -334,7 +334,7 @@ const RisksAlerts = () => {
       { label: "Mark Resolved",  primary: false, color: "border border-slate-200 text-slate-600 hover:bg-slate-50", onClick: () => handleResolve(a) },
     ];
     if (a.type === "Grades") return [
-      { label: "Schedule Meeting", primary: true, color: "bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white", onClick: () => fetchContact(a.studentId, a.name) },
+      { label: "Schedule Meeting", primary: true, color: "bg-[#1e3272] hover:bg-[#1e3272]/90 text-white", onClick: () => fetchContact(a.studentId, a.name) },
       { label: "View Profile",     primary: false, color: "border border-slate-200 text-slate-600 hover:bg-slate-50", onClick: () => {} },
     ];
     if (a.type === "Submissions") return [
@@ -342,11 +342,11 @@ const RisksAlerts = () => {
       { label: "Extend Deadline", primary: false, color: "border border-slate-200 text-slate-600 hover:bg-slate-50", onClick: () => {} },
     ];
     if (a.type === "Behavior") return [
-      { label: "Talk to Student", primary: true, color: "bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white", onClick: () => {} },
+      { label: "Talk to Student", primary: true, color: "bg-[#1e3272] hover:bg-[#1e3272]/90 text-white", onClick: () => {} },
       { label: "Notify Parent",   primary: false, color: "border border-slate-200 text-slate-600 hover:bg-slate-50", onClick: () => fetchContact(a.studentId, a.name) },
     ];
     return [
-      { label: "View Details",  primary: true, color: "bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white", onClick: () => {} },
+      { label: "View Details",  primary: true, color: "bg-[#1e3272] hover:bg-[#1e3272]/90 text-white", onClick: () => {} },
       { label: "Mark Resolved", primary: false, color: "border border-slate-200 text-slate-600 hover:bg-slate-50", onClick: () => handleResolve(a) },
     ];
   };
@@ -357,7 +357,7 @@ const RisksAlerts = () => {
   const stats = [
     { label: "Critical",          value: alerts.filter(a => a.severity === "Critical").length,          color: "border-rose-200 bg-rose-50",    icon: "bg-rose-500",    text: "text-rose-500" },
     { label: "High Priority",     value: alerts.filter(a => a.severity === "High Priority").length,     color: "border-amber-200 bg-amber-50",  icon: "bg-amber-400",  text: "text-amber-500" },
-    { label: "Medium Priority",   value: alerts.filter(a => a.severity === "Medium Priority").length,   color: "border-blue-200 bg-blue-50",    icon: "bg-[#1e3a8a]",  text: "text-[#1e3a8a]" },
+    { label: "Medium Priority",   value: alerts.filter(a => a.severity === "Medium Priority").length,   color: "border-blue-200 bg-blue-50",    icon: "bg-[#1e3272]",  text: "text-[#1e3272]" },
     { label: "Resolved This Week", value: resolvedCount,                                                color: "border-emerald-200 bg-emerald-50", icon: "bg-emerald-500", text: "text-emerald-600" },
   ];
 
@@ -365,9 +365,7 @@ const RisksAlerts = () => {
     <div className="animate-in fade-in duration-500 pb-20">
 
       {/* Header */}
-      <div className="mb-6">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Teacher Dashboard</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Risks &amp; Alerts</h1>
+      <div className="mb-6">        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Risks &amp; Alerts</h1>
         <p className="text-sm text-slate-400 mt-1">Monitor and respond to student concerns.</p>
       </div>
 
@@ -398,12 +396,12 @@ const RisksAlerts = () => {
                 key={t}
                 onClick={() => setActiveTab(t)}
                 className={`px-5 py-4 text-sm font-semibold whitespace-nowrap relative transition-colors ${
-                  activeTab === t ? "text-[#1e3a8a]" : "text-slate-400 hover:text-slate-700"
+                  activeTab === t ? "text-[#1e3272]" : "text-slate-400 hover:text-slate-700"
                 }`}
               >
                 {t} ({count})
                 {activeTab === t && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1e3a8a] rounded-t-full" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1e3272] rounded-t-full" />
                 )}
               </button>
             );
@@ -499,10 +497,10 @@ const RisksAlerts = () => {
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4">
                   <p className="text-xs text-slate-400 mb-1">Contact Number</p>
-                  <p className="text-lg font-bold text-[#1e3a8a]">{selectedContact.phone}</p>
+                  <p className="text-lg font-bold text-[#1e3272]">{selectedContact.phone}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="flex items-center justify-center gap-2 py-3 bg-[#1e3a8a] text-white rounded-xl text-sm font-semibold hover:bg-[#1e3a8a]/90 transition-colors">
+                  <button className="ds-btn-primary py-3 hover:bg-[#1e3272]/90 transition-colors">
                     <Phone className="w-4 h-4" /> Call
                   </button>
                   <button className="flex items-center justify-center gap-2 py-3 bg-[#25D366] text-white rounded-xl text-sm font-semibold hover:bg-[#128C7E] transition-colors">

@@ -76,63 +76,98 @@
 }
 
 @layer components {
-  .stat-card {
-    @apply bg-card rounded-xl border p-5 flex items-start justify-between;
+  /* ═══════════════════════════════════════════════════
+     EduIntellect Design System
+     Spacing unit: 4px · Grid snap: 8px increments
+     Accent: #1e3272 · Surface: white · BG: #f8fafc
+  ═══════════════════════════════════════════════════ */
+
+  /* ── Surfaces ──────────────────────────────────── */
+  .ds-card {
+    @apply bg-white border border-slate-100 rounded-2xl shadow-sm;
   }
 
-  .stat-icon {
-    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  /* ── Typography ────────────────────────────────── */
+  .ds-page-title    { @apply text-2xl font-bold text-slate-800 leading-tight; }
+  .ds-page-subtitle { @apply text-sm text-slate-500 mt-1; }
+  .ds-section-title { @apply text-sm font-semibold text-slate-700; }
+  .ds-caption       { @apply text-xs text-slate-400; }
+
+  /* ── Buttons ───────────────────────────────────── */
+  /* Primary — filled, main CTA */
+  .ds-btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap
+           bg-[#1e3272] text-white shadow-sm
+           hover:bg-[#162558]
+           active:scale-[0.97]
+           transition-all duration-150 ease-out select-none;
+  }
+  /* Secondary — outline, supporting action */
+  .ds-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap
+           bg-white text-slate-700 border border-slate-200
+           hover:bg-slate-50
+           active:scale-[0.97]
+           transition-all duration-150 ease-out select-none;
+  }
+  /* Ghost — low emphasis, tertiary */
+  .ds-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-3 py-2 rounded-xl text-sm font-semibold
+           text-slate-500
+           hover:bg-slate-100 hover:text-slate-700
+           active:scale-[0.97]
+           transition-all duration-150 ease-out select-none;
+  }
+  /* Size modifiers — layer on top of a variant */
+  .ds-btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
+  .ds-btn-lg { @apply px-5 py-3; }
+
+  /* ── Form controls ─────────────────────────────── */
+  .ds-input {
+    @apply h-10 w-full px-3 rounded-xl
+           border border-slate-200 bg-white
+           text-sm text-slate-800 placeholder:text-slate-400
+           outline-none
+           focus:ring-2 focus:ring-blue-100 focus:border-blue-300
+           transition-shadow duration-150;
+  }
+  .ds-select {
+    @apply h-10 w-full px-3 rounded-xl
+           border border-slate-200 bg-white
+           text-sm text-slate-800
+           outline-none cursor-pointer appearance-none
+           focus:ring-2 focus:ring-blue-100 focus:border-blue-300
+           transition-shadow duration-150;
   }
 
-  .stat-icon-blue {
-    @apply stat-icon bg-edu-light-blue;
+  /* ── Interactive list row ──────────────────────── */
+  .ds-list-item {
+    @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+           text-left hover:bg-slate-50 active:bg-slate-100
+           active:scale-[0.99] transition-all duration-150 ease-out;
   }
 
-  .stat-icon-yellow {
-    @apply stat-icon bg-edu-light-yellow;
+  /* ── Status badges ─────────────────────────────── */
+  .ds-badge-green  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700; }
+  .ds-badge-amber  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50  text-amber-700;   }
+  .ds-badge-rose   { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50   text-rose-700;    }
+  .ds-badge-blue   { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50   text-blue-700;    }
+  .ds-badge-slate  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600;   }
+
+  /* ── Avatar ────────────────────────────────────── */
+  .ds-avatar {
+    @apply flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold;
   }
 
-  .stat-icon-red {
-    @apply stat-icon bg-edu-light-red;
-  }
+  /* ── Divider ───────────────────────────────────── */
+  .ds-divider { @apply border-t border-slate-100; }
 
-  .stat-icon-green {
-    @apply stat-icon bg-edu-light-green;
-  }
-
-  .page-header {
-    @apply mb-6;
-  }
-
-  .page-title {
-    @apply text-2xl font-bold text-foreground;
-  }
-
-  .page-subtitle {
-    @apply text-muted-foreground mt-1;
-  }
-
-  .content-card {
-    @apply bg-card rounded-xl border p-6;
-  }
-
-  .badge-green {
-    @apply bg-edu-light-green text-edu-green text-xs font-medium px-2.5 py-0.5 rounded-full;
-  }
-
-  .badge-red {
-    @apply bg-edu-light-red text-edu-red text-xs font-medium px-2.5 py-0.5 rounded-full;
-  }
-
-  .badge-yellow {
-    @apply bg-edu-light-yellow text-edu-orange text-xs font-medium px-2.5 py-0.5 rounded-full;
-  }
-
-  .badge-blue {
-    @apply bg-edu-light-blue text-edu-blue text-xs font-medium px-2.5 py-0.5 rounded-full;
-  }
-
-  .avatar-circle {
-    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-primary-foreground;
-  }
+  /* ── Legacy aliases (backward compat) ─────────── */
+  .stat-card    { @apply ds-card p-5 flex items-start justify-between; }
+  .content-card { @apply ds-card p-6; }
+  .page-title   { @apply ds-page-title; }
+  .page-subtitle { @apply ds-page-subtitle; }
 }

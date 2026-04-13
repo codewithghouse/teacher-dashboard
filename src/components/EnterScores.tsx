@@ -254,7 +254,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
         <div className="flex items-center gap-6 mt-4 md:mt-0">
            <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-slate-400">Class Average:</span>
-              <span className="text-lg font-black text-[#1e3a8a]">{avg.toFixed(1)}/{maxScore} ({avgPct.toFixed(0)}%)</span>
+              <span className="text-lg font-black text-[#1e3272]">{avg.toFixed(1)}/{maxScore} ({avgPct.toFixed(0)}%)</span>
            </div>
            <button 
               onClick={handleSave} 
@@ -268,30 +268,30 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
 
       {/* ── STATS CARDS ── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-center">
             <h3 className="text-3xl font-black text-emerald-500 mb-1">{distrib.a}</h3>
             <p className="text-xs font-semibold text-slate-500">A Grade (80%+)</p>
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
-            <h3 className="text-3xl font-black text-[#1e3a8a] mb-1">{distrib.b}</h3>
+         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-center">
+            <h3 className="text-3xl font-black text-[#1e3272] mb-1">{distrib.b}</h3>
             <p className="text-xs font-semibold text-slate-500">B Grade (60-79%)</p>
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-center">
             <h3 className="text-3xl font-black text-amber-500 mb-1">{distrib.c}</h3>
             <p className="text-xs font-semibold text-slate-500">C Grade (40-59%)</p>
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-center">
             <h3 className="text-3xl font-black text-rose-500 mb-1">{distrib.d}</h3>
             <p className="text-xs font-semibold text-slate-500">D Grade (&lt;40%)</p>
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-center">
+         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-center">
             <h3 className="text-3xl font-black text-slate-400 mb-1">{distrib.absent}</h3>
             <p className="text-xs font-semibold text-slate-500">Absent</p>
          </div>
       </div>
 
       {/* ── STUDENT SCORES CONTAINER ── */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm text-left overflow-hidden">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm text-left overflow-hidden">
          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900 leading-tight">Student Scores</h2>
             <div className="flex items-center gap-3">
@@ -299,7 +299,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                   <input type="text" value={search} onChange={(e)=>setSearch(e.target.value)} className="w-48 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none" placeholder="Search student..." />
                </div>
-               <button onClick={handleExportExcel} className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors shadow-sm">
+               <button onClick={handleExportExcel} className="bg-[#1e3272] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors shadow-sm">
                   Export Template
                </button>
                <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
@@ -311,7 +311,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
 
          {loading ? (
             <div className="py-20 flex flex-col items-center justify-center">
-               <Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin mb-4" />
+               <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin mb-4" />
                <p className="text-sm font-medium text-slate-500">Loading roster...</p>
             </div>
          ) : (
@@ -321,7 +321,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                      const metrics = getMetrics(student.score);
 
                      return (
-                        <div key={student.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors flex flex-col items-start shadow-sm relative overflow-hidden">
+                        <div key={student.id} className="bg-white border border-slate-100 rounded-2xl p-5 hover:border-slate-300 transition-colors flex flex-col items-start shadow-sm relative overflow-hidden">
                            <div className="flex items-center gap-4 mb-4">
                               <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarColor(student.initials)}`}>
                                  {student.initials}
@@ -378,7 +378,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                      <button 
                         key={i} 
                         onClick={() => setCurrentPage(i + 1)}
-                        className={`w-9 h-9 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-[#1e3a8a] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-[#1e3272] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
                      >
                         {i + 1}
                      </button>

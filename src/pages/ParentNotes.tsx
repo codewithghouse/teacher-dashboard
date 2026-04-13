@@ -196,7 +196,7 @@ const ParentNotes = () => {
         {/* Left sidebar — student list */}
         <div className={`w-full md:w-[320px] lg:w-[360px] shrink-0 flex flex-col border-r border-gray-200 bg-white ${selectedStudent ? "hidden md:flex" : "flex"}`}>
           {/* Sidebar header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#1e3a8a] shrink-0">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#1e3272] shrink-0">
             <GraduationCap className="w-5 h-5 text-white" />
             <p className="text-white font-bold text-sm">Parent Communication</p>
           </div>
@@ -228,7 +228,7 @@ const ParentNotes = () => {
               return (
                 <button key={s.id} onClick={() => setSelectedStudent(s)}
                   className={`w-full flex items-center gap-3 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${active ? "bg-[#f0f2f5]" : ""}`}>
-                  <div className="w-12 h-12 rounded-full bg-[#1e3a8a] flex items-center justify-center text-white text-sm font-bold shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#1e3272] flex items-center justify-center text-white text-sm font-bold shrink-0">
                     {s.studentName?.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
@@ -258,7 +258,7 @@ const ParentNotes = () => {
           {selectedStudent ? (
             <>
               {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-2 bg-[#1e3a8a] shrink-0">
+              <div className="flex items-center gap-3 px-4 py-2 bg-[#1e3272] shrink-0">
                 <button onClick={() => setSelectedStudent(null)} className="md:hidden p-1 text-white">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -336,7 +336,7 @@ const ParentNotes = () => {
                 <button
                   onClick={handleSend}
                   disabled={!messageContent.trim()}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${messageContent.trim() ? "bg-[#1e3a8a] text-white" : "bg-gray-300 text-gray-400"}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${messageContent.trim() ? "bg-[#1e3272] text-white" : "bg-gray-300 text-gray-400"}`}
                 >
                   <Send className="w-5 h-5" />
                 </button>

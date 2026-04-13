@@ -61,7 +61,7 @@ const SettingsPage = () => {
   const handleSave = async () => {
     if (!teacherData?.id) return;
     setIsSaving(true);
-    
+
     try {
       const docRef = doc(db, "teachers", teacherData.id);
       const updatePayload = {
@@ -73,14 +73,14 @@ const SettingsPage = () => {
       };
 
       await updateDoc(docRef, updatePayload);
-      
+
       // No need to manually update local state; AuthContext has an onSnapshot listener
       // that will automatically detect this change and update the teacherData globally.
-      
-      toast.success("Identity Matrix Synchronized.");
+
+      toast.success("Settings saved.");
     } catch (error) {
       console.error("Settings Update Error:", error);
-      toast.error("Cloud linkage failure.");
+      toast.error("Failed to save settings.");
     } finally {
       setIsSaving(false);
     }
@@ -91,93 +91,87 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 text-left font-sans">
-      
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 px-0 sm:px-2">
+    <div className="space-y-8 text-left pb-12">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Teacher Dashboard</p>
-          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none mb-2 sm:mb-3">Settings</h1>
-          <p className="text-sm sm:text-lg font-bold text-slate-400 italic">Configure your professional profile and preferences.</p>
+          <h1 className="ds-page-title">Settings</h1>
+          <p className="ds-page-subtitle">Manage your profile, notifications, and preferences.</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => window.location.reload()}
-            className="flex-1 sm:flex-none px-4 sm:px-8 h-11 sm:h-14 bg-white border border-slate-100 rounded-2xl text-sm font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+            className="ds-btn-secondary"
           >
-            <X className="w-4 h-4"/> Reset
+            <X className="w-4 h-4" /> Reset
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex-1 sm:flex-none px-5 sm:px-10 h-11 sm:h-14 bg-[#1e3a8a] text-white rounded-2xl text-sm font-black shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50"
+            className="ds-btn-primary disabled:opacity-50"
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
-            {isSaving ? "Syncing..." : "Update Identity"}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-10">
-        
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50/50 rounded-full blur-3xl group-hover:bg-blue-100/50 transition-all" />
-          
-          <div className="flex items-center gap-5 mb-11 relative z-10">
-            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center text-[#1e3a8a] shadow-inner group-hover:rotate-6 transition-transform">
-              <User size={32} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Identity</h2>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          <div className="space-y-8 relative z-10">
-            <InputField label="Name" icon={User} value={formData.name} onChange={v => setFormData({...formData, name: v})} />
-            <InputField label="Email" icon={Mail} value={formData.email} disabled desc="System Registered Email" />
-            <InputField label="Phone" icon={Phone} value={formData.phone} onChange={v => setFormData({...formData, phone: v})} />
-            <InputField label="Primary Subject" icon={BookOpen} value={formData.subject} disabled desc="Core Academic Domain" />
+        {/* Profile */}
+        <div className="ds-card p-6 sm:p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#1e3272]">
+              <User size={18} />
+            </div>
+            <h2 className="text-base font-semibold text-slate-800">Profile</h2>
+          </div>
+          <div className="space-y-5">
+            <InputField label="Name" icon={User} value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
+            <InputField label="Email" icon={Mail} value={formData.email} disabled desc="Managed by school admin" />
+            <InputField label="Phone" icon={Phone} value={formData.phone} onChange={(v: string) => setFormData({...formData, phone: v})} />
+            <InputField label="Subject" icon={BookOpen} value={formData.subject} disabled desc="Set by school admin" />
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-50/50 rounded-full blur-3xl group-hover:bg-amber-100/50 transition-all" />
-          
-          <div className="flex items-center gap-5 mb-11 relative z-10">
-            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center text-amber-600 shadow-inner group-hover:rotate-12 transition-transform">
-              <Bell size={32} />
+        {/* Notifications */}
+        <div className="ds-card p-6 sm:p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <Bell size={18} />
             </div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Neural Alerts</h2>
+            <h2 className="text-base font-semibold text-slate-800">Notifications</h2>
           </div>
-
-          <div className="space-y-8 relative z-10">
+          <div className="space-y-5">
             <ToggleSwitch label="Assignments" desc="Submission alerts" active={notifications.assignments} onClick={() => toggleNotification('assignments')} />
             <ToggleSwitch label="Grading" desc="Deadline reminders" active={notifications.grading} onClick={() => toggleNotification('grading')} />
             <ToggleSwitch label="Attendance" desc="Threshold warnings" active={notifications.attendance} onClick={() => toggleNotification('attendance')} />
-            <ToggleSwitch label="Messages" desc="New parent queries" active={notifications.messages} onClick={() => toggleNotification('messages')} />
+            <ToggleSwitch label="Messages" desc="New parent messages" active={notifications.messages} onClick={() => toggleNotification('messages')} />
             <ToggleSwitch label="Risks" desc="Performance concerns" active={notifications.risks} onClick={() => toggleNotification('risks')} />
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl sm:rounded-[3.5rem] p-6 sm:p-10 shadow-sm relative overflow-hidden group">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-50/50 rounded-full blur-3xl group-hover:bg-emerald-100/50 transition-all" />
-          
-          <div className="flex items-center gap-5 mb-11 relative z-10">
-            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center text-emerald-600 shadow-inner group-hover:-rotate-6 transition-transform">
-              <Settings size={32} />
+        {/* Preferences */}
+        <div className="ds-card p-6 sm:p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <Settings size={18} />
             </div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Preferences</h2>
+            <h2 className="text-base font-semibold text-slate-800">Preferences</h2>
           </div>
+          <div className="space-y-5">
+            <SelectField label="Dashboard View" icon={Layout} value={preferences.defaultView} options={["Grid", "Compact"]} onChange={(v: string) => setPreferences({...preferences, defaultView: v})} />
+            <SelectField label="Grade Metric" icon={TrendingUp} value={preferences.gradeScale} options={["Percentage", "GPA"]} onChange={(v: string) => setPreferences({...preferences, gradeScale: v})} />
+            <SelectField label="Date Format" icon={Clock} value={preferences.dateFormat} options={["DD/MM/YYYY", "Relative"]} onChange={(v: string) => setPreferences({...preferences, dateFormat: v})} />
 
-          <div className="space-y-8 relative z-10">
-            <SelectField label="Dashboard View" icon={Layout} value={preferences.defaultView} options={["Grid", "Compact"]} onChange={v => setPreferences({...preferences, defaultView: v})} />
-            <SelectField label="Grade Metric" icon={TrendingUp} value={preferences.gradeScale} options={["Percentage", "GPA"]} onChange={v => setPreferences({...preferences, gradeScale: v})} />
-            <SelectField label="Date Format" icon={Clock} value={preferences.dateFormat} options={["DD/MM/YYYY", "Relative"]} onChange={v => setPreferences({...preferences, dateFormat: v})} />
-            
-            <div className="pt-6 border-t border-slate-50 mt-10">
-              <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl flex items-start gap-4 shadow-inner">
-                 <ShieldCheck className="w-6 h-6 text-[#1e3a8a] shrink-0" />
-                 <div>
-                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Central Security</p>
-                    <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-tighter italic">Credentials managed by school primary hub.</p>
-                 </div>
+            <div className="pt-4 border-t border-slate-100">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <ShieldCheck className="w-4 h-4 text-[#1e3272] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-0.5">Security</p>
+                  <p className="text-xs text-slate-400">Account credentials are managed by your school administrator.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -189,30 +183,30 @@ const SettingsPage = () => {
 };
 
 const InputField = ({ label, icon: Icon, value, onChange, disabled, desc }: any) => (
-  <div className="text-left group/field">
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 pl-1 flex items-center gap-2">
-      <Icon className="w-3.5 h-3.5 group-hover/field:text-[#1e3a8a] transition-all" /> {label}
+  <div className="text-left">
+    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+      <Icon className="w-3.5 h-3.5" /> {label}
     </label>
-    <input 
-      type="text" 
+    <input
+      type="text"
       value={value}
       onChange={e => onChange?.(e.target.value)}
       disabled={disabled}
-      className={`w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-[13px] font-black text-slate-700 outline-none transition-all shadow-inner ${disabled ? 'opacity-40 cursor-not-allowed italic' : 'focus:bg-white focus:border-[#1e3a8a] focus:ring-4 focus:ring-blue-50'}`} 
+      className={`ds-input ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     />
-    {desc && <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-2 px-1">{desc}</p>}
+    {desc && <p className="text-xs text-slate-400 mt-1">{desc}</p>}
   </div>
 );
 
 const SelectField = ({ label, icon: Icon, value, options, onChange }: any) => (
   <div className="text-left">
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 pl-1 flex items-center gap-2">
-      <Icon size={14} /> {label}
+    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+      <Icon size={13} /> {label}
     </label>
-    <select 
+    <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-[13px] font-black text-slate-700 outline-none focus:bg-white focus:border-[#1e3a8a] transition-all shadow-inner appearance-none cursor-pointer"
+      className="ds-select"
     >
       {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -220,13 +214,13 @@ const SelectField = ({ label, icon: Icon, value, options, onChange }: any) => (
 );
 
 const ToggleSwitch = ({ label, desc, active, onClick }: any) => (
-  <div className="flex items-center justify-between group/toggle" onClick={onClick}>
-    <div className="cursor-pointer">
-      <h3 className="text-sm font-black text-slate-800 mb-0.5 group-hover/toggle:text-[#1e3a8a] transition-colors">{label}</h3>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">{desc}</p>
+  <div className="flex items-center justify-between cursor-pointer" onClick={onClick}>
+    <div>
+      <p className="text-sm font-semibold text-slate-800">{label}</p>
+      <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
     </div>
-    <div className={`w-14 h-7 rounded-full relative cursor-pointer shadow-inner transition-all ${active ? 'bg-[#1e3a8a]' : 'bg-slate-200 hover:bg-slate-300'}`}>
-      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 shadow-2xl transition-all ${active ? 'right-1 scale-110' : 'left-1'}`} />
+    <div className={`w-11 h-6 rounded-full relative flex-shrink-0 transition-colors duration-150 ${active ? 'bg-[#1e3272]' : 'bg-slate-200'}`}>
+      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-all duration-150 ${active ? 'right-1' : 'left-1'}`} />
     </div>
   </div>
 );
