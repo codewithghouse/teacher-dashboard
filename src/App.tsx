@@ -18,6 +18,8 @@ import ParentNotes from "./pages/ParentNotes";
 import PrincipalNotes from "./pages/PrincipalNotes";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
+import LessonPlanGenerator from "./pages/LessonPlanGenerator";
+import SummarizeLesson from "./pages/SummarizeLesson";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
@@ -63,6 +65,8 @@ const AppRoutes = () => {
         <Route path="/principal-notes" element={<PrincipalNotes />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/lesson-planner" element={<LessonPlanGenerator />} />
+        <Route path="/summarize-lesson" element={<SummarizeLesson />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

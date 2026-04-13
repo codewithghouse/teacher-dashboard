@@ -91,7 +91,54 @@ export const AIController = {
         return { status: "success", data: result.data.data };
     } catch (error: any) {
         console.error("Individual Report AI Error:", error);
-        return { status: "success", data: { report_content: "Student is showing consistent application of concepts. Maintaining an active posture in classroom discussions and fulfilling all academic milestones." } }; // Fallback
+        return { status: "success", data: { report_content: "Student is showing consistent application of concepts. Maintaining an active posture in classroom discussions and fulfilling all academic milestones." } };
+    }
+  },
+
+  // LESSON SUMMARIZER
+  async getSummary(data: { text: string; fileName: string }): Promise<any> {
+    if (!data?.text?.trim()) return { status: "no_data", message: NO_DATA_MSG };
+    try {
+        const getInsights = httpsCallable(functions, 'getTeacherAIInsights', { timeout: 120000 });
+        const result: any = await getInsights({ type: "lesson_summary", payload: data });
+
+        console.log("[Summary] Firebase raw response:", result.data);
+
+        if (!result?.data) return { status: "error", message: "No response from AI service." };
+        if (result.data.status === "error") return { status: "error", message: result.data.message || ERROR_MSG };
+        if (!result.data.data) return { status: "error", message: "AI returned an empty summary. Please try again." };
+
+        return { status: "success", data: result.data.data };
+    } catch (error: any) {
+        console.error("Summary AI Error:", error);
+        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
+    }
+  },
+
+  // LESSON PLAN GENERATOR
+  async getLessonPlan(data: any): Promise<any> {
+    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
+    try {
+        const getInsights = httpsCallable(functions, 'getTeacherAIInsights', { timeout: 120000 });
+        const result: any = await getInsights({ type: "lesson_plan_generation", payload: data });
+
+        console.log("[LessonPlan] Firebase raw response:", result.data);
+
+        // Firebase function itself may return { status: "error" } without throwing
+        if (!result?.data) {
+            return { status: "error", message: "No response from AI service." };
+        }
+        if (result.data.status === "error") {
+            return { status: "error", message: result.data.message || ERROR_MSG };
+        }
+        if (!result.data.data) {
+            return { status: "error", message: "AI returned an empty plan. Please try again." };
+        }
+
+        return { status: "success", data: result.data.data };
+    } catch (error: any) {
+        console.error("Lesson Plan AI Error:", error);
+        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
     }
   }
 };

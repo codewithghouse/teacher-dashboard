@@ -15,7 +15,9 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  X
+  X,
+  Sparkles,
+  ScrollText
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +32,8 @@ const navItems = [
   { title: "Risks & Alerts", path: "/risks-alerts", icon: AlertTriangle },
   { title: "Parent Notes", path: "/parent-notes", icon: MessageSquare },
   { title: "Principal Notes", path: "/principal-notes", icon: School },
+  { title: "AI Lesson Planner", path: "/lesson-planner", icon: Sparkles },
+  { title: "Summarize Lesson", path: "/summarize-lesson", icon: ScrollText },
   { title: "Reports", path: "/reports", icon: BarChart3 },
   { title: "Settings", path: "/settings", icon: Settings },
 ];
