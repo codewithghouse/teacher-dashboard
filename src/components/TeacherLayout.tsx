@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import TeacherSidebar from "./TeacherSidebar";
+import MobileBottomNav from "./MobileBottomNav";
 import { useAuth } from "../lib/AuthContext";
 
 // Maps each route to a human-readable page title shown in the mobile header
@@ -40,7 +41,7 @@ const TeacherLayout = () => {
   })();
 
   // Pages where the navbar should be dark to blend with their hero header
-  const darkNavRoutes = ["/", "/my-classes", "/attendance", "/assignments", "/tests", "/students", "/gradebook", "/concept-mastery", "/risks-alerts", "/parent-notes"];
+  const darkNavRoutes = ["/", "/my-classes", "/attendance", "/assignments", "/tests", "/students", "/gradebook", "/concept-mastery", "/risks-alerts", "/parent-notes", "/principal-notes", "/lesson-planner", "/summarize-lesson"];
   const isDarkNav = darkNavRoutes.includes(basePath);
 
   return (
@@ -105,12 +106,15 @@ const TeacherLayout = () => {
           </div>
         </div>
 
-        {/* Page content */}
-        <div className={isDarkNav ? "pt-0 px-4 pb-4 sm:px-6 sm:pb-6 md:pt-8 md:px-8 md:pb-8" : "p-4 sm:p-6 md:p-8"}>
+        {/* Page content — extra bottom padding on mobile for the fixed nav bar */}
+        <div className={`${isDarkNav ? "pt-0 px-4 pb-20 sm:px-6 md:pt-8 md:px-8 md:pb-8" : "p-4 pb-20 sm:p-6 md:p-8 md:pb-8"}`}>
           <Outlet />
         </div>
 
       </main>
+
+      {/* ── Global mobile bottom navigation ── */}
+      <MobileBottomNav />
     </div>
   );
 };

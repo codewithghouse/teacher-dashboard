@@ -53,35 +53,6 @@ const getInitials = (name: string) => {
   return (p.length >= 2 ? p[0][0] + p[p.length - 1][0] : p[0].slice(0, 2)).toUpperCase();
 };
 
-// ── Bottom tab bar ────────────────────────────────────────────────────────────
-const TabBar = () => (
-  <div
-    className="md:hidden"
-    style={{
-      position: "fixed", bottom: 0, left: 0, right: 0,
-      background: T.white, borderTop: `1px solid ${T.bdr}`,
-      padding: "9px 24px 17px",
-      display: "flex", justifyContent: "space-around", zIndex: 40,
-    }}
-  >
-    {([
-      { l: "Dashboard", d: <><rect x="2" y="2" width="5" height="5" rx="1.2" /><rect x="11" y="2" width="5" height="5" rx="1.2" /><rect x="2" y="11" width="5" height="5" rx="1.2" /><rect x="11" y="11" width="5" height="5" rx="1.2" /></>, on: false },
-      { l: "Students", d: <><path d="M2 15V9L9 5l7 4v6" /><rect x="6.5" y="11" width="5" height="4" rx=".5" /></>, on: false },
-      { l: "Messages", d: <path d="M2,12.5 L16,12.5 L13.5,8.5 L16,4.5 L2,4.5 L4.5,8.5 Z" />, on: true },
-      { l: "Profile", d: <><circle cx="9" cy="7" r="3" /><path d="M3 17c0 0 1.5-4 6-4s6 4 6 4" /></>, on: false },
-    ] as const).map(ti => {
-      const c = ti.on ? T.blue : T.ink3;
-      return (
-        <div key={ti.l} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer" }}>
-          <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">{ti.d}</svg>
-          <span style={{ fontSize: 9, color: c, fontWeight: ti.on ? 500 : 400 }}>{ti.l}</span>
-          {ti.on && <div style={{ width: 13, height: 2.5, borderRadius: 2, background: T.blue }} />}
-        </div>
-      );
-    })}
-  </div>
-);
-
 // ── Main component ────────────────────────────────────────────────────────────
 const ParentNotes = () => {
   const { teacherData } = useAuth();
@@ -250,7 +221,7 @@ const ParentNotes = () => {
   // ═══════════════════════════════════════════════════════════════════════════
   function ListView() {
     return (
-      <div style={{ minHeight: "100vh", background: T.bg, paddingBottom: 88 }}>
+      <div style={{ minHeight: "100vh", background: T.bg, paddingBottom: 0 }}>
 
         {/* ── Dark hero ───────────────────────────────────────────────────── */}
         <div
@@ -443,7 +414,6 @@ const ParentNotes = () => {
           </button>
         </div>
 
-        <TabBar />
       </div>
     );
   }
@@ -623,9 +593,8 @@ const ParentNotes = () => {
         <div style={{
           background: T.white, borderTop: `1px solid ${T.bdr}`,
           padding: "10px 12px", display: "flex", alignItems: "center", gap: 8,
-          flexShrink: 0, marginBottom: 65,
+          flexShrink: 0, marginBottom: 0,
         }}
-          className="md:mb-0"
         >
           {/* Emoji button */}
           <div style={{
@@ -673,7 +642,6 @@ const ParentNotes = () => {
           </button>
         </div>
 
-        <TabBar />
       </div>
     );
   }

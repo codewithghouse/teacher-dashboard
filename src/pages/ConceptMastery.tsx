@@ -56,27 +56,6 @@ const getStudentMastery = (student: any): number | null => {
   return Math.round(nonZero.reduce((a: number, b: number) => a + b, 0) / nonZero.length);
 };
 
-// ── Tab bar ───────────────────────────────────────────────────────────────────
-const TabBar = () => (
-  <div style={{
-    position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-    background: T.s0, borderTop: `1px solid ${T.bdr}`,
-    padding: '9px 18px 17px', display: 'flex', justifyContent: 'space-between',
-  }} className="md:hidden">
-    {[
-      { label: 'Dashboard', active: false, icon: <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="11" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="11" width="5" height="5" rx="1.2"/><rect x="11" y="11" width="5" height="5" rx="1.2"/></svg> },
-      { label: 'Students',  active: false, icon: <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 15V9L9 5l7 4v6"/><rect x="6.5" y="11" width="5" height="4" rx=".5"/></svg> },
-      { label: 'Concepts',  active: true,  icon: <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,13 6,8 9,10.5 13,5 16,7"/><circle cx="6" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="13" cy="5" r="1.5" fill="currentColor" stroke="none"/></svg> },
-      { label: 'Profile',   active: false, icon: <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 17c0 0 1.5-4 6-4s6 4 6 4"/></svg> },
-    ].map(tab => (
-      <div key={tab.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
-        <div style={{ color: tab.active ? T.blue : T.ink2 }}>{tab.icon}</div>
-        <span style={{ fontSize: 9, color: tab.active ? T.blue : T.ink2, fontWeight: tab.active ? 500 : 400 }}>{tab.label}</span>
-        {tab.active && <div style={{ width: 13, height: 2.5, borderRadius: 2, background: T.blue }} />}
-      </div>
-    ))}
-  </div>
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 const ConceptMastery = () => {
@@ -581,7 +560,6 @@ const ConceptMastery = () => {
 
       </div>
 
-      <TabBar />
     </div>
   );
 };

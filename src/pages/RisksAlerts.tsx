@@ -535,7 +535,7 @@ const RisksAlerts = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, paddingBottom: 88 }}>
+    <div style={{ minHeight: "100vh", background: T.bg, paddingBottom: 0 }}>
 
       {/* ── Dark hero ───────────────────────────────────────────────────────── */}
       <div
