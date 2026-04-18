@@ -1,0 +1,91 @@
+FIRESTORE COMPOSITE INDEXES ANALYSIS
+Teacher Dashboard Application
+Analyzed: src/pages/, src/components/, src/lib/
+
+COLLECTION: attendance
+- (schoolId, classId)
+  Files: GenerateReport.tsx:109, MyClasses.tsx:87
+- (schoolId, classId, date)
+  Files: MarkAttendance.tsx:135
+- (schoolId, studentId, classId)
+  Files: ClassDetail.tsx:87
+- (schoolId, studentEmail, classId)
+  Files: ClassDetail.tsx:88
+- (teacherId, date) with RANGE [>=]
+  Files: Dashboard.tsx:179, Dashboard.tsx:246
+- (schoolId, classId, teacherId)
+  Files: MarkAttendance.tsx:187
+
+COLLECTION: teaching_assignments
+- (schoolId, teacherId)
+  Files: GenerateReport.tsx:69, ConceptMastery.tsx:94, MyClasses.tsx:46
+- (schoolId, teacherId, status)
+  Files: MyClasses.tsx:46-50
+- (schoolId, teacherId, classId)
+  Files: MarkAttendance.tsx:214, CreateAssignment.tsx:62
+
+COLLECTION: classes
+- (schoolId, teacherId)
+  Files: CreateAssignment.tsx:31, CreateTest.tsx:44, GenerateReport.tsx:70
+
+COLLECTION: enrollments
+- (schoolId, classId)
+  Files: ClassDetail.tsx:73, ParentNotes.tsx:75
+- (schoolId, teacherId)
+  Files: GenerateReport.tsx:82, ParentNotes.tsx:75, MyClasses.tsx:83
+
+COLLECTION: test_scores
+- (schoolId, testId)
+  Files: EnterScores.tsx:91
+- (schoolId, studentId)
+  Files: ClassDetail.tsx:96
+- (schoolId, studentEmail)
+  Files: ClassDetail.tsx:97
+- (schoolId, teacherId)
+  Files: MyClasses.tsx:91
+
+COLLECTION: results
+- (schoolId, classId)
+  Files: GenerateReport.tsx:111
+- (schoolId, assignmentId)
+  Files: Assignments.tsx:223
+- (schoolId, studentId)
+  Files: ClassDetail.tsx:98
+- (schoolId, studentEmail)
+  Files: ClassDetail.tsx:99
+- (schoolId, studentId, classId)
+  Files: ClassDetail.tsx:98
+- (schoolId, studentEmail, classId)
+  Files: ClassDetail.tsx:99
+
+COLLECTION: parent_notes
+- (schoolId, teacherId)
+  Files: GenerateReport.tsx:112, ParentNotes.tsx:91
+
+COLLECTION: submissions
+- (schoolId, homeworkId)
+  Files: Assignments.tsx:214, GradeAssignment.tsx:52
+- (schoolId, assignmentId)
+  Files: Assignments.tsx:215, GradeAssignment.tsx:61
+
+COLLECTION: students
+- (schoolId, studentId)
+  Files: GenerateReport.tsx:185
+
+COLLECTION: fees
+- (schoolId, studentId)
+  Files: GenerateReport.tsx:186
+
+COLLECTION: incidents
+- (schoolId, studentId)
+  Files: GenerateReport.tsx:187
+
+COLLECTION: performance_feedback
+- (schoolId, studentId)
+  Files: GenerateReport.tsx:188
+
+COLLECTION: gradebook_scores
+- (schoolId, classId)
+  Files: GenerateReport.tsx:110
+
+Total composite indexes required: 31
