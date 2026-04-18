@@ -3,6 +3,7 @@ import { getAuth } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,6 +15,18 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+if (typeof window !== "undefined" && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    console.warn("[AppCheck] init failed:", err);
+  }
+}
+
 export const auth = getAuth(app);
 // Offline persistence: caches Firestore data in IndexedDB so the app works
 // when the teacher has no internet. Multi-tab manager keeps tabs in sync.

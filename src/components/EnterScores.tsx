@@ -171,14 +171,21 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
             );
             if (idx >= 0) {
               const p = parseFloat(score);
-              if (!isNaN(p) && p <= maxScore) { copy[idx] = { ...copy[idx], score: p.toString() }; updated++; }
+              // Must be finite AND within [0, maxScore] — no negatives, no Infinity.
+              if (Number.isFinite(p) && p >= 0 && p <= maxScore) {
+                copy[idx] = { ...copy[idx], score: p.toString() };
+                updated++;
+              }
             }
           }
         });
         return copy;
       });
       toast.success(`${updated} scores imported from Excel.`);
-    } catch { toast.error("Failed to parse Excel file."); }
+    } catch (err) {
+      console.error("[EnterScores] Excel import failed:", err);
+      toast.error("Failed to parse Excel file.");
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -200,10 +207,14 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Firestore doc IDs cannot contain / \ # ? — sanitize before building.
+      const safeDocId = (s: string) =>
+        s.replace(/[/\\#?]/g, "_").slice(0, 1500);
+
       const promises = students.filter(s => s.score !== "" || s.isAbsent).map(s => {
         const pct = s.score !== "" ? (parseFloat(s.score) / maxScore) * 100 : 0;
         const g = s.score !== "" ? gradeInfo(parseFloat(s.score), maxScore) : null;
-        return setDoc(doc(db, "test_scores", `${test.id}_${s.id}`), {
+        return setDoc(doc(db, "test_scores", safeDocId(`${test.id}_${s.id}`)), {
           testId: test.id, testName: test.title,
           studentId: s.id, studentName: s.name, studentEmail: s.email,
           classId: test.classId, teacherId: teacherData?.id,
@@ -217,8 +228,10 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
       await updateDoc(doc(db, "tests", test.id), { status: "Completed", classAverage: avgPct });
       toast.success("Scores saved successfully!");
       onBack();
-    } catch { toast.error("Failed to save scores."); }
-    finally { setSaving(false); }
+    } catch (err) {
+      console.error("[EnterScores] save failed:", err);
+      toast.error("Failed to save scores.");
+    } finally { setSaving(false); }
   };
 
   // ── Pagination ──────────────────────────────────────────────────────────

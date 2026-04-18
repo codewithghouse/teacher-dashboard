@@ -67,9 +67,14 @@ const ClassDetail = () => {
 
   // Fetch students + compute metrics
   useEffect(() => {
-    if (!classId) return;
+    if (!classId || !teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId;
 
-    const q = query(collection(db, "enrollments"), where("classId", "==", classId));
+    const q = query(
+      collection(db, "enrollments"),
+      where("schoolId", "==", schoolId),
+      where("classId", "==", classId),
+    );
     const unsub = onSnapshot(q, async (snap) => {
       const roster = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
@@ -79,8 +84,8 @@ const ClassDetail = () => {
 
         // Attendance
         const attQueries = await Promise.all([
-          sid ? getDocs(query(collection(db, "attendance"), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "attendance"), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          sid ? getDocs(query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
         ]);
         const uniqueAtt = Array.from(new Map([...attQueries[0].docs, ...attQueries[1].docs].map(d => [d.id, d.data()])).values());
         const present = uniqueAtt.filter((d: any) => d.status === "present" || d.status === "late").length;
@@ -88,10 +93,10 @@ const ClassDetail = () => {
 
         // Scores — try test_scores first, fallback to results
         const scoreQueries = await Promise.all([
-          sid ? getDocs(query(collection(db, "test_scores"), where("studentId", "==", sid))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "test_scores"), where("studentEmail", "==", email))) : Promise.resolve({ docs: [] }),
-          sid ? getDocs(query(collection(db, "results"), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "results"), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          sid ? getDocs(query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("studentId", "==", sid))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("studentEmail", "==", email))) : Promise.resolve({ docs: [] }),
+          sid ? getDocs(query(collection(db, "results"), where("schoolId", "==", schoolId), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
+          email ? getDocs(query(collection(db, "results"), where("schoolId", "==", schoolId), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
         ]);
         const uniqueScores = Array.from(new Map([
           ...scoreQueries[0].docs, ...scoreQueries[1].docs,
@@ -130,7 +135,7 @@ const ClassDetail = () => {
     });
 
     return () => unsub();
-  }, [classId]);
+  }, [classId, teacherData?.schoolId]);
 
   // Save subject → update classes doc + all enrollment docs for this class
   const handleSaveSubject = async () => {
@@ -141,7 +146,11 @@ const ClassDetail = () => {
       await updateDoc(doc(db, "classes", classId), { subject: tempSubject.trim() });
 
       // 2. Batch update all enrollments for this class
-      const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("classId", "==", classId)));
+      const enrollSnap = await getDocs(query(
+        collection(db, "enrollments"),
+        where("schoolId", "==", teacherData?.schoolId),
+        where("classId", "==", classId),
+      ));
       if (enrollSnap.docs.length > 0) {
         const batch = writeBatch(db);
         enrollSnap.docs.forEach(d => batch.update(d.ref, { subject: tempSubject.trim() }));

@@ -1,32 +1,33 @@
-export interface EmailOptions {
-  to: string | string[];
-  subject: string;
-  html: string;
+/**
+ * resend.ts — client-side wrapper for /api/send-email.
+ *
+ * The teacher endpoint only accepts type: "parent_notification" with structured
+ * fields. Raw HTML is NOT accepted — the server renders the template.
+ */
+import { auth } from "./firebase";
+
+export interface ParentNotificationPayload {
+  to: string;
+  parentName: string;
+  studentName: string;
+  subject?: string;
+  message: string;
+  teacherName?: string;
 }
 
-export const sendEmail = async (options: EmailOptions) => {
-  try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(options),
-    });
-
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to send email');
-      }
-      return data;
-    } else {
-      const text = await response.text();
-      throw new Error(`Server error: ${response.status}`);
-    }
-  } catch (error: any) {
-    console.error('Email failed:', error);
-    throw error;
+export const sendParentNotificationEmail = async (p: ParentNotificationPayload) => {
+  const token = await auth.currentUser?.getIdToken();
+  const response = await fetch("/api/send-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ type: "parent_notification", ...p }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((data as any)?.error || `Failed to send email (${response.status})`);
   }
+  return data;
 };

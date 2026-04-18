@@ -38,11 +38,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (currentUser && currentUser.email) {
         try {
-          // Sync custom claims first so subsequent reads pass through Firestore rules.
-          await syncClaimsAndRefreshToken(currentUser);
+          // Sync custom claims first — the Cloud Function picks the best
+          // teacher record across schools via Admin SDK and returns schoolId.
+          // We filter by that schoolId so the client-side list query passes
+          // the `inSameSchool()` rule.
+          const synced = await syncClaimsAndRefreshToken(currentUser);
+          const claimSchoolId = synced?.schoolId || null;
 
           const email = currentUser.email.toLowerCase();
-          const q = query(collection(db, "teachers"), where("email", "==", email));
+          const q = claimSchoolId
+            ? query(
+                collection(db, "teachers"),
+                where("schoolId", "==", claimSchoolId),
+                where("email", "==", email),
+              )
+            : query(collection(db, "teachers"), where("email", "==", email));
 
           // ── Step 1: One-time fetch to verify + auto-activate ──────────────
           const snap = await getDocs(q);

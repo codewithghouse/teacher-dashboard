@@ -128,9 +128,14 @@ const Attendance = () => {
 
   // 1. Classes
   useEffect(() => {
-    if (!teacherData?.id) return;
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId;
     return onSnapshot(
-      query(collection(db, "classes"), where("teacherId", "==", teacherData.id)),
+      query(
+        collection(db, "classes"),
+        where("schoolId", "==", schoolId),
+        where("teacherId", "==", teacherData.id),
+      ),
       (snap) => {
         const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setClasses(cls);
@@ -139,28 +144,38 @@ const Attendance = () => {
         if (!cls.length) setLoading(false);
       }
     );
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId]);
 
   // 2. Enrollments
   useEffect(() => {
-    if (!classes.length) { setEnrollments([]); return; }
-    Promise.all(classes.map(c => getDocs(query(collection(db, "enrollments"), where("classId", "==", c.id)))))
+    if (!classes.length || !teacherData?.schoolId) { setEnrollments([]); return; }
+    const schoolId = teacherData.schoolId;
+    Promise.all(classes.map(c => getDocs(query(
+      collection(db, "enrollments"),
+      where("schoolId", "==", schoolId),
+      where("classId", "==", c.id),
+    ))))
       .then(snaps => {
         const all: any[] = [];
         snaps.forEach(s => s.docs.forEach(d => all.push({ id: d.id, ...d.data() })));
         setEnrollments(all);
       });
-  }, [classes]);
+  }, [classes, teacherData?.schoolId]);
 
   // 3. Attendance records
   useEffect(() => {
-    if (!teacherData?.id || !classes.length) { setRecords([]); setLoading(false); return; }
+    if (!teacherData?.id || !teacherData?.schoolId || !classes.length) { setRecords([]); setLoading(false); return; }
+    const schoolId = teacherData.schoolId;
     setLoading(true);
     return onSnapshot(
-      query(collection(db, "attendance"), where("teacherId", "==", teacherData.id)),
+      query(
+        collection(db, "attendance"),
+        where("schoolId", "==", schoolId),
+        where("teacherId", "==", teacherData.id),
+      ),
       (snap) => { setRecords(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false); }
     );
-  }, [teacherData?.id, classes.length]);
+  }, [teacherData?.id, teacherData?.schoolId, classes.length]);
 
   const todayStr = todayISO();
 

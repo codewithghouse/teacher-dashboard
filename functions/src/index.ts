@@ -1,4 +1,4 @@
-/* TEACHER DASHBOARD BACKEND - Master Insights Engine */
+/* TEACHER DASHBOARD BACKEND — Master Insights Engine (hardened) */
 import * as functions from "firebase-functions";
 import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
@@ -10,44 +10,78 @@ admin.initializeApp();
 //   firebase secrets:set OPENAI_API_KEY
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
 
+const TEACHER_ROLES = new Set(["teacher", "principal", "owner"]);
+const MAX_PAYLOAD_CHARS = 40_000;
+const MAX_LESSON_TEXT_CHARS = 12_000;
+
+function requireRole(
+  context: functions.https.CallableContext,
+  allowed: Set<string>,
+): void {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Login required.");
+  }
+  const role = (context.auth.token as any).role;
+  if (!role || !allowed.has(role)) {
+    throw new functions.https.HttpsError("permission-denied", "Teachers only.");
+  }
+}
+
+function safeJsonParse<T = any>(raw: string, label: string): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    console.error(`[${label}] JSON parse failed. Raw (first 500):`, raw.slice(0, 500));
+    throw new functions.https.HttpsError(
+      "internal",
+      "AI returned invalid JSON. Please retry.",
+    );
+  }
+}
+
 export const getTeacherAIInsights = functions
   .runWith({ secrets: [openaiApiKey], timeoutSeconds: 60, memory: "512MB" })
   .https.onCall(async (data: any, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Login required.");
+    // Auth + role gate (was auth-only, missing role check).
+    requireRole(context, TEACHER_ROLES);
+
+    const openai = new OpenAI({ apiKey: openaiApiKey.value() });
+    const { type, payload } = data || {};
+
+    // Input bounds on payload — prevent prompt-cost amplification.
+    const payloadJson = JSON.stringify(payload ?? {});
+    if (payloadJson.length > MAX_PAYLOAD_CHARS) {
+      throw new functions.https.HttpsError("invalid-argument", "payload too large.");
     }
-    try {
-        const openai = new OpenAI({ apiKey: openaiApiKey.value() });
-        const { type, payload } = data;
 
-        console.log("Teacher AI Request:", type);
+    console.log("Teacher AI Request:", type);
 
-        let systemPrompt = "You are an expert Educational AI assistant for Edullent.";
-        let userPrompt = `Context: ${JSON.stringify(payload)}`;
+    let systemPrompt = "You are an expert Educational AI assistant for Edullent.";
+    let userPrompt = `Context: ${payloadJson}`;
 
-        if (type === "assignment_creation") {
-            systemPrompt = "You are an AI Assignment Generator.";
-            userPrompt = `Generate a calibrated assignment. Return JSON: { difficulty_calibration, personalized_groups, generated_assignment { title, description } }. Context: ${JSON.stringify(payload)}`;
-        } else if (type === "assignment_grading") {
-            systemPrompt = "You are an AI Auto-Grader.";
-            userPrompt = `Analyze student submissions. Return JSON: { auto_graded_results [], plagiarism_alerts [] }. Context: ${JSON.stringify(payload)}`;
-        } else if (type === "dashboard_insights") {
-            systemPrompt = "You are an AI School Principal Advisor.";
-            userPrompt = `Provide strategic dashboard insights. Return JSON: { current_performance, critical_alerts [], growth_projections }. Context: ${JSON.stringify(payload)}`;
-        } else if (type === "class_insights") {
-            systemPrompt = "You are a Class Performance Analyst.";
-            userPrompt = `Analyze class metrics. Return JSON: { average_mastery, concept_gaps [], student_rankings [] }. Context: ${JSON.stringify(payload)}`;
-        } else if (type === "lesson_plan_generation") {
-            systemPrompt = "You are an expert curriculum designer and master teacher. Generate structured, classroom-ready lesson plans.";
-            userPrompt = `Generate a comprehensive lesson plan for:
-SUBJECT: ${payload.subject}
-GRADE: ${payload.grade}
-TOPIC: ${payload.topic}
-BOARD: ${payload.board}
-DURATION PER LESSON: ${payload.duration_per_lesson}
-NUMBER OF LESSONS: ${payload.num_lessons}
-${payload.learning_goals ? `LEARNING GOALS: ${payload.learning_goals}` : ""}
-${payload.special_considerations ? `SPECIAL CONSIDERATIONS: ${payload.special_considerations}` : ""}
+    if (type === "assignment_creation") {
+      systemPrompt = "You are an AI Assignment Generator.";
+      userPrompt = `Generate a calibrated assignment. Return JSON: { difficulty_calibration, personalized_groups, generated_assignment { title, description } }. Context: ${payloadJson}`;
+    } else if (type === "assignment_grading") {
+      systemPrompt = "You are an AI Auto-Grader.";
+      userPrompt = `Analyze student submissions. Return JSON: { auto_graded_results [], plagiarism_alerts [] }. Context: ${payloadJson}`;
+    } else if (type === "dashboard_insights") {
+      systemPrompt = "You are an AI School Principal Advisor.";
+      userPrompt = `Provide strategic dashboard insights. Return JSON: { current_performance, critical_alerts [], growth_projections }. Context: ${payloadJson}`;
+    } else if (type === "class_insights") {
+      systemPrompt = "You are a Class Performance Analyst.";
+      userPrompt = `Analyze class metrics. Return JSON: { average_mastery, concept_gaps [], student_rankings [] }. Context: ${payloadJson}`;
+    } else if (type === "lesson_plan_generation") {
+      systemPrompt = "You are an expert curriculum designer and master teacher. Generate structured, classroom-ready lesson plans.";
+      userPrompt = `Generate a comprehensive lesson plan for:
+SUBJECT: ${payload?.subject}
+GRADE: ${payload?.grade}
+TOPIC: ${payload?.topic}
+BOARD: ${payload?.board}
+DURATION PER LESSON: ${payload?.duration_per_lesson}
+NUMBER OF LESSONS: ${payload?.num_lessons}
+${payload?.learning_goals ? `LEARNING GOALS: ${payload.learning_goals}` : ""}
+${payload?.special_considerations ? `SPECIAL CONSIDERATIONS: ${payload.special_considerations}` : ""}
 
 Return JSON: {
   "plan_title": "string",
@@ -106,14 +140,14 @@ Return JSON: {
   "homework": "string",
   "teacher_reflection_prompts": ["string"]
 }
-Generate exactly ${payload.num_lessons} lesson(s). Make content specific to ${payload.topic}. Return ONLY the JSON.`;
-        }
-
-        if (type === "lesson_summary") {
-            const text = payload.text || "";
-            const truncated = text.length > 12000 ? text.substring(0, 12000) + "\n...[truncated]" : text;
-            systemPrompt = "You are an expert academic summarizer and study assistant. You extract key insights from educational documents and produce structured, exam-focused summaries.";
-            userPrompt = `Analyze the following lesson/chapter content and produce a comprehensive structured summary.
+Generate exactly ${payload?.num_lessons} lesson(s). Make content specific to ${payload?.topic}. Return ONLY the JSON.`;
+    } else if (type === "lesson_summary") {
+      const text = typeof payload?.text === "string" ? payload.text : "";
+      const truncated = text.length > MAX_LESSON_TEXT_CHARS
+        ? text.substring(0, MAX_LESSON_TEXT_CHARS) + "\n...[truncated]"
+        : text;
+      systemPrompt = "You are an expert academic summarizer and study assistant. You extract key insights from educational documents and produce structured, exam-focused summaries.";
+      userPrompt = `Analyze the following lesson/chapter content and produce a comprehensive structured summary.
 
 CONTENT:
 ${truncated}
@@ -147,28 +181,35 @@ Rules:
 - exam_important_points: 5-8 high-priority points
 - quick_revision: 8-12 ultra-short bullet points (max 10 words each)
 - Return ONLY the JSON, no markdown`;
-        }
+    }
 
-        const maxTokens = type === "lesson_plan_generation" ? 4096 : type === "lesson_summary" ? 3000 : 1024;
+    const maxTokens =
+      type === "lesson_plan_generation" ? 4096 :
+      type === "lesson_summary" ? 3000 :
+      1024;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4.1-mini",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            response_format: { type: "json_object" },
-            max_tokens: maxTokens
-        });
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: maxTokens,
+      });
 
-        const rawContent = completion.choices[0].message.content!;
-        console.log(`[${type}] finish_reason:`, completion.choices[0].finish_reason);
+      const rawContent = completion.choices[0].message.content ?? "";
+      console.log(`[${type}] finish_reason:`, completion.choices[0].finish_reason);
 
-        const output = JSON.parse(rawContent);
-        return { status: "success", data: output };
+      // Safe parse — throws HttpsError on malformed JSON instead of leaking
+      // SyntaxError details to the client.
+      const output = safeJsonParse(rawContent, `getTeacherAIInsights:${type}`);
+      return { status: "success", data: output };
 
     } catch (error: any) {
-        console.error("Teacher AI Error:", error);
-        return { status: "error", message: error.message };
+      if (error instanceof functions.https.HttpsError) throw error;
+      console.error("Teacher AI Error:", error);
+      throw new functions.https.HttpsError("internal", "AI call failed.");
     }
-});
+  });

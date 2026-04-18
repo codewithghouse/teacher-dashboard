@@ -5,9 +5,38 @@
  * Usage:
  *   const html = buildReport({ title, subtitle, sections, footer });
  *   openReportWindow(html);
+ *
+ * SECURITY (hardened 2026-04-18):
+ *   • Every user-controlled value is passed through escapeHtml() before HTML
+ *     interpolation — blocks stored XSS from Firestore data like student/
+ *     teacher/class names.
+ *   • openReportWindow uses a blob: URL with `noopener,noreferrer` so even if
+ *     somehow an XSS slipped through, the popup has an opaque origin and
+ *     CANNOT access the parent's Firebase Auth session storage.
  */
 
-// ── Color tokens (same as student profile) ───────────────────────────────────
+// ── HTML escaping ────────────────────────────────────────────────────────────
+const escapeHtml = (v: unknown): string =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!
+  ));
+
+// Only allow hex colors (#rgb, #rrggbb, #rrggbbaa) or whitelisted keywords to
+// prevent CSS-style injection via `color:red;background:url(evil.com)`.
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}){1,2}(?:[0-9a-fA-F]{2})?$/;
+const safeColor = (v: unknown, fallback: string): string => {
+  if (typeof v === "string" && HEX_COLOR_RE.test(v)) return v;
+  return fallback;
+};
+
+// Clamp a numeric value to [0, 100] for bar-width style.
+const safeBarWidth = (v: unknown): number => {
+  const n = typeof v === "number" ? v : parseFloat(String(v ?? 0));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+};
+
+// ── Color tokens (trusted constants) ─────────────────────────────────────────
 const C = {
   bg: "#f8fafc", white: "#ffffff", ink: "#0f172a", ink2: "#475569", ink3: "#94a3b8",
   bdr: "#e2e8f0", s1: "#f1f5f9", s2: "#e2e8f0",
@@ -26,30 +55,25 @@ export interface ReportStat {
 
 export interface ReportTableRow {
   cells: (string | number)[];
-  highlight?: boolean; // red/warning row
+  highlight?: boolean;
 }
 
 export interface ReportSection {
   title: string;
   type: "stats" | "table" | "bars" | "text" | "list" | "grid-stats";
-  // For stats: array of { label, value, color }
   stats?: ReportStat[];
-  // For table: headers + rows
   headers?: string[];
   rows?: ReportTableRow[];
-  // For bars: array of { label, value (0-100), color }
   bars?: { label: string; value: number; color?: string; rightLabel?: string }[];
-  // For text: paragraph
   text?: string;
-  // For list: bullet items
   items?: string[];
 }
 
 export interface ReportConfig {
   title: string;
   subtitle?: string;
-  badge?: string; // e.g. "CBSE", "Class 10B"
-  heroStats?: ReportStat[]; // top-level stats in hero
+  badge?: string;
+  heroStats?: ReportStat[];
   sections: ReportSection[];
   footer?: string;
   schoolName?: string;
@@ -132,20 +156,20 @@ const CSS = `
 
 // ── Build HTML ───────────────────────────────────────────────────────────────
 export function buildReport(config: ReportConfig): string {
-  const { title, subtitle, badge, heroStats, sections, footer, schoolName, generatedBy } = config;
+  const { title, subtitle, badge, heroStats, sections, schoolName, generatedBy } = config;
   const now = new Date().toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const heroStatsHtml = heroStats?.length ? `
     <div class="hero-stats">
       ${heroStats.map(s => `
         <div class="hero-stat">
-          <div class="val" style="color:${s.color || "#fff"}">${s.value}</div>
-          <div class="lbl">${s.label}</div>
+          <div class="val" style="color:${safeColor(s.color, "#ffffff")}">${escapeHtml(s.value)}</div>
+          <div class="lbl">${escapeHtml(s.label)}</div>
         </div>
       `).join("")}
     </div>` : "";
 
-  const badgeHtml = badge ? `<span class="badge">${badge}</span>` : "";
+  const badgeHtml = badge ? `<span class="badge">${escapeHtml(badge)}</span>` : "";
 
   const sectionsHtml = sections.map(sec => {
     let bodyHtml = "";
@@ -153,49 +177,52 @@ export function buildReport(config: ReportConfig): string {
     if (sec.type === "grid-stats" && sec.stats) {
       bodyHtml = `<div class="grid-stats">${sec.stats.map(s => `
         <div class="stat-box">
-          <div class="val" style="color:${s.color || C.blue}">${s.value}</div>
-          <div class="lbl">${s.label}</div>
+          <div class="val" style="color:${safeColor(s.color, C.blue)}">${escapeHtml(s.value)}</div>
+          <div class="lbl">${escapeHtml(s.label)}</div>
         </div>`).join("")}</div>`;
     }
 
     if (sec.type === "stats" && sec.stats) {
       bodyHtml = sec.stats.map(s => `
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid ${C.s2}">
-          <span style="color:${C.ink3};font-size:12px">${s.label}</span>
-          <span style="font-weight:600;color:${s.color || C.ink};font-size:13px">${s.value}</span>
+          <span style="color:${C.ink3};font-size:12px">${escapeHtml(s.label)}</span>
+          <span style="font-weight:600;color:${safeColor(s.color, C.ink)};font-size:13px">${escapeHtml(s.value)}</span>
         </div>`).join("");
     }
 
     if (sec.type === "table" && sec.headers && sec.rows) {
       bodyHtml = `<table>
-        <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
-        <tbody>${sec.rows.map(r => `<tr${r.highlight ? ' class="highlight"' : ""}>${r.cells.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+        <thead><tr>${sec.headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
+        <tbody>${sec.rows.map(r => `<tr${r.highlight ? ' class="highlight"' : ""}>${r.cells.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>
       </table>`;
     }
 
     if (sec.type === "bars" && sec.bars) {
       bodyHtml = sec.bars.map(b => {
-        const color = b.color || (b.value >= 75 ? C.grn : b.value >= 50 ? C.amb : C.red);
+        const width = safeBarWidth(b.value);
+        const defaultColor = width >= 75 ? C.grn : width >= 50 ? C.amb : C.red;
+        const color = safeColor(b.color, defaultColor);
+        const right = b.rightLabel != null ? escapeHtml(b.rightLabel) : `${width}%`;
         return `<div class="bar-row">
-          <span class="bar-label">${b.label}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, b.value)}%;background:${color}"></div></div>
-          <span class="bar-value" style="color:${color}">${b.rightLabel || b.value + "%"}</span>
+          <span class="bar-label">${escapeHtml(b.label)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
+          <span class="bar-value" style="color:${color}">${right}</span>
         </div>`;
       }).join("");
     }
 
     if (sec.type === "text" && sec.text) {
-      bodyHtml = `<div class="text-block">${sec.text}</div>`;
+      bodyHtml = `<div class="text-block">${escapeHtml(sec.text).replace(/\n/g, "<br>")}</div>`;
     }
 
     if (sec.type === "list" && sec.items) {
       bodyHtml = sec.items.map(item => `
-        <div class="list-item"><div class="list-dot"></div><span>${item}</span></div>
+        <div class="list-item"><div class="list-dot"></div><span>${escapeHtml(item)}</span></div>
       `).join("");
     }
 
     return `<div class="card">
-      <div class="card-header"><div class="dot" style="background:${C.blue}"></div>${sec.title}</div>
+      <div class="card-header"><div class="dot" style="background:${C.blue}"></div>${escapeHtml(sec.title)}</div>
       <div class="card-body">${bodyHtml}</div>
     </div>`;
   }).join("");
@@ -205,7 +232,7 @@ export function buildReport(config: ReportConfig): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} — Edullent Report</title>
+  <title>${escapeHtml(title)} — Edullent Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <style>${CSS}</style>
@@ -215,28 +242,37 @@ export function buildReport(config: ReportConfig): string {
 
   <div class="hero">
     ${badgeHtml}
-    <h1>${title}</h1>
-    ${subtitle ? `<div class="sub">${subtitle}</div>` : ""}
+    <h1>${escapeHtml(title)}</h1>
+    ${subtitle ? `<div class="sub">${escapeHtml(subtitle)}</div>` : ""}
     ${heroStatsHtml}
   </div>
 
   ${sectionsHtml}
 
   <div class="footer">
-    <span>★ ${schoolName || "Edullent"}</span>
-    <span>Generated: ${now}</span>
-    <span>${generatedBy ? `By: ${generatedBy}` : "Edullent Platform"}</span>
+    <span>★ ${escapeHtml(schoolName || "Edullent")}</span>
+    <span>Generated: ${escapeHtml(now)}</span>
+    <span>${generatedBy ? `By: ${escapeHtml(generatedBy)}` : "Edullent Platform"}</span>
   </div>
 </body>
 </html>`;
 }
 
 // ── Open in new window ───────────────────────────────────────────────────────
+// Uses a blob: URL — the popup has an opaque origin, so it CANNOT access the
+// parent window's Firebase Auth localStorage / IndexedDB. Even if the HTML
+// contained XSS, session tokens would still be safe.
 export function openReportWindow(html: string) {
-  const w = window.open("", "_blank");
-  if (!w) { alert("Please allow popups for report generation."); return; }
-  w.document.write(html);
-  w.document.close();
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w) {
+    URL.revokeObjectURL(url);
+    alert("Please allow popups for report generation.");
+    return;
+  }
+  // Revoke after the browser has had time to load the document.
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 // ── Quick student report builder ─────────────────────────────────────────────

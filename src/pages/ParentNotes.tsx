@@ -69,9 +69,14 @@ const ParentNotes = () => {
 
   // ── Firebase listeners ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!teacherData?.id) return;
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId;
 
-    const q1 = query(collection(db, "enrollments"), where("teacherId", "==", teacherData.id));
+    const q1 = query(
+      collection(db, "enrollments"),
+      where("schoolId", "==", schoolId),
+      where("teacherId", "==", teacherData.id),
+    );
     const unsub1 = onSnapshot(q1, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const map = new Map();
@@ -82,7 +87,11 @@ const ParentNotes = () => {
       setRoster(Array.from(map.values()));
     });
 
-    const q2 = query(collection(db, "parent_notes"), where("teacherId", "==", teacherData.id));
+    const q2 = query(
+      collection(db, "parent_notes"),
+      where("schoolId", "==", schoolId),
+      where("teacherId", "==", teacherData.id),
+    );
     const unsub2 = onSnapshot(q2, snap => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
       data.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
@@ -91,7 +100,7 @@ const ParentNotes = () => {
     });
 
     return () => { unsub1(); unsub2(); };
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId]);
 
   // Scroll to bottom on new messages
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [allNotes, selectedStudent]);
@@ -181,6 +190,8 @@ const ParentNotes = () => {
     setMessageContent("");
     try {
       await addDoc(collection(db, "parent_notes"), {
+        schoolId:     teacherData?.schoolId || "",
+        branchId:     teacherData?.branchId || "",
         teacherId:    teacherData?.id   || "",
         teacherName:  teacherData?.name || "Teacher",
         studentId:    selectedStudent.studentId    || "",
@@ -197,7 +208,12 @@ const ParentNotes = () => {
     if (!selectedStudent || !confirm(`Clear chat for ${selectedStudent.studentName}?`)) return;
     try {
       const sId = selectedStudent.studentId;
-      const q   = query(collection(db, "parent_notes"), where("teacherId", "==", teacherData?.id), where("studentId", "==", sId));
+      const q   = query(
+        collection(db, "parent_notes"),
+        where("schoolId", "==", teacherData?.schoolId),
+        where("teacherId", "==", teacherData?.id),
+        where("studentId", "==", sId),
+      );
       const snap = await getDocs(q);
       const batch = writeBatch(db);
       snap.docs.forEach(d => batch.delete(d.ref));

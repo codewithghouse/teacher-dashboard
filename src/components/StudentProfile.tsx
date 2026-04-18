@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Loader2, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, TrendingUp, MessageSquare, FileText, BookOpen, Calendar, BarChart3, Activity, AlertCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, TrendingUp, MessageSquare, FileText, BookOpen, Calendar, BarChart3, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar } from "recharts";
 import { db } from "../lib/firebase";
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
@@ -50,7 +50,6 @@ interface Props { student: any; onBack: () => void; }
 
 export default function StudentProfile({ student, onBack }: Props) {
   const { teacherData } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [masterProfile, setMasterProfile] = useState<any>(null);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [testScores, setTestScores] = useState<any[]>([]);
@@ -59,6 +58,7 @@ export default function StudentProfile({ student, onBack }: Props) {
   const [incidents, setIncidents] = useState<any[]>([]);
   const [parentNotes, setParentNotes] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
+  const [classId, setClassId] = useState<string | null>(student?.classId || null);
   const [calMonth, setCalMonth] = useState(new Date());
   const [feedbackText, setFeedbackText] = useState("");
   const [sending, setSending] = useState(false);
@@ -66,40 +66,173 @@ export default function StudentProfile({ student, onBack }: Props) {
   const sid = student.id || student.studentId || "";
   const email = (student.email || student.studentEmail || "").toLowerCase();
 
+  // Merge two snapshot arrays by doc.id, preserving order of `primary` first.
+  const mergeById = (primary: any[], secondary: any[]) => {
+    const map = new Map<string, any>();
+    primary.forEach(d => map.set(d.id, d));
+    secondary.forEach(d => { if (!map.has(d.id)) map.set(d.id, d); });
+    return Array.from(map.values());
+  };
+
+  // ── Live subscriptions — each collection gets its OWN independent
+  //    onSnapshot so the page renders whatever's ready first. No single slow
+  //    query blocks the whole UI.
+  //
+  //    Perf notes:
+  //    • onSnapshot returns from local IndexedDB cache immediately (teacher
+  //      dashboard has `persistentLocalCache` enabled in firebase.ts), then
+  //      backfills from server. Feels instant after the first visit.
+  //    • We subscribe to byId AND byEmail in parallel for each collection
+  //      (some legacy docs are keyed by studentEmail, not studentId) and
+  //      merge in state.
   useEffect(() => {
-    if (!sid) { setLoading(false); return; }
-    const unsub = onSnapshot(doc(db, "students", sid), d => { if (d.exists()) setMasterProfile(d.data()); });
+    if (!sid || !teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId;
 
-    const run = async () => {
-      setLoading(true);
-      try {
-        const byId = (col: string) => getDocs(query(collection(db, col), where("studentId", "==", sid)));
-        const byEm = (col: string) => email ? getDocs(query(collection(db, col), where("studentEmail", "==", email))) : Promise.resolve(null as any);
-        const merge = (a: any, b: any) => { const l: any[] = []; if (a) a.docs.forEach((d: any) => l.push({ id: d.id, ...d.data() })); if (b) b.docs.forEach((d: any) => { if (!l.find(x => x.id === d.id)) l.push({ id: d.id, ...d.data() }); }); return l; };
+    // Master student doc — live
+    const unsubMaster = onSnapshot(doc(db, "students", sid), d => {
+      if (d.exists()) {
+        setMasterProfile(d.data());
+        const cid = (d.data() as any).classId;
+        if (cid) setClassId(cid);
+      }
+    });
 
-        const [aI, aE, sI, sE, rI, rE, subI, subE, inc, pn, iv] = await Promise.all([
-          byId("attendance"), byEm("attendance"), byId("test_scores"), byEm("test_scores"),
-          byId("results"), byEm("results"), byId("submissions"), byEm("submissions"),
-          byId("incidents"), byId("parent_notes"), byId("interventions"),
-        ]);
-        setAttendance(merge(aI, aE));
-        setTestScores([...merge(sI, sE), ...merge(rI, rE)]);
-        setSubmissions(merge(subI, subE));
-        setIncidents(inc.docs.map(d => ({ id: d.id, ...d.data() })));
-        setParentNotes(pn.docs.map(d => ({ id: d.id, ...d.data() })));
-        setInterventions(iv.docs.map(d => ({ id: d.id, ...d.data() })));
+    // Helper: subscribe to a collection by studentId AND studentEmail in
+    // parallel, merge results into the given setter.
+    const subscribePair = (
+      col: string,
+      setter: (arr: any[]) => void,
+      cacheRef: { byId: any[]; byEmail: any[] },
+    ) => {
+      const unsubs: (() => void)[] = [];
 
-        const classId = student.classId || merge(await byId("enrollments"), await byEm("enrollments"))[0]?.classId;
-        if (classId) {
-          const as2 = await getDocs(query(collection(db, "assignments"), where("classId", "==", classId)));
-          setAssignments(as2.docs.map(d => ({ id: d.id, ...d.data() })));
-        }
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+      unsubs.push(onSnapshot(
+        query(
+          collection(db, col),
+          where("schoolId", "==", schoolId),
+          where("studentId", "==", sid),
+        ),
+        snap => {
+          cacheRef.byId = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setter(mergeById(cacheRef.byId, cacheRef.byEmail));
+        },
+        err => console.warn(`[StudentProfile/${col} byId] ${err.code}:`, err.message),
+      ));
+
+      if (email) {
+        unsubs.push(onSnapshot(
+          query(
+            collection(db, col),
+            where("schoolId", "==", schoolId),
+            where("studentEmail", "==", email),
+          ),
+          snap => {
+            cacheRef.byEmail = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setter(mergeById(cacheRef.byId, cacheRef.byEmail));
+          },
+          err => console.warn(`[StudentProfile/${col} byEmail] ${err.code}:`, err.message),
+        ));
+      }
+
+      return () => unsubs.forEach(u => u());
     };
-    run();
+
+    // Attendance (live)
+    const attCache = { byId: [] as any[], byEmail: [] as any[] };
+    const unsubAtt = subscribePair("attendance", setAttendance, attCache);
+
+    // test_scores + results merged into testScores state
+    const tsCache = { byId: [] as any[], byEmail: [] as any[] };
+    const rsCache = { byId: [] as any[], byEmail: [] as any[] };
+    const applyScores = () => setTestScores([
+      ...mergeById(tsCache.byId, tsCache.byEmail),
+      ...mergeById(rsCache.byId, rsCache.byEmail),
+    ]);
+    const unsubTS = subscribePair("test_scores", applyScores, tsCache as any);
+    const unsubRS = subscribePair("results", applyScores, rsCache as any);
+
+    // Submissions (live)
+    const subCache = { byId: [] as any[], byEmail: [] as any[] };
+    const unsubSub = subscribePair("submissions", setSubmissions, subCache);
+
+    // Incidents — studentId only (email-based incidents are rare)
+    const unsubInc = onSnapshot(
+      query(
+        collection(db, "incidents"),
+        where("schoolId", "==", schoolId),
+        where("studentId", "==", sid),
+      ),
+      snap => setIncidents(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.warn("[StudentProfile/incidents]", err.code),
+    );
+
+    // Parent notes — studentId only
+    const unsubPn = onSnapshot(
+      query(
+        collection(db, "parent_notes"),
+        where("schoolId", "==", schoolId),
+        where("studentId", "==", sid),
+      ),
+      snap => setParentNotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.warn("[StudentProfile/parent_notes]", err.code),
+    );
+
+    // Interventions
+    const unsubIv = onSnapshot(
+      query(
+        collection(db, "interventions"),
+        where("schoolId", "==", schoolId),
+        where("studentId", "==", sid),
+      ),
+      snap => setInterventions(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.warn("[StudentProfile/interventions]", err.code),
+    );
+
+    // Enrollments — used to discover classId if the student doc doesn't have it.
+    // We only subscribe if classId is still unknown after master-profile loads.
+    const unsubEnr = onSnapshot(
+      query(
+        collection(db, "enrollments"),
+        where("schoolId", "==", schoolId),
+        where("studentId", "==", sid),
+      ),
+      snap => {
+        if (!snap.empty) {
+          const first = snap.docs[0].data() as any;
+          if (first.classId) setClassId(first.classId);
+        }
+      },
+      err => console.warn("[StudentProfile/enrollments]", err.code),
+    );
+
+    return () => {
+      unsubMaster();
+      unsubAtt();
+      unsubTS();
+      unsubRS();
+      unsubSub();
+      unsubInc();
+      unsubPn();
+      unsubIv();
+      unsubEnr();
+    };
+  }, [sid, email, teacherData?.schoolId]);
+
+  // Assignments — separate effect, activates once classId is known.
+  useEffect(() => {
+    if (!classId || !teacherData?.schoolId) return;
+    const unsub = onSnapshot(
+      query(
+        collection(db, "assignments"),
+        where("schoolId", "==", teacherData.schoolId),
+        where("classId", "==", classId),
+      ),
+      snap => setAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.warn("[StudentProfile/assignments]", err.code),
+    );
     return () => unsub();
-  }, [sid]);
+  }, [classId, teacherData?.schoolId]);
 
   // ── Metrics ────────────────────────────────────────────────────────────────
   const m = useMemo(() => {
@@ -159,11 +292,9 @@ export default function StudentProfile({ student, onBack }: Props) {
 
   const today = new Date();
 
-  if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 10 }}>
-      <Loader2 className="animate-spin" size={20} color={T.blue} /><span style={{ fontSize: 13, color: T.ink3 }}>Loading profile...</span>
-    </div>
-  );
+  // No blocking loader — the student prop already has name/class/roll, so
+  // we render the shell immediately. Each card handles its own empty state
+  // while its subscription backfills.
 
   // ══════════════════════════════════════════════════════════════════════════════
   return (
@@ -171,11 +302,11 @@ export default function StudentProfile({ student, onBack }: Props) {
       {/* Top bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-          <ArrowLeft size={14} /> All students
+          <ArrowLeft size={14} /> RETURN
         </button>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>Export</button>
-          <button style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: T.blue, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Contact Parent</button>
+          <button onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>EXPORT</button>
+          <button style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: T.blue, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>CONTACT</button>
         </div>
       </div>
 
@@ -283,6 +414,50 @@ export default function StudentProfile({ student, onBack }: Props) {
         </Card>
       </div>
 
+      {/* Incidents + Overview (matches canonical 2-col section) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+        <Card title="Incidents" action={<DLink />}>
+          {incidents.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <CheckCircle2 size={24} color={T.grn} style={{ margin: "0 auto 8px" }} />
+              <p style={{ fontSize: 12, color: T.grn, fontWeight: 500 }}>No incidents on record</p>
+            </div>
+          ) : incidents.map(inc => (
+            <div key={inc.id} style={{ padding: "10px 0", borderBottom: `1px solid ${T.s2}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: T.red }}>• {(inc.type || "INCIDENT").toUpperCase()}</span>
+                <span style={{ fontSize: 10, color: T.ink3 }}>{timeAgo(inc.createdAt || inc.date)}</span>
+              </div>
+              <p style={{ fontSize: 11, color: T.ink2, marginTop: 4, lineHeight: 1.5 }}>{(inc.description || inc.content || "").slice(0, 120)}</p>
+            </div>
+          ))}
+          {incidents.length > 0 && (
+            <div style={{ textAlign: "center", padding: "10px 0", marginTop: 8, background: T.rlBg, borderRadius: 8 }}>
+              <span style={{ fontSize: 11, color: T.red, fontWeight: 500 }}>Total: {incidents.length} incident{incidents.length > 1 ? "s" : ""} recorded</span>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Overview" action={<span style={{ fontSize: 11, color: T.blue, cursor: "pointer" }}>Dashboard →</span>}>
+          {[
+            { icon: FileText, label: "TOTAL TESTS", val: testScores.length },
+            { icon: BookOpen, label: "SUBJECTS TRACKED", val: subEntries.length },
+            { icon: Calendar, label: "DAYS ON RECORD", val: m.days },
+            { icon: Activity, label: "AVG ATTENDANCE", val: `${Math.round(m.attRate)}%` },
+            { icon: BarChart3, label: "ASSIGNMENT RATE", val: `${Math.round(m.completion)}%` },
+            { icon: MessageSquare, label: "PARENT NOTES", val: parentNotes.length },
+          ].map(item => (
+            <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${T.s2}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <item.icon size={14} color={T.ink3} />
+                <span style={{ fontSize: 12, color: T.ink3 }}>{item.label}</span>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{item.val}</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+
       {/* Comms + Score History */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         <Card title={`Communications · ${parentNotes.length} entries`}>
@@ -301,7 +476,12 @@ export default function StudentProfile({ student, onBack }: Props) {
 
       {/* Status bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 20px", background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 12, fontSize: 10, color: T.ink3 }}>
-        <span>★ ENGAGEMENT: {Math.min(100, parentNotes.length * 20)}%</span><span>★ Status: Active</span><span>★ Data: Live</span><span>★ STUDENT ID: {sid.slice(0, 8).toUpperCase()}</span>
+        <span>★ PARENT ENGAGEMENT: {Math.min(100, parentNotes.length * 20)}%</span>
+        <span>★ Status: Active</span>
+        <span>★ Data: Live</span>
+        <span>★ Secured</span>
+        <span>★ STUDENT ID: {sid.slice(0, 8).toUpperCase()}</span>
+        <span style={{ color: T.blue, fontWeight: 600 }}>{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
       </div>
     </div>
   );

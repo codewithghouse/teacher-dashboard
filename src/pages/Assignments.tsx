@@ -153,18 +153,25 @@ const Assignments = () => {
 
   useEffect(() => {
     if (!teacherData?.id) return;
+    const schoolId = teacherData.schoolId;
+    if (!schoolId) return;
     setLoading(true);
 
     const unsub = onSnapshot(
       query(
         collection(db, "teaching_assignments"),
+        where("schoolId", "==", schoolId),
         where("teacherId", "==", teacherData.id),
         where("status", "==", "active")
       ),
       async (assignSnap) => {
         const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         const assignedClassIds    = teachingAssignments.map((t: any) => t.classId).filter(Boolean);
-        const legacySnap          = await getDocs(query(collection(db, "classes"), where("teacherId", "==", teacherData.id)));
+        const legacySnap          = await getDocs(query(
+          collection(db, "classes"),
+          where("schoolId", "==", schoolId),
+          where("teacherId", "==", teacherData.id),
+        ));
         const legacyIds           = legacySnap.docs.map(d => d.id);
         const allClassIds         = Array.from(new Set([...assignedClassIds, ...legacyIds]));
 
@@ -177,7 +184,12 @@ const Assignments = () => {
 
         const snaps = await Promise.all(
           allClassIds.map(cid =>
-            getDocs(query(collection(db, "assignments"), where("classId", "==", cid), where("teacherId", "==", teacherData.id)))
+            getDocs(query(
+              collection(db, "assignments"),
+              where("schoolId", "==", schoolId),
+              where("classId", "==", cid),
+              where("teacherId", "==", teacherData.id),
+            ))
           )
         );
         const map = new Map<string, any>();
@@ -199,8 +211,8 @@ const Assignments = () => {
           if (isNaN(deadline.getTime())) deadline = new Date();
 
           const [s1, s2] = await Promise.all([
-            getDocs(query(collection(db, "submissions"), where("homeworkId",   "==", a.id))),
-            getDocs(query(collection(db, "submissions"), where("assignmentId", "==", a.id))),
+            getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("homeworkId",   "==", a.id))),
+            getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("assignmentId", "==", a.id))),
           ]);
           const subMap = new Map<string, any>();
           s1.docs.forEach(d => subMap.set(d.data().studentId || d.data().studentEmail || d.id, d));
@@ -208,8 +220,8 @@ const Assignments = () => {
           const subCount = subMap.size;
 
           const [resSnap, enrollSnap] = await Promise.all([
-            getDocs(query(collection(db, "results"),     where("assignmentId", "==", a.id))),
-            getDocs(query(collection(db, "enrollments"), where("classId",      "==", a.classId))),
+            getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("assignmentId", "==", a.id))),
+            getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("classId",      "==", a.classId))),
           ]);
           const expected       = enrollSnap.size || 1;
           const pendingGrading = Math.max(0, subCount - resSnap.size);
@@ -240,7 +252,7 @@ const Assignments = () => {
       }
     );
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
