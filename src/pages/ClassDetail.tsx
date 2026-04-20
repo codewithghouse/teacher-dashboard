@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
-  doc, getDoc, updateDoc, writeBatch
+  doc, getDoc, writeBatch
 } from "firebase/firestore";
+import { auditedUpdate } from "../lib/auditedWrites";
+import { getInitials } from "../lib/initials";
 import { useAuth } from "../lib/AuthContext";
 import {
   Loader2, Search, ChevronLeft, ChevronRight,
@@ -75,10 +77,11 @@ const ClassDetail = () => {
       where("schoolId", "==", schoolId),
       where("classId", "==", classId),
     );
+    let ignore = false;
     const unsub = onSnapshot(q, async (snap) => {
-      const roster = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const roster = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string }));
 
-      const enriched = await Promise.all(roster.map(async (s: any) => {
+      const enriched = await Promise.all(roster.map(async (s: Record<string, unknown> & { id: string }) => {
         const sid = s.studentId;
         const email = s.studentEmail?.toLowerCase();
 
@@ -105,10 +108,7 @@ const ClassDetail = () => {
         const totalScore = uniqueScores.reduce((acc, r: any) => acc + parseFloat(r.percentage || r.score || 0), 0);
         const scoreRaw = uniqueScores.length > 0 ? totalScore / uniqueScores.length : -1;
 
-        const initials = (() => {
-          const parts = (s.studentName || "ST").trim().split(" ");
-          return parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0].slice(0, 2);
-        })().toUpperCase();
+        const initials = getInitials((s as { studentName?: string }).studentName || "ST");
 
         const atndDisplay = atndRaw >= 0 ? `${atndRaw.toFixed(1)}%` : "—";
         const scoreDisplay = scoreRaw >= 0 ? `${scoreRaw.toFixed(1)}%` : "—";
@@ -117,6 +117,7 @@ const ClassDetail = () => {
         return { ...s, initials, atndRaw, scoreRaw, attendance: atndDisplay, avg: scoreDisplay, status };
       }));
 
+      if (ignore) return;
       setStudents(enriched);
 
       const totalAtnd = enriched.filter(s => s.atndRaw >= 0).reduce((a, s) => a + s.atndRaw, 0);
@@ -134,7 +135,7 @@ const ClassDetail = () => {
       setLoading(false);
     });
 
-    return () => unsub();
+    return () => { ignore = true; unsub(); };
   }, [classId, teacherData?.schoolId]);
 
   // Save subject → update classes doc + all enrollment docs for this class
@@ -143,7 +144,7 @@ const ClassDetail = () => {
     setIsSavingSubject(true);
     try {
       // 1. Update the class document
-      await updateDoc(doc(db, "classes", classId), { subject: tempSubject.trim() });
+      await auditedUpdate(doc(db, "classes", classId), { subject: tempSubject.trim() });
 
       // 2. Batch update all enrollments for this class
       const enrollSnap = await getDocs(query(
@@ -157,10 +158,11 @@ const ClassDetail = () => {
         await batch.commit();
       }
 
-      setClassInfo((prev: any) => ({ ...prev, subject: tempSubject.trim() }));
+      setClassInfo((prev: Record<string, unknown> | null) => ({ ...(prev ?? {}), subject: tempSubject.trim() }));
       setEditingSubject(false);
       toast.success(`Subject updated to "${tempSubject.trim()}" for all enrollments.`);
-    } catch {
+    } catch (e) {
+      console.error("[ClassDetail] update subject failed", e);
       toast.error("Failed to update subject.");
     } finally {
       setIsSavingSubject(false);
@@ -170,10 +172,11 @@ const ClassDetail = () => {
   const handleUpdateRoll = async (id: string) => {
     setIsUpdating(true);
     try {
-      await updateDoc(doc(db, "enrollments", id), { rollNo: tempRoll });
+      await auditedUpdate(doc(db, "enrollments", id), { rollNo: tempRoll });
       toast.success("Roll number updated.");
       setEditingRoll(null);
-    } catch {
+    } catch (e) {
+      console.error("[ClassDetail] update roll failed", e);
       toast.error("Failed to update roll number.");
     } finally {
       setIsUpdating(false);
@@ -184,9 +187,10 @@ const ClassDetail = () => {
     const statuses = ["Good Standing", "Needs Attention", "At Risk"];
     const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
     try {
-      await updateDoc(doc(db, "enrollments", id), { manualStatus: next });
+      await auditedUpdate(doc(db, "enrollments", id), { manualStatus: next });
       toast.success(`Status updated to ${next}`);
-    } catch {
+    } catch (e) {
+      console.error("[ClassDetail] toggle status failed", e);
       toast.error("Failed to update status.");
     }
   };
@@ -207,9 +211,13 @@ const ClassDetail = () => {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Students");
-      XLSX.writeFile(wb, `${classInfo?.name || "Class"}_Roster.xlsx`);
+      // Sanitize class name for filename — avoid OS path-separator issues.
+      const rawName = (classInfo as { name?: string } | null)?.name || "Class";
+      const safeName = rawName.replace(/[\\/:*?"<>|]/g, "_").trim() || "Class";
+      XLSX.writeFile(wb, `${safeName}_Roster.xlsx`);
       toast.success("Roster exported!");
-    } catch {
+    } catch (e) {
+      console.error("[ClassDetail] export failed", e);
       toast.error("Export failed.");
     } finally {
       setExporting(false);

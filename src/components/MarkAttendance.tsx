@@ -3,9 +3,11 @@ import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
   collection, query, getDocs, where,
-  serverTimestamp, setDoc, doc, onSnapshot, limit
+  serverTimestamp, doc, onSnapshot, limit,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { auditedSet } from "../lib/auditedWrites";
 import { toast } from "sonner";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -24,7 +26,8 @@ const todayStr = () => new Date().toLocaleDateString("en-CA");
 const ITEMS_PER_PAGE = 8;
 
 const getInitials = (name = "") => {
-  const p = name.trim().split(" ");
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return "?";
   return (p.length >= 2 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase();
 };
 
@@ -108,55 +111,60 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   // Fetch classes
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
-    const SC: any[] = [where("schoolId", "==", teacherData.schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", teacherData.schoolId)];
     if (teacherData.branchId) SC.push(where("branchId", "==", teacherData.branchId));
     return onSnapshot(
       query(collection(db, "classes"), ...SC, where("teacherId", "==", teacherData.id)),
       (snap) => {
-        const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const cls = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         setClasses(cls);
-        if (!selectedClassId && cls.length > 0) setSelectedClassId(cls[0].id);
+        // Functional setter reads latest state; avoids stale-closure bug.
+        setSelectedClassId(prev => prev || cls[0]?.id || "");
       }
     );
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Fetch roster + today's attendance
   useEffect(() => {
     if (!selectedClassId || !teacherData?.id || !teacherData?.schoolId) return;
     setLoading(true); setCurrentPage(1);
-    const SC: any[] = [where("schoolId", "==", teacherData.schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", teacherData.schoolId)];
     if (teacherData.branchId) SC.push(where("branchId", "==", teacherData.branchId));
 
-    return onSnapshot(
+    let ignore = false;
+    const unsub = onSnapshot(
       query(collection(db, "enrollments"), ...SC, where("classId", "==", selectedClassId)),
       async (snap) => {
         try {
           const logsSnap = await getDocs(
             query(collection(db, "attendance"), ...SC, where("classId", "==", selectedClassId), where("date", "==", todayStr()))
           );
+          if (ignore) return;
           const logs = logsSnap.docs.map(d => d.data());
           const roster: Student[] = snap.docs.map(d => {
-            const data = d.data() as any;
-            const sId = data.studentId || d.id;
+            const data = d.data() as Record<string, unknown>;
+            const sId = (data.studentId as string) || d.id;
             const log = logs.find(l => l.studentId === sId);
+            const name = (data.studentName as string) || "Student";
             return {
               id: sId, enrollId: d.id,
-              name: data.studentName || "Student",
-              email: data.studentEmail || "",
-              rollNo: data.rollNo || "—",
-              status: (log?.status as any) || "none",
-              note: log?.note || "",
-              initials: getInitials(data.studentName),
-              av: avStyle(data.studentName),
+              name,
+              email: (data.studentEmail as string) || "",
+              rollNo: (data.rollNo as string | number) || "—",
+              status: (log?.status as Student["status"]) || "none",
+              note: (log?.note as string) || "",
+              initials: getInitials(name),
+              av: avStyle(name),
             };
           });
           roster.sort((a, b) => a.name.localeCompare(b.name));
           setStudents(roster);
-        } catch (e) { console.error("Roster fetch error:", e); }
-        finally { setLoading(false); }
+        } catch (e) { console.error("[MarkAttendance] roster fetch failed", e); }
+        finally { if (!ignore) setLoading(false); }
       }
     );
-  }, [selectedClassId, teacherData?.id]);
+    return () => { ignore = true; unsub(); };
+  }, [selectedClassId, teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Live counts
   const counts = {
@@ -181,22 +189,25 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     if (!teacherData.schoolId) return;
     setLoading(true);
     try {
-      const SC: any[] = [where("schoolId", "==", teacherData.schoolId)];
+      const SC: QueryConstraint[] = [where("schoolId", "==", teacherData.schoolId)];
       if (teacherData.branchId) SC.push(where("branchId", "==", teacherData.branchId));
       const snap = await getDocs(
         query(collection(db, "attendance"), ...SC, where("classId", "==", selectedClassId), where("teacherId", "==", teacherData.id), limit(200))
       );
       const today = todayStr();
-      const prevLogs = snap.docs.map(d => d.data()).filter((l: any) => l.date !== today).sort((a: any, b: any) => b.date.localeCompare(a.date));
+      type AttLog = { studentId?: string; date?: string; status?: Student["status"]; note?: string };
+      const prevLogs = (snap.docs.map(d => d.data()) as AttLog[])
+        .filter(l => l.date && l.date !== today)
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       if (!prevLogs.length) { toast.error("No previous attendance found."); setLoading(false); return; }
-      const latestDate = prevLogs[0].date;
-      const latestLogs = prevLogs.filter((l: any) => l.date === latestDate);
+      const latestDate = prevLogs[0].date!;
+      const latestLogs = prevLogs.filter(l => l.date === latestDate);
       setStudents(prev => prev.map(s => {
-        const m = latestLogs.find((l: any) => l.studentId === s.id);
-        return m ? { ...s, status: m.status as any, note: m.note || "" } : s;
+        const m = latestLogs.find(l => l.studentId === s.id);
+        return m && m.status ? { ...s, status: m.status, note: m.note || "" } : s;
       }));
       toast.success(`Copied from ${latestDate}`);
-    } catch { toast.error("Failed to copy previous attendance."); }
+    } catch (e) { console.error("[MarkAttendance] copy failed", e); toast.error("Failed to copy previous attendance."); }
     finally { setLoading(false); }
   };
 
@@ -208,30 +219,41 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     const selClass = classes.find(c => c.id === selectedClassId);
     try {
       if (!teacherData.schoolId) return;
-      const SC: any[] = [where("schoolId", "==", teacherData.schoolId)];
+      const SC: QueryConstraint[] = [where("schoolId", "==", teacherData.schoolId)];
       if (teacherData.branchId) SC.push(where("branchId", "==", teacherData.branchId));
       let assignmentId = "legacy";
       const aSnap = await getDocs(query(collection(db, "teaching_assignments"), ...SC, where("teacherId", "==", teacherData.id), where("classId", "==", selectedClassId)));
       if (!aSnap.empty) {
-        const activeDoc = aSnap.docs.find(d => { const s = d.data().status; return !s || s.toLowerCase() === "active"; });
+        const activeDoc = aSnap.docs.find(d => {
+          const s = (d.data() as { status?: unknown }).status;
+          return !s || (typeof s === "string" && s.toLowerCase() === "active");
+        });
         if (activeDoc) assignmentId = activeDoc.id;
       }
       const marked = students.filter(s => s.status !== "none");
-      await Promise.all(
+      const results = await Promise.allSettled(
         marked.map(s =>
-          setDoc(doc(db, "attendance", `${s.id}_${selectedClassId}_${today}`), {
+          auditedSet(doc(db, "attendance", `${s.id}_${selectedClassId}_${today}`), {
             studentId: s.id, studentName: s.name, studentEmail: s.email,
             status: s.status, note: s.note || "", date: today,
             teacherId: teacherData.id, teacherName: teacherData.name || "",
             schoolId: teacherData.schoolId || "", branchId: teacherData.branchId || "",
-            classId: selectedClassId, className: selClass?.name || "",
+            classId: selectedClassId, className: (selClass as { name?: string } | undefined)?.name || "",
             assignmentId, timestamp: serverTimestamp(),
           })
         )
       );
+      const failed = results
+        .map((r, i) => ({ r, name: marked[i].name }))
+        .filter(x => x.r.status === "rejected");
+      if (failed.length > 0) {
+        console.error("[MarkAttendance] partial save failure", failed);
+        toast.error(`Saved ${marked.length - failed.length}/${marked.length}. Failed: ${failed.map(f => f.name).join(", ")}`);
+        return;
+      }
       toast.success(`Attendance saved! ${marked.length} students recorded.`);
       onBack();
-    } catch (e) { console.error(e); toast.error("Failed to save attendance. Please try again."); }
+    } catch (e) { console.error("[MarkAttendance] save failed", e); toast.error("Failed to save attendance. Please try again."); }
     finally { setSaving(false); }
   };
 
@@ -261,13 +283,15 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             Mark attendance
           </p>
           <button onClick={handleSave} disabled={saving || loading}
+            type="button"
+            aria-label={saving ? "Saving attendance" : "Save attendance"}
             style={{
               padding: '8px 14px', borderRadius: 11, background: T.green2,
               border: 'none', color: '#fff', fontSize: 12, fontWeight: 500,
               cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || loading ? 0.6 : 1,
               display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit',
             }}>
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <IcoCheck color="#fff" size={12} />}
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <IcoCheck color="#fff" size={12} />}
             Save
           </button>
         </div>

@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import GenerateReport from "@/components/GenerateReport";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+  collection, query, where, onSnapshot,
+  type QueryConstraint, type DocumentData,
+} from "firebase/firestore";
+
+type ReportHistoryDoc = DocumentData & {
+  id: string;
+  status?: string;
+  createdAt?: { toMillis?: () => number };
+  publishedToTeacher?: boolean;
+  format?: string;
+};
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -112,15 +123,15 @@ const Reports = () => {
   const { teacherData } = useAuth();
   const [filter, setFilter]               = useState("All");
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<any>(null);
-  const [history, setHistory]             = useState<any[]>([]);
+  const [selectedReport, setSelectedReport] = useState<(typeof REPORTS[number] & { format?: string }) | null>(null);
+  const [history, setHistory]             = useState<ReportHistoryDoc[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
 
   // ── Firebase: report history ────────────────────────────────────────────
   useEffect(() => {
-    if (!teacherData?.id) return;
-    let snap1: any[] = [];
-    let snap2: any[] = [];
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    let snap1: ReportHistoryDoc[] = [];
+    let snap2: ReportHistoryDoc[] = [];
     const merge = () => {
       const seen = new Set<string>();
       const combined = [...snap1, ...snap2].filter(d => {
@@ -130,26 +141,31 @@ const Reports = () => {
       combined.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
       setHistory(combined);
     };
-    if (!teacherData.schoolId) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const tenant: QueryConstraint[] = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
     const unsub1 = onSnapshot(
       query(
         collection(db, "reports"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
-      snap => { snap1 = snap.docs.map(d => ({ id: d.id, ...d.data() as any })); merge(); }
+      snap => { snap1 = snap.docs.map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc)); merge(); },
+      e => console.error("[Reports] own-reports subscription failed", e),
     );
     const unsub2 = onSnapshot(
       query(
         collection(db, "reports"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("publishedToTeacher", "==", true),
       ),
-      snap => { snap2 = snap.docs.map(d => ({ id: d.id, ...d.data() as any })); merge(); }
+      snap => { snap2 = snap.docs.map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc)); merge(); },
+      e => console.error("[Reports] broadcast subscription failed", e),
     );
     return () => { unsub1(); unsub2(); };
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleOpenGenerate = (r: typeof REPORTS[0]) => {

@@ -174,7 +174,10 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+    // Intentionally empty deps: `setState` identity is stable, so subscribe
+    // once on mount and unsubscribe on unmount. Upstream shadcn ships with
+    // `[state]` which causes subscribe/unsubscribe churn on every toast.
+  }, []);
 
   return {
     ...state,

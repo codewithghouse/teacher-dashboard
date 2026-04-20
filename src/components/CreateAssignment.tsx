@@ -1,10 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import {
+  collection, query, where, getDocs, onSnapshot, serverTimestamp,
+  type QueryConstraint,
+} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auditedAdd } from "../lib/auditedWrites";
 import { X, Loader2, FileText, UploadCloud } from 'lucide-react';
 import { toast } from "sonner";
+
+// Upload guardrails. 10 MB is generous for a teacher-facing doc/assignment
+// attachment; anything larger is almost certainly a user error (or abuse).
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set<string>([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+// Strip path separators / control chars from uploaded filenames before
+// concatenating them into a Storage object path.
+const sanitizeStorageName = (name: string): string =>
+  name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").slice(0, 200) || "file";
 
 const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) => {
   const { teacherData } = useAuth();
@@ -25,36 +45,51 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     const q = query(collection(db, "classes"), ...SC, where("teacherId", "==", teacherData.id));
     const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const cls = snap.docs.map(d => ({ ...d.data(), id: d.id }));
       setClasses(cls);
-      if (cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
+      // Auto-select the first class on initial load only. We use the functional
+      // setter so this effect can safely omit `selectedClassId` from deps —
+      // otherwise every auto-select would retrigger the snapshot subscription.
+      setSelectedClassId(prev => prev || cls[0]?.id || "");
     });
     return () => unsub();
-  }, [teacherData?.id, selectedClassId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const handleSave = async () => {
-    if (!formData.title || !selectedClassId) return toast.error("Title and Class are required.");
+    const title = formData.title.trim();
+    if (!title || !selectedClassId) return toast.error("Title and Class are required.");
+
+    if (selectedFile) {
+      if (selectedFile.size > MAX_UPLOAD_BYTES) {
+        return toast.error(`Attachment exceeds ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB limit.`);
+      }
+      if (selectedFile.type && !ALLOWED_UPLOAD_TYPES.has(selectedFile.type)) {
+        return toast.error("Unsupported file type. Allowed: PDF, Word, PNG, JPEG.");
+      }
+    }
+
     setIsSaving(true);
     let attachmentUrl = "";
     try {
-      // 1. Upload PDF if selected
+      // 1. Upload attachment if selected
       if (selectedFile) {
-        const storageRef = ref(storage, `assignments/${teacherData.id}_${Date.now()}_${selectedFile.name}`);
+        const safeName = sanitizeStorageName(selectedFile.name);
+        const storageRef = ref(storage, `assignments/${teacherData.id}_${Date.now()}_${safeName}`);
         const snap = await uploadBytes(storageRef, selectedFile);
         attachmentUrl = await getDownloadURL(snap.ref);
       }
 
       const selClass = classes.find(c => c.id === selectedClassId);
-      
+
       // Fetch the teaching_assignment ID for this specific class and teacher
       const schoolId = teacherData.schoolId as string | undefined;
       const branchId = teacherData.branchId as string | undefined;
-      const SC: any[] = [];
+      const SC: QueryConstraint[] = [];
       if (schoolId) SC.push(where("schoolId", "==", schoolId));
       if (branchId) SC.push(where("branchId", "==", branchId));
 
@@ -70,9 +105,19 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
           teachingAssignmentId = assignSnap.docs[0].id;
       }
 
-      await addDoc(collection(db, "assignments"), {
+      // Set due date to end-of-day in the user's local timezone so "due today"
+      // doesn't mean "due at 00:00 UTC, which is yesterday in most timezones".
+      const dueDate = new Date(`${formData.dueDate}T23:59:59`);
+
+      // Derive gradeClass from the actual class record only. Previously fell
+      // back to "<grade>-A" — a placeholder that silently poisoned downstream
+      // filtering for any section other than A.
+      const gradeClass = selClass?.name || "";
+
+      await auditedAdd(collection(db, "assignments"), {
         ...formData,
-        dueDate: new Date(formData.dueDate),
+        title,
+        dueDate,
         teacherId: teacherData.id,
         schoolId: teacherData.schoolId || "",
         branchId: teacherData.branchId || "",
@@ -81,7 +126,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
         classId: selectedClassId,
         className: selClass?.name || "",
         grade: selClass?.grade || "",
-        gradeClass: selClass?.name || (selClass?.grade ? `${selClass.grade}-A` : ""),
+        gradeClass,
         status: "Active",
         pdfUrl: attachmentUrl,
         fileName: selectedFile?.name || "",
@@ -182,22 +227,30 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               Select class
             </div>
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-              {classes.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedClassId(c.id)}
-                  style={{
-                    padding: '8px 16px', borderRadius: 20, fontSize: 12,
-                    fontWeight: selectedClassId === c.id ? 500 : 400,
-                    border: `1px solid ${selectedClassId === c.id ? T.ink0 : T.bdr}`,
-                    background: selectedClassId === c.id ? T.ink0 : T.s1,
-                    color: selectedClassId === c.id ? '#fff' : T.ink2,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  {c.name}
-                </button>
-              ))}
+              {classes.length === 0 ? (
+                <div style={{ fontSize: 12, color: T.ink2, padding: '10px 0' }}>
+                  No classes assigned yet. Contact your principal to be added to a class.
+                </div>
+              ) : (
+                classes.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedClassId(c.id)}
+                    aria-pressed={selectedClassId === c.id}
+                    style={{
+                      padding: '8px 16px', borderRadius: 20, fontSize: 12,
+                      fontWeight: selectedClassId === c.id ? 500 : 400,
+                      border: `1px solid ${selectedClassId === c.id ? T.ink0 : T.bdr}`,
+                      background: selectedClassId === c.id ? T.ink0 : T.s1,
+                      color: selectedClassId === c.id ? '#fff' : T.ink2,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -205,14 +258,21 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
           {/* Title */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            <label
+              htmlFor="assignment-title"
+              style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}
+            >
               Assignment title
-            </div>
+            </label>
             <input
+              id="assignment-title"
               type="text"
               value={formData.title}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
+              onKeyDown={e => { if (e.key === "Enter" && !isSaving) handleSave(); }}
               placeholder="e.g. Chapter 5 Worksheet"
+              maxLength={200}
+              required
               style={{
                 width: '100%', padding: '11px 12px', borderRadius: 12,
                 border: `1px solid ${T.bdr}`, background: T.s1,
@@ -225,13 +285,19 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
           {/* Due date */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            <label
+              htmlFor="assignment-duedate"
+              style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}
+            >
               Due date
-            </div>
+            </label>
             <input
+              id="assignment-duedate"
               type="date"
               value={formData.dueDate}
               onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              required
               style={{
                 width: '100%', padding: '11px 12px', borderRadius: 12,
                 border: `1px solid ${T.bdr}`, background: T.s1,
@@ -244,14 +310,19 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
           {/* Instructions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            <label
+              htmlFor="assignment-instructions"
+              style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}
+            >
               Instructions
-            </div>
+            </label>
             <textarea
+              id="assignment-instructions"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the assignment objectives and what students need to submit..."
               rows={4}
+              maxLength={4000}
               style={{
                 width: '100%', padding: '11px 12px', borderRadius: 12,
                 border: `1px solid ${T.bdr}`, background: T.s1,
@@ -263,13 +334,22 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
           <div style={{ height: 1, background: T.s2, margin: '0 -14px' }} />
 
-          {/* PDF upload */}
+          {/* File upload */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-              Attachment (PDF · optional)
+              Attachment (optional)
             </div>
             <div
+              role="button"
+              tabIndex={0}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              aria-label="Upload assignment attachment"
               style={{
                 border: `1.5px dashed ${T.bdr}`, borderRadius: 14,
                 padding: '24px 14px', display: 'flex', flexDirection: 'column',
@@ -281,7 +361,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                 ref={fileInputRef}
                 onChange={e => setSelectedFile(e.target.files?.[0] || null)}
                 className="hidden"
-                accept=".pdf"
+                accept=".pdf,.doc,.docx,image/png,image/jpeg"
               />
               {selectedFile ? (
                 <div style={{
@@ -289,18 +369,24 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                   background: T.s0, padding: '10px 14px', borderRadius: 12,
                   border: `1px solid ${T.bdr}`, width: '100%',
                 }}>
-                  <FileText size={16} style={{ color: T.blue, flexShrink: 0 }} />
+                  <FileText size={16} style={{ color: T.blue, flexShrink: 0 }} aria-hidden="true" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {selectedFile.name}
                     </p>
-                    <p style={{ fontSize: 10, color: T.ink2 }}>{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                    <p style={{ fontSize: 10, color: T.ink2 }}>
+                      {selectedFile.size >= 1024 * 1024
+                        ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`
+                        : `${(selectedFile.size / 1024).toFixed(1)} KB`}
+                    </p>
                   </div>
                   <button
+                    type="button"
                     onClick={e => { e.stopPropagation(); setSelectedFile(null); }}
+                    aria-label="Remove file"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
                   >
-                    <X size={14} style={{ color: T.red }} />
+                    <X size={14} style={{ color: T.red }} aria-hidden="true" />
                   </button>
                 </div>
               ) : (
@@ -309,10 +395,10 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                     width: 38, height: 38, borderRadius: 12, background: T.blueL,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <UploadCloud size={16} style={{ color: T.blue }} />
+                    <UploadCloud size={16} style={{ color: T.blue }} aria-hidden="true" />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Click to upload PDF</div>
-                  <div style={{ fontSize: 10, color: T.ink2 }}>Max file size 5 MB</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Click to upload PDF / Word / image</div>
+                  <div style={{ fontSize: 10, color: T.ink2 }}>Max file size 10 MB</div>
                 </>
               )}
             </div>

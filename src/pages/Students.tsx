@@ -5,8 +5,9 @@ import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
-  deleteDoc, doc as firestoreDoc, addDoc, serverTimestamp,
+  doc as firestoreDoc, serverTimestamp,
 } from "firebase/firestore";
+import { auditedAdd, auditedDelete } from "../lib/auditedWrites";
 import { Loader2, X, UserPlus, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { sendStudentInviteEmail } from "../lib/resend";
@@ -133,15 +134,20 @@ export default function Students() {
         where('schoolId', '==', schoolId),
         where('teacherId', '==', teacherData.id),
       );
+      let ignore = false;
       const unsubEnroll = onSnapshot(qEnroll, async (snap) => {
-        const enrolledDocs = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-        const uniqueMap = new Map();
+        const enrolledDocs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; studentId?: string; studentEmail?: string; studentName?: string; rollNo?: string; className?: string; classId?: string }));
+        const uniqueMap = new Map<string, Record<string, unknown>>();
         enrolledDocs.forEach(e => {
           const sid = e.studentId || e.studentEmail;
+          if (!sid) return;
           if (!uniqueMap.has(sid)) {
             uniqueMap.set(sid, {
               id: sid, name: e.studentName, email: e.studentEmail,
-              rollNo: e.rollNo || (800 + Math.floor(Math.random() * 100)).toString(),
+              // Show a clear placeholder instead of a random roll number.
+              // Random values here caused the same student to show different
+              // rolls across reloads — a data-integrity footgun.
+              rollNo: e.rollNo || "—",
               className: e.className, classId: e.classId,
               initials: e.studentName?.substring(0, 2).toUpperCase() || 'ST',
               attendancePct: 0, avgScorePct: 0, statusTag: 'Good',
@@ -182,16 +188,17 @@ export default function Students() {
           if (avg > 0 && avg < 45) tag = 'At Risk';
           return { ...stu, avgScorePct: avg, attendancePct: attPct, statusTag: tag };
         });
+        if (ignore) return;
         final.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setStudents(final);
         setLoading(false);
       });
-      return () => unsubEnroll();
+      return () => { ignore = true; unsubEnroll(); };
     } catch (e) {
-      console.error('Students fetch error', e);
+      console.error('[Students] fetch error', e);
       setLoading(false);
     }
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Load teacher's classes for invite dropdown
   useEffect(() => {
@@ -204,6 +211,7 @@ export default function Students() {
       where('teacherId', '==', teacherData.id),
       where('status', '==', 'active'),
     );
+    let ignore = false;
     const unsub = onSnapshot(qAssign, async (snap) => {
       const assignedIds = snap.docs.map(d => d.data().classId).filter(Boolean);
       const legacySnap = await getDocs(query(
@@ -211,6 +219,7 @@ export default function Students() {
         where('schoolId', '==', schoolId),
         where('teacherId', '==', teacherData.id),
       ));
+      if (ignore) return;
       const legacyIds = legacySnap.docs.map(d => d.id);
       const allIds = Array.from(new Set([...assignedIds, ...legacyIds]));
       if (allIds.length === 0) { setTeacherClasses([]); return; }
@@ -218,12 +227,13 @@ export default function Students() {
         collection(db, 'classes'),
         where('schoolId', '==', schoolId),
       ));
+      if (ignore) return;
       setTeacherClasses(
-        classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ id: d.id, ...d.data() } as any))
+        classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string }))
       );
     });
-    return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId]);
+    return () => { ignore = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const openInvite = () => {
     setInv({ name: '', email: '', classId: teacherClasses[0]?.id || '', rollNo: '' });
@@ -262,7 +272,7 @@ export default function Students() {
       // `studentData.id` (the student doc ID). That mismatch made every
       // newly invited student's "My Classes" page show "No Classes Found"
       // even though the enrollment was created.
-      const studentDocRef = await addDoc(collection(db, 'students'), {
+      const studentDocRef = await auditedAdd(collection(db, 'students'), {
         name,
         email,
         studentId:   email, // legacy/secondary identifier — kept for back-compat with old reads
@@ -277,7 +287,7 @@ export default function Students() {
         createdAt:   serverTimestamp(),
       });
 
-      await addDoc(collection(db, 'enrollments'), {
+      await auditedAdd(collection(db, 'enrollments'), {
         studentId:    studentDocRef.id, // matches studentData.id used by parent-dashboard reads
         studentEmail: email,            // secondary key for legacy clients
         studentName:  name,
@@ -324,10 +334,13 @@ export default function Students() {
       );
       const snap = await getDocs(q);
       if (!snap.empty) {
-        await deleteDoc(firestoreDoc(db, 'enrollments', snap.docs[0].id));
+        await auditedDelete(firestoreDoc(db, 'enrollments', snap.docs[0].id));
         toast.success(`${stu.name} removed successfully.`);
       }
-    } catch { toast.error('Failed to remove student.'); }
+    } catch (e) {
+      console.error('[Students] remove failed', e);
+      toast.error('Failed to remove student.');
+    }
   };
 
   if (selectedStudent) return <StudentProfile student={selectedStudent} onBack={() => setSelectedStudent(null)} />;

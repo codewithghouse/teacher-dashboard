@@ -16,9 +16,12 @@
  */
 
 // ── HTML escaping ────────────────────────────────────────────────────────────
+// Includes `/` and backtick (`) for defense in depth against legacy/edge
+// contexts (unquoted attributes, old IE). Modern browsers render correctly
+// with or without these, but OWASP recommends escaping both.
 const escapeHtml = (v: unknown): string =>
-  String(v ?? "").replace(/[&<>"']/g, (c) => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!
+  String(v ?? "").replace(/[&<>"'`/]/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;", "/": "&#47;" }[c]!
   ));
 
 // Only allow hex colors (#rgb, #rrggbb, #rrggbbaa) or whitelisted keywords to
@@ -40,7 +43,7 @@ const safeBarWidth = (v: unknown): number => {
 const C = {
   bg: "#f8fafc", white: "#ffffff", ink: "#0f172a", ink2: "#475569", ink3: "#94a3b8",
   bdr: "#e2e8f0", s1: "#f1f5f9", s2: "#e2e8f0",
-  blue: "#3B5BDB", blBg: "#EDF2FF",
+  blue: "#3B5BDB", blBg: "#EDF2FF", deep: "#1e3a8a",
   grn: "#16a34a", glBg: "#f0fdf4",
   red: "#dc2626", rlBg: "#fef2f2",
   amb: "#d97706", alBg: "#fffbeb",
@@ -94,7 +97,7 @@ const CSS = `
     .card { break-inside: avoid; box-shadow: none !important; border: 1px solid ${C.bdr} !important; }
   }
   .hero {
-    background: linear-gradient(135deg, #1e3a8a, ${C.blue});
+    background: linear-gradient(135deg, ${C.deep}, ${C.blue});
     border-radius: 16px; padding: 28px 32px; color: #fff; margin-bottom: 24px;
   }
   .hero h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
@@ -174,51 +177,60 @@ export function buildReport(config: ReportConfig): string {
   const sectionsHtml = sections.map(sec => {
     let bodyHtml = "";
 
-    if (sec.type === "grid-stats" && sec.stats) {
-      bodyHtml = `<div class="grid-stats">${sec.stats.map(s => `
-        <div class="stat-box">
-          <div class="val" style="color:${safeColor(s.color, C.blue)}">${escapeHtml(s.value)}</div>
-          <div class="lbl">${escapeHtml(s.label)}</div>
-        </div>`).join("")}</div>`;
-    }
-
-    if (sec.type === "stats" && sec.stats) {
-      bodyHtml = sec.stats.map(s => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid ${C.s2}">
-          <span style="color:${C.ink3};font-size:12px">${escapeHtml(s.label)}</span>
-          <span style="font-weight:600;color:${safeColor(s.color, C.ink)};font-size:13px">${escapeHtml(s.value)}</span>
-        </div>`).join("");
-    }
-
-    if (sec.type === "table" && sec.headers && sec.rows) {
-      bodyHtml = `<table>
-        <thead><tr>${sec.headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
-        <tbody>${sec.rows.map(r => `<tr${r.highlight ? ' class="highlight"' : ""}>${r.cells.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>
-      </table>`;
-    }
-
-    if (sec.type === "bars" && sec.bars) {
-      bodyHtml = sec.bars.map(b => {
-        const width = safeBarWidth(b.value);
-        const defaultColor = width >= 75 ? C.grn : width >= 50 ? C.amb : C.red;
-        const color = safeColor(b.color, defaultColor);
-        const right = b.rightLabel != null ? escapeHtml(b.rightLabel) : `${width}%`;
-        return `<div class="bar-row">
-          <span class="bar-label">${escapeHtml(b.label)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
-          <span class="bar-value" style="color:${color}">${right}</span>
-        </div>`;
-      }).join("");
-    }
-
-    if (sec.type === "text" && sec.text) {
-      bodyHtml = `<div class="text-block">${escapeHtml(sec.text).replace(/\n/g, "<br>")}</div>`;
-    }
-
-    if (sec.type === "list" && sec.items) {
-      bodyHtml = sec.items.map(item => `
-        <div class="list-item"><div class="list-dot"></div><span>${escapeHtml(item)}</span></div>
-      `).join("");
+    switch (sec.type) {
+      case "grid-stats":
+        if (sec.stats) {
+          bodyHtml = `<div class="grid-stats">${sec.stats.map(s => `
+            <div class="stat-box">
+              <div class="val" style="color:${safeColor(s.color, C.blue)}">${escapeHtml(s.value)}</div>
+              <div class="lbl">${escapeHtml(s.label)}</div>
+            </div>`).join("")}</div>`;
+        }
+        break;
+      case "stats":
+        if (sec.stats) {
+          bodyHtml = sec.stats.map(s => `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid ${C.s2}">
+              <span style="color:${C.ink3};font-size:12px">${escapeHtml(s.label)}</span>
+              <span style="font-weight:600;color:${safeColor(s.color, C.ink)};font-size:13px">${escapeHtml(s.value)}</span>
+            </div>`).join("");
+        }
+        break;
+      case "table":
+        if (sec.headers && sec.rows) {
+          bodyHtml = `<table>
+            <thead><tr>${sec.headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
+            <tbody>${sec.rows.map(r => `<tr${r.highlight ? ' class="highlight"' : ""}>${r.cells.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>
+          </table>`;
+        }
+        break;
+      case "bars":
+        if (sec.bars) {
+          bodyHtml = sec.bars.map(b => {
+            const width = safeBarWidth(b.value);
+            const defaultColor = width >= 75 ? C.grn : width >= 50 ? C.amb : C.red;
+            const color = safeColor(b.color, defaultColor);
+            const right = b.rightLabel != null ? escapeHtml(b.rightLabel) : `${width}%`;
+            return `<div class="bar-row">
+              <span class="bar-label">${escapeHtml(b.label)}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
+              <span class="bar-value" style="color:${color}">${right}</span>
+            </div>`;
+          }).join("");
+        }
+        break;
+      case "text":
+        if (sec.text) {
+          bodyHtml = `<div class="text-block">${escapeHtml(sec.text).replace(/\n/g, "<br>")}</div>`;
+        }
+        break;
+      case "list":
+        if (sec.items) {
+          bodyHtml = sec.items.map(item => `
+            <div class="list-item"><div class="list-dot"></div><span>${escapeHtml(item)}</span></div>
+          `).join("");
+        }
+        break;
     }
 
     return `<div class="card">
@@ -233,12 +245,11 @@ export function buildReport(config: ReportConfig): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)} — Edullent Report</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <style>${CSS}</style>
 </head>
 <body>
-  <button class="print-btn no-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  <button id="printBtn" class="print-btn no-print" type="button">🖨️ Print / Save as PDF</button>
+  <script>document.getElementById("printBtn").addEventListener("click",function(){window.print();});</script>
 
   <div class="hero">
     ${badgeHtml}
@@ -262,30 +273,55 @@ export function buildReport(config: ReportConfig): string {
 // Uses a blob: URL — the popup has an opaque origin, so it CANNOT access the
 // parent window's Firebase Auth localStorage / IndexedDB. Even if the HTML
 // contained XSS, session tokens would still be safe.
-export function openReportWindow(html: string) {
+export function openReportWindow(
+  html: string,
+  options?: { onPopupBlocked?: () => void },
+) {
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const w = window.open(url, "_blank", "noopener,noreferrer");
   if (!w) {
     URL.revokeObjectURL(url);
-    alert("Please allow popups for report generation.");
+    if (options?.onPopupBlocked) {
+      options.onPopupBlocked();
+    } else {
+      // Fallback: caller didn't wire a toast, so a blocking alert is better
+      // than silent failure — otherwise the user thinks "nothing happened".
+      alert("Please allow popups for report generation.");
+    }
     return;
   }
   // Revoke after the browser has had time to load the document.
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
+// NOTE: The codebase currently uses two separate risk vocabularies — one in
+// StudentProfile.tsx (STABLE/MONITOR/ELEVATED/CRITICAL) and another in
+// GenerateReport.tsx (NO DATA/LOW/MODERATE/HIGH). Both flow into this builder.
+// Unifying them is a domain decision; this union accepts both so TS catches
+// typos without forcing a breaking change here.
+export type RiskLevel =
+  | "STABLE" | "MONITOR" | "ELEVATED" | "CRITICAL"
+  | "NO DATA" | "LOW" | "MODERATE" | "HIGH";
+
+// The two "safe" risk levels for color coding (green badge). Everything else
+// gets the amber/warning treatment.
+const SAFE_RISK_LEVELS: ReadonlySet<RiskLevel> = new Set(["STABLE", "LOW"]);
+
 // ── Quick student report builder ─────────────────────────────────────────────
 export function buildStudentReport(data: {
   name: string; className: string; rollNo: string;
-  avgScore: number; attendanceRate: number; passRate: number;
+  avgScore: number; attendanceRate: number;
   subjects: { name: string; score: number }[];
   assignments: { title: string; status: string; score?: string }[];
   incidents: { type: string; description: string; date: string }[];
-  riskLevel: string;
+  riskLevel: RiskLevel;
   schoolName?: string; generatedBy?: string;
 }): string {
   const { name, className, rollNo, avgScore, attendanceRate, subjects, assignments, incidents, riskLevel, schoolName, generatedBy } = data;
+  const goodAvg = avgScore >= 75 ? C.grn : C.amb;
+  const goodAtt = attendanceRate >= 85 ? C.grn : C.amb;
+  const riskColor = SAFE_RISK_LEVELS.has(riskLevel) ? C.grn : C.amb;
 
   return buildReport({
     title: `${name} — Progress Report`,
@@ -293,10 +329,10 @@ export function buildStudentReport(data: {
     badge: riskLevel,
     schoolName, generatedBy,
     heroStats: [
-      { label: "Average Score", value: `${Math.round(avgScore)}%`, color: avgScore >= 75 ? "#4ade80" : "#fbbf24" },
-      { label: "Attendance", value: `${Math.round(attendanceRate)}%`, color: attendanceRate >= 85 ? "#4ade80" : "#fbbf24" },
+      { label: "Average Score", value: `${Math.round(avgScore)}%`, color: goodAvg },
+      { label: "Attendance", value: `${Math.round(attendanceRate)}%`, color: goodAtt },
       { label: "Subjects", value: subjects.length },
-      { label: "Risk Level", value: riskLevel, color: riskLevel === "STABLE" ? "#4ade80" : "#fbbf24" },
+      { label: "Risk Level", value: riskLevel, color: riskColor },
     ],
     sections: [
       {
@@ -309,7 +345,7 @@ export function buildStudentReport(data: {
         type: "table",
         headers: ["Title", "Status", "Score"],
         rows: assignments.map(a => ({
-          cells: [a.title, a.status, a.score || "—"],
+          cells: [a.title, a.status, a.score ?? "—"],
           highlight: a.status === "OVERDUE",
         })),
       },
@@ -334,6 +370,12 @@ export function buildStudentReport(data: {
   });
 }
 
+// Coerce any numeric input (possibly undefined/NaN/string) to a finite number.
+const num = (v: unknown, fallback = 0): number => {
+  const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
+  return Number.isFinite(n) ? n : fallback;
+};
+
 // ── Quick teacher report builder ─────────────────────────────────────────────
 export function buildTeacherReport(data: {
   name: string; subject: string; email: string;
@@ -342,25 +384,32 @@ export function buildTeacherReport(data: {
   rating: number; reviewCount: number;
   schoolName?: string; generatedBy?: string;
 }): string {
+  const classAvg = num(data.classAvg);
+  const passRate = num(data.passRate);
+  const attendance = num(data.attendance);
+  const rating = num(data.rating);
+  const reviewCount = num(data.reviewCount);
+  const totalStudents = data.classes.reduce((a, c) => a + num(c.students), 0);
+
   return buildReport({
     title: `${data.name} — Teacher Report`,
     subtitle: `${data.subject} Teacher · ${data.email}`,
     schoolName: data.schoolName, generatedBy: data.generatedBy,
     heroStats: [
-      { label: "Class Average", value: `${data.classAvg}%` },
-      { label: "Pass Rate", value: `${data.passRate}%` },
-      { label: "Attendance", value: `${data.attendance}%` },
-      { label: "Rating", value: `${data.rating}/5` },
+      { label: "Class Average", value: `${Math.round(classAvg)}%` },
+      { label: "Pass Rate", value: `${Math.round(passRate)}%` },
+      { label: "Attendance", value: `${Math.round(attendance)}%` },
+      { label: "Rating", value: `${rating.toFixed(1)}/5` },
     ],
     sections: [
       {
         title: "Performance Metrics",
         type: "bars",
         bars: [
-          { label: "Class Average", value: data.classAvg },
-          { label: "Pass Rate", value: data.passRate },
-          { label: "Attendance", value: data.attendance },
-          { label: "Satisfaction", value: Math.round(data.rating * 20) },
+          { label: "Class Average", value: classAvg },
+          { label: "Pass Rate", value: passRate },
+          { label: "Attendance", value: attendance },
+          { label: "Satisfaction", value: Math.max(0, Math.min(100, Math.round(rating * 20))) },
         ],
       },
       {
@@ -374,9 +423,9 @@ export function buildTeacherReport(data: {
         type: "stats",
         stats: [
           { label: "Total Classes", value: data.classes.length },
-          { label: "Total Students", value: data.classes.reduce((a, c) => a + c.students, 0) },
-          { label: "Reviews", value: data.reviewCount },
-          { label: "Parent Rating", value: `${data.rating.toFixed(1)}/5`, color: C.amb },
+          { label: "Total Students", value: totalStudents },
+          { label: "Reviews", value: reviewCount },
+          { label: "Parent Rating", value: `${rating.toFixed(1)}/5`, color: C.amb },
         ],
       },
     ],
@@ -390,34 +439,45 @@ export function buildClassReport(data: {
   students: { name: string; score: string; attendance: string; grade: string }[];
   schoolName?: string; generatedBy?: string;
 }): string {
+  const avgScore = num(data.avgScore);
+  const passRate = num(data.passRate);
+  const attendanceRate = num(data.attendanceRate);
+  const totalStudents = num(data.totalStudents);
+
   return buildReport({
     title: `${data.className} — Class Report`,
-    subtitle: `Teacher: ${data.teacherName} · ${data.totalStudents} Students`,
+    subtitle: `Teacher: ${data.teacherName} · ${totalStudents} Students`,
     schoolName: data.schoolName, generatedBy: data.generatedBy,
     heroStats: [
-      { label: "Class Average", value: `${data.avgScore}%` },
-      { label: "Pass Rate", value: `${data.passRate}%` },
-      { label: "Attendance", value: `${data.attendanceRate}%` },
-      { label: "Students", value: data.totalStudents },
+      { label: "Class Average", value: `${Math.round(avgScore)}%` },
+      { label: "Pass Rate", value: `${Math.round(passRate)}%` },
+      { label: "Attendance", value: `${Math.round(attendanceRate)}%` },
+      { label: "Students", value: totalStudents },
     ],
     sections: [
       {
         title: "Class Performance",
         type: "bars",
         bars: [
-          { label: "Average Score", value: data.avgScore },
-          { label: "Pass Rate", value: data.passRate },
-          { label: "Attendance Rate", value: data.attendanceRate },
+          { label: "Average Score", value: avgScore },
+          { label: "Pass Rate", value: passRate },
+          { label: "Attendance Rate", value: attendanceRate },
         ],
       },
       {
         title: "Student Breakdown",
         type: "table",
         headers: ["Name", "Score", "Attendance", "Grade"],
-        rows: data.students.map(s => ({
-          cells: [s.name, s.score, s.attendance, s.grade],
-          highlight: parseInt(s.score) < 40,
-        })),
+        rows: data.students.map(s => {
+          // Parse with explicit radix 10. Non-numeric scores (letter grades,
+          // em-dashes) produce NaN → not highlighted, which is intentional:
+          // we only flag verifiably-low numeric scores.
+          const parsed = parseInt(s.score, 10);
+          return {
+            cells: [s.name, s.score, s.attendance, s.grade],
+            highlight: Number.isFinite(parsed) && parsed < 40,
+          };
+        }),
       },
     ],
   });

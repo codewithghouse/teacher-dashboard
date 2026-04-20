@@ -2,9 +2,25 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MarkAttendance from "@/components/MarkAttendance";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
+import {
+  collection, query, where, onSnapshot, getDocs,
+  type QueryConstraint, type DocumentData,
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { getInitials } from "../lib/initials";
 import { Loader2 } from "lucide-react";
+
+type ClassDoc = DocumentData & { id: string };
+type EnrollmentDoc = DocumentData & { id: string; classId?: string };
+type AttendanceRecord = DocumentData & {
+  id: string;
+  classId?: string;
+  date?: string;
+  status?: "present" | "absent" | "late";
+  studentId?: string;
+  studentEmail?: string;
+  studentName?: string;
+};
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -19,11 +35,6 @@ const T = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const todayISO = () => new Date().toLocaleDateString("en-CA");
-
-const getInitials = (name = "") => {
-  const p = name.trim().split(" ");
-  return (p.length >= 2 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase();
-};
 
 const AV_BG = ['#E3FAFC','#EBFBEE','#FFF9DB','#EDF2FF','#F3F0FF','#FFF5F5'];
 const AV_FG = ['#0C8599','#087F5B','#C87014','#3B5BDB','#6741D9','#C92A2A'];
@@ -119,9 +130,9 @@ const Attendance = () => {
   const [marking, setMarking]               = useState(false);
   const [markingClassId, setMarkingClassId] = useState<string>("");
   const [loading, setLoading]               = useState(true);
-  const [classes, setClasses]               = useState<any[]>([]);
-  const [enrollments, setEnrollments]       = useState<any[]>([]);
-  const [records, setRecords]               = useState<any[]>([]);
+  const [classes, setClasses]               = useState<ClassDoc[]>([]);
+  const [enrollments, setEnrollments]       = useState<EnrollmentDoc[]>([]);
+  const [records, setRecords]               = useState<AttendanceRecord[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [logDate, setLogDate]               = useState(new Date().toLocaleDateString("en-CA"));
   const [logClassId, setLogClassId]         = useState("");
@@ -130,52 +141,71 @@ const Attendance = () => {
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const tenant: QueryConstraint[] = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
     return onSnapshot(
       query(
         collection(db, "classes"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
       (snap) => {
-        const cls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const cls: ClassDoc[] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         setClasses(cls);
         setSelectedClassId(p => p || cls[0]?.id || "");
         setLogClassId(p => p || cls[0]?.id || "");
         if (!cls.length) setLoading(false);
       }
     );
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // 2. Enrollments
   useEffect(() => {
     if (!classes.length || !teacherData?.schoolId) { setEnrollments([]); return; }
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const tenant: QueryConstraint[] = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
+    let ignore = false;
     Promise.all(classes.map(c => getDocs(query(
       collection(db, "enrollments"),
-      where("schoolId", "==", schoolId),
+      ...tenant,
       where("classId", "==", c.id),
     ))))
       .then(snaps => {
-        const all: any[] = [];
-        snaps.forEach(s => s.docs.forEach(d => all.push({ id: d.id, ...d.data() })));
+        if (ignore) return;
+        const all: EnrollmentDoc[] = [];
+        snaps.forEach(s => s.docs.forEach(d => all.push({ ...d.data(), id: d.id })));
         setEnrollments(all);
-      });
-  }, [classes, teacherData?.schoolId]);
+      })
+      .catch(e => console.error("[Attendance] enrollments fetch failed", e));
+    return () => { ignore = true; };
+  }, [classes, teacherData?.schoolId, teacherData?.branchId]);
 
   // 3. Attendance records
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId || !classes.length) { setRecords([]); setLoading(false); return; }
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const tenant: QueryConstraint[] = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
     setLoading(true);
     return onSnapshot(
       query(
         collection(db, "attendance"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
-      (snap) => { setRecords(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false); }
+      (snap) => {
+        setRecords(snap.docs.map(d => ({ ...d.data(), id: d.id } as AttendanceRecord)));
+        setLoading(false);
+      }
     );
-  }, [teacherData?.id, teacherData?.schoolId, classes.length]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId, classes.length]);
 
   const todayStr = todayISO();
 
@@ -310,7 +340,9 @@ const Attendance = () => {
       <div className="grid grid-cols-2 gap-[9px] pt-4 pb-1">
         <MetricCard
           iconBg={T.blueL} icon={<IcoBarChart color={T.blue} />}
-          badgeText="+6.1%" badgeBg={T.greenL} badgeColor={T.green}
+          badgeText={stats.rateNum >= 85 ? "Healthy" : stats.rateNum >= 70 ? "Watch" : "Low"}
+          badgeBg={stats.rateNum >= 85 ? T.greenL : stats.rateNum >= 70 ? T.amberL : T.redL}
+          badgeColor={stats.rateNum >= 85 ? T.green : stats.rateNum >= 70 ? T.amber : T.red}
           value={stats.rateStr} valueColor={T.blue} label="Overall rate"
           barBg={T.blueL} barFill={T.blue} barPct={Math.min(stats.rateNum, 100)}
           onClick={() => navigate('/reports')}

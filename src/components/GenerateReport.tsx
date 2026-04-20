@@ -25,8 +25,9 @@ import {
 import { toast } from "sonner";
 import { AIController } from "../ai/controller/ai-controller";
 import { db } from "../lib/firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, serverTimestamp, doc } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 const loadXLSX = () => import("xlsx");
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import StudentProfile from "./StudentProfile";
@@ -358,17 +359,18 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        };
        if (teacherData.branchId) firestorePayload.branchId = teacherData.branchId;
 
-       const docRef = await addDoc(collection(db, "reports"), firestorePayload);
+       const docRef = await auditedAdd(collection(db, "reports"), firestorePayload);
 
        setCurrentReportId(docRef.id);
        setIsSent(false);
        setReportResult(resultData);
        toast.success("Intelligence Harvest Complete!");
-    } catch (e: any) {
-       console.error("Report generation failure:", e);
-       const msg = e?.code === "permission-denied"
+    } catch (e: unknown) {
+       console.error("[GenerateReport] report generation failed", e);
+       const err = e as { code?: string; message?: string } | null;
+       const msg = err?.code === "permission-denied"
          ? "Permission denied — check your school access."
-         : e?.message || "Harvesting failure.";
+         : err?.message || "Harvesting failure.";
        toast.error(msg);
     } finally {
        setIsGenerating(false);
@@ -382,7 +384,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        const isToParent = portal === "parent" || portal === "both";
        const isToPrincipal = portal === "principal" || portal === "both";
 
-       await updateDoc(doc(db, "reports", currentReportId), {
+       await auditedUpdate(doc(db, "reports", currentReportId), {
           status: portal === "both" ? "Global Broadcast Complete" : (portal === "parent" ? "Synced to Parent" : "Reported to Principal"),
           publishedToParent: isToParent,
           sentToPrincipal: isToPrincipal,
@@ -391,7 +393,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
 
        if (isToPrincipal) {
           if (!teacherData?.schoolId) throw new Error("School identity missing — cannot route to principal.");
-          const prPayload: any = {
+          const prPayload: Record<string, unknown> = {
              teacherId: teacherData.id || "unknown",
              teacherName: teacherData.name || "Faculty",
              schoolId: teacherData.schoolId,
@@ -407,16 +409,16 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
              createdAt: serverTimestamp()
           };
           if (teacherData.branchId) prPayload.branchId = teacherData.branchId;
-          await addDoc(collection(db, "principal_reports"), prPayload);
+          await auditedAdd(collection(db, "principal_reports"), prPayload);
        }
 
        setIsSent(true);
        toast.success(portal === "both" ? "Global Infrastructure Sync Complete!" : "Registry Mirror Updated.");
-    } catch (e: any) { 
-       console.error("Sync Error:", e);
-       toast.error("Mirror sync error."); 
-    } finally { 
-       setIsSending(false); 
+    } catch (e: unknown) {
+       console.error("[GenerateReport] portal sync failed", e);
+       toast.error("Mirror sync error.");
+    } finally {
+       setIsSending(false);
     }
   };
 

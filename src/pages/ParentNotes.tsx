@@ -3,9 +3,10 @@ import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
-  collection, query, where, onSnapshot, addDoc,
-  serverTimestamp, getDocs, writeBatch, updateDoc, doc,
+  collection, query, where, onSnapshot,
+  serverTimestamp, getDocs, writeBatch, doc,
 } from "firebase/firestore";
+import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
@@ -100,7 +101,7 @@ const ParentNotes = () => {
     });
 
     return () => { unsub1(); unsub2(); };
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Scroll to bottom on new messages
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [allNotes, selectedStudent]);
@@ -113,7 +114,7 @@ const ParentNotes = () => {
     allNotes.forEach(n => {
       const match = (sId && n.studentId?.toLowerCase() === sId) || (sEmail && n.studentEmail?.toLowerCase() === sEmail);
       if (match && n.from === "parent" && n.read !== true) {
-        updateDoc(doc(db, "parent_notes", n.id), { read: true }).catch(() => {});
+        auditedUpdate(doc(db, "parent_notes", n.id), { read: true }).catch(() => {});
       }
     });
   }, [selectedStudent?.id]);
@@ -189,7 +190,7 @@ const ParentNotes = () => {
     const content = messageContent.trim();
     setMessageContent("");
     try {
-      await addDoc(collection(db, "parent_notes"), {
+      await auditedAdd(collection(db, "parent_notes"), {
         schoolId:     teacherData?.schoolId || "",
         branchId:     teacherData?.branchId || "",
         teacherId:    teacherData?.id   || "",
@@ -201,7 +202,11 @@ const ParentNotes = () => {
         content, from: "teacher", status: "Sent",
         createdAt: serverTimestamp(),
       });
-    } catch { toast.error("Failed to send."); setMessageContent(content); }
+    } catch (e) {
+      console.error("[ParentNotes] send failed", e);
+      toast.error("Failed to send.");
+      setMessageContent(content);
+    }
   };
 
   const handleClearChat = async () => {
@@ -219,7 +224,10 @@ const ParentNotes = () => {
       snap.docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
       toast.success("Chat cleared!");
-    } catch { toast.error("Error clearing chat."); }
+    } catch (e) {
+      console.error("[ParentNotes] clear chat failed", e);
+      toast.error("Error clearing chat.");
+    }
   };
 
   // ── Helpers ─────────────────────────────────────────────────────────────

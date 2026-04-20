@@ -4,7 +4,23 @@ import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
 import * as pdfjsLib from "pdfjs-dist";
 
+// NOTE: PDF.js worker is loaded from unpkg CDN. Every summarize request hits
+// an external domain, which adds a small privacy/perf/availability cost.
+// For production, host the worker alongside the app bundle — Vite supports
+// `import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'`.
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+type SummaryDoc = {
+  title?: string;
+  summary?: string;
+  key_concepts?: string[];
+  sections?: Array<{ title: string; points: string[] }>;
+  definitions?: Array<{ term: string; meaning: string }>;
+  formulas?: string[];
+  exam_points?: string[];
+  revision_points?: string[];
+  [key: string]: unknown;
+};
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -54,7 +70,7 @@ const SummarizeLesson = () => {
   const [pageCount, setPageCount]           = useState(0);
   const [extracting, setExtracting]         = useState(false);
   const [loading, setLoading]               = useState(false);
-  const [summary, setSummary]               = useState<any>(null);
+  const [summary, setSummary]               = useState<SummaryDoc | null>(null);
   const [error, setError]                   = useState<string | null>(null);
   const [dragging, setDragging]             = useState(false);
 
@@ -66,7 +82,7 @@ const SummarizeLesson = () => {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      full += `\n\n[Page ${i}]\n${content.items.map((item: any) => item.str).join(" ")}`;
+      full += `\n\n[Page ${i}]\n${content.items.map((item: { str?: string }) => item.str ?? "").join(" ")}`;
     }
     return { text: full.trim(), pages: pdf.numPages };
   };
@@ -83,8 +99,10 @@ const SummarizeLesson = () => {
     try {
       const { pages } = await extractTextFromPDF(selectedFile);
       setPageCount(pages);
-    } catch {
-      setError("Could not read PDF. Try a different file."); setFile(null);
+    } catch (e) {
+      console.error("[SummarizeLesson] PDF extraction failed", e);
+      setError("Could not read PDF. Try a different file.");
+      setFile(null);
     }
     setExtracting(false);
   };
@@ -106,11 +124,12 @@ const SummarizeLesson = () => {
       }
       const result = await AIController.getSummary({ text, fileName: file.name });
       if (result.status === "success" && result.data) {
-        setSummary(result.data);
+        setSummary(result.data as SummaryDoc);
       } else {
-        setError(result.message || "AI could not generate summary. Please try again.");
+        setError((result as { message?: string }).message || "AI could not generate summary. Please try again.");
       }
-    } catch {
+    } catch (e) {
+      console.error("[SummarizeLesson] AI call failed", e);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

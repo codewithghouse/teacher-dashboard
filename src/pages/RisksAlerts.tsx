@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { db } from "../lib/firebase";
 import {
   collection, query, onSnapshot, getDocs,
-  doc, updateDoc, where, Timestamp, serverTimestamp,
+  doc, where, Timestamp, serverTimestamp,
+  type QueryConstraint,
 } from "firebase/firestore";
+import { auditedUpdate } from "../lib/auditedWrites";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
@@ -231,6 +233,7 @@ const RisksAlerts = () => {
       where("schoolId", "==", schoolId),
       where("teacherId", "==", tid),
     );
+    let ignore = false;
     const unsubscribe = onSnapshot(qClasses, async (classSnap) => {
       try {
         // Also pick up teaching_assignments
@@ -243,6 +246,7 @@ const RisksAlerts = () => {
           ...classSnap.docs.map(d => d.id),
           ...taSnap.docs.map(d => d.data().classId).filter(Boolean),
         ]);
+        if (ignore) return;
         const classIds = Array.from(classIdSet);
 
         if (classIds.length === 0) { setAlerts([]); setLoading(false); return; }
@@ -475,15 +479,17 @@ const RisksAlerts = () => {
 
         const ORDER: Record<string, number> = { Critical: 0, "High Priority": 1, "Medium Priority": 2 };
         generated.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
+        if (ignore) return;
         setAlerts(generated);
       } catch (err) {
+        if (ignore) return;
         console.error("[RisksAlerts] Error:", err);
         toast.error("Failed to load alerts.");
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     });
-    return () => unsubscribe();
+    return () => { ignore = true; unsubscribe(); };
   }, [teacherData?.id, refreshKey]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -494,14 +500,15 @@ const RisksAlerts = () => {
     }
     setResolving(a.id);
     try {
-      await updateDoc(doc(db, "risks", a.id), {
+      await auditedUpdate(doc(db, "risks", a.id), {
         resolved: true,
         resolvedAt: serverTimestamp(),
       });
       setAlerts(prev => prev.filter(x => x.id !== a.id));
       setResolvedCount(c => c + 1);
       toast.success("Alert marked as resolved.");
-    } catch {
+    } catch (e) {
+      console.error("[RisksAlerts] resolve failed", e);
       toast.error("Failed to update. Try again.");
     } finally {
       setResolving(null);
@@ -513,7 +520,7 @@ const RisksAlerts = () => {
     setFetchingContact(true);
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData?.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
     try {
       // Try enrollments first, then fall back to students collection by studentId
@@ -541,7 +548,8 @@ const RisksAlerts = () => {
         parent: parent || `Parent of ${sName}`,
         phone:  phone,  // null when not available — UI shows "Not available"
       });
-    } catch {
+    } catch (e) {
+      console.error("[RisksAlerts] fetchContact failed", e);
       toast.error("Could not fetch contact details.");
     } finally {
       setFetchingContact(false);

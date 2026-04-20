@@ -1,35 +1,60 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { GraduationCap, Loader2 } from "lucide-react";
 import TeacherLayout from "./components/TeacherLayout";
 
+// Reload once on chunk-load failure (stale deployed HTML referencing a
+// hashed chunk that no longer exists). Prevents white-screens after deploys.
+const lazyWithRetry = <T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) =>
+  lazy(async () => {
+    const RELOAD_KEY = "teacher-dash:chunk-reload";
+    try {
+      return await factory();
+    } catch (err: any) {
+      const isChunkError =
+        err?.name === "ChunkLoadError" ||
+        /Loading chunk [\d]+ failed/.test(err?.message ?? "") ||
+        /Failed to fetch dynamically imported module/.test(err?.message ?? "");
+      if (isChunkError && !sessionStorage.getItem(RELOAD_KEY)) {
+        sessionStorage.setItem(RELOAD_KEY, "1");
+        window.location.reload();
+        return { default: (() => null) as unknown as T };
+      }
+      throw err;
+    }
+  });
+
 // ── Lazy-loaded pages (code splitting) ────────────────────────────────────────
-const Dashboard          = lazy(() => import("./pages/Dashboard"));
-const MyClasses          = lazy(() => import("./pages/MyClasses"));
-const ClassDetail        = lazy(() => import("./pages/ClassDetail"));
-const Attendance         = lazy(() => import("./pages/Attendance"));
-const Assignments        = lazy(() => import("./pages/Assignments"));
-const TestsExams         = lazy(() => import("./pages/TestsExams"));
-const Students           = lazy(() => import("./pages/Students"));
-const Gradebook          = lazy(() => import("./pages/Gradebook"));
-const ConceptMastery     = lazy(() => import("./pages/ConceptMastery"));
-const RisksAlerts        = lazy(() => import("./pages/RisksAlerts"));
-const ParentNotes        = lazy(() => import("./pages/ParentNotes"));
-const PrincipalNotes     = lazy(() => import("./pages/PrincipalNotes"));
-const Reports            = lazy(() => import("./pages/Reports"));
-const SettingsPage       = lazy(() => import("./pages/SettingsPage"));
-const LessonPlanGenerator = lazy(() => import("./pages/LessonPlanGenerator"));
-const SummarizeLesson    = lazy(() => import("./pages/SummarizeLesson"));
-const Syllabus           = lazy(() => import("./pages/Syllabus"));
-const NotFound           = lazy(() => import("./pages/NotFound"));
-const Login              = lazy(() => import("./pages/Login"));
+const Dashboard          = lazyWithRetry(() => import("./pages/Dashboard"));
+const MyClasses          = lazyWithRetry(() => import("./pages/MyClasses"));
+const ClassDetail        = lazyWithRetry(() => import("./pages/ClassDetail"));
+const Attendance         = lazyWithRetry(() => import("./pages/Attendance"));
+const Assignments        = lazyWithRetry(() => import("./pages/Assignments"));
+const TestsExams         = lazyWithRetry(() => import("./pages/TestsExams"));
+const Students           = lazyWithRetry(() => import("./pages/Students"));
+const Gradebook          = lazyWithRetry(() => import("./pages/Gradebook"));
+const ConceptMastery     = lazyWithRetry(() => import("./pages/ConceptMastery"));
+const RisksAlerts        = lazyWithRetry(() => import("./pages/RisksAlerts"));
+const ParentNotes        = lazyWithRetry(() => import("./pages/ParentNotes"));
+const PrincipalNotes     = lazyWithRetry(() => import("./pages/PrincipalNotes"));
+const Reports            = lazyWithRetry(() => import("./pages/Reports"));
+const SettingsPage       = lazyWithRetry(() => import("./pages/SettingsPage"));
+const LessonPlanGenerator = lazyWithRetry(() => import("./pages/LessonPlanGenerator"));
+const SummarizeLesson    = lazyWithRetry(() => import("./pages/SummarizeLesson"));
+const Syllabus           = lazyWithRetry(() => import("./pages/Syllabus"));
+const NotFound           = lazyWithRetry(() => import("./pages/NotFound"));
+const Login              = lazyWithRetry(() => import("./pages/Login"));
+
+const REDIRECT_KEY = "teacher-dash:post-login-redirect";
 
 // ── Page loader ───────────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -38,10 +63,38 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Persist the intended destination while the user is logged out so that
+  // after Google sign-in they land on the page they originally requested.
+  useEffect(() => {
+    if (!loading && !user) {
+      const target = location.pathname + location.search + location.hash;
+      if (target && target !== "/") {
+        sessionStorage.setItem(REDIRECT_KEY, target);
+      }
+    }
+    if (user) {
+      const target = sessionStorage.getItem(REDIRECT_KEY);
+      if (target && location.pathname === "/") {
+        sessionStorage.removeItem(REDIRECT_KEY);
+        window.history.replaceState(null, "", target);
+      }
+    }
+  }, [loading, user, location]);
 
   if (loading) {
     return (

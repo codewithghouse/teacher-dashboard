@@ -3,8 +3,9 @@ import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot,
-  addDoc, serverTimestamp, updateDoc, doc,
+  serverTimestamp, doc,
 } from "firebase/firestore";
+import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
@@ -60,36 +61,54 @@ const SchoolIco = ({ size = 20, color = T.blBdr }: { size?: number; color?: stri
 // ── Quick replies ─────────────────────────────────────────────────────────────
 const QUICK_REPLIES = ["Yes sir ✓", "Will do", "On my way", "Noted", "Please give details"];
 
+interface PrincipalMessage {
+  id: string;
+  from?: "principal" | "teacher";
+  principalId?: string;
+  principalName?: string;
+  teacherId?: string;
+  message?: string;
+  read?: boolean;
+  timestamp?: { toDate?: () => Date; toMillis?: () => number };
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 const PrincipalNotes = () => {
   const { teacherData } = useAuth();
-  const [allMessages, setAllMessages]       = useState<any[]>([]);
+  const [allMessages, setAllMessages]       = useState<PrincipalMessage[]>([]);
   const [loading, setLoading]               = useState(true);
   const [messageContent, setMessageContent] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // ── Firebase listener ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!teacherData?.id) return;
+    if (!teacherData?.id || !teacherData?.schoolId) return;
     setLoading(true);
+    // Scope by schoolId + teacherId for defense in depth.
     const unsub = onSnapshot(
-      query(collection(db, "principal_to_teacher_notes"), where("teacherId", "==", teacherData.id)),
+      query(
+        collection(db, "principal_to_teacher_notes"),
+        where("schoolId", "==", teacherData.schoolId),
+        where("teacherId", "==", teacherData.id),
+      ),
       async snap => {
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+        const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as PrincipalMessage));
         data.sort((a, b) => (a.timestamp?.toMillis?.() || 0) - (b.timestamp?.toMillis?.() || 0));
         setAllMessages(data);
         setLoading(false);
-        // Auto-mark principal messages as read
+        // Auto-mark principal messages as read (fire-and-forget)
         for (const d of snap.docs) {
           const dd = d.data();
           if (dd.read === false && dd.from === "principal") {
-            try { await updateDoc(doc(db, "principal_to_teacher_notes", d.id), { read: true }); } catch { /* silent */ }
+            auditedUpdate(doc(db, "principal_to_teacher_notes", d.id), { read: true })
+              .catch(e => console.warn("[PrincipalNotes] mark-read failed", e));
           }
         }
-      }
+      },
+      e => console.error("[PrincipalNotes] subscription failed", e),
     );
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Scroll to bottom
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [allMessages]);
@@ -101,7 +120,7 @@ const PrincipalNotes = () => {
   }), [allMessages]);
 
   const groupedMessages = useMemo(() => {
-    const groups: { date: string; messages: any[] }[] = [];
+    const groups: { date: string; messages: PrincipalMessage[] }[] = [];
     allMessages.forEach(msg => {
       const label = fmtDate(msg.timestamp);
       const last  = groups[groups.length - 1];
@@ -123,7 +142,7 @@ const PrincipalNotes = () => {
     const content = messageContent.trim();
     setMessageContent("");
     try {
-      await addDoc(collection(db, "principal_to_teacher_notes"), {
+      await auditedAdd(collection(db, "principal_to_teacher_notes"), {
         principalId:   allMessages[0]?.principalId   || "",
         principalName: allMessages[0]?.principalName || "Principal",
         teacherId:     teacherData?.id   || "",
@@ -135,11 +154,16 @@ const PrincipalNotes = () => {
         branchId: teacherData?.branchId || "",
         read: false,
       });
-    } catch { toast.error("Failed to send."); setMessageContent(content); }
+    } catch (e) {
+      console.error("[PrincipalNotes] send failed", e);
+      toast.error("Failed to send.");
+      setMessageContent(content);
+    }
   };
 
-  const fmtTime = (ts: any) =>
-    new Date(ts?.toDate?.() || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const fmtTime = (ts: unknown) =>
+    new Date((ts as { toDate?: () => Date })?.toDate?.() || Date.now())
+      .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   const lastSeenStr = lastPrincipalMsg ? `Online · Last seen ${fmtTime(lastPrincipalMsg.timestamp)}` : "Offline";
 
@@ -511,8 +535,8 @@ const PrincipalNotes = () => {
 };
 
 // ── Date formatter (module-level) ─────────────────────────────────────────────
-function fmtDate(ts: any) {
-  const d     = ts?.toDate?.() || new Date();
+function fmtDate(ts: unknown) {
+  const d     = (ts as { toDate?: () => Date })?.toDate?.() || new Date();
   const today = new Date();
   if (d.toDateString() === today.toDateString()) return "Today";
   const y = new Date(today); y.setDate(today.getDate() - 1);

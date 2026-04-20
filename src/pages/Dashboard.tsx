@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import {
+  collection, query, where, onSnapshot, getDocs,
+  type QueryConstraint,
+} from 'firebase/firestore';
 import { Loader2, X, MessageSquare } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -148,13 +151,13 @@ const Dashboard = () => {
     );
     return onSnapshot(q, (snap) => {
       const unread = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
+        .map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; read?: boolean; createdAt?: { toMillis?: () => number } }))
         .filter(n => n.read !== true)
         .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
         .slice(0, 10);
       setUnreadNotes(unread);
     });
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Close notification panel on outside click
   useEffect(() => {
@@ -171,7 +174,7 @@ const Dashboard = () => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -182,7 +185,7 @@ const Dashboard = () => {
       const pres = att.filter((a: any) => a.status === 'present' || a.status === 'late').length;
       setStats(prev => ({ ...prev, avgAttendance: att.length > 0 ? Number(((pres / att.length) * 100).toFixed(1)) : 0 }));
     });
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Main data harvest
   useEffect(() => {
@@ -194,7 +197,7 @@ const Dashboard = () => {
     const branchId = teacherData.branchId as string | undefined;
     // SC is spread into EVERY tenant query below — schoolId is mandatory
     // under claims-based rules; branchId is optional per-deployment scope.
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -308,8 +311,12 @@ const Dashboard = () => {
   const firstName = teacherData?.name?.split(" ")[0] || "Teacher";
   const dayLabel = new Date().toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric' });
 
-  // Badge helpers
-  const atndBadge  = stats.avgAttendance > 0 ? { text: `+${Math.abs(stats.avgAttendance - 91.8).toFixed(1)}%`, bg: T.greenL, color: T.green } : { text: "No data", bg: T.surface2, color: T.ink2 };
+  // Badge helpers. Previously compared against a hardcoded 91.8% baseline
+  // which produced misleading "+X%" deltas that had no real basis. Now shows
+  // just the current rate until a proper historical baseline is wired.
+  const atndBadge  = stats.avgAttendance > 0
+    ? { text: `${stats.avgAttendance.toFixed(1)}%`, bg: T.greenL, color: T.green }
+    : { text: "No data", bg: T.surface2, color: T.ink2 };
   const gradeBadge = stats.pendingGrading > 0 ? { text: "Urgent", bg: T.redL, color: T.red } : { text: "All clear", bg: T.greenL, color: T.green };
   const riskBadge  = stats.atRiskCount > 0 ? { text: `${stats.atRiskCount} flagged`, bg: T.redL, color: T.red } : { text: "Secure", bg: T.greenL, color: T.green };
   const clsBadge   = { text: "On track", bg: T.greenL, color: T.green };

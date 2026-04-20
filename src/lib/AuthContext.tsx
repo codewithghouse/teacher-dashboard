@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -7,12 +7,38 @@ import {
   User
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { syncClaimsAndRefreshToken } from './syncClaims';
+
+// Shape of a teacher document as stored in Firestore. Fields derived from
+// actual consumer usage across the dashboard — extend as new fields are added.
+export interface TeacherDoc {
+  id: string;
+  schoolId?: string;
+  branchId?: string;
+  email?: string;
+  name?: string;
+  displayName?: string;
+  phone?: string;
+  schoolName?: string;
+  branch?: string;
+  className?: string;
+  assignedClass?: string;
+  subject?: string;
+  status?: string;
+  isActive?: boolean;
+  isPrimarySchool?: boolean;
+  activatedAt?: Timestamp;
+  createdAt?: Timestamp;
+  lastLoginAt?: Timestamp;
+  notifications?: Record<string, unknown>;
+  preferences?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
 interface AuthContextType {
   user: User | null;
-  teacherData: any | null;
+  teacherData: TeacherDoc | null;
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -21,11 +47,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Skip the `lastLoginAt` write if it was updated less than this many ms ago.
+// Eliminates redundant Firestore writes on tab focus / token refresh.
+const LAST_LOGIN_DEBOUNCE_MS = 5 * 60 * 1000;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [teacherData, setTeacherData] = useState<any | null>(null);
+  const [teacherData, setTeacherData] = useState<TeacherDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
     let snapshotUnsub: (() => void) | null = null;
@@ -34,7 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clean up previous snapshot listener on each auth change
       if (snapshotUnsub) { snapshotUnsub(); snapshotUnsub = null; }
 
-      setLoading(true);
+      // Only show the full-screen "Checking Access" splash on first load.
+      // Subsequent auth events (token refresh, etc.) shouldn't flash it.
+      if (isInitialLoad.current) setLoading(true);
 
       if (currentUser && currentUser.email) {
         try {
@@ -76,31 +109,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const aD = a.data(), bD = b.data();
             const primary = (Number(!!bD.isPrimarySchool)) - (Number(!!aD.isPrimarySchool));
             if (primary !== 0) return primary;
-            const score = (d: any) =>
-              ["Active", "active"].includes(d.status) ? 2 :
-              ["Invited", "invited"].includes(d.status) ? 1 : 0;
+            const score = (d: Record<string, unknown>) => {
+              const status = String(d.status ?? "").toLowerCase();
+              if (status === "active") return 2;
+              if (status === "invited") return 1;
+              return 0;
+            };
             const diff = score(bD) - score(aD);
             if (diff !== 0) return diff;
-            const aTime = aD.activatedAt?.toMillis?.() || aD.createdAt?.toMillis?.() || 0;
-            const bTime = bD.activatedAt?.toMillis?.() || bD.createdAt?.toMillis?.() || 0;
+            const aTime = (aD.activatedAt as Timestamp | undefined)?.toMillis?.() ?? (aD.createdAt as Timestamp | undefined)?.toMillis?.() ?? 0;
+            const bTime = (bD.activatedAt as Timestamp | undefined)?.toMillis?.() ?? (bD.createdAt as Timestamp | undefined)?.toMillis?.() ?? 0;
             return bTime - aTime;
           });
           const teacherDoc  = sortedDocs[0];
           const teacherInfo = teacherDoc.data();
 
-          // ── Step 2: Auto-activate if status is "Invited" ──────────────────
-          if (teacherInfo.status === "Invited" || teacherInfo.status === "invited") {
-            await updateDoc(doc(db, "teachers", teacherDoc.id), {
+          // ── Step 2: Auto-activate if status is "Invited"; otherwise refresh
+          // `lastLoginAt` at most once per LAST_LOGIN_DEBOUNCE_MS window.
+          // Writes are fire-and-forget so we don't block the snapshot listener
+          // below — the snapshot itself will reflect the update when it lands.
+          const statusLower = String(teacherInfo.status ?? "").toLowerCase();
+          if (statusLower === "invited") {
+            updateDoc(doc(db, "teachers", teacherDoc.id), {
               status:      "Active",
               isActive:    true,
               activatedAt: serverTimestamp(),
               lastLoginAt: serverTimestamp(),
-            });
+            }).catch((e) => console.error("[Auth] activate failed", e));
           } else {
-            // Just update last login time for Active teachers
-            await updateDoc(doc(db, "teachers", teacherDoc.id), {
-              lastLoginAt: serverTimestamp(),
-            });
+            const lastLoginMs = (teacherInfo.lastLoginAt as Timestamp | undefined)?.toMillis?.() ?? 0;
+            if (Date.now() - lastLoginMs > LAST_LOGIN_DEBOUNCE_MS) {
+              updateDoc(doc(db, "teachers", teacherDoc.id), {
+                lastLoginAt: serverTimestamp(),
+              }).catch((e) => console.error("[Auth] lastLoginAt failed", e));
+            }
           }
 
           // ── Step 3: Real-time listener on the specific doc (not the query) ──
@@ -109,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // which can change if teacher records are reordered or a new school record is added.
           snapshotUnsub = onSnapshot(doc(db, "teachers", teacherDoc.id), (docSnap) => {
             if (docSnap.exists()) {
-              setTeacherData({ id: docSnap.id, ...docSnap.data() });
+              setTeacherData({ id: docSnap.id, ...docSnap.data() } as TeacherDoc);
               setUser(currentUser);
               setError(null);
             } else {
@@ -120,17 +162,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setError("Your account has been deactivated. Please contact your school principal.");
             }
             setLoading(false);
+            isInitialLoad.current = false;
           });
 
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Auth Error:", err);
           setError("An error occurred during verification. Please try again.");
           setLoading(false);
+          isInitialLoad.current = false;
         }
       } else {
         setUser(null);
         setTeacherData(null);
         setLoading(false);
+        isInitialLoad.current = false;
       }
     });
 
@@ -145,14 +190,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setError(null);
       await signInWithPopup(auth, provider);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Sign-in failed. Please try again.";
+      setError(message);
       throw err;
     }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } catch (err: unknown) {
+      console.error("[Auth] logout failed", err);
+      setError("Could not sign out. Please try again.");
+    }
   };
 
   return (

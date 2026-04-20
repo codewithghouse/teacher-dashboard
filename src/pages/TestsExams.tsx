@@ -138,14 +138,19 @@ export default function TestsExams() {
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    let ignore = false;
+    const tenant = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
     const unsub = onSnapshot(
       query(
         collection(db, "tests"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
       async (snap) => {
-        const raw = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const raw = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; classId?: string; testDate?: string; createdAt?: { toDate?: () => Date } }));
         raw.sort((a, b) => {
           const dA = a.testDate ? new Date(a.testDate).getTime() : (a.createdAt?.toDate?.()?.getTime?.() || 0);
           const dB = b.testDate ? new Date(b.testDate).getTime() : (b.createdAt?.toDate?.()?.getTime?.() || 0);
@@ -155,32 +160,37 @@ export default function TestsExams() {
           if (!t.classId) return { ...t, studentsCount: 0 };
           const enSnap = await getDocs(query(
             collection(db, "enrollments"),
-            where("schoolId", "==", schoolId),
+            ...tenant,
             where("classId", "==", t.classId),
           ));
           return { ...t, studentsCount: enSnap.size };
         }));
+        if (ignore) return;
         setTests(enriched);
         setLoading(false);
       }
     );
-    return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId]);
+    return () => { ignore = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Fetch scores
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const tenant = branchId
+      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
+      : [where("schoolId", "==", schoolId)];
     const unsub = onSnapshot(
       query(
         collection(db, "test_scores"),
-        where("schoolId", "==", schoolId),
+        ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
       snap => setScores(snap.docs.map(d => d.data()))
     );
     return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Fetch classes
   useEffect(() => {
@@ -192,7 +202,7 @@ export default function TestsExams() {
       where("teacherId", "==", teacherData.id),
     ))
       .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Stats
   const stats = useMemo(() => {

@@ -5,8 +5,9 @@ import GradeAssignment from "@/components/GradeAssignment";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot,
-  doc, deleteDoc, getDocs
+  doc, getDocs
 } from "firebase/firestore";
+import { auditedDelete } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -252,14 +253,15 @@ const Assignments = () => {
       }
     );
     return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
-      await deleteDoc(doc(db, "assignments", id));
+      await auditedDelete(doc(db, "assignments", id));
       toast.success("Assignment deleted.");
-    } catch {
+    } catch (e) {
+      console.error("[Assignments] delete failed", e);
       toast.error("Failed to delete assignment.");
     }
   };

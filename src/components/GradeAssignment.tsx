@@ -1,65 +1,127 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Check, BrainCircuit, ShieldAlert, Loader2, Sparkles, UserX, Download, Save, Send, FileText, ExternalLink, MoreVertical, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { AIController } from '../ai/controller/ai-controller';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, Loader2, Download, FileText } from 'lucide-react';
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, doc, setDoc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  collection, query, where, doc, getDocs, serverTimestamp,
+  type QueryConstraint, type Timestamp, type DocumentData,
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { auditedSet } from "../lib/auditedWrites";
+import { getInitials } from "../lib/initials";
 import { toast } from "sonner";
 const loadXLSX = () => import("xlsx");
 
+// Replace characters that are problematic in filenames across Windows/macOS/Linux.
+const sanitizeFilename = (name: string): string =>
+  name.replace(/[\\/:*?"<>|]/g, "_").trim() || "assignment";
+
+// Only http(s) URLs are safe to place in an anchor href — this blocks any
+// `javascript:` / `data:` URL that might end up in a Firestore-stored value
+// (whether via misconfigured rules or a migrated legacy record).
+const isHttpUrl = (v: unknown): v is string => {
+  if (typeof v !== "string") return false;
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch { return false; }
+};
+
+// Normalize any Firestore/plain date representation to a Date, or null.
+// Handles Firestore Timestamp (`.toDate()`), Date instances, numeric ms,
+// and ISO/locale strings. Silently returns null for anything unparseable.
+const toDate = (v: unknown): Date | null => {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  if (typeof v === "object" && v !== null && typeof (v as { toDate?: () => Date }).toDate === "function") {
+    try {
+      const d = (v as { toDate: () => Date }).toDate();
+      return isNaN(d.getTime()) ? null : d;
+    } catch { return null; }
+  }
+  const d = new Date(v as string | number);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+interface AssignmentDoc {
+  id: string;
+  classId: string;
+  deadline?: Date | string;
+  dueDate?: Timestamp | Date | string;
+  [key: string]: unknown;
+}
+
+interface SubmissionRow {
+  id: string;
+  name: string;
+  rollNo: string;
+  email: string;
+  status: string;
+  submittedAt: string;
+  attachment: string;
+  fileUrl: string | null;
+  grade: number | string;
+  feedback: string;
+  isPlagiarized: boolean;
+}
+
 interface GradeAssignmentProps {
-  assignment: any;
+  assignment: AssignmentDoc;
   onBack: () => void;
 }
 
 const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
   const { teacherData } = useAuth();
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isGrading, setIsGrading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [analyzingStudentId, setAnalyzingStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!assignment?.id || !teacherData?.id || !teacherData?.schoolId) return;
+    // Wait for teacherData to resolve. Without an else-branch that clears
+    // `loading`, a teacher whose schoolId never loads would see a perpetual
+    // spinner — so explicitly stop loading when the guard trips.
+    if (!assignment?.id || !teacherData?.id || !teacherData?.schoolId) {
+      if (!teacherData) return; // still initializing auth
+      setLoading(false);
+      return;
+    }
 
     const fetchEverything = async () => {
         setLoading(true);
         const schoolId = teacherData.schoolId as string;
         const branchId = teacherData?.branchId as string | undefined;
-        const SC: any[] = [where("schoolId", "==", schoolId)];
+        const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
         if (branchId) SC.push(where("branchId", "==", branchId));
 
         try {
-            // 1. Get Enrollments (Class Roster) — scoped by school
+            // Fire all four independent queries in parallel. Previously these
+            // ran serially which tripled teacher-perceived load time on slow
+            // connections.
             const enrolQ = query(
                 collection(db, "enrollments"),
                 ...SC,
                 where("classId", "==", assignment.classId),
             );
-            const rosterSnap = await getDocs(enrolQ);
+            const gradesQ = query(collection(db, "results"), ...SC, where("assignmentId", "==", assignment.id));
+            const subsByHomeworkQ = query(collection(db, "submissions"), ...SC, where("homeworkId", "==", assignment.id));
+            const subsByAssignQ = query(collection(db, "submissions"), ...SC, where("assignmentId", "==", assignment.id));
 
-            // 2. Get existing results — scoped by school
-            const qGrades = query(collection(db, "results"), ...SC, where("assignmentId", "==", assignment.id));
-            const gradeSnap = await getDocs(qGrades);
-            const gradeMap = new Map();
+            const [rosterSnap, gradeSnap, subSnapByHomework, subSnapByAssign] = await Promise.all([
+              getDocs(enrolQ),
+              getDocs(gradesQ),
+              getDocs(subsByHomeworkQ),
+              getDocs(subsByAssignQ),
+            ]);
+
+            const gradeMap = new Map<string, DocumentData>();
             gradeSnap.docs.forEach(d => gradeMap.set(d.data().studentId, d.data()));
 
-            // 3. Get Student Submissions — DUAL LOOKUP (scoped by school)
-            const subMap = new Map();
-
-            // Query by homeworkId (the assignment's actual doc ID) — this is what parent saves
-            const qSubsByHomework = query(collection(db, "submissions"), ...SC, where("homeworkId", "==", assignment.id));
-            const subSnapByHomework = await getDocs(qSubsByHomework);
+            // DUAL LOOKUP — homeworkId wins over assignmentId (older records).
+            const subMap = new Map<string, DocumentData & { _docId: string }>();
             subSnapByHomework.docs.forEach(d => {
                 const data = d.data();
                 const key = data.studentId || data.studentEmail;
                 if (key) subMap.set(key, { ...data, _docId: d.id });
             });
-
-            // Also query by assignmentId as fallback (for older records)
-            const qSubsByAssign = query(collection(db, "submissions"), ...SC, where("assignmentId", "==", assignment.id));
-            const subSnapByAssign = await getDocs(qSubsByAssign);
             subSnapByAssign.docs.forEach(d => {
                 const data = d.data();
                 const key = data.studentId || data.studentEmail;
@@ -111,6 +173,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
             });
             setSubmissions(roster);
         } catch (e) {
+            console.error("[GradeAssignment] roster load failed", e);
             toast.error("Institutional audit failed to load roster.");
         } finally {
             setLoading(false);
@@ -118,19 +181,23 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
     };
 
     fetchEverything();
-  }, [assignment?.id, assignment?.classId, teacherData?.id]);
+  }, [assignment?.id, assignment?.classId, teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
-  const updateSub = (id: string, field: string, value: any) => {
+  const updateSub = (id: string, field: keyof SubmissionRow, value: unknown) => {
     if (field === "grade" && value !== "") {
-      const num = parseFloat(value);
-      if (!isNaN(num) && (num < 0 || num > 100)) return;
+      // Reject any input that isn't a finite number in [0, 100]. Previously
+      // non-numeric strings (e.g. "abc") slipped through because the guard
+      // only fired when parseFloat succeeded *and* was out of range.
+      const num = parseFloat(String(value));
+      if (!Number.isFinite(num) || num < 0 || num > 100) return;
     }
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
-  const handleExport = () => {
-     if (submissions.length === 0) return toast.info("No logs to export.");
+  const handleExport = async () => {
+     if (submissions.length === 0) { toast.info("No logs to export."); return; }
      try {
+        const XLSX = await loadXLSX();
         const data = submissions.map(s => ({
             'Student Name': s.name,
             'Roll Number': s.rollNo,
@@ -143,33 +210,50 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Grades");
-        XLSX.writeFile(wb, `${assignment.title}_Grades_Audit.xlsx`);
+        const title = typeof assignment.title === "string" ? assignment.title : "assignment";
+        XLSX.writeFile(wb, `${sanitizeFilename(title)}_Grades_Audit.xlsx`);
         toast.success("Institutional logs exported to Excel.");
      } catch (e) {
+        console.error("[GradeAssignment] export failed", e);
         toast.error("Export protocol failure.");
      }
   };
 
   const handleSave = async () => {
-    const invalidGrades = submissions.filter(s => s.grade !== "" && (isNaN(parseFloat(s.grade)) || parseFloat(s.grade) < 0 || parseFloat(s.grade) > 100));
+    const parsedGrades = submissions.map(s => ({
+      sub: s,
+      entered: s.grade !== "" && s.grade != null,
+      num: parseFloat(String(s.grade)),
+    }));
+    const invalidGrades = parsedGrades.filter(p => p.entered && (!Number.isFinite(p.num) || p.num < 0 || p.num > 100));
     if (invalidGrades.length > 0) {
-      toast.error(`Invalid grades detected for: ${invalidGrades.map(s => s.name).join(", ")}. Must be 0-100.`);
+      toast.error(`Invalid grades detected for: ${invalidGrades.map(p => p.sub.name).join(", ")}. Must be 0-100.`);
       return;
     }
+    // Refuse to stamp a placeholder className onto every result doc — that
+    // poisons downstream reporting. Require the caller to pass the real one.
+    const className = typeof assignment.className === "string" ? assignment.className : "";
+    if (!className) {
+      console.error("[GradeAssignment] missing assignment.className — refusing to save with placeholder");
+      toast.error("Class information missing. Please reopen the assignment.");
+      return;
+    }
+
     setIsSaving(true);
     try {
-        const promises = submissions.filter(s => s.grade !== "").map(sub => {
+        const rowsToSave = parsedGrades.filter(p => p.entered);
+        const results = await Promise.allSettled(rowsToSave.map(({ sub, num }) => {
             const resRef = doc(db, "results", `${sub.id}_${assignment.id}`);
-            return setDoc(resRef, {
+            return auditedSet(resRef, {
                 studentId: sub.id,
                 studentName: sub.name,
                 studentEmail: sub.email,
                 homeworkId: assignment.id, // Renamed from assignmentId to differentiate from teaching_assignment
-                assignmentId: assignment.assignmentId || "legacy", // Enforced Phase 1 spec: tracking the teaching_assignment
-                assignmentTitle: assignment.title,
+                assignmentId: (assignment as DocumentData).assignmentId || "legacy", // Enforced Phase 1 spec: tracking the teaching_assignment
+                assignmentTitle: (assignment as DocumentData).title,
                 classId: assignment.classId,
-                className: assignment.className || "Class 8-A",
-                score: sub.grade,
+                className,
+                score: Number.isFinite(num) ? num : sub.grade,
                 feedback: sub.feedback,
                 isPlagiarized: sub.isPlagiarized || false,
                 teacherId: teacherData.id,
@@ -178,13 +262,21 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                 branchId: teacherData.branchId || "",
                 timestamp: serverTimestamp(),
                 category: "Assignment",
-                type: "score"
+                type: "score",
             });
-        });
-        await Promise.all(promises);
+        }));
+        const failed = results
+          .map((r, i) => ({ r, name: rowsToSave[i].sub.name }))
+          .filter(x => x.r.status === "rejected");
+        if (failed.length > 0) {
+          console.error("[GradeAssignment] partial save failure", failed);
+          toast.error(`Saved ${rowsToSave.length - failed.length}/${rowsToSave.length}. Failed: ${failed.map(f => f.name).join(", ")}`);
+          return;
+        }
         toast.success("Institutional mastery logs published successfully.");
         onBack();
     } catch (e) {
+        console.error("[GradeAssignment] save failed", e);
         toast.error("Critical synchronization failure.");
     } finally {
         setIsSaving(false);
@@ -200,11 +292,14 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 mb-2 transition-colors">
-            <ChevronLeft size={14} /> Back to Assignments
+            <ChevronLeft size={14} aria-hidden="true" /> Back to Assignments
           </button>
           <h1 className="text-2xl font-bold text-slate-800">Grade: {assignment?.title}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {assignment?.className} • {submissions.filter(s => s.status !== "Not Submitted").length} submissions • Due: {assignment?.deadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) || "—"}
+            {String((assignment as DocumentData)?.className ?? "")} • {submissions.filter(s => s.status !== "Not Submitted").length} submissions • Due: {(() => {
+              const d = toDate(assignment?.deadline ?? assignment?.dueDate);
+              return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+            })()}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -216,21 +311,22 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
             <span className="text-xs font-semibold text-slate-700">{gradedCount}/{totalRoster}</span>
           </div>
           <button onClick={handleExport} className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-            <Download size={14} /> Export
+            <Download size={14} aria-hidden="true" /> Export
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
+            aria-label={isSaving ? "Saving grades" : "Save grades"}
             className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Grades"}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : "Save Grades"}
           </button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
           <div className="overflow-x-auto text-left">
-             <table className="w-full text-left">
+             <table className="w-full text-left" aria-label="Grade entries">
                 <thead>
                     <tr className="border-b border-slate-100">
                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-left">Student</th>
@@ -253,8 +349,8 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                          <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-4">
                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
-                                    {(sub.name || "").substring(0,2).toUpperCase()}
+                                  <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0" aria-hidden="true">
+                                    {getInitials(sub.name, "?")}
                                   </div>
                                   <div>
                                      <p className="text-sm font-semibold text-slate-800">{sub.name}</p>
@@ -273,9 +369,9 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                                </span>
                             </td>
                             <td className="px-6 py-4">
-                               {sub.fileUrl ? (
-                                  <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
-                                     <FileText size={12} /> {sub.attachment}
+                               {isHttpUrl(sub.fileUrl) ? (
+                                  <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
+                                     <FileText size={12} aria-hidden="true" /> {sub.attachment}
                                   </a>
                                ) : (
                                   <span className="text-slate-300 text-xs">—</span>
@@ -288,6 +384,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                                  value={sub.grade}
                                  onChange={e => updateSub(sub.id, "grade", e.target.value)}
                                  placeholder="—"
+                                 aria-label={`Grade for ${sub.name}`}
                                  className="w-16 h-8 text-center bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-[#1e3272] outline-none focus:ring-2 focus:ring-blue-100"
                                />
                             </td>
@@ -298,11 +395,19 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                                  onChange={e => updateSub(sub.id, "feedback", e.target.value)}
                                  placeholder={sub.status === "Not Submitted" ? "Not submitted" : "Add feedback..."}
                                  disabled={sub.status === "Not Submitted"}
+                                 aria-label={`Feedback for ${sub.name}`}
                                  className="w-full h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-40"
                                />
                             </td>
                          </tr>
                       ))
+                   )}
+                   {!loading && submissions.length === 0 && (
+                     <tr>
+                       <td colSpan={6} className="px-6 py-10 text-center text-sm text-slate-400">
+                         No students enrolled in this class yet.
+                       </td>
+                     </tr>
                    )}
                 </tbody>
              </table>

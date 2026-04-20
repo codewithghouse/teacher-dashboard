@@ -35,7 +35,8 @@ const avStyle = (name: string) => {
   return AV_PALETTES[h % AV_PALETTES.length];
 };
 const getInitials = (name: string) => {
-  const p = name.trim().split(/\s+/);
+  const p = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return "?";
   return (p.length >= 2 ? p[0][0] + p[p.length - 1][0] : p[0].slice(0, 2)).toUpperCase();
 };
 

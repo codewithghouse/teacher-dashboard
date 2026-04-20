@@ -1,5 +1,6 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import { getInitials } from "../lib/initials";
 import {
   LayoutDashboard,
   BookOpen,
@@ -45,21 +46,13 @@ interface TeacherSidebarProps {
 }
 
 const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
-  const location = useLocation();
   const { teacherData, user, logout } = useAuth();
 
-  const initials = (() => {
-    const name = teacherData?.name || user?.displayName || "T";
-    const parts = name.trim().split(" ");
-    return (parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0][0]).toUpperCase();
-  })();
-
-  // Derive active state: exact match for "/", prefix match for everything else
-  const isActive = (path: string) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  const initials = getInitials(teacherData?.name || user?.displayName);
+  const displayName = teacherData?.name || user?.displayName || "Teacher";
 
   return (
-    <aside className="w-64 h-full bg-[#1a2d66] md:bg-[#eef2ff] md:border-r md:border-slate-200 flex flex-col overflow-y-auto">
+    <aside className="w-64 h-full bg-[#1a2d66] md:bg-[#eef2ff] md:border-r md:border-slate-200 flex flex-col">
 
       {/* ── Logo ── */}
       <div className="px-5 py-5 flex items-center gap-3 border-b border-white/[0.08] md:border-slate-200">
@@ -69,7 +62,10 @@ const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
         <div className="flex flex-col leading-none flex-1 min-w-0">
           <span className="text-[13px] md:text-[15px] font-semibold text-white md:text-[#1e3272] tracking-wide md:tracking-wider">EDULLENT</span>
           {teacherData?.schoolName && (
-            <span className="text-[10px] font-medium text-white/40 md:text-slate-500 mt-0.5 truncate">
+            <span
+              className="text-[10px] font-medium text-white/40 md:text-slate-500 mt-0.5 truncate"
+              title={teacherData.schoolName}
+            >
               {teacherData.schoolName}
             </span>
           )}
@@ -78,44 +74,48 @@ const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
         {onClose && (
           <button
             onClick={onClose}
+            aria-label="Close menu"
             className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.08] flex-shrink-0 transition-colors duration-150"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 md:space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={`
-                relative flex items-center gap-3 px-3 py-2.5 md:py-2.5 rounded-lg text-[13px] md:text-[14px] font-medium
-                transition-all duration-150 ease-out
-                ${active
-                  ? "bg-white/[0.12] text-white md:bg-[#1e3272] md:text-white md:shadow-sm"
-                  : "text-white/50 hover:bg-white/[0.06] hover:text-white/80 md:text-slate-600 md:hover:bg-slate-100 md:hover:text-slate-900"
-                }
-              `}
-            >
-              {/* Active left indicator — mobile only; desktop uses full bg */}
-              {active && (
-                <span className="md:hidden absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-white/60" />
-              )}
-              <item.icon
-                className={`w-[15px] h-[15px] md:w-[16px] md:h-[16px] flex-shrink-0 transition-colors duration-150 ${
-                  active ? "text-white md:text-white" : "text-white/40 md:text-slate-500"
-                }`}
-              />
-              {item.title}
-            </NavLink>
-          );
-        })}
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === "/"}
+            onClick={onClose}
+            className={({ isActive }) => `
+              relative flex items-center gap-3 px-3 py-2.5 md:py-2.5 rounded-lg text-[13px] md:text-[14px] font-medium
+              transition-all duration-150 ease-out
+              ${isActive
+                ? "bg-white/[0.12] text-white md:bg-[#1e3272] md:text-white md:shadow-sm"
+                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80 md:text-slate-600 md:hover:bg-slate-100 md:hover:text-slate-900"
+              }
+            `}
+          >
+            {({ isActive }) => (
+              <>
+                {/* Active left indicator — mobile only; desktop uses full bg */}
+                {isActive && (
+                  <span className="md:hidden absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-white/60" />
+                )}
+                <item.icon
+                  className={`w-[15px] h-[15px] md:w-[16px] md:h-[16px] flex-shrink-0 transition-colors duration-150 ${
+                    isActive ? "text-white md:text-white" : "text-white/40 md:text-slate-500"
+                  }`}
+                  aria-hidden="true"
+                />
+                {item.title}
+              </>
+            )}
+          </NavLink>
+        ))}
       </nav>
 
       {/* ── Teacher Profile ── */}
@@ -125,10 +125,16 @@ const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
             {initials}
           </div>
           <div className="overflow-hidden flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-white md:text-slate-900 truncate leading-tight">
-              {teacherData?.name || user?.displayName || "Teacher"}
+            <p
+              className="text-[13px] font-medium text-white md:text-slate-900 truncate leading-tight"
+              title={displayName}
+            >
+              {displayName}
             </p>
-            <p className="text-[10px] md:text-[11px] text-white/40 md:text-slate-500 truncate mt-0.5">
+            <p
+              className="text-[10px] md:text-[11px] text-white/40 md:text-slate-500 truncate mt-0.5"
+              title={teacherData?.subject || "Department"}
+            >
               {teacherData?.subject || "Department"}
             </p>
           </div>
@@ -137,7 +143,7 @@ const TeacherSidebar = ({ onClose }: TeacherSidebarProps) => {
           onClick={logout}
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium text-white/40 hover:bg-white/[0.06] hover:text-rose-300 md:text-slate-500 md:hover:bg-rose-50 md:hover:text-rose-600 transition-all duration-150 ease-out"
         >
-          <LogOut className="w-[15px] h-[15px]" />
+          <LogOut className="w-[15px] h-[15px]" aria-hidden="true" />
           Sign out
         </button>
       </div>

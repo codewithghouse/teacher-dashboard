@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { auditedUpdate } from "../lib/auditedWrites";
+import { getInitials } from "../lib/initials";
 import { toast } from "sonner";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -83,9 +85,29 @@ const SettingsPage = () => {
         phone: teacherData.phone || "",
         subject: teacherData.subject || "",
       });
-      if (teacherData.notifications) setNotifications(teacherData.notifications);
-      if (teacherData.preferences) setPreferences(teacherData.preferences);
+      // Only merge persisted notification keys we know about — if Firestore
+      // contains legacy or unexpected fields, defaults win for any missing key.
+      if (teacherData.notifications && typeof teacherData.notifications === "object") {
+        const n = teacherData.notifications as Partial<NotificationSettings>;
+        setNotifications(prev => ({
+          assignments: typeof n.assignments === "boolean" ? n.assignments : prev.assignments,
+          grading:     typeof n.grading     === "boolean" ? n.grading     : prev.grading,
+          attendance:  typeof n.attendance  === "boolean" ? n.attendance  : prev.attendance,
+          messages:    typeof n.messages    === "boolean" ? n.messages    : prev.messages,
+          risks:       typeof n.risks       === "boolean" ? n.risks       : prev.risks,
+        }));
+      }
+      if (teacherData.preferences && typeof teacherData.preferences === "object") {
+        const p = teacherData.preferences as Partial<typeof preferences>;
+        setPreferences(prev => ({
+          defaultView: typeof p.defaultView === "string" ? p.defaultView : prev.defaultView,
+          gradeScale:  typeof p.gradeScale  === "string" ? p.gradeScale  : prev.gradeScale,
+          dateFormat:  typeof p.dateFormat  === "string" ? p.dateFormat  : prev.dateFormat,
+          language:    typeof p.language    === "string" ? p.language    : prev.language,
+        }));
+      }
     }
+
   }, [teacherData]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -93,13 +115,15 @@ const SettingsPage = () => {
     if (!teacherData?.id) return;
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "teachers", teacherData.id), {
-        name: formData.name, phone: formData.phone,
+      await auditedUpdate(doc(db, "teachers", teacherData.id), {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
         notifications, preferences,
-        updatedAt: new Date().toISOString(),
+        updatedAt: serverTimestamp(),
       });
       toast.success("Settings saved.");
-    } catch {
+    } catch (e) {
+      console.error("[SettingsPage] save failed", e);
       toast.error("Failed to save settings.");
     } finally {
       setIsSaving(false);
@@ -123,11 +147,7 @@ const SettingsPage = () => {
     setNotifications({ assignments: newVal, grading: newVal, attendance: newVal, messages: newVal, risks: newVal });
   };
 
-  const initials = (() => {
-    const n = formData.name || "T";
-    const p = n.trim().split(" ");
-    return (p.length >= 2 ? p[0][0] + p[1][0] : p[0][0]).toUpperCase();
-  })();
+  const initials = getInitials(formData.name);
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (

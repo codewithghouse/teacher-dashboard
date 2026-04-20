@@ -3,8 +3,17 @@ import { useAuth } from "../lib/AuthContext";
 import { db, storage, auth } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
-  addDoc, deleteDoc, doc, serverTimestamp,
+  doc, serverTimestamp,
 } from "firebase/firestore";
+import { auditedAdd, auditedDelete } from "../lib/auditedWrites";
+
+// Reject non-http(s) URLs before using them as an <a href>. Prevents
+// `javascript:` / `data:` URLs from a misconfigured Firestore record.
+const isHttpUrl = (v: unknown): v is string => {
+  if (typeof v !== "string") return false;
+  try { const u = new URL(v); return u.protocol === "http:" || u.protocol === "https:"; }
+  catch { return false; }
+};
 import {
   ref, uploadBytesResumable, getDownloadURL, deleteObject,
 } from "firebase/storage";
@@ -54,9 +63,10 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
 };
 
-const formatRelative = (ts: any): string => {
+const formatRelative = (ts: unknown): string => {
   if (!ts) return "just now";
-  const date: Date = ts.toDate ? ts.toDate() : new Date(ts);
+  const maybeTs = ts as { toDate?: () => Date };
+  const date: Date = maybeTs.toDate ? maybeTs.toDate() : new Date(ts as string | number | Date);
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -163,7 +173,7 @@ const Syllabus = () => {
     );
 
     return () => { cancelled = true; unsub(); };
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // ── Live listener on docs this teacher uploaded ─────────────────────────────
   useEffect(() => {
@@ -200,7 +210,7 @@ const Syllabus = () => {
     );
 
     return () => { cancelled = true; unsub(); };
-  }, [teacherData?.id, teacherData?.schoolId]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // Group docs by class for display
   const docsByClass = useMemo(() => {
@@ -307,7 +317,7 @@ const Syllabus = () => {
         try {
           const fileUrl = await getDownloadURL(task.snapshot.ref);
           try {
-            await addDoc(collection(db, "syllabi"), {
+            await auditedAdd(collection(db, "syllabi"), {
               schoolId:            teacherData.schoolId,
               branchId:            teacherData.branchId,
               classId:             chosenClass.classId,
@@ -331,9 +341,9 @@ const Syllabus = () => {
           }
           toast.success("Document uploaded.");
           closeModal();
-        } catch (err: any) {
-          console.error("Finalize failed:", err);
-          toast.error(err?.message || "Failed to save document.");
+        } catch (err: unknown) {
+          console.error("[Syllabus] finalize failed:", err);
+          toast.error(err instanceof Error ? err.message : "Failed to save document.");
           setUploading(false);
           setProgress(0);
         }
@@ -347,11 +357,11 @@ const Syllabus = () => {
     try {
       try { await deleteObject(ref(storage, d.filePath)); }
       catch (err) { console.warn("Storage delete failed:", err); }
-      await deleteDoc(doc(db, "syllabi", d.id));
+      await auditedDelete(doc(db, "syllabi", d.id));
       toast.success("Document deleted.");
-    } catch (err: any) {
-      console.error("Delete failed:", err);
-      toast.error(err?.message || "Failed to delete document.");
+    } catch (err: unknown) {
+      console.error("[Syllabus] delete failed:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete document.");
     }
   };
 
@@ -444,15 +454,17 @@ const Syllabus = () => {
                           <span>{formatRelative(d.uploadedAt)}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-3">
-                          <a
-                            href={d.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e3272] text-white text-[11px] font-semibold hover:bg-[#162552] transition-colors"
-                          >
-                            <Eye className="w-3 h-3" /> View PDF
-                          </a>
+                          {isHttpUrl(d.fileUrl) && (
+                            <a
+                              href={d.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e3272] text-white text-[11px] font-semibold hover:bg-[#162552] transition-colors"
+                            >
+                              <Eye className="w-3 h-3" /> View PDF
+                            </a>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(d); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-semibold hover:bg-rose-50 transition-colors"

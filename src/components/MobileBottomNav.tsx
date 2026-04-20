@@ -19,7 +19,7 @@ const NAV_ITEMS = [
         <rect x="11" y="11" width="5" height="5" rx="1.2" />
       </>
     ),
-    match: ["/"],
+    match: ["/", "/my-classes", "/attendance", "/assignments", "/tests"],
   },
   {
     label: "Students",
@@ -32,13 +32,13 @@ const NAV_ITEMS = [
         <path d="M1 16c0-2 1.5-3.5 3.5-3.5" />
       </>
     ),
-    match: ["/students", "/gradebook", "/concept-mastery"],
+    match: ["/students", "/gradebook", "/concept-mastery", "/risks-alerts", "/reports"],
   },
   {
     label: "AI Tools",
     path: "/lesson-planner",
     icon: <path d="M9 2L10.8 6.5H15L11.8 9.5L13 14L9 11.5L5 14L6.2 9.5L3 6.5H7.2Z" />,
-    match: ["/lesson-planner", "/summarize-lesson"],
+    match: ["/lesson-planner", "/summarize-lesson", "/syllabus"],
   },
   {
     label: "Messages",
@@ -90,8 +90,10 @@ const MobileBottomNav = () => {
 
         return (
           <button
-            key={item.label}
+            key={item.path}
             onClick={() => navigate(item.path)}
+            aria-label={item.label}
+            aria-current={active ? "page" : undefined}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -115,6 +117,7 @@ const MobileBottomNav = () => {
               strokeWidth="1.4"
               strokeLinecap="round"
               strokeLinejoin="round"
+              aria-hidden="true"
             >
               {item.icon}
             </svg>

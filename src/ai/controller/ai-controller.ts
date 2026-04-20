@@ -1,145 +1,121 @@
 import { functions } from "../../lib/firebase";
 import { httpsCallable } from "firebase/functions";
 
-// Memory caches
-const dashboardCache = new Map<string, any>();
-
 const NO_DATA_MSG = "AI insights will activate automatically once relevant academic and schedule data is available.";
 const ERROR_MSG = "AI service is temporarily unavailable. Displaying standard data.";
 
-export const AIController = {
-  
-  // 1. DASHBOARD INSIGHTS
-  async getDashboardInsights(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "dashboard_insights", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Dashboard AI Error:", error);
-        return { status: "error", message: ERROR_MSG };
+type AIPayload = Record<string, unknown>;
+type AIResult =
+  | { status: "success"; data: unknown }
+  | { status: "no_data"; message: string }
+  | { status: "error"; message: string }
+  | { status: "not_implemented"; message: string };
+
+const errMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+// Shared caller for all AI insight types — consolidates error handling and
+// response shape checks so each public method is a one-liner.
+async function callAIInsights(
+  type: string,
+  payload: AIPayload,
+  options?: { timeoutMs?: number; logPrefix?: string },
+): Promise<AIResult> {
+  const { timeoutMs, logPrefix = type } = options ?? {};
+  try {
+    const call = httpsCallable(
+      functions,
+      "getTeacherAIInsights",
+      timeoutMs ? { timeout: timeoutMs } : undefined,
+    );
+    const result = await call({ type, payload }) as { data?: { status?: string; data?: unknown; message?: string } };
+    if (!result?.data) return { status: "error", message: "No response from AI service." };
+    if (result.data.status === "error") {
+      return { status: "error", message: result.data.message || ERROR_MSG };
     }
+    if (!result.data.data) {
+      return { status: "error", message: "AI returned an empty response. Please try again." };
+    }
+    return { status: "success", data: result.data.data };
+  } catch (error: unknown) {
+    console.error(`[AIController:${logPrefix}]`, error);
+    return { status: "error", message: `AI Error: ${errMessage(error)}` };
+  }
+}
+
+const hasData = (data: unknown): data is AIPayload =>
+  !!data && typeof data === "object" && Object.keys(data as object).length > 0;
+
+const notImplemented = (name: string): AIResult => ({
+  status: "not_implemented",
+  message: `${name} is not yet wired to the AI backend.`,
+});
+
+export const AIController = {
+
+  // 1. DASHBOARD INSIGHTS
+  async getDashboardInsights(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("dashboard_insights", data, { logPrefix: "Dashboard" });
   },
 
   // 2. CLASS INSIGHTS
-  async getClassInsights(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "class_insights", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Class AI Error:", error);
-        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
-    }
+  async getClassInsights(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("class_insights", data, { logPrefix: "Class" });
   },
 
   // 3. ASSIGNMENT CREATION INSIGHTS
-  async getAssignmentCreation(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "assignment_creation", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Assignment Creation AI Error:", error);
-        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
-    }
+  async getAssignmentCreation(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("assignment_creation", data, { logPrefix: "AssignmentCreation" });
   },
 
   // 4. ASSIGNMENT GRADING INSIGHTS
-  async getAssignmentGrading(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "assignment_grading", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Grading AI Error:", error);
-        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
-    }
+  async getAssignmentGrading(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("assignment_grading", data, { logPrefix: "Grading" });
   },
 
-  // Placeholder methods for other features (can be moved to cloud as needed)
-  async getTestCreation(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getResultAnalysis(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getConceptRemedial(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getClassGaps(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getRosterSummaries(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getStudentAnalytics(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getParentNoteGeneration(data: any): Promise<any> { return { status: "success", data: {} }; },
-  async getClassReportCards(data: any): Promise<any> { return { status: "success", data: {} }; },
-  
-  async getDetailedSubjectReport(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "class_performance_report", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Class Report AI Error:", error);
-        return { status: "success", data: { report_content: "Overall class engagement remains high. Academic trends indicate a stable progress path with specific growth in core conceptual understanding." } }; // Fallback
-    }
+  // Stubs — these previously returned { status: "success", data: {} } which
+  // silently looked like success. Return `not_implemented` so callers can
+  // render an honest "coming soon" state instead of an empty success view.
+  async getTestCreation(_data: unknown): Promise<AIResult> { return notImplemented("getTestCreation"); },
+  async getResultAnalysis(_data: unknown): Promise<AIResult> { return notImplemented("getResultAnalysis"); },
+  async getConceptRemedial(_data: unknown): Promise<AIResult> { return notImplemented("getConceptRemedial"); },
+  async getClassGaps(_data: unknown): Promise<AIResult> { return notImplemented("getClassGaps"); },
+  async getRosterSummaries(_data: unknown): Promise<AIResult> { return notImplemented("getRosterSummaries"); },
+  async getStudentAnalytics(_data: unknown): Promise<AIResult> { return notImplemented("getStudentAnalytics"); },
+  async getParentNoteGeneration(_data: unknown): Promise<AIResult> { return notImplemented("getParentNoteGeneration"); },
+  async getClassReportCards(_data: unknown): Promise<AIResult> { return notImplemented("getClassReportCards"); },
+
+  async getDetailedSubjectReport(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("class_performance_report", data, { logPrefix: "ClassReport" });
   },
 
-  async getIndividualProgressReport(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights');
-        const result: any = await getInsights({ type: "individual_progress_report", payload: data });
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Individual Report AI Error:", error);
-        return { status: "success", data: { report_content: "Student is showing consistent application of concepts. Maintaining an active posture in classroom discussions and fulfilling all academic milestones." } };
-    }
+  async getIndividualProgressReport(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("individual_progress_report", data, { logPrefix: "IndividualReport" });
   },
 
   // LESSON SUMMARIZER
-  async getSummary(data: { text: string; fileName: string }): Promise<any> {
+  async getSummary(data: { text: string; fileName: string }): Promise<AIResult> {
     if (!data?.text?.trim()) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights', { timeout: 120000 });
-        const result: any = await getInsights({ type: "lesson_summary", payload: data });
-
-        // response logged in dev only
-        if (import.meta.env.DEV) console.debug("[Summary] response received");
-
-        if (!result?.data) return { status: "error", message: "No response from AI service." };
-        if (result.data.status === "error") return { status: "error", message: result.data.message || ERROR_MSG };
-        if (!result.data.data) return { status: "error", message: "AI returned an empty summary. Please try again." };
-
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Summary AI Error:", error);
-        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
-    }
+    if (import.meta.env.DEV) console.debug("[Summary] request dispatched");
+    return callAIInsights("lesson_summary", data as unknown as AIPayload, {
+      timeoutMs: 120_000,
+      logPrefix: "Summary",
+    });
   },
 
   // LESSON PLAN GENERATOR
-  async getLessonPlan(data: any): Promise<any> {
-    if (!data || Object.keys(data).length === 0) return { status: "no_data", message: NO_DATA_MSG };
-    try {
-        const getInsights = httpsCallable(functions, 'getTeacherAIInsights', { timeout: 120000 });
-        const result: any = await getInsights({ type: "lesson_plan_generation", payload: data });
-
-        if (import.meta.env.DEV) console.debug("[LessonPlan] response received");
-
-        // Firebase function itself may return { status: "error" } without throwing
-        if (!result?.data) {
-            return { status: "error", message: "No response from AI service." };
-        }
-        if (result.data.status === "error") {
-            return { status: "error", message: result.data.message || ERROR_MSG };
-        }
-        if (!result.data.data) {
-            return { status: "error", message: "AI returned an empty plan. Please try again." };
-        }
-
-        return { status: "success", data: result.data.data };
-    } catch (error: any) {
-        console.error("Lesson Plan AI Error:", error);
-        return { status: "error", message: `AI Error: ${error?.message || ERROR_MSG}` };
-    }
-  }
+  async getLessonPlan(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    if (import.meta.env.DEV) console.debug("[LessonPlan] request dispatched");
+    return callAIInsights("lesson_plan_generation", data, {
+      timeoutMs: 120_000,
+      logPrefix: "LessonPlan",
+    });
+  },
 };

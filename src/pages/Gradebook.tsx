@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
   collection, query, onSnapshot, where,
-  setDoc, doc, writeBatch, deleteDoc, getDocs
+  doc, writeBatch, getDocs,
+  type QueryConstraint,
 } from "firebase/firestore";
+import { auditedSet, auditedDelete } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -125,7 +127,7 @@ export default function Gradebook() {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     let unsub: (() => void) | null = null;
@@ -175,7 +177,7 @@ export default function Gradebook() {
     if (!teacherData.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     const u1 = onSnapshot(
@@ -232,7 +234,7 @@ export default function Gradebook() {
   const handleAddColumn = async () => {
     if (!newColName.trim()) return toast.error("Column name required");
     const colId = `col_${Date.now()}`;
-    await setDoc(doc(db, "gradebook_columns", colId), {
+    await auditedSet(doc(db, "gradebook_columns", colId), {
       id: colId,
       assignmentId: selectedClassId,
       classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId,
@@ -251,7 +253,7 @@ export default function Gradebook() {
 
   const handleDeleteColumn = async (id: string) => {
     if (confirm("Delete this column?")) {
-      await deleteDoc(doc(db, "gradebook_columns", id));
+      await auditedDelete(doc(db, "gradebook_columns", id));
       toast.success("Column deleted.");
     }
   };

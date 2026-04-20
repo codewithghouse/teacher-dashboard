@@ -3,7 +3,8 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
 import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore";
+import { collection, serverTimestamp, query, where, onSnapshot } from "firebase/firestore";
+import { auditedAdd } from "../lib/auditedWrites";
 import { toast } from "sonner";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -72,6 +73,38 @@ interface FormData {
   special_considerations: string;
 }
 
+interface LessonSection {
+  heading?: string;
+  phase?: string;
+  content?: string;
+  activities?: string[];
+  [key: string]: unknown;
+}
+
+interface Lesson {
+  title?: string;
+  duration?: string;
+  objectives?: string[];
+  sections?: LessonSection[];
+  [key: string]: unknown;
+}
+
+interface LessonPlanResult {
+  lessons?: Lesson[];
+  [key: string]: unknown;
+}
+
+interface HistoryItem {
+  id: string;
+  subject?: string;
+  grade?: string;
+  topic?: string;
+  board?: string;
+  plan?: LessonPlanResult;
+  createdAt?: { toMillis?: () => number };
+  [key: string]: unknown;
+}
+
 const defaultForm: FormData = {
   subject: "", grade: "Class 8", topic: "",
   duration_per_lesson: "45 minutes", num_lessons: 1, board: "CBSE",
@@ -83,25 +116,35 @@ const LessonPlanGenerator = () => {
   const { teacherData } = useAuth();
   const [form, setForm] = useState<FormData>({ ...defaultForm, subject: teacherData?.subject || "" });
   const [loading, setLoading]             = useState(false);
-  const [plan, setPlan]                   = useState<any>(null);
+  const [plan, setPlan]                   = useState<LessonPlanResult | null>(null);
   const [error, setError]                 = useState<string | null>(null);
   const [saving, setSaving]               = useState(false);
   const [saved, setSaved]                 = useState(false);
-  const [history, setHistory]             = useState<any[]>([]);
+  const [history, setHistory]             = useState<HistoryItem[]>([]);
   const [expandedLesson, setExpandedLesson] = useState<number>(0);
   const [activeTab, setActiveTab]         = useState<"generate" | "history">("generate");
 
   // ── Firebase: lesson plan history ───────────────────────────────────────
   useEffect(() => {
-    if (!teacherData?.id) return;
-    const q = query(collection(db, "lessonPlans"), where("teacherId", "==", teacherData.id));
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() as any }));
-      docs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-      setHistory(docs);
-    });
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    // Scope by schoolId + teacherId so a misconfigured Firestore rule can't
+    // leak another teacher's plans into this list.
+    const q = query(
+      collection(db, "lessonPlans"),
+      where("schoolId", "==", teacherData.schoolId),
+      where("teacherId", "==", teacherData.id),
+    );
+    const unsub = onSnapshot(
+      q,
+      snap => {
+        const docs = snap.docs.map(d => ({ ...d.data(), id: d.id } as HistoryItem));
+        docs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        setHistory(docs);
+      },
+      e => console.error("[LessonPlanGenerator] history subscription failed", e),
+    );
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
@@ -117,12 +160,13 @@ const LessonPlanGenerator = () => {
         school_name: teacherData?.schoolName || "",
       });
       if (result.status === "success" && result.data) {
-        setPlan(result.data);
+        setPlan(result.data as LessonPlanResult);
         setExpandedLesson(0);
       } else {
-        setError(result.message || "AI could not generate the plan. Please try again.");
+        setError((result as { message?: string }).message || "AI could not generate the plan. Please try again.");
       }
-    } catch {
+    } catch (e) {
+      console.error("[LessonPlanGenerator] generate failed", e);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -133,7 +177,7 @@ const LessonPlanGenerator = () => {
     if (!plan || !teacherData?.id) return;
     setSaving(true);
     try {
-      await addDoc(collection(db, "lessonPlans"), {
+      await auditedAdd(collection(db, "lessonPlans"), {
         teacherId: teacherData.id,
         schoolId: teacherData.schoolId || "",
         schoolName: teacherData.schoolName || "",
@@ -144,7 +188,10 @@ const LessonPlanGenerator = () => {
       });
       setSaved(true);
       toast.success("Lesson plan saved!");
-    } catch { toast.error("Failed to save."); }
+    } catch (e) {
+      console.error("[LessonPlanGenerator] save failed", e);
+      toast.error("Failed to save.");
+    }
     setSaving(false);
   };
 
@@ -153,8 +200,8 @@ const LessonPlanGenerator = () => {
     setForm({ ...defaultForm, subject: teacherData?.subject || "" });
   };
 
-  const loadFromHistory = (h: any) => {
-    setPlan(h.plan);
+  const loadFromHistory = (h: HistoryItem) => {
+    setPlan(h.plan ?? null);
     setForm({
       subject: h.subject || "", grade: h.grade || "Class 8",
       topic: h.topic || "",
@@ -166,7 +213,7 @@ const LessonPlanGenerator = () => {
     setSaved(true); setExpandedLesson(0); setActiveTab("generate");
   };
 
-  const upd = (key: keyof FormData, val: any) => setForm(f => ({ ...f, [key]: val }));
+  const upd = <K extends keyof FormData>(key: K, val: FormData[K]) => setForm(f => ({ ...f, [key]: val }));
 
   // ── Shared styles ───────────────────────────────────────────────────────
   const inputStyle: React.CSSProperties = {

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, TrendingUp, MessageSquare, FileText, BookOpen, Calendar, BarChart3, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar } from "recharts";
 import { db } from "../lib/firebase";
-import { doc, collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, collection, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { auditedAdd } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
 
@@ -277,16 +278,21 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
 
   // Send feedback
   const handleSendFeedback = async () => {
-    if (!feedbackText.trim() || !teacherData?.id) return;
+    const content = feedbackText.trim();
+    if (!content || !teacherData?.id) return;
     setSending(true);
     try {
-      await addDoc(collection(db, "parent_notes"), {
+      await auditedAdd(collection(db, "parent_notes"), {
         teacherId: teacherData.id, teacherName: teacherData.name || "Teacher",
         studentId: sid, studentEmail: email, studentName: sName,
-        content: feedbackText.trim(), from: "teacher", createdAt: serverTimestamp(),
+        schoolId: teacherData.schoolId || "", branchId: teacherData.branchId || "",
+        content, from: "teacher", createdAt: serverTimestamp(),
       });
       setFeedbackText(""); toast.success("Feedback sent!");
-    } catch { toast.error("Failed to send."); }
+    } catch (e) {
+      console.error("[StudentProfile] feedback send failed", e);
+      toast.error("Failed to send.");
+    }
     setSending(false);
   };
 

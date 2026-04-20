@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { db } from "../lib/firebase";
-import { collection, query, where, onSnapshot, getDocs, doc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, doc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
+import { auditedSet, auditedUpdate } from "../lib/auditedWrites";
+
+// Replace characters that are problematic in filenames across OS filesystems.
+const sanitizeFilename = (name: string): string =>
+  name.replace(/[\\/:*?"<>|]/g, "_").trim() || "scores";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 const loadXLSX = () => import("xlsx");
@@ -44,13 +49,21 @@ const avStyle = (name: string) => {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AV[h % AV.length];
 };
-const getInitials = (name: string) => {
-  const p = name.trim().split(/\s+/);
+// Local to this component: first + last name initials, which fits the
+// class-roster display (e.g. "Ram Kumar Sharma" -> "RS"). This is
+// intentionally different from `lib/initials.ts` (first + second word)
+// which is used for the logged-in teacher's avatar.
+const getStudentInitials = (name: string) => {
+  const p = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return "?";
   return (p.length >= 2 ? p[0][0] + p[p.length - 1][0] : p[0].slice(0, 2)).toUpperCase();
 };
 
 // ── Grade helper ──────────────────────────────────────────────────────────────
 const gradeInfo = (score: number, max: number) => {
+  if (!Number.isFinite(max) || max <= 0 || !Number.isFinite(score)) {
+    return { label: "—", bg: T.s2, color: T.ink3, band: T.ink3 };
+  }
   const pct = (score / max) * 100;
   if (pct >= 80) return { label: "A", bg: T.glBg, color: T.grn2, band: T.grn2 };
   if (pct >= 60) return { label: "B", bg: T.blBg, color: T.blue, band: T.blue };
@@ -58,22 +71,48 @@ const gradeInfo = (score: number, max: number) => {
   return { label: "D", bg: T.rlBg, color: T.red, band: T.red };
 };
 
+const ITEMS_PER_PAGE = 8;
+
+interface TestDoc {
+  id: string;
+  classId: string;
+  marks?: string | number;
+  title?: string;
+  testName?: string;
+  subject?: string;
+  date?: string;
+  testDate?: string;
+  [key: string]: unknown;
+}
+
+interface StudentScoreRow {
+  id: string;
+  name: string;
+  rollNo: string;
+  email: string;
+  className?: string;
+  score: string;
+  isAbsent: boolean;
+  feedback?: string;
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface EnterScoresProps {
-  test: any;
+  test: TestDoc;
   onBack: () => void;
 }
 
 export default function EnterScores({ test, onBack }: EnterScoresProps) {
   const { teacherData } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const maxScore = parseFloat(test?.marks) || 50;
+  const itemsPerPage = ITEMS_PER_PAGE;
+  const parsedMarks = parseFloat(test?.marks);
+  const maxScore = Number.isFinite(parsedMarks) && parsedMarks > 0 ? parsedMarks : 50;
 
   // ── Firebase: fetch roster + existing scores ────────────────────────────
   useEffect(() => {
@@ -86,6 +125,9 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
       where("classId", "==", test.classId),
     );
 
+    // Guard against a stale `getDocs` response overwriting state from a
+    // newer snapshot: if the effect cleans up mid-fetch, ignore the result.
+    let ignore = false;
     const unsub = onSnapshot(qRoster, async (snap) => {
       const qScores = query(
         collection(db, "test_scores"),
@@ -93,38 +135,42 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
         where("testId", "==", test.id),
       );
       const scoresSnap = await getDocs(qScores);
+      if (ignore) return;
       const existingScores = scoresSnap.docs.map(d => d.data());
 
-      const roster = snap.docs.map(d => {
-        const data = d.data() as any;
-        const studentId = data.studentId || d.id;
+      const roster: StudentScoreRow[] = snap.docs.map(d => {
+        const data = d.data() as Record<string, unknown>;
+        const studentId = (data.studentId as string) || d.id;
         const existing = existingScores.find(s => s.studentId === studentId);
         return {
           id: studentId,
-          name: data.studentName || "Student",
-          email: data.studentEmail,
-          rollNo: data.rollNo || "—",
-          className: data.className || test.className || "",
-          score: existing ? existing.score?.toString() : "",
-          note: "",
-          isAbsent: existing ? existing.isAbsent : false,
+          name: (data.studentName as string) || "Student",
+          email: (data.studentEmail as string) || "",
+          rollNo: (data.rollNo as string) || "—",
+          className: (data.className as string) || (test as { className?: string }).className || "",
+          score: existing?.score != null ? String(existing.score) : "",
+          isAbsent: !!existing?.isAbsent,
         };
       });
       roster.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStudents(roster);
       setLoading(false);
     });
-    return () => unsub();
-  }, [test?.classId, test?.id, teacherData?.id]);
+    return () => { ignore = true; unsub(); };
+  }, [test?.classId, test?.id, teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // ── Score change handler ────────────────────────────────────────────────
   const handleScoreChange = (id: string, val: string) => {
-    if (val === "" || val === "-") {
-      setStudents(prev => prev.map(s => s.id === id ? { ...s, score: val === "-" ? "" : val } : s));
+    if (val === "") {
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, score: "" } : s));
       return;
     }
+    // Accept only well-formed positive numbers (digits with optional decimal).
+    // Previously "1abc" slipped through because parseFloat stopped at the
+    // first non-digit and returned a finite number.
+    if (!/^\d+(\.\d+)?$/.test(val)) return;
     const num = parseFloat(val);
-    if (isNaN(num) || num < 0 || num > maxScore) return;
+    if (!Number.isFinite(num) || num < 0 || num > maxScore) return;
     setStudents(prev => prev.map(s => s.id === id ? { ...s, score: val } : s));
   };
 
@@ -199,17 +245,26 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
   };
 
   const handleExportExcel = async () => {
-    const XLSX = await loadXLSX();
-    const data = students.map(s => ({
-      "Test Name": test.title, "Class Name": test.className,
-      "Roll No": s.rollNo, "Student Name": s.name,
-      "Score": s.score || "", "Total Marks": maxScore,
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Scores");
-    XLSX.writeFile(wb, `${test.className}_${test.title}_Scores.xlsx`);
-    toast.success("Excel exported!");
+    try {
+      const XLSX = await loadXLSX();
+      const data = students.map(s => ({
+        "Test Name": test.title, "Class Name": (test as Record<string, unknown>).className || "",
+        "Roll No": s.rollNo, "Student Name": s.name,
+        "Score": s.score || "", "Total Marks": maxScore,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Scores");
+      const className = typeof (test as Record<string, unknown>).className === "string"
+        ? (test as Record<string, string>).className
+        : "class";
+      const title = typeof test.title === "string" ? test.title : "test";
+      XLSX.writeFile(wb, `${sanitizeFilename(className)}_${sanitizeFilename(title)}_Scores.xlsx`);
+      toast.success("Excel exported!");
+    } catch (err) {
+      console.error("[EnterScores] export failed:", err);
+      toast.error("Export failed.");
+    }
   };
 
   // ── Save to Firebase ────────────────────────────────────────────────────
@@ -220,21 +275,30 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
       const safeDocId = (s: string) =>
         s.replace(/[/\\#?]/g, "_").slice(0, 1500);
 
-      const promises = students.filter(s => s.score !== "" || s.isAbsent).map(s => {
-        const pct = s.score !== "" ? (parseFloat(s.score) / maxScore) * 100 : 0;
-        const g = s.score !== "" ? gradeInfo(parseFloat(s.score), maxScore) : null;
-        return setDoc(doc(db, "test_scores", safeDocId(`${test.id}_${s.id}`)), {
+      const rowsToSave = students.filter(s => s.score !== "" || s.isAbsent);
+      const results = await Promise.allSettled(rowsToSave.map(s => {
+        const scoreNum = s.score !== "" ? parseFloat(s.score) : null;
+        const pct = scoreNum != null ? (scoreNum / maxScore) * 100 : 0;
+        const g = scoreNum != null ? gradeInfo(scoreNum, maxScore) : null;
+        return auditedSet(doc(db, "test_scores", safeDocId(`${test.id}_${s.id}`)), {
           testId: test.id, testName: test.title,
           studentId: s.id, studentName: s.name, studentEmail: s.email,
           classId: test.classId, teacherId: teacherData?.id,
           schoolId: teacherData?.schoolId || "", branchId: teacherData?.branchId || "",
-          score: s.score === "" ? null : parseFloat(s.score),
+          score: scoreNum,
           maxScore, percentage: pct, grade: g?.label || "-",
           isAbsent: s.isAbsent, timestamp: serverTimestamp(),
         });
-      });
-      await Promise.all(promises);
-      await updateDoc(doc(db, "tests", test.id), { status: "Completed", classAverage: avgPct });
+      }));
+      const failed = results
+        .map((r, i) => ({ r, name: rowsToSave[i].name }))
+        .filter(x => x.r.status === "rejected");
+      if (failed.length > 0) {
+        console.error("[EnterScores] partial save failure", failed);
+        toast.error(`Saved ${rowsToSave.length - failed.length}/${rowsToSave.length}. Failed: ${failed.map(f => f.name).join(", ")}`);
+        return;
+      }
+      await auditedUpdate(doc(db, "tests", test.id), { status: "Completed", classAverage: avgPct });
       toast.success("Scores saved successfully!");
       onBack();
     } catch (err) {
@@ -412,7 +476,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 12, fontWeight: 500, flexShrink: 0,
                     }}>
-                      {getInitials(s.name)}
+                      {getStudentInitials(s.name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 500, color: T.ink1, margin: 0 }}>{s.name}</p>
@@ -440,6 +504,7 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                         disabled={s.isAbsent}
                         onChange={e => handleScoreChange(s.id, e.target.value)}
                         placeholder="Enter score"
+                        aria-label={`Score for ${s.name} out of ${maxScore}`}
                         style={{
                           width: "100%", padding: "10px 40px 10px 12px",
                           borderRadius: 11, border: `1px solid ${T.bdr}`,
@@ -467,19 +532,19 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                     </div>
                   )}
 
-                  {/* Note input */}
-                  <input
-                    placeholder="Add note (optional)..."
+                  {/* Absent toggle — rendered as a button so it's keyboard-accessible */}
+                  <button
+                    type="button"
+                    onClick={() => toggleAbsent(s.id)}
+                    aria-pressed={s.isAbsent}
+                    aria-label={`Mark ${s.name} as absent`}
                     style={{
-                      width: "100%", padding: "8px 12px", borderRadius: 10,
-                      border: `1px solid ${T.bdr}`, background: T.s1,
-                      fontSize: 11, color: T.ink3, fontFamily: "inherit", outline: "none",
+                      display: "flex", alignItems: "center", gap: 6, marginTop: 8,
+                      cursor: "pointer", background: "none", border: "none", padding: 0,
+                      fontFamily: "inherit",
                     }}
-                  />
-
-                  {/* Absent toggle */}
-                  <div onClick={() => toggleAbsent(s.id)} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, cursor: "pointer" }}>
-                    <div style={{
+                  >
+                    <span style={{
                       width: 18, height: 18, borderRadius: 6,
                       border: s.isAbsent ? "none" : `1.5px solid ${T.bdr}`,
                       background: s.isAbsent ? T.red : T.s1,
@@ -487,13 +552,13 @@ export default function EnterScores({ test, onBack }: EnterScoresProps) {
                       transition: "background 80ms",
                     }}>
                       {s.isAbsent && (
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                           <polyline points="1.5,5 4,8 8.5,2" />
                         </svg>
                       )}
-                    </div>
+                    </span>
                     <span style={{ fontSize: 11, color: T.ink3 }}>Mark as absent</span>
-                  </div>
+                  </button>
                 </div>
               </div>
             );

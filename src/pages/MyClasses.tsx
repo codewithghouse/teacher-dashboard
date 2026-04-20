@@ -3,8 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
 import {
-  collection, query, where, onSnapshot, getDocs
+  collection, query, where, onSnapshot, getDocs,
+  type QueryConstraint, type DocumentData,
 } from "firebase/firestore";
+
+type ClassDoc = DocumentData & { id: string };
+type EnrollmentDoc = DocumentData & { id: string; classId?: string };
+type AttendanceDoc = DocumentData & { id: string; classId?: string; status?: string };
+type ScoreDoc = DocumentData & { id: string; classId?: string; score?: number; percentage?: number };
 import {
   Loader2, Search, BarChart2, TrendingUp, Calendar,
   Users, CheckCircle, AlertCircle, LayoutGrid, Home
@@ -30,10 +36,10 @@ const MyClasses = () => {
   const navigate = useNavigate();
   const { teacherData } = useAuth();
 
-  const [classes, setClasses]                     = useState<any[]>([]);
-  const [enrollments, setEnrollments]             = useState<any[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
-  const [scoresRecords, setScoresRecords]         = useState<any[]>([]);
+  const [classes, setClasses]                     = useState<ClassDoc[]>([]);
+  const [enrollments, setEnrollments]             = useState<EnrollmentDoc[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceDoc[]>([]);
+  const [scoresRecords, setScoresRecords]         = useState<ScoreDoc[]>([]);
   const [startTimesMap, setStartTimesMap]         = useState<Map<string, string>>(new Map());
   const [loading, setLoading]                     = useState(true);
   const [searchQuery, setSearchQuery]             = useState("");
@@ -42,13 +48,19 @@ const MyClasses = () => {
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
+    const BC: QueryConstraint[] = branchId ? [where("branchId", "==", branchId)] : [];
 
     const qAssign = query(
       collection(db, "teaching_assignments"),
       where("schoolId", "==", schoolId),
+      ...BC,
       where("teacherId", "==", teacherData.id),
       where("status", "==", "active")
     );
+
+    // Guard against stale getDocs responses overwriting newer snapshot state.
+    let ignore = false;
     const unsubAssign = onSnapshot(qAssign, async (snap) => {
       const assignedIds = snap.docs.map(d => d.data().classId).filter(Boolean);
 
@@ -59,13 +71,16 @@ const MyClasses = () => {
           timesMap.set(data.classId, data.startTime || data.scheduleTime);
         }
       });
+      if (ignore) return;
       setStartTimesMap(timesMap);
 
       const legacySnap = await getDocs(query(
         collection(db, "classes"),
         where("schoolId", "==", schoolId),
+        ...BC,
         where("teacherId", "==", teacherData.id),
       ));
+      if (ignore) return;
       const legacyIds  = legacySnap.docs.map(d => d.id);
       const allIds     = Array.from(new Set([...assignedIds, ...legacyIds]));
       if (allIds.length === 0) { setClasses([]); setLoading(false); return; }
@@ -74,26 +89,28 @@ const MyClasses = () => {
       const classSnap  = await getDocs(query(
         collection(db, "classes"),
         where("schoolId", "==", schoolId),
+        ...BC,
       ));
-      setClasses(classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ id: d.id, ...d.data() })));
+      if (ignore) return;
+      setClasses(classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ ...d.data(), id: d.id })));
       setLoading(false);
     });
 
     const unsubEnrol = onSnapshot(
-      query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id)),
-      (snap) => setEnrollments(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      query(collection(db, "enrollments"), where("schoolId", "==", schoolId), ...BC, where("teacherId", "==", teacherData.id)),
+      (snap) => setEnrollments(snap.docs.map(d => ({ ...d.data(), id: d.id })))
     );
     const unsubAtnd = onSnapshot(
-      query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id)),
-      (snap) => setAttendanceRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      query(collection(db, "attendance"), where("schoolId", "==", schoolId), ...BC, where("teacherId", "==", teacherData.id)),
+      (snap) => setAttendanceRecords(snap.docs.map(d => ({ ...d.data(), id: d.id })))
     );
     const unsubScores = onSnapshot(
-      query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id)),
-      (snap) => setScoresRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      query(collection(db, "test_scores"), where("schoolId", "==", schoolId), ...BC, where("teacherId", "==", teacherData.id)),
+      (snap) => setScoresRecords(snap.docs.map(d => ({ ...d.data(), id: d.id })))
     );
 
-    return () => { unsubAssign(); unsubEnrol(); unsubAtnd(); unsubScores(); };
-  }, [teacherData?.id, teacherData?.schoolId]);
+    return () => { ignore = true; unsubAssign(); unsubEnrol(); unsubAtnd(); unsubScores(); };
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const getMetrics = (classId: string) => {
     const attArr   = attendanceRecords.filter(r => r.classId === classId);

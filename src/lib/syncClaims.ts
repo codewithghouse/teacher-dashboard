@@ -4,27 +4,25 @@
  * ({ schoolId, role, branchId }) on the user's ID token, then force-refreshes
  * the token so Firestore security rules see the new claims.
  */
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import type { User } from "firebase/auth";
+import { functions } from "./firebase";
 
-const FUNCTIONS_REGION = "us-central1";
-
-export async function syncClaimsAndRefreshToken(user: User): Promise<{
+type SyncClaimsResult = {
   role: string;
   schoolId: string | null;
   branchId?: string | null;
-} | null> {
+};
+
+export async function syncClaimsAndRefreshToken(user: User): Promise<SyncClaimsResult | null> {
   try {
-    const fns = getFunctions(undefined, FUNCTIONS_REGION);
-    const call = httpsCallable<unknown, { role: string; schoolId: string; branchId?: string }>(
-      fns,
-      "syncUserClaims",
-    );
+    const call = httpsCallable<unknown, SyncClaimsResult>(functions, "syncUserClaims");
     const res = await call({});
     await user.getIdToken(true);
     return res.data ?? null;
-  } catch (err: any) {
-    console.warn("[syncClaims] failed:", err?.message || err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[syncClaims] failed:", message);
     return null;
   }
 }

@@ -1,10 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
-import { collection, query, where, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import {
+  collection, query, where, serverTimestamp, onSnapshot,
+  type QueryConstraint,
+} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auditedAdd } from "../lib/auditedWrites";
 import { Loader2, UploadCloud, X, FileText } from 'lucide-react';
 import { toast } from "sonner";
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set<string>([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+const sanitizeStorageName = (name: string): string =>
+  name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").slice(0, 200) || "file";
 
 export default function CreateTest({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) {
   const { teacherData } = useAuth();
@@ -18,7 +33,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
      subject: "",
      testDate: "",
      duration: "",
-     marks: ""
+     marks: "",
+     category: "Unit Test",
   });
 
   const [topics, setTopics] = useState<string[]>([]);
@@ -38,38 +54,54 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     const q = query(collection(db, "classes"), ...SC, where("teacherId", "==", teacherData.id));
     const unsub = onSnapshot(q, (snap) => {
-      const cls = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      const cls = snap.docs.map(d => ({ ...(d.data() as Record<string, unknown>), id: d.id }));
       setClasses(cls);
-      if (cls.length > 0 && !formData.classId) {
-         setFormData(prev => ({ ...prev, classId: cls[0].id, className: cls[0].name }));
-      }
+      // Use the functional setter so we read the *latest* classId, not the
+      // one captured in this effect's closure. Prevents the auto-select from
+      // clobbering a user choice when the snapshot re-fires later.
+      setFormData(prev =>
+        prev.classId || cls.length === 0
+          ? prev
+          : { ...prev, classId: cls[0].id as string, className: (cls[0] as { name?: string }).name || "" }
+      );
     });
     return () => unsub();
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const handleSave = async () => {
-    if (!formData.title || !formData.classId) return toast.error("Test Name and Class are required.");
+    const title = formData.title.trim();
+    if (!title || !formData.classId) return toast.error("Test Name and Class are required.");
+
+    if (pdfFile) {
+      if (pdfFile.size > MAX_UPLOAD_BYTES) {
+        return toast.error(`Attachment exceeds ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB limit.`);
+      }
+      if (pdfFile.type && !ALLOWED_UPLOAD_TYPES.has(pdfFile.type)) {
+        return toast.error("Unsupported file type. Allowed: PDF, Word, PNG, JPEG.");
+      }
+    }
+
     setIsSaving(true);
-    
+
     try {
       let pdfUrl = "";
       if (pdfFile) {
          toast.info("Uploading Blueprint PDF...");
-         const fileRef = ref(storage, `test_blueprints/${teacherData?.id}_${Date.now()}_${pdfFile.name}`);
+         const safeName = sanitizeStorageName(pdfFile.name);
+         const fileRef = ref(storage, `test_blueprints/${teacherData?.id}_${Date.now()}_${safeName}`);
          await uploadBytes(fileRef, pdfFile);
          pdfUrl = await getDownloadURL(fileRef);
       }
 
-      await addDoc(collection(db, "tests"), {
+      await auditedAdd(collection(db, "tests"), {
         ...formData,
-        testName: formData.title,
-        date: formData.testDate,
-        category: (formData as any).category || "Unit Test",
+        title,
+        testName: title,
         teacherId: teacherData.id,
         schoolId: teacherData.schoolId || "",
         branchId: teacherData.branchId || "",
@@ -84,7 +116,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
       toast.success("Test completely set up and published globally!");
       onCreate();
     } catch (e) {
-      console.error(e);
+      console.error("[CreateTest] save failed", e);
       toast.error("Failed to publish test.");
     } finally {
       setIsSaving(false);
@@ -160,6 +192,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
           <button
             onClick={handleSave}
             disabled={isSaving}
+            aria-label={isSaving ? "Creating test" : "Create test"}
+            type="button"
             style={{
               flex: 1, padding: '9px 14px', borderRadius: 11,
               background: T.blue, border: 'none',
@@ -170,10 +204,10 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
             }}
           >
             {isSaving ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
             ) : (
               <>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="1.5,6.5 4.5,10 10.5,2.5"/>
                 </svg>
                 Create test
@@ -193,22 +227,30 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={lbl}>Select class</div>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                {classes.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setFormData({ ...formData, classId: c.id, className: c.name })}
-                    style={{
-                      padding: '7px 14px', borderRadius: 20, fontSize: 12,
-                      fontWeight: formData.classId === c.id ? 500 : 400,
-                      border: `1px solid ${formData.classId === c.id ? T.ink0 : T.bdr}`,
-                      background: formData.classId === c.id ? T.ink0 : T.s1,
-                      color: formData.classId === c.id ? '#fff' : T.ink2,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+                {classes.length === 0 ? (
+                  <div style={{ fontSize: 12, color: T.ink2, padding: '10px 0' }}>
+                    No classes assigned yet. Contact your principal to be added to a class.
+                  </div>
+                ) : (
+                  classes.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, classId: c.id, className: c.name })}
+                      aria-pressed={formData.classId === c.id}
+                      style={{
+                        padding: '7px 14px', borderRadius: 20, fontSize: 12,
+                        fontWeight: formData.classId === c.id ? 500 : 400,
+                        border: `1px solid ${formData.classId === c.id ? T.ink0 : T.bdr}`,
+                        background: formData.classId === c.id ? T.ink0 : T.s1,
+                        color: formData.classId === c.id ? '#fff' : T.ink2,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -248,8 +290,9 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 <div style={{ position: 'relative' }}>
                   <select
                     style={{ ...inp, appearance: 'none', WebkitAppearance: 'none', paddingRight: 28 }}
-                    value={(formData as any).category || "Unit Test"}
-                    onChange={e => setFormData({ ...formData, category: e.target.value } as any)}
+                    value={formData.category}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                    aria-label="Test category"
                   >
                     <option value="Unit Test">Unit Test</option>
                     <option value="Mid-term">Mid-term</option>
@@ -309,7 +352,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               <div style={lbl}>Attach paper (PDF · optional)</div>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="file" accept=".pdf"
+                  type="file" accept=".pdf,.doc,.docx,image/png,image/jpeg"
+                  aria-label="Upload test blueprint"
                   onChange={e => { if (e.target.files?.[0]) setPdfFile(e.target.files[0]); }}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
                 />
@@ -321,26 +365,28 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 }}>
                   {pdfFile ? (
                     <>
-                      <FileText size={20} style={{ color: T.green2 }} />
+                      <FileText size={20} style={{ color: T.green2 }} aria-hidden="true" />
                       <div style={{ fontSize: 12, fontWeight: 500, color: T.green2 }}>{pdfFile.name}</div>
                       <div style={{ fontSize: 10, color: T.ink2 }}>Document attached</div>
                     </>
                   ) : (
                     <>
                       <div style={{ width: 36, height: 36, borderRadius: 11, background: T.blueL, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <UploadCloud size={15} style={{ color: T.blue }} />
+                        <UploadCloud size={15} style={{ color: T.blue }} aria-hidden="true" />
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Upload PDF blueprint</div>
-                      <div style={{ fontSize: 10, color: T.ink2 }}>Students can download · Max 5 MB</div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: T.blue }}>Upload blueprint</div>
+                      <div style={{ fontSize: 10, color: T.ink2 }}>PDF / Word / image · Max 10 MB</div>
                     </>
                   )}
                 </div>
                 {pdfFile && (
                   <button
+                    type="button"
+                    aria-label="Remove blueprint"
                     onClick={e => { e.preventDefault(); e.stopPropagation(); setPdfFile(null); }}
                     style={{ position: 'absolute', right: 10, top: 10, zIndex: 20, background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 8, padding: 4, cursor: 'pointer' }}
                   >
-                    <X size={12} style={{ color: T.red }} />
+                    <X size={12} style={{ color: T.red }} aria-hidden="true" />
                   </button>
                 )}
               </div>

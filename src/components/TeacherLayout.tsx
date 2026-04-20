@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import TeacherSidebar from "./TeacherSidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import { useAuth } from "../lib/AuthContext";
+import { getInitials } from "../lib/initials";
 
 // Maps each route to a human-readable page title shown in the mobile header
 const ROUTE_TITLES: Record<string, string> = {
@@ -34,16 +35,24 @@ const TeacherLayout = () => {
   const basePath = "/" + location.pathname.split("/")[1];
   const pageTitle = ROUTE_TITLES[basePath] || "Edullent";
 
-  // Teacher initials for mobile avatar
-  const initials = (() => {
-    const name = teacherData?.name || teacherData?.displayName || "T";
-    const parts = name.trim().split(" ");
-    return (parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0][0]).toUpperCase();
-  })();
+  // Teacher initials for mobile avatar.
+  const initials = getInitials(teacherData?.name || teacherData?.displayName);
 
-  // Pages where the navbar should be dark to blend with their hero header
+  // Pages where the mobile navbar should be dark to blend with their hero
+  // header. The list is enumerated (not "all routes") so that adding a new
+  // page with a light/gradient header is a one-line change here.
   const darkNavRoutes = ["/", "/my-classes", "/attendance", "/assignments", "/tests", "/students", "/gradebook", "/concept-mastery", "/syllabus", "/risks-alerts", "/parent-notes", "/principal-notes", "/lesson-planner", "/summarize-lesson", "/reports", "/settings"];
   const isDarkNav = darkNavRoutes.includes(basePath);
+
+  // Close the mobile sidebar drawer on Esc for keyboard users.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sidebarOpen]);
 
   return (
     <div className="flex min-h-screen w-full">
@@ -53,11 +62,13 @@ const TeacherLayout = () => {
         <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar — fixed drawer on mobile, sticky on desktop */}
       <div
+        id="teacher-sidebar"
         className={`fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -82,9 +93,11 @@ const TeacherLayout = () => {
               className={`w-9 h-9 flex items-center justify-center rounded-xl active:scale-90 transition-transform flex-shrink-0 ${
                 isDarkNav ? "text-white/60 hover:text-white" : "bg-[#1e3272] text-white"
               }`}
-              aria-label="Open menu"
+              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+              aria-expanded={sidebarOpen}
+              aria-controls="teacher-sidebar"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-4 h-4" aria-hidden="true" />
             </button>
 
             {/* Page title + school name */}

@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import ConceptMasteryDetail from "@/components/ConceptMasteryDetail";
 import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
-import { collection, query, onSnapshot, getDocs, where } from "firebase/firestore";
+import {
+  collection, query, onSnapshot, getDocs, where,
+  type QueryConstraint,
+} from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -76,7 +79,7 @@ const ConceptMastery = () => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     let unsub: (() => void) | null = null;
@@ -113,11 +116,9 @@ const ConceptMastery = () => {
         if (combined.length > 0 && !selectedClassId) setSelectedClassId(combined[0].id);
         if (combined.length === 0) setLoading(false);
       });
-    };
-
-    init();
+    };    init().catch(e => console.error("[ConceptMastery] init failed", e));
     return () => { cancelled = true; unsub?.(); };
-  }, [teacherData?.id]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   // ── 2. Live Sync Engine ───────────────────────────────────────────────────
   useEffect(() => {
@@ -130,7 +131,7 @@ const ConceptMastery = () => {
     if (!teacherData.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: any[] = [where("schoolId", "==", schoolId)];
+    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     if (branchId) SC.push(where("branchId", "==", branchId));
 
     let gbCols: any[] = [];
@@ -255,17 +256,34 @@ const ConceptMastery = () => {
       if (computeTimer) clearTimeout(computeTimer);
       unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6();
     };
-  }, [teacherData?.id, teacherData?.schoolId, selectedClassId, classes]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes]);
 
   // ── Export ────────────────────────────────────────────────────────────────
+  // Defuse CSV injection: if a cell starts with `=`, `+`, `-`, `@`, or a
+  // control character, Excel/Sheets will interpret it as a formula. Prefix
+  // with a single quote so it's treated as plain text.
+  const csvEscape = (value: unknown): string => {
+    const raw = String(value ?? "");
+    const needsQuote = /[",\n\r]/.test(raw);
+    const guarded = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    return needsQuote ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+  };
+
   const exportCSV = () => {
-    const rows = [["Student", ...dynamicHeaders].join(",")];
-    masteryData.forEach(s => rows.push([`"${s.name}"`, ...s.concepts.map((c: number) => c > 0 ? `${c}%` : "")].join(",")));
-    rows.push(["Class Avg", ...classAverages.map(a => a > 0 ? `${a}%` : "")].join(","));
-    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "concept_mastery.csv"; a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const rows = [["Student", ...dynamicHeaders].map(csvEscape).join(",")];
+      masteryData.forEach(s => rows.push(
+        [csvEscape(s.name), ...s.concepts.map((c: number) => c > 0 ? `${c}%` : "")].join(",")
+      ));
+      rows.push(["Class Avg", ...classAverages.map(a => a > 0 ? `${a}%` : "")].join(","));
+      const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "concept_mastery.csv"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("[ConceptMastery] CSV export failed", e);
+    }
   };
 
   // ── Computed ──────────────────────────────────────────────────────────────
