@@ -27,7 +27,7 @@ const sanitizeStorageName = (name: string): string =>
   name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").slice(0, 200) || "file";
 
 const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) => {
-  const { teacherData } = useAuth();
+  const { user, teacherData } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isSaving, setIsSaving] = useState(false);
@@ -76,10 +76,18 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     setIsSaving(true);
     let attachmentUrl = "";
     try {
-      // 1. Upload attachment if selected
+      // 1. Upload attachment if selected.
+      // NOTE: Storage rules require the filename to start with the caller's
+      // Firebase Auth UID (not the teacher doc ID). `teacherData.id` is the
+      // Firestore `teachers/{docId}` — usually different from auth.uid.
       if (selectedFile) {
+        if (!user?.uid) {
+          toast.error("You are signed out. Please sign in again.");
+          setIsSaving(false);
+          return;
+        }
         const safeName = sanitizeStorageName(selectedFile.name);
-        const storageRef = ref(storage, `assignments/${teacherData.id}_${Date.now()}_${safeName}`);
+        const storageRef = ref(storage, `assignments/${user.uid}_${Date.now()}_${safeName}`);
         const snap = await uploadBytes(storageRef, selectedFile);
         attachmentUrl = await getDownloadURL(snap.ref);
       }

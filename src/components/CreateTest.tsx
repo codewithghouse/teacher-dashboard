@@ -22,7 +22,7 @@ const sanitizeStorageName = (name: string): string =>
   name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").slice(0, 200) || "file";
 
 export default function CreateTest({ onCancel, onCreate }: { onCancel: () => void, onCreate: () => void }) {
-  const { teacherData } = useAuth();
+  const { user, teacherData } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
@@ -91,9 +91,16 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     try {
       let pdfUrl = "";
       if (pdfFile) {
+         // Storage rules require the filename prefix to be the caller's
+         // auth.uid — not `teacherData.id` (Firestore teachers doc ID).
+         if (!user?.uid) {
+           toast.error("You are signed out. Please sign in again.");
+           setIsSaving(false);
+           return;
+         }
          toast.info("Uploading Blueprint PDF...");
          const safeName = sanitizeStorageName(pdfFile.name);
-         const fileRef = ref(storage, `test_blueprints/${teacherData?.id}_${Date.now()}_${safeName}`);
+         const fileRef = ref(storage, `test_blueprints/${user.uid}_${Date.now()}_${safeName}`);
          await uploadBytes(fileRef, pdfFile);
          pdfUrl = await getDownloadURL(fileRef);
       }
