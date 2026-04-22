@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import CreateAssignment from "@/components/CreateAssignment";
 import GradeAssignment from "@/components/GradeAssignment";
 import { db } from "../lib/firebase";
@@ -12,7 +11,7 @@ import { useAuth } from "../lib/AuthContext";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ── Design tokens (desktop) ──────────────────────────────────────────────────
 const T = {
   ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
   s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
@@ -21,6 +20,24 @@ const T = {
   red: '#C92A2A', redL: '#FFF5F5',
   amber: '#C87014', amberL: '#FFF9DB',
   teal: '#0C8599', tealL: '#E3FAFC',
+};
+
+// ── Mobile tokens (EduIntellect v2) ──────────────────────────────────────────
+const MA = {
+  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  BG: "#EEF4FF",
+  CARD: "#FFFFFF",
+  SURFACE: "#F4F7FE",
+  P: "#0957F7", PD: "#0044DD",
+  T1: "#001040", T3: "#5070B0", T4: "#99AACC",
+  GREEN: "#00C853",
+  RED: "#FF3355",
+  ORANGE: "#FF8800",
+  GOLD: "#FFAA00",
+  VIOLET: "#7B3FF4",
+  SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
+  SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+  HERO_GRAD: "linear-gradient(135deg, #000820 0%, #001466 32%, #0033CC 68%, #0957F7 100%)",
 };
 
 // ── SVG icons ────────────────────────────────────────────────────────────────
@@ -58,56 +75,6 @@ const IcoPlus = () => (
     <line x1="2" y1="7" x2="12" y2="7"/>
   </svg>
 );
-const IcoTrash = () => (
-  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.red} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="2,3.5 11,3.5"/>
-    <path d="M4.5,3.5v-1.5a1,1 0 0,1 1-1h2a1,1 0 0,1 1,1v1.5"/>
-    <path d="M5,5.5v4"/><path d="M8,5.5v4"/>
-    <rect x="2.5" y="3.5" width="8" height="8" rx="1.5"/>
-  </svg>
-);
-const IcoHome2 = ({ color = T.ink2 }: { color?: string }) => (
-  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 10V6L6 3l4 3v4"/>
-    <rect x="4.5" y="7.5" width="3" height="2.5" rx=".5"/>
-  </svg>
-);
-const IcoClock = ({ color = T.red }: { color?: string }) => (
-  <svg width="10" height="10" viewBox="0 0 11 11" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round">
-    <circle cx="5.5" cy="5.5" r="4"/>
-    <polyline points="5.5,3 5.5,5.5 7.5,5.5"/>
-  </svg>
-);
-const IcoGradeCheck = () => (
-  <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="2,7 5.5,11 11.5,2.5"/>
-  </svg>
-);
-// Tab bar icons
-const IcoGrid = ({ active }: { active: boolean }) => (
-  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="11" y="2" width="5" height="5" rx="1.2"/>
-    <rect x="2" y="11" width="5" height="5" rx="1.2"/><rect x="11" y="11" width="5" height="5" rx="1.2"/>
-  </svg>
-);
-const IcoAtnd = ({ active }: { active: boolean }) => (
-  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="2.5,8.5 6,12 13.5,4"/>
-  </svg>
-);
-const IcoAssign = ({ active }: { active: boolean }) => (
-  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="14" height="14" rx="2"/>
-    <line x1="5.5" y1="7" x2="12.5" y2="7"/>
-    <line x1="5.5" y1="10" x2="10" y2="10"/>
-  </svg>
-);
-const IcoUser2 = ({ active }: { active: boolean }) => (
-  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={active ? T.blue : T.ink2} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="9" cy="7" r="3"/>
-    <path d="M3 17c0 0 1.5-4 6-4s6 4 6 4"/>
-  </svg>
-);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const timeRemaining = (date: Date) => {
@@ -139,8 +106,6 @@ type FilterKey = "All" | "To grade" | "Submitted" | "Draft";
 // ── Component ─────────────────────────────────────────────────────────────────
 const Assignments = () => {
   const { teacherData } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const [view, setView]                         = useState<"list" | "create" | "grade">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
@@ -280,329 +245,418 @@ const Assignments = () => {
     return true;
   });
 
-  // Tab bar nav
-  const tabs = [
-    { label: "Dashboard",   path: "/",            icon: (a: boolean) => <IcoGrid   active={a} /> },
-    { label: "Attendance",  path: "/attendance",  icon: (a: boolean) => <IcoAtnd   active={a} /> },
-    { label: "Assignments", path: "/assignments", icon: (a: boolean) => <IcoAssign active={a} /> },
-    { label: "Profile",     path: "/settings",    icon: (a: boolean) => <IcoUser2  active={a} /> },
-  ];
-  const activePath = location.pathname;
-
-  // Metric cards config
-  const metrics = [
-    {
-      ico: <IcoDoc color={T.blue} />,
-      icoBg: T.blueL,
-      val: stats.totalActive,
-      valColor: T.ink1,
-      lbl: "Total active",
-      badgeTxt: "Active",
-      badgeBg: T.s2, badgeColor: T.ink2,
-      barFill: T.blue,
-      barW: stats.totalActive > 0 ? Math.min(100, stats.totalActive * 20) : 0,
-    },
-    {
-      ico: <IcoCal color={T.amber} />,
-      icoBg: T.amberL,
-      val: stats.dueThisWeek,
-      valColor: T.ink1,
-      lbl: "Due this week",
-      badgeTxt: stats.dueThisWeek === 0 ? "All clear" : "Due soon",
-      badgeBg: stats.dueThisWeek === 0 ? T.greenL : T.amberL,
-      badgeColor: stats.dueThisWeek === 0 ? T.green : T.amber,
-      barFill: T.amber,
-      barW: stats.dueThisWeek > 0 ? Math.min(100, stats.dueThisWeek * 20) : 0,
-    },
-    {
-      ico: <IcoAlert color={T.red} />,
-      icoBg: T.redL,
-      val: stats.pendingGrading,
-      valColor: stats.pendingGrading > 0 ? T.red : T.ink1,
-      lbl: "Pending grading",
-      badgeTxt: stats.pendingGrading > 0 ? "Needs review" : "All graded",
-      badgeBg: stats.pendingGrading > 0 ? T.amberL : T.greenL,
-      badgeColor: stats.pendingGrading > 0 ? T.amber : T.green,
-      barFill: T.red,
-      barW: stats.pendingGrading > 0 ? Math.min(100, stats.pendingGrading * 20) : 0,
-    },
-    {
-      ico: <IcoCheck2 color={T.green} />,
-      icoBg: T.greenL,
-      val: `${stats.avgSubmission}%`,
-      valColor: stats.avgSubmission >= 80 ? T.green : T.ink1,
-      lbl: "Avg. submission",
-      badgeTxt: stats.avgSubmission >= 80 ? "Great" : "In progress",
-      badgeBg: stats.avgSubmission >= 80 ? T.greenL : T.amberL,
-      badgeColor: stats.avgSubmission >= 80 ? T.green : T.amber,
-      barFill: T.green2,
-      barW: stats.avgSubmission,
-    },
-  ];
-
   const filterChips: FilterKey[] = ["All", "To grade", "Submitted", "Draft"];
 
   return (
     <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
 
-      {/* ═══════════════════ MOBILE VIEW ═══════════════════ */}
-      <div className="md:hidden" style={{ background: T.s1 }}>
+      {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
+      <div className="md:hidden" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
 
-      {/* ── Dark Hero ───────────────────────────────────────────────────────── */}
-      <div
-        className="-mx-4 sm:-mx-6 px-[22px] pb-6 bg-[#162E93] md:bg-[#08090C]"
-      >
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', marginBottom: 3 }}>
-          Assignments
-        </h1>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-          Create, manage and grade student work.
-        </p>
-      </div>
+        {/* Page header */}
+        <div className="px-4 pt-3 pb-[14px]">
+          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
+            Teacher Dashboard · Assignments
+          </div>
+          <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+            Assignments
+          </h1>
+          <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+            Create, manage, and grade student assignments.
+          </div>
+        </div>
 
-      {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div className="px-4 sm:px-6 md:px-0 pt-4 flex flex-col gap-3">
-
-        {/* Create CTA */}
-        <button type="button"
-          onClick={() => setView("create")}
-          style={{
-            width: '100%', padding: '13px', borderRadius: 13,
-            background: T.blue, border: 'none', color: '#fff',
-            fontSize: 13, fontWeight: 500, cursor: 'pointer',
-            fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 7,
-          }}
-        >
-          <IcoPlus /> Create assignment
-        </button>
-
-        {/* Metric grid */}
-        <div className="grid grid-cols-2 gap-[9px]">
-          {metrics.map((m, i) => (
-            <div key={i} style={{
-              background: T.s0, border: `1px solid ${T.bdr}`,
-              borderRadius: 16, padding: 13,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 9,
-                  background: m.icoBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        {/* Hero — gradient with Total Active */}
+        <div className="mx-4 mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+          style={{ background: MA.HERO_GRAD, boxShadow: "0 1px 2px rgba(0,8,60,0.15), 0 12px 32px rgba(0,8,60,0.28)" }}>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
+          <div className="relative z-[2]">
+            <div className="flex items-center gap-3 mb-[18px]">
+              <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white"
+                style={{
+                  background: "rgba(255,255,255,0.14)",
+                  backdropFilter: "blur(22px)",
+                  WebkitBackdropFilter: "blur(22px)",
+                  border: "0.5px solid rgba(255,255,255,0.22)",
+                  boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
                 }}>
-                  {m.ico}
-                </div>
-                <span style={{
-                  padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500,
-                  background: m.badgeBg, color: m.badgeColor, whiteSpace: 'nowrap',
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div>
+                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Total Active</div>
+                <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Across all classes</div>
+              </div>
+              <div className="ml-auto px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+                style={{
+                  background: "rgba(9,87,247,0.3)",
+                  border: "0.5px solid rgba(74,133,255,0.55)",
+                  color: "#B5CEFF",
+                  letterSpacing: "0.3px",
                 }}>
-                  {m.badgeTxt}
-                </span>
-              </div>
-              <div style={{ fontSize: 21, fontWeight: 500, letterSpacing: '-0.5px', lineHeight: 1, color: m.valColor }}>
-                {m.val}
-              </div>
-              <div style={{ fontSize: 11, color: T.ink2, marginTop: 3, lineHeight: 1.3 }}>{m.lbl}</div>
-              <div style={{ height: 3, borderRadius: 2, background: T.s2, marginTop: 9, overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 2, background: m.barFill, width: `${m.barW}%`, transition: 'width 0.6s ease' }} />
+                This Week
               </div>
             </div>
-          ))}
+            <div className="text-[54px] font-extrabold text-white leading-none mb-[6px] flex items-baseline" style={{ letterSpacing: "-2.4px" }}>
+              {stats.totalActive}
+              <span className="text-[22px] font-bold ml-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "-0.4px" }}>
+                {stats.totalActive === 1 ? "assignment" : "assignments"}
+              </span>
+            </div>
+            <div className="text-[13px] font-medium mb-[18px]" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "-0.15px" }}>
+              <b className="text-white font-bold">{stats.dueThisWeek} due this week</b> — {stats.pendingGrading} pending your grading.
+            </div>
+            <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[18px] font-extrabold" style={{ color: stats.dueThisWeek > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{stats.dueThisWeek}</div>
+                <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Due</div>
+              </div>
+              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[18px] font-extrabold" style={{ color: stats.pendingGrading > 0 ? "#FF9AA9" : "#fff", letterSpacing: "-0.5px" }}>{stats.pendingGrading}</div>
+                <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Pending</div>
+              </div>
+              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[18px] font-extrabold" style={{ color: stats.avgSubmission >= 80 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{stats.avgSubmission}%</div>
+                <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Avg Sub.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <Search style={{
-            position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
-            width: 14, height: 14, color: T.ink2, pointerEvents: 'none',
-          }} />
-          <input
-            type="text"
-            placeholder="Search assignments..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+        {/* Create CTA */}
+        <div className="px-4 mb-[14px]">
+          <button type="button" onClick={() => setView("create")}
+            className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.98] transition-transform"
             style={{
-              width: '100%', padding: '10px 12px 10px 33px',
-              borderRadius: 12, border: `1px solid ${T.bdr}`,
-              background: T.s0, fontSize: 13, color: T.ink1,
-              fontFamily: 'inherit', outline: 'none',
-            }}
-          />
+              background: MA.P, color: "#fff",
+              fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
+              boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.3)",
+              fontFamily: MA.FONT, border: "none",
+            }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create assignment
+          </button>
         </div>
 
-        {/* Filter chips */}
-        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}
-             className="scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-          {filterChips.map(key => (
-            <button type="button"
-              key={key}
-              onClick={() => setFilter(key)}
-              style={{
-                padding: '6px 13px', borderRadius: 20, fontSize: 11, whiteSpace: 'nowrap',
-                fontWeight: filter === key ? 500 : 400,
-                background: filter === key ? T.ink0 : T.s0,
-                color: filter === key ? '#fff' : T.ink2,
-                border: `1px solid ${filter === key ? T.ink0 : T.bdr}`,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {key}
+        {/* 2x2 Stats Grid */}
+        <div className="grid grid-cols-2 gap-[10px] px-4 mb-[14px]">
+          {([
+            {
+              key: "total", label: "Total Active", val: stats.totalActive, color: MA.P,
+              sub: stats.totalActive > 0
+                ? <span className="font-bold" style={{ color: MA.P }}>● Currently running</span>
+                : <span className="font-semibold" style={{ color: MA.T3 }}>No active work</span>,
+              onClick: () => setFilter("All"),
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+            },
+            {
+              key: "due", label: "Due This Week", val: stats.dueThisWeek, color: MA.ORANGE,
+              sub: stats.dueThisWeek > 0
+                ? <span className="font-bold" style={{ color: MA.ORANGE }}>● Due in 7 days</span>
+                : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All clear</span>,
+              onClick: () => setFilter("All"),
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            },
+            {
+              key: "pending", label: "Pending Grading", val: stats.pendingGrading, color: stats.pendingGrading > 0 ? MA.RED : MA.GREEN,
+              sub: stats.pendingGrading > 0
+                ? <span className="font-bold" style={{ color: MA.RED }}>● Needs review</span>
+                : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All caught up</span>,
+              onClick: () => setFilter("To grade"),
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+            },
+            {
+              key: "avg", label: "Avg Submission", val: `${stats.avgSubmission}%`, color: stats.avgSubmission >= 80 ? MA.GREEN : MA.VIOLET,
+              sub: stats.avgSubmission >= 80
+                ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Strong</span>
+                : stats.avgSubmission > 0
+                  ? <span className="font-bold" style={{ color: MA.P }}>● In progress</span>
+                  : <span className="font-semibold" style={{ color: MA.T3 }}>Awaiting subs</span>,
+              onClick: () => setFilter("Submitted"),
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            },
+          ] as const).map(s => (
+            <button key={s.key} type="button" onClick={s.onClick}
+              className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
+              style={{ boxShadow: MA.SH, fontFamily: MA.FONT }}>
+              <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
+                <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
+                  {s.label}
+                </div>
+                <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: s.color }}>
+                  {s.icon}
+                </div>
+              </div>
+              <div className="text-[30px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.3px" }}>{s.val}</div>
+              <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
+                {s.sub}
+              </div>
             </button>
           ))}
         </div>
 
-        {/* Loading */}
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-            <Loader2 className="w-5 h-5 animate-spin" style={{ color: T.blue }} />
-          </div>
-        ) : filtered.length === 0 ? (
+        {/* Filter Tabs */}
+        <div className="mx-4 mb-[12px] p-[5px] rounded-[14px] flex gap-[7px]"
+          style={{ background: MA.CARD, boxShadow: MA.SH_SM }}>
+          {filterChips.map(key => {
+            const count =
+              key === "All"       ? assignments.length :
+              key === "To grade"  ? assignments.filter(a => a.pendingGrading > 0).length :
+              key === "Submitted" ? assignments.filter(a => a.subCount >= a.expected && a.expected > 0).length :
+              /* Draft */         assignments.filter(a => a.status === "Draft").length;
+            const isActive = filter === key;
+            return (
+              <button key={key} type="button" onClick={() => setFilter(key)}
+                aria-pressed={isActive}
+                className="flex-1 py-[9px] px-[8px] rounded-[10px] flex items-center justify-center gap-[5px] transition-all active:scale-[0.96]"
+                style={{
+                  background: isActive ? MA.P : "transparent",
+                  color: isActive ? "#fff" : MA.T3,
+                  fontSize: 12, fontWeight: isActive ? 800 : 700, letterSpacing: "-0.2px",
+                  boxShadow: isActive ? "0 1px 2px rgba(9,87,247,0.2), 0 3px 8px rgba(9,87,247,0.25)" : "none",
+                  fontFamily: MA.FONT, border: "none", cursor: "pointer",
+                }}>
+                {key}
+                <span className="text-[10px] font-extrabold px-[6px] py-[1px] rounded-full min-w-[16px] text-center"
+                  style={{ background: isActive ? "rgba(255,255,255,0.22)" : MA.SURFACE, color: isActive ? "#fff" : MA.T3 }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          /* Empty state */
-          <div style={{
-            background: T.s0, border: `1.5px dashed ${T.bdr}`, borderRadius: 16,
-            padding: '20px 14px', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 8,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 11, background: T.blueL,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <IcoPlus />
+        {/* Search */}
+        <div className="mx-4 mb-[12px] flex items-center gap-[8px] py-[9px] px-[13px] rounded-[12px]"
+          style={{ background: MA.CARD, boxShadow: MA.SH_SM }}>
+          <Search className="w-[14px] h-[14px] flex-shrink-0" style={{ color: MA.T4 }} strokeWidth={2.4} />
+          <input type="text" placeholder="Search assignments…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-[12px] font-medium"
+            style={{ color: search ? MA.T1 : MA.T4, letterSpacing: "-0.1px", fontFamily: MA.FONT }} />
+        </div>
+
+        {/* Assignment cards */}
+        <div className="mx-4">
+          {loading ? (
+            <div className="bg-white rounded-[18px] py-10 flex justify-center" style={{ boxShadow: MA.SH }}>
+              <Loader2 className="w-7 h-7 animate-spin" style={{ color: MA.P }} />
             </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>
-              {filter === "All" ? "No assignments yet" : `No "${filter}" assignments`}
+          ) : filtered.length === 0 ? (
+            /* Empty state */
+            <div className="bg-white rounded-[22px] pt-9 pb-7 px-5 text-center" style={{ boxShadow: MA.SH }}>
+              <div className="relative w-[80px] h-[80px] rounded-[24px] flex items-center justify-center mx-auto mb-[18px]"
+                style={{
+                  background: "linear-gradient(145deg, rgba(9,87,247,0.1) 0%, rgba(123,63,244,0.08) 100%)",
+                  color: MA.P,
+                  boxShadow: "0 0 0 8px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
+                }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <div className="absolute -top-[6px] -right-[6px] w-[24px] h-[24px] rounded-full flex items-center justify-center text-white text-[14px] font-extrabold"
+                  style={{ background: MA.P, border: "3px solid #fff", boxShadow: "0 2px 6px rgba(9,87,247,0.35)" }}>
+                  +
+                </div>
+              </div>
+              <div className="text-[17px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.5px" }}>
+                {search ? "No matches" : filter === "All" ? "No assignments yet" : `No "${filter}" items`}
+              </div>
+              <div className="text-[13px] font-medium leading-[1.5] mb-[18px] px-[10px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+                {search ? (
+                  <>Try a different search term or clear the filter.</>
+                ) : filter === "All" ? (
+                  <><b className="font-bold" style={{ color: MA.T1 }}>Create your first</b> assignment to track student progress.</>
+                ) : filter === "To grade" ? (
+                  <><b className="font-bold" style={{ color: MA.T1 }}>All caught up!</b><br />Submissions will appear here once students upload their work.</>
+                ) : filter === "Submitted" ? (
+                  <>No fully-submitted assignments yet — check back as students turn in work.</>
+                ) : (
+                  <>No drafts right now. Every assignment you create is published live.</>
+                )}
+              </div>
+              <button type="button" onClick={() => setView("create")}
+                className="inline-flex items-center gap-[6px] px-5 py-[11px] rounded-[13px] active:scale-[0.96] transition-transform"
+                style={{
+                  background: MA.P, color: "#fff",
+                  fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
+                  boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 5px 14px rgba(9,87,247,0.3)",
+                  border: "none", fontFamily: MA.FONT,
+                }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create Assignment
+              </button>
             </div>
-            <div style={{ fontSize: 10, color: T.ink2, textAlign: 'center', lineHeight: 1.4 }}>
-              {filter === "All"
-                ? "Create your first assignment to track student progress."
-                : "Try a different filter or create a new assignment."}
-            </div>
-          </div>
-
-        ) : (
-
-          /* Assignment cards */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(a => {
-              const badge   = statusBadge(a.status);
-              const accent  = accentColor(a.status);
-              const subPct  = Math.min(100, (a.subCount / (a.expected || 1)) * 100);
-              const pastDue = isDuePast(a.deadline);
-
-              return (
-                <div
-                  key={a.id}
-                  onClick={() => { setSelectedAssignment(a); setView("grade"); }}
-                  role="button"
-                  tabIndex={0}
-                  className="clickable-card"
-                  style={{
-                    background: T.s0, border: `1px solid ${T.bdr}`,
-                    borderRadius: 18, overflow: 'hidden',
-                  }}
-                >
-                  {/* Colored accent strip */}
-                  <div style={{ height: 4, background: accent }} />
-
-                  <div style={{ padding: 14 }}>
-                    {/* Title + badge */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 500, color: T.ink1, letterSpacing: '-0.1px', lineHeight: 1.3 }}>
-                          {a.title}
+          ) : (
+            <div className="flex flex-col gap-[10px]">
+              {filtered.map(a => {
+                const accent = accentColor(a.status);
+                const pastDue = isDuePast(a.deadline);
+                const isActive = !pastDue && a.pendingGrading === 0;
+                return (
+                  <div key={a.id}
+                    onClick={() => { setSelectedAssignment(a); setView("grade"); }}
+                    role="button" tabIndex={0}
+                    className="bg-white rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
+                    style={{ boxShadow: MA.SH }}>
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-[3px]" style={{ background: accent }} />
+                    {/* Head */}
+                    <div className="flex items-start gap-[11px] mb-[12px]">
+                      <div className="w-10 h-10 rounded-[12px] flex items-center justify-center text-white flex-shrink-0" style={{ background: accent }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-[8px]">
+                          <div className="text-[15px] font-extrabold leading-[1.2] truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+                            {a.title}
+                          </div>
+                          {isActive ? (
+                            <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex items-center gap-[5px] flex-shrink-0"
+                              style={{ background: "rgba(9,87,247,0.1)", color: MA.P, letterSpacing: "0.3px" }}>
+                              <span className="w-[5px] h-[5px] rounded-full" style={{ background: MA.P }} />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                              style={{ background: statusBadge(a.status).bg, color: statusBadge(a.status).color, letterSpacing: "0.3px" }}>
+                              {statusBadge(a.status).text}
+                            </span>
+                          )}
                         </div>
                         {a.description && (
-                          <div style={{ fontSize: 11, color: T.ink2, marginTop: 2, lineHeight: 1.4,
-                            overflow: 'hidden', display: '-webkit-box',
-                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                          <div className="text-[11px] font-medium mt-[3px] truncate" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                             {a.description}
                           </div>
                         )}
                       </div>
-                      <span style={{
-                        padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500,
-                        background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0,
-                      }}>
-                        {badge.text}
-                      </span>
                     </div>
 
-                    {/* Class + due date */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: T.ink1 }}>
-                        <IcoHome2 />
-                        {a.className || "—"}
+                    {/* 3-col metrics */}
+                    <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px] mb-[11px]" style={{ background: MA.SURFACE }}>
+                      <div className="py-[9px] px-[6px] text-center bg-white">
+                        <div className="inline-block px-[8px] py-[2px] rounded-[6px] text-[11px] font-extrabold"
+                          style={{ background: "rgba(9,87,247,0.08)", color: MA.P, letterSpacing: "-0.2px" }}>
+                          {a.className || "—"}
+                        </div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>Class</div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11,
-                        color: pastDue ? T.red : T.ink2, fontWeight: pastDue ? 500 : 400 }}>
-                        <IcoClock color={pastDue ? T.red : T.ink2} />
-                        {timeRemaining(a.deadline)}
+                      <div className="py-[9px] px-[6px] text-center bg-white">
+                        <div className="text-[13px] font-extrabold" style={{ color: pastDue ? MA.RED : MA.ORANGE, letterSpacing: "-0.3px" }}>
+                          {timeRemaining(a.deadline)}
+                        </div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>Due Date</div>
                       </div>
-                    </div>
-
-                    {/* Submission bar */}
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: T.ink2, marginBottom: 5 }}>
-                        <span>Submissions</span>
-                        <span style={{ fontWeight: 500, color: T.ink1 }}>{a.subCount} / {a.expected}</span>
-                      </div>
-                      <div style={{ height: 5, borderRadius: 3, background: T.s2, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: 3, background: T.green2, width: `${subPct}%`, transition: 'width 0.5s ease' }} />
+                      <div className="py-[9px] px-[6px] text-center bg-white">
+                        <div className="text-[13px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+                          {a.subCount}/{a.expected}
+                        </div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>Submitted</div>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${T.s2}`, paddingTop: 12 }}>
+                    <div className="flex gap-[7px]">
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
+                        className="flex-1 h-[38px] rounded-[11px] flex items-center justify-center gap-[5px] active:scale-[0.96] transition-transform"
                         style={{
-                          flex: 1, padding: 10, borderRadius: 11, background: T.blue,
-                          border: 'none', color: '#fff', fontSize: 12, fontWeight: 500,
-                          cursor: 'pointer', fontFamily: 'inherit',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        }}
-                      >
-                        <IcoGradeCheck /> Grade submissions
+                          background: MA.P, color: "#fff",
+                          fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+                          boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 3px 10px rgba(9,87,247,0.25)",
+                          fontFamily: MA.FONT, border: "none",
+                        }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        Grade
+                      </button>
+                      <button type="button"
+                        onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
+                        className="flex-1 h-[38px] rounded-[11px] flex items-center justify-center active:scale-[0.96] transition-transform"
+                        style={{
+                          background: MA.SURFACE, color: MA.T1,
+                          fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+                          fontFamily: MA.FONT, border: "none",
+                        }}>
+                        View
                       </button>
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); handleDelete(a.id, a.title); }}
+                        aria-label={`Delete ${a.title}`}
+                        className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center active:scale-[0.92] transition-transform"
                         style={{
-                          width: 36, height: 36, borderRadius: 10,
-                          border: `1px solid ${T.bdr}`, background: T.s1,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer', flexShrink: 0,
-                        }}
-                      >
-                        <IcoTrash />
+                          background: "rgba(255,51,85,0.08)", color: MA.RED,
+                          fontFamily: MA.FONT, border: "none",
+                        }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
                       </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-            {/* Add more hint */}
-            <div style={{
-              background: T.s0, border: `1.5px dashed ${T.bdr}`, borderRadius: 16,
-              padding: '20px 14px', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 8, cursor: 'pointer',
-            }} onClick={() => setView("create")}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 11, background: T.blueL,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round">
-                  <line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/>
-                </svg>
+        {/* AI Intelligence */}
+        {!loading && (
+          <div className="mx-4 mt-[14px] rounded-[24px] p-[20px] relative overflow-hidden"
+            style={{
+              background: "linear-gradient(140deg, #000820 0%, #001888 28%, #0033CC 64%, #0957F7 100%)",
+              boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
+            }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
+            <div className="relative z-[2]">
+              <div className="flex items-center gap-[11px] mb-[12px]">
+                <div className="w-10 h-10 rounded-[13px] flex items-center justify-center text-[19px]"
+                  style={{
+                    background: "rgba(255,255,255,0.14)",
+                    backdropFilter: "blur(22px)",
+                    WebkitBackdropFilter: "blur(22px)",
+                    border: "0.5px solid rgba(255,255,255,0.22)",
+                    color: "#FFDD55",
+                  }}>⚡</div>
+                <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
+                  AI Assignment Intelligence
+                </div>
+                <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+                  style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
+                  Tip
+                </div>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>Add another assignment</div>
-              <div style={{ fontSize: 10, color: T.ink2, textAlign: 'center', lineHeight: 1.4 }}>
-                Create more assignments to track student progress across classes.
-              </div>
+              {(() => {
+                const nextDue = assignments.filter(a => a.deadline > new Date()).sort((a, b) => a.deadline.getTime() - b.deadline.getTime())[0];
+                const nextDueLabel = nextDue ? timeRemaining(nextDue.deadline) : "—";
+                return (
+                  <>
+                    <div className="text-[13px] leading-[1.6] mb-[14px]" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.15px" }}>
+                      {stats.pendingGrading > 0 ? (
+                        <><strong className="text-white font-bold">{stats.pendingGrading}</strong> submission{stats.pendingGrading === 1 ? "" : "s"} waiting for your review. Grading today keeps students in the loop.</>
+                      ) : stats.totalActive === 0 ? (
+                        <>No active assignments yet. <strong className="text-white font-bold">Create your first</strong> to start tracking submissions and grades.</>
+                      ) : nextDue ? (
+                        <><strong className="text-white font-bold">{stats.totalActive} active</strong> — <strong className="text-white font-bold">{nextDue.title}</strong> is due in {nextDueLabel.toLowerCase()}. Send a reminder to <strong className="text-white font-bold">{nextDue.className || "the class"}</strong> if submissions stall.</>
+                      ) : (
+                        <>Nothing to grade right now — <strong className="text-white font-bold">great job</strong> staying on top of submissions.</>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{stats.pendingGrading}</div>
+                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Pending</div>
+                      </div>
+                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{stats.totalActive}</div>
+                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Active</div>
+                      </div>
+                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        <div className="text-[17px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.4px" }}>{nextDueLabel}</div>
+                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Next Due</div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
-      </div>
 
       </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
 
@@ -777,36 +831,6 @@ const Assignments = () => {
         </div>
 
       </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}
-
-      {/* ── Mobile bottom tab bar ────────────────────────────────────────────── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40" style={{
-        background: T.s0, borderTop: `1px solid ${T.bdr}`,
-        padding: '9px 18px 17px',
-        display: 'flex', justifyContent: 'space-between',
-      }}>
-        {tabs.map(tab => {
-          const isActive = tab.path === activePath;
-          return (
-            <button type="button"
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                cursor: 'pointer', background: 'none', border: 'none', padding: 0,
-                fontFamily: 'inherit',
-              }}
-            >
-              {tab.icon(isActive)}
-              <span style={{ fontSize: 9, color: isActive ? T.blue : T.ink2, fontWeight: isActive ? 500 : 400 }}>
-                {tab.label}
-              </span>
-              {isActive && (
-                <div style={{ width: 13, height: 2.5, borderRadius: 2, background: T.blue, marginTop: -2 }} />
-              )}
-            </button>
-          );
-        })}
-      </div>
 
     </div>
   );

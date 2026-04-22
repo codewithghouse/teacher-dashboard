@@ -22,7 +22,7 @@ type AttendanceRecord = DocumentData & {
   studentName?: string;
 };
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── Design tokens (desktop) ───────────────────────────────────────────────────
 const T = {
   ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
   s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
@@ -31,6 +31,22 @@ const T = {
   red: '#C92A2A', redL: '#FFF5F5',
   amber: '#C87014', amberL: '#FFF9DB',
   teal: '#0C8599', tealL: '#E3FAFC',
+};
+
+// ── Mobile Attendance tokens (EduIntellect v2) ────────────────────────────────
+const MA = {
+  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  BG: "#EEF4FF",
+  CARD: "#FFFFFF",
+  SURFACE: "#F4F7FE",
+  P: "#0957F7", PD: "#0044DD",
+  T1: "#001040", T3: "#5070B0", T4: "#99AACC",
+  GREEN: "#00C853", GREEN_B: "#00E866",
+  RED: "#FF3355",
+  ORANGE: "#FF8800",
+  SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
+  SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+  HERO_GRAD: "linear-gradient(135deg, #000820 0%, #001466 32%, #0033CC 68%, #0957F7 100%)",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -74,54 +90,6 @@ const IcoCheck = ({ color = '#fff', size = 14 }: { color?: string; size?: number
     <polyline points="2.5,7.5 5.5,10.5 11.5,4"/>
   </svg>
 );
-const IcoAlert = ({ color = T.red }: { color?: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7 1.5L13 12.5H1L7 1.5z"/>
-    <line x1="7" y1="5.5" x2="7" y2="8.5"/>
-    <circle cx="7" cy="10.2" r=".5" fill={color} stroke="none"/>
-  </svg>
-);
-const IcoCalendar = ({ color = T.blue }: { color?: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="2" width="11" height="10.5" rx="1.5"/>
-    <line x1="4" y1="1" x2="4" y2="3.5"/><line x1="10" y1="1" x2="10" y2="3.5"/>
-    <line x1="1.5" y1="5.5" x2="12.5" y2="5.5"/>
-  </svg>
-);
-
-// ── Tiny components ───────────────────────────────────────────────────────────
-const Badge = ({ text, bg, color }: { text: string; bg: string; color: string }) => (
-  <span style={{ background: bg, color, borderRadius: 20, padding: '3px 8px', fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap' as const }}>
-    {text}
-  </span>
-);
-const IBox = ({ bg, children }: { bg: string; children: React.ReactNode }) => (
-  <div style={{ width: 28, height: 28, background: bg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-    {children}
-  </div>
-);
-const MetricCard = ({ iconBg, icon, badgeText, badgeBg, badgeColor, value, valueColor, label, barBg, barFill, barPct, onClick }: any) => (
-  <div
-    onClick={onClick}
-    role={onClick ? "button" : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    className={onClick ? "clickable-card" : undefined}
-    style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 16, padding: 13 }}
-  >
-    <div className="flex items-start justify-between mb-2">
-      <div style={{ width: 30, height: 30, background: iconBg, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {icon}
-      </div>
-      <Badge text={badgeText} bg={badgeBg} color={badgeColor} />
-    </div>
-    <p style={{ fontSize: 20, fontWeight: 500, color: valueColor, letterSpacing: '-0.5px', lineHeight: 1 }}>{value}</p>
-    <p style={{ fontSize: 11, color: T.ink2, marginTop: 3 }}>{label}</p>
-    <div style={{ marginTop: 10, height: 3, borderRadius: 2, background: barBg, overflow: 'hidden' }}>
-      <div style={{ height: '100%', borderRadius: 2, background: barFill, width: `${barPct}%`, transition: 'width .5s ease' }} />
-    </div>
-  </div>
-);
-
 // ── Main component ────────────────────────────────────────────────────────────
 const Attendance = () => {
   const { teacherData } = useAuth();
@@ -134,8 +102,6 @@ const Attendance = () => {
   const [enrollments, setEnrollments]       = useState<EnrollmentDoc[]>([]);
   const [records, setRecords]               = useState<AttendanceRecord[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [logDate, setLogDate]               = useState(new Date().toLocaleDateString("en-CA"));
-  const [logClassId, setLogClassId]         = useState("");
 
   // 1. Classes
   useEffect(() => {
@@ -155,7 +121,6 @@ const Attendance = () => {
         const cls: ClassDoc[] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         setClasses(cls);
         setSelectedClassId(p => p || cls[0]?.id || "");
-        setLogClassId(p => p || cls[0]?.id || "");
         if (!cls.length) setLoading(false);
       }
     );
@@ -282,20 +247,6 @@ const Attendance = () => {
       }));
   }, [records, todayStr]);
 
-  // Week summary
-  const weekSummary = useMemo(() => {
-    const ws = new Date(); ws.setDate(ws.getDate() - ws.getDay() + 1);
-    const wStr = ws.toLocaleDateString("en-CA");
-    const wr = records.filter(r => r.date >= wStr && r.classId === logClassId);
-    const p  = wr.filter(r => r.status === "present" || r.status === "late").length;
-    return {
-      present: wr.filter(r => r.status === "present").length,
-      absent:  wr.filter(r => r.status === "absent").length,
-      rate:    wr.length > 0 ? `${((p / wr.length) * 100).toFixed(1)}%` : "—",
-    };
-  }, [records, logClassId]);
-
-  const logRoster    = enrollments.filter(e => e.classId === logClassId);
   const activeClass  = classes.find(c => c.id === selectedClassId);
 
   if (marking) return <MarkAttendance initialClassId={markingClassId || selectedClassId} onBack={() => setMarking(false)} />;
@@ -309,274 +260,360 @@ const Attendance = () => {
   return (
     <div style={{ fontFamily: 'inherit' }} className="text-left pb-8">
 
-      {/* ═══════════════════ MOBILE VIEW ═══════════════════ */}
-      <div className="md:hidden">
+      {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
+      <div className="md:hidden -mt-0" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
 
-      {/* ── Dark Hero ──────────────────────────────────────────────────────────── */}
-      <div className="-mx-4 sm:-mx-6 px-[22px] pb-7 bg-[#162E93] md:bg-[#08090C]">
-        <div className="pt-2 mb-5">
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.2, marginBottom: 4 }}>
+        {/* Page header */}
+        <div className="px-4 pt-3 pb-[14px]">
+          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
+            Teacher Dashboard · Attendance
+          </div>
+          <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
             Attendance
           </h1>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', fontWeight: 400 }}>
-            Track and manage student attendance.
-          </p>
+          <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+            Track and manage student attendance across all classes.
+          </div>
         </div>
-        <button type="button"
-          onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
-          style={{
-            width: '100%', padding: 13, borderRadius: 13, background: T.blue,
-            border: 'none', color: '#fff', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            fontFamily: 'inherit',
-          }}
-        >
-          <IcoCheck color="#fff" size={14} />
-          Mark today's attendance
-        </button>
-      </div>
 
-      {/* ── Metric Cards (2×2) ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-[9px] pt-4 pb-1">
-        <MetricCard
-          iconBg={T.blueL} icon={<IcoBarChart color={T.blue} />}
-          badgeText={stats.rateNum >= 85 ? "Healthy" : stats.rateNum >= 70 ? "Watch" : "Low"}
-          badgeBg={stats.rateNum >= 85 ? T.greenL : stats.rateNum >= 70 ? T.amberL : T.redL}
-          badgeColor={stats.rateNum >= 85 ? T.green : stats.rateNum >= 70 ? T.amber : T.red}
-          value={stats.rateStr} valueColor={T.blue} label="Overall rate"
-          barBg={T.blueL} barFill={T.blue} barPct={Math.min(stats.rateNum, 100)}
-          onClick={() => navigate('/reports')}
-        />
-        <MetricCard
-          iconBg={T.greenL} icon={<IcoUserCheck color={T.green} />}
-          badgeText="Today" badgeBg={T.blueL} badgeColor={T.blue}
-          value={stats.presentToday} valueColor={T.green2} label="Present today"
-          barBg={T.greenL} barFill={T.green2} barPct={stats.presentToday > 0 ? 100 : 0}
-          onClick={() => navigate('/students')}
-        />
-        <MetricCard
-          iconBg={T.redL} icon={<IcoUserX color={T.red} />}
-          badgeText={stats.absentToday > 0 ? "Check" : "Secure"} badgeBg={T.greenL} badgeColor={T.green}
-          value={stats.absentToday} valueColor={T.ink0} label="Absent today"
-          barBg={T.redL} barFill={T.red} barPct={stats.absentToday > 0 ? 100 : 0}
-          onClick={() => navigate('/risks-alerts')}
-        />
-        <MetricCard
-          iconBg={T.amberL} icon={<IcoClock color={T.amber} />}
-          badgeText={stats.lateToday > 0 ? "Follow up" : "All clear"} badgeBg={T.greenL} badgeColor={T.green}
-          value={stats.lateToday} valueColor={T.ink0} label="Late today"
-          barBg={T.amberL} barFill={T.amber} barPct={stats.lateToday > 0 ? 100 : 0}
-          onClick={() => navigate('/risks-alerts')}
-        />
-      </div>
+        {/* Hero — gradient with overall rate */}
+        <div className="mx-4 mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+          style={{ background: MA.HERO_GRAD, boxShadow: "0 1px 2px rgba(0,8,60,0.15), 0 12px 32px rgba(0,8,60,0.28)" }}>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
+          <div className="relative z-[2]">
+            <div className="flex items-center gap-3 mb-[18px]">
+              <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white"
+                style={{
+                  background: "rgba(255,255,255,0.14)",
+                  backdropFilter: "blur(22px)",
+                  WebkitBackdropFilter: "blur(22px)",
+                  border: "0.5px solid rgba(255,255,255,0.22)",
+                  boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
+                }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+              </div>
+              <div>
+                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Overall Rate</div>
+                <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Today · {activeClass?.name || "All classes"}</div>
+              </div>
+              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+                style={{
+                  background: stats.rateNum >= 85 ? "rgba(0,232,102,0.18)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.22)" : stats.rateNum > 0 ? "rgba(255,51,85,0.18)" : "rgba(255,255,255,0.14)",
+                  border: `0.5px solid ${stats.rateNum >= 85 ? "rgba(0,232,102,0.5)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.5)" : stats.rateNum > 0 ? "rgba(255,51,85,0.5)" : "rgba(255,255,255,0.22)"}`,
+                  color: stats.rateNum >= 85 ? "#6FFFAA" : stats.rateNum >= 70 ? "#FFD166" : stats.rateNum > 0 ? "#FF99AA" : "rgba(255,255,255,0.72)",
+                  letterSpacing: "0.3px",
+                }}>
+                <span className="w-[6px] h-[6px] rounded-full" style={{
+                  background: stats.rateNum >= 85 ? "#00FF88" : stats.rateNum >= 70 ? "#FFCC22" : stats.rateNum > 0 ? "#FF5577" : "#fff",
+                  boxShadow: `0 0 8px ${stats.rateNum >= 85 ? "#00FF88" : stats.rateNum >= 70 ? "#FFCC22" : stats.rateNum > 0 ? "#FF5577" : "#fff"}`,
+                }} />
+                {stats.rateNum >= 85 ? "On Track" : stats.rateNum >= 70 ? "Watch" : stats.rateNum > 0 ? "Low" : "No data"}
+              </div>
+            </div>
+            <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+              {stats.rateNum > 0 ? stats.rateNum.toFixed(1) : "—"}
+              {stats.rateNum > 0 && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
+            </div>
+            <div className="text-[13px] font-medium mb-[20px]" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "-0.15px" }}>
+              <b className="text-white font-bold">
+                {stats.rateNum >= 85 ? "Excellent turnout" : stats.rateNum >= 70 ? "Steady turnout" : stats.rateNum > 0 ? "Needs attention" : "No records yet"}
+              </b>
+              {stats.rateNum > 0 ? " today — tracking overall performance." : " — mark today to start tracking."}
+            </div>
+            <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[20px] font-extrabold" style={{ color: "#6FFFAA", letterSpacing: "-0.6px" }}>{stats.presentToday}</div>
+                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Present</div>
+              </div>
+              <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[20px] font-extrabold" style={{ color: "#FF9AA9", letterSpacing: "-0.6px" }}>{stats.absentToday}</div>
+                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Absent</div>
+              </div>
+              <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[20px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.6px" }}>{stats.lateToday}</div>
+                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Late</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      {/* ── Class Tabs ──────────────────────────────────────────────────────────── */}
-      {classes.length > 0 && (
-        <div className="flex flex-wrap gap-[7px] py-4">
-          {classes.map(cls => (
-            <button type="button" key={cls.id} onClick={() => setSelectedClassId(cls.id)}
-              style={{
-                padding: '7px 16px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                fontWeight: selectedClassId === cls.id ? 500 : 400, fontFamily: 'inherit',
-                background: selectedClassId === cls.id ? T.ink0 : T.s0,
-                color:      selectedClassId === cls.id ? '#fff'  : T.ink1,
-                border: `1px solid ${selectedClassId === cls.id ? T.ink0 : T.bdr}`,
-                whiteSpace: 'nowrap' as const,
-              }}
-            >{cls.name}</button>
+        {/* Mark today CTA */}
+        <div className="px-4 mb-[14px]">
+          <button type="button"
+            onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
+            className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.98] transition-transform"
+            style={{ background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.35)", fontFamily: MA.FONT }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark today's attendance
+          </button>
+        </div>
+
+        {/* 3 stat cards */}
+        <div className="grid grid-cols-3 gap-[10px] px-4 mb-[14px]">
+          {([
+            { key: "present", color: MA.GREEN, value: stats.presentToday, label: "Present", onClick: () => navigate('/students'),
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
+            { key: "absent", color: MA.RED, value: stats.absentToday, label: "Absent", onClick: () => navigate('/risks-alerts'),
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
+            { key: "late", color: MA.ORANGE, value: stats.lateToday, label: "Late", onClick: () => navigate('/risks-alerts'),
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+          ] as const).map(s => (
+            <button key={s.key} type="button" onClick={s.onClick}
+              className="bg-white rounded-[18px] p-[14px] text-center active:scale-[0.96] transition-transform"
+              style={{ boxShadow: MA.SH, fontFamily: MA.FONT }}>
+              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white mx-auto mb-[8px]" style={{ background: s.color }}>
+                {s.icon}
+              </div>
+              <div className="text-[24px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-0.9px" }}>{s.value}</div>
+              <div className="text-[9px] font-extrabold uppercase mt-[5px]" style={{ color: MA.T3, letterSpacing: "1.2px" }}>{s.label}</div>
+            </button>
           ))}
         </div>
-      )}
 
-      {/* ── Weekly Overview ─────────────────────────────────────────────────────── */}
-      <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, marginBottom: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '13px 14px 10px', borderBottom: `1px solid ${T.s2}` }}>
-          <p style={{ fontSize: 14, fontWeight: 500, color: T.ink0 }}>Weekly overview</p>
-          {activeClass && weeklyDays.length > 0 && (
-            <p style={{ fontSize: 10, color: T.ink2, marginTop: 2 }}>
-              {activeClass.name} · {weeklyDays[0]?.dateLabel} – {weeklyDays[weeklyDays.length - 1]?.dateLabel}, {new Date().getFullYear()}
-            </p>
+        {/* Class tabs */}
+        {classes.length > 0 && (
+          <div className="mx-4 mb-[14px] p-[5px] rounded-[14px] flex gap-[7px]"
+            style={{ background: MA.CARD, boxShadow: MA.SH_SM, overflowX: "auto", scrollbarWidth: "none" as const }}>
+            {classes.map(cls => {
+              const isActive = selectedClassId === cls.id;
+              return (
+                <button key={cls.id} type="button" onClick={() => setSelectedClassId(cls.id)}
+                  className="flex-1 py-[9px] px-[10px] rounded-[10px] text-[12px] font-bold text-center transition-all active:scale-[0.96]"
+                  style={{
+                    background: isActive ? MA.P : "transparent",
+                    color: isActive ? "#fff" : MA.T3,
+                    letterSpacing: "-0.2px",
+                    fontFamily: MA.FONT,
+                    whiteSpace: "nowrap",
+                    minWidth: 72,
+                    boxShadow: isActive ? "0 1px 2px rgba(9,87,247,0.2), 0 3px 8px rgba(9,87,247,0.25)" : "none",
+                  }}>
+                  {cls.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Weekly Overview */}
+        <div className="mx-4 mb-[14px] p-[16px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+          <div className="flex items-center justify-between mb-[14px]">
+            <div className="flex items-center gap-[10px]">
+              <div className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center text-white" style={{ background: MA.P }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div>
+                <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Weekly Overview</div>
+                {activeClass && weeklyDays.length > 0 && (
+                  <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
+                    {activeClass.name} · {weeklyDays[0]?.dateLabel} – {weeklyDays[weeklyDays.length - 1]?.dateLabel}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button type="button" onClick={() => navigate('/reports')}
+              className="text-[12px] font-bold flex items-center gap-[2px] active:opacity-70" style={{ color: MA.P }}>
+              View all <span className="text-[18px] opacity-80 -mt-[3px]">›</span>
+            </button>
+          </div>
+
+          <div className="flex gap-[10px] overflow-x-auto pb-1 -mx-[16px] px-[16px]" style={{ scrollbarWidth: "none" as const }}>
+            {weeklyDays.map((day, i) => {
+              const isPending = day.isToday && !day.hasData && !day.isWeekend;
+              const onClickCard = isPending ? () => { setMarkingClassId(selectedClassId); setMarking(true); } : undefined;
+              return (
+                <div key={i}
+                  onClick={onClickCard}
+                  role={onClickCard ? "button" : undefined}
+                  tabIndex={onClickCard ? 0 : undefined}
+                  className={`flex-shrink-0 w-[128px] rounded-[16px] p-[12px] relative overflow-hidden ${onClickCard ? "active:scale-[0.97]" : ""}`}
+                  style={{
+                    background: day.isToday ? "linear-gradient(145deg, #0957F7 0%, #2970FF 100%)" : MA.SURFACE,
+                    boxShadow: day.isToday ? "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.35)" : "none",
+                    opacity: day.isFuture ? 0.92 : 1,
+                    cursor: onClickCard ? "pointer" : "default",
+                    transition: "transform .15s ease",
+                  }}>
+                  {day.isToday && (
+                    <>
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 45%)" }} />
+                      <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                        style={{ background: "rgba(255,255,255,0.25)", backdropFilter: "blur(8px)", color: "#fff", border: "0.5px solid rgba(255,255,255,0.3)", letterSpacing: "0.5px" }}>
+                        Today
+                      </div>
+                    </>
+                  )}
+                  {day.isFuture && (
+                    <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                      style={{ background: "rgba(9,87,247,0.1)", color: MA.P, letterSpacing: "0.5px" }}>
+                      Upcoming
+                    </div>
+                  )}
+                  <div className="relative z-[2]">
+                    <div className="text-[9px] font-extrabold uppercase" style={{ color: day.isToday ? "rgba(255,255,255,0.8)" : MA.T3, letterSpacing: "1.3px", marginBottom: 3 }}>
+                      {day.label}
+                    </div>
+                    <div className="text-[17px] font-extrabold mb-[10px]" style={{ color: day.isToday ? "#fff" : MA.T1, letterSpacing: "-0.5px" }}>
+                      {day.dateLabel}
+                    </div>
+                    {day.hasData ? (
+                      <>
+                        <div className="flex flex-col gap-[5px] mb-[10px]">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Present</span>
+                            <span className="font-extrabold" style={{ color: day.isToday ? "#6FFFAA" : MA.GREEN, letterSpacing: "-0.2px" }}>{day.present}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Absent</span>
+                            <span className="font-extrabold" style={{ color: day.isToday ? "#FF9AA9" : MA.RED, letterSpacing: "-0.2px" }}>{day.absent}</span>
+                          </div>
+                        </div>
+                        <div className="text-[17px] font-extrabold" style={{
+                          color: day.isToday ? "#fff" : (parseFloat(day.rate!) >= 85 ? MA.GREEN : parseFloat(day.rate!) >= 70 ? MA.ORANGE : MA.RED),
+                          letterSpacing: "-0.5px",
+                        }}>{day.rate}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-[5px] mb-[10px]" style={{ minHeight: 50 }} />
+                        {isPending ? (
+                          <div className="text-[11px] font-bold" style={{ color: MA.P }}>Tap to mark ›</div>
+                        ) : (
+                          <div className="text-[10px] font-semibold italic" style={{ color: day.isFuture ? MA.P : day.isForgotten ? MA.ORANGE : MA.T4, letterSpacing: "-0.1px" }}>
+                            {day.isWeekend ? "Weekend" : day.isFuture ? "Upcoming" : day.isForgotten ? "Not marked" : "—"}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Attendance Concerns */}
+        <div className="mx-4 mb-[14px] p-[16px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+          <div className="flex items-center justify-between mb-[14px]">
+            <div className="flex items-center gap-[10px]">
+              <div className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center text-white" style={{ background: MA.RED }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+              </div>
+              <div>
+                <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Attendance Concerns</div>
+                <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
+                  {concerns.length === 0 ? "No flagged students" : `${concerns.length} student${concerns.length === 1 ? "" : "s"} need follow up`}
+                </div>
+              </div>
+            </div>
+            <button type="button" onClick={() => navigate('/risks-alerts')}
+              className="text-[12px] font-bold flex items-center gap-[2px] active:opacity-70" style={{ color: MA.P }}>
+              View all <span className="text-[18px] opacity-80 -mt-[3px]">›</span>
+            </button>
+          </div>
+
+          {concerns.length === 0 ? (
+            <div className="py-[28px] px-[20px] text-center relative">
+              <div className="mx-auto mb-[14px] w-[80px] h-[80px] rounded-[24px] flex items-center justify-center text-white relative"
+                style={{
+                  background: `linear-gradient(145deg, ${MA.GREEN_B} 0%, ${MA.GREEN} 100%)`,
+                  boxShadow: "0 0 0 8px rgba(0,200,83,0.1), 0 0 0 18px rgba(0,200,83,0.05), 0 8px 20px rgba(0,200,83,0.35)",
+                }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div className="text-[15px] font-extrabold mb-[4px]" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>All good here ✨</div>
+              <div className="text-[12px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
+                <b className="font-bold" style={{ color: MA.GREEN }}>All students</b> have good attendance
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[8px]">
+              {concerns.map((s, i) => (
+                <button key={i} type="button" onClick={() => navigate('/risks-alerts')}
+                  className="w-full flex items-center gap-[11px] p-[11px] rounded-[14px] active:scale-[0.98] transition-transform text-left"
+                  style={{ background: MA.SURFACE }}>
+                  <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center flex-shrink-0 text-white text-[12px] font-extrabold"
+                    style={{ background: s.av.color, letterSpacing: "0.3px" }}>
+                    {s.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{s.name}</div>
+                    <div className="text-[11px] font-semibold mt-[1px] truncate" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>{s.issue}</div>
+                  </div>
+                  <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                    style={{ background: s.badge.bg, color: s.badge.color, letterSpacing: "0.3px" }}>
+                    {s.badge.text}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {weeklyDays.map((day, i) => {
-          const statusText =
-            day.hasData ? day.rate! :
-            day.isWeekend ? "Weekend" :
-            day.isFuture ? "Upcoming" :
-            day.isForgotten ? "Not marked" : "—";
-          const statusColor =
-            day.hasData ? (parseFloat(day.rate!) >= 85 ? T.green : T.amber) :
-            day.isForgotten ? T.amber : T.ink2;
-
+        {/* AI Intelligence */}
+        {(() => {
+          const unmarkedCount = weeklyDays.filter(d => d.isForgotten).length;
+          const roster = enrollments.filter(e => e.classId === selectedClassId).length;
+          const rateLabel = stats.rateNum > 0 ? `${stats.rateNum.toFixed(1)}%` : "—";
           return (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderBottom: i < weeklyDays.length - 1 ? `1px solid ${T.s2}` : 'none',
-              background: day.isToday ? '#FAFBFF' : 'transparent',
-              opacity: day.isFuture ? 0.5 : 1,
-            }}>
-              {/* Day label */}
-              <div style={{ width: 36, flexShrink: 0 }}>
-                <p style={{ fontSize: 9, fontWeight: 500, color: day.isToday ? T.blue : T.ink2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {day.label}
-                </p>
-                <p style={{ fontSize: 13, fontWeight: 500, color: day.isToday ? T.blue : T.ink0 }}>
-                  {day.dateLabel}
-                </p>
+            <div className="mx-4 mb-[14px] rounded-[24px] p-[20px] relative overflow-hidden"
+              style={{
+                background: "linear-gradient(140deg, #000820 0%, #001888 28%, #0033CC 64%, #0957F7 100%)",
+                boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
+              }}>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
+              <div className="relative z-[2]">
+                <div className="flex items-center gap-[11px] mb-[12px]">
+                  <div className="w-10 h-10 rounded-[13px] flex items-center justify-center text-[19px]"
+                    style={{
+                      background: "rgba(255,255,255,0.14)",
+                      backdropFilter: "blur(22px)",
+                      WebkitBackdropFilter: "blur(22px)",
+                      border: "0.5px solid rgba(255,255,255,0.22)",
+                      color: "#FFDD55",
+                    }}>⚡</div>
+                  <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
+                    AI Attendance Intelligence
+                  </div>
+                  <div className="ml-auto px-[9px] py-[4px] rounded-full text-[9px] font-extrabold"
+                    style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
+                    Live
+                  </div>
+                </div>
+                <div className="text-[13px] leading-[1.6] mb-[14px]" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.15px" }}>
+                  {stats.rateNum >= 85 ? (
+                    <>Turnout is <strong className="text-white font-bold">strong</strong> with an overall rate of <strong className="text-white font-bold">{rateLabel}</strong>.{unmarkedCount > 0 && <> <strong className="text-white font-bold">{unmarkedCount} day{unmarkedCount === 1 ? "" : "s"}</strong> {unmarkedCount === 1 ? "was" : "were"} unmarked — mark retroactively to improve accuracy.</>}</>
+                  ) : stats.rateNum >= 70 ? (
+                    <>Turnout is <strong className="text-white font-bold">steady</strong> at <strong className="text-white font-bold">{rateLabel}</strong>. Keep an eye on repeat absences this week.</>
+                  ) : stats.rateNum > 0 ? (
+                    <>Overall rate of <strong className="text-white font-bold">{rateLabel}</strong> is <strong className="text-white font-bold">below target</strong>. Review concerns and follow up with parents.</>
+                  ) : (
+                    <>No attendance has been recorded yet. <strong className="text-white font-bold">Tap "Mark today"</strong> to begin tracking turnout for this class.</>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+                  <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                    <div className="text-[17px] font-extrabold" style={{ color: stats.rateNum >= 85 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{rateLabel}</div>
+                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Rate</div>
+                  </div>
+                  <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                    <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>
+                      {stats.presentToday}{roster > 0 ? `/${roster}` : ""}
+                    </div>
+                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Present</div>
+                  </div>
+                  <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                    <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{unmarkedCount}</div>
+                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Unmarked</div>
+                  </div>
+                </div>
               </div>
-
-              {/* Dots */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-                {day.hasData ? (
-                  <>
-                    {Array.from({ length: Math.min(day.present, 4) }).map((_, j) => (
-                      <div key={`p${j}`} style={{ width: 7, height: 7, borderRadius: '50%', background: T.green2 }} />
-                    ))}
-                    {day.present > 0 && <span style={{ fontSize: 10, color: T.ink2, marginLeft: 2 }}>{day.present}P</span>}
-                    {Array.from({ length: Math.min(day.absent, 4) }).map((_, j) => (
-                      <div key={`a${j}`} style={{ width: 7, height: 7, borderRadius: '50%', background: T.red }} />
-                    ))}
-                    {day.absent > 0 && <span style={{ fontSize: 10, color: T.ink2 }}>{day.absent}A</span>}
-                  </>
-                ) : (
-                  <>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: T.s2 }} />
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: T.s2 }} />
-                    <div style={{ width: 12, height: 1.5, background: T.s2, borderRadius: 1 }} />
-                  </>
-                )}
-              </div>
-
-              {/* Status / Mark CTA */}
-              {day.isToday && !day.hasData && !day.isWeekend ? (
-                <button type="button" onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
-                  style={{
-                    padding: '5px 10px', borderRadius: 8, background: T.blue,
-                    border: 'none', color: '#fff', fontSize: 11, fontWeight: 500,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}>Mark</button>
-              ) : (
-                <p style={{ fontSize: 11, fontWeight: 500, color: statusColor, whiteSpace: 'nowrap', marginLeft: 'auto' }}>
-                  {statusText}
-                </p>
-              )}
             </div>
           );
-        })}
+        })()}
+
       </div>
-
-      {/* ── Attendance Concerns ─────────────────────────────────────────────────── */}
-      <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, marginBottom: 12, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 14px', borderBottom: `1px solid ${T.s2}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IBox bg={T.redL}><IcoAlert color={T.red} /></IBox>
-            <span style={{ fontSize: 14, fontWeight: 500, color: T.ink0 }}>Attendance concerns</span>
-          </div>
-          <span style={{ fontSize: 12, color: T.blue, cursor: 'pointer' }}>View all</span>
-        </div>
-
-        {concerns.length === 0 ? (
-          <div style={{ padding: '24px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 12, background: T.greenL, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IcoCheck color={T.green} size={16} />
-            </div>
-            <p style={{ fontSize: 12, color: T.ink2, textAlign: 'center' }}>All students have good attendance</p>
-            <Badge text="All clear" bg={T.greenL} color={T.green} />
-          </div>
-        ) : (
-          concerns.map((s, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
-              borderTop: i > 0 ? `1px solid ${T.s2}` : 'none',
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: s.av.bg, color: s.av.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, flexShrink: 0 }}>
-                {s.initials}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 500, color: T.ink0 }}>{s.name}</p>
-                <p style={{ fontSize: 11, color: T.ink2, marginTop: 1 }}>{s.issue}</p>
-              </div>
-              <Badge text={s.badge.text} bg={s.badge.bg} color={s.badge.color} />
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* ── Attendance Log ──────────────────────────────────────────────────────── */}
-      <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, marginBottom: 12, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 14px', borderBottom: `1px solid ${T.s2}` }}>
-          <IBox bg={T.blueL}><IcoCalendar color={T.blue} /></IBox>
-          <span style={{ fontSize: 14, fontWeight: 500, color: T.ink0 }}>Attendance log</span>
-        </div>
-
-        {/* Filters */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '12px 14px', borderBottom: `1px solid ${T.s2}` }}>
-          <select value={logClassId} onChange={e => setLogClassId(e.target.value)}
-            style={{ padding: '8px 10px', borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.s1, fontSize: 12, color: T.ink1, fontFamily: 'inherit', outline: 'none', cursor: 'pointer', appearance: 'none' as const }}>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)}
-            style={{ padding: '8px 10px', borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.s1, fontSize: 12, color: T.ink1, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }} />
-        </div>
-
-        {/* Column headers */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', background: T.s1 }}>
-          {['Student','Status'].map(h => (
-            <span key={h} style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.05em', textTransform: 'uppercase' as const }}>{h}</span>
-          ))}
-        </div>
-
-        {/* Rows */}
-        {logRoster.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', fontSize: 12, color: T.ink2 }}>No students enrolled in this class</div>
-        ) : (
-          logRoster.map((s: any) => {
-            const log = records.find(r => r.studentId === s.studentId && r.date === logDate && r.classId === logClassId);
-            const status = log?.status || "unmarked";
-            const bdg =
-              status === "present"  ? { text: "Present",  bg: T.greenL, color: T.green } :
-              status === "absent"   ? { text: "Absent",   bg: T.redL,   color: T.red   } :
-              status === "late"     ? { text: "Late",     bg: T.amberL, color: T.amber } :
-                                      { text: "—",        bg: T.s2,     color: T.ink2  };
-            const av = avStyle(s.studentName || "");
-            return (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: `1px solid ${T.s2}` }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: av.bg, color: av.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, flexShrink: 0 }}>
-                  {getInitials(s.studentName)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: T.ink0 }}>{s.studentName}</p>
-                  <p style={{ fontSize: 10, color: T.ink2, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.studentEmail}</p>
-                </div>
-                <Badge text={bdg.text} bg={bdg.bg} color={bdg.color} />
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* ── Week Summary ────────────────────────────────────────────────────────── */}
-      <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 16, padding: 14, marginBottom: 8 }}>
-        <p style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>
-          This week summary
-        </p>
-        {[
-          { dot: T.green2, label: 'Total present', value: weekSummary.present, color: T.green  },
-          { dot: T.red,    label: 'Total absent',  value: weekSummary.absent,  color: T.red    },
-          { dot: T.amber,  label: 'Avg. rate',     value: weekSummary.rate,    color: T.blue   },
-        ].map((row, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 2 ? `1px solid ${T.s2}` : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: T.ink1 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: row.dot }} />
-              {row.label}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 500, color: row.color }}>{row.value}</span>
-          </div>
-        ))}
-      </div>
-
-      </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
 
       {/* ═══════════════════ DESKTOP VIEW ═══════════════════ */}
       <div className="hidden md:block">

@@ -344,27 +344,44 @@ const Dashboard = () => {
   return (
     <div style={{ fontFamily: FONT_D, background: BG_D }} className="min-h-screen pb-28 md:pb-0 text-left">
 
-      {/* ═══════════════════ MOBILE VIEW — Blue Apple ═══════════════════ */}
+      {/* ═══════════════════ MOBILE VIEW — EduIntellect v2 ═══════════════════ */}
       <div className="md:hidden animate-in fade-in duration-500" style={{ background: BG_D, minHeight: "100vh" }}>
 
-      {/* ── Header: brand dot + bell + avatar ── */}
-      <div className="flex items-center justify-between px-5 pt-4">
-        <div className="flex items-center gap-[7px]">
-          <div className="w-[7px] h-[7px] rounded-full animate-pulse" style={{ background: "#00CC55", boxShadow: "0 0 0 2.5px rgba(0,204,85,0.2)" }} />
-          <span className="text-[15px] font-bold" style={{ color: B1 }}>EduIntellect Teacher</span>
+      {/* ── Greeting + actions (bell + avatar) ── */}
+      <div className="flex items-center justify-between px-4 pt-[10px] pb-[18px]">
+        <div>
+          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
+            <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: B1 }} />
+            Teacher Dashboard
+          </div>
+          <div className="text-[25px] font-extrabold flex items-center gap-2 leading-[1.05]" style={{ color: TT1, letterSpacing: "-0.9px" }}>
+            Hello, {firstName}
+            <span className="inline-block" style={{ animation: "tdWave 2.8s ease-in-out infinite", transformOrigin: "70% 70%" }}>👋</span>
+          </div>
+          <div className="text-[12px] font-medium mt-[5px]" style={{ color: TT3, letterSpacing: "-0.15px" }}>
+            Welcome back · {dayLabel}
+          </div>
         </div>
-        <div className="flex items-center gap-[9px]" ref={notifRef}>
+
+        <div className="flex items-center gap-[10px]" ref={notifRef}>
           <div className="relative">
             <button type="button" onClick={() => setShowNotifPanel(p => !p)}
-              className="w-8 h-8 rounded-[11px] flex items-center justify-center relative active:scale-90 transition-transform"
-              style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_D }}>
-              <IcoBell size={14} color="rgba(0,85,255,0.60)" />
+              aria-label="Notifications"
+              className="w-10 h-10 rounded-[13px] bg-white flex items-center justify-center relative active:scale-[0.92] transition-transform"
+              style={{ color: B1, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 12px rgba(9,87,247,0.08)" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 003.4 0"/>
+              </svg>
               {unreadNotes.length > 0 && (
-                <span className="absolute top-[5px] right-[5px] w-[7px] h-[7px] rounded-full" style={{ background: RED, border: "1.5px solid white" }} />
+                <span className="absolute top-[3px] right-[3px] min-w-[16px] h-[16px] px-[4px] rounded-full text-white text-[9px] font-extrabold flex items-center justify-center"
+                  style={{ background: RED, border: "2px solid white" }}>
+                  {unreadNotes.length > 9 ? "9+" : unreadNotes.length}
+                </span>
               )}
             </button>
             {showNotifPanel && (
-              <div className="absolute right-0 top-11 w-[calc(100vw-2.5rem)] sm:w-80 max-w-sm rounded-[22px] z-50 overflow-hidden"
+              <div className="absolute right-0 top-12 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-[22px] z-50 overflow-hidden"
                 style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_LG_D }}>
                 <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `0.5px solid ${BLUE_BDR}`, background: BG_D }}>
                   <div>
@@ -404,257 +421,345 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+
           <button type="button" onClick={() => navigate('/settings')}
-            className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[12px] font-bold text-white active:scale-95 transition-transform"
-            style={{ background: `linear-gradient(140deg, ${B1}, ${B2})`, boxShadow: "0 3px 12px rgba(0,85,255,0.36), 0 0 0 2px rgba(255,255,255,0.85)" }}>
+            aria-label="Profile"
+            className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[15px] font-extrabold active:scale-[0.92] transition-transform"
+            style={{ background: B1, letterSpacing: "-0.3px", boxShadow: "0 0.5px 1px rgba(9,87,247,0.2), 0 6px 14px rgba(9,87,247,0.3)" }}>
             {avatarInitial}
           </button>
         </div>
       </div>
 
-      {/* ── Page Head ── */}
-      <div className="px-5 pt-[14px]">
-        <div className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: TT3 }}>
-          {greeting} · {shortDate}
+      {/* ── Hero banner: Attendance Rate ── */}
+      <button type="button" onClick={() => navigate('/attendance')}
+        className="w-full text-left mx-0 rounded-[26px] px-[22px] py-[22px] relative overflow-hidden active:scale-[0.99] transition-transform"
+        style={{
+          background: "linear-gradient(135deg, #000820 0%, #001466 32%, #0033CC 68%, #0957F7 100%)",
+          boxShadow: "0 1px 2px rgba(0,8,60,0.15), 0 12px 32px rgba(0,8,60,0.28)",
+          marginLeft: "16px", marginRight: "16px", width: "calc(100% - 32px)",
+        }}>
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)"
+        }} />
+        <div className="relative z-[2]">
+          <div className="flex items-center gap-3 mb-[18px]">
+            <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white"
+              style={{
+                background: "rgba(255,255,255,0.14)",
+                backdropFilter: "blur(22px)",
+                WebkitBackdropFilter: "blur(22px)",
+                border: "0.5px solid rgba(255,255,255,0.22)",
+                boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
+              }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18"/>
+                <path d="M7 14l4-4 4 4 5-5"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Attendance Rate</div>
+              <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Last 30 days · All classes</div>
+            </div>
+            <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+              style={{
+                background: stats.avgAttendance >= 85 ? "rgba(0,232,102,0.18)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.22)" : "rgba(255,51,85,0.18)",
+                border: `0.5px solid ${stats.avgAttendance >= 85 ? "rgba(0,232,102,0.5)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.5)" : "rgba(255,51,85,0.5)"}`,
+                color: stats.avgAttendance >= 85 ? "#6FFFAA" : stats.avgAttendance >= 70 ? "#FFD166" : "#FF99AA",
+                letterSpacing: "0.3px",
+              }}>
+              <span className="w-[6px] h-[6px] rounded-full" style={{
+                background: stats.avgAttendance >= 85 ? "#00FF88" : stats.avgAttendance >= 70 ? "#FFCC22" : "#FF5577",
+                boxShadow: `0 0 8px ${stats.avgAttendance >= 85 ? "#00FF88" : stats.avgAttendance >= 70 ? "#FFCC22" : "#FF5577"}`,
+              }} />
+              {stats.avgAttendance >= 85 ? "Strong" : stats.avgAttendance >= 70 ? "Holding" : stats.avgAttendance > 0 ? "Needs focus" : "No data"}
+            </div>
+          </div>
+          <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+            {stats.avgAttendance > 0 ? stats.avgAttendance.toFixed(1) : "—"}
+            {stats.avgAttendance > 0 && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
+          </div>
+          <div className="text-[13px] font-medium mb-[20px]" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "-0.15px" }}>
+            <b className="text-white font-bold">Keep up the great work</b> — real-time data from your classes.
+          </div>
+          <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+            {[
+              { v: stats.activeClasses, l: "Classes" },
+              { v: stats.atRiskCount, l: "At-Risk" },
+              { v: stats.pendingGrading, l: "Pending" },
+            ].map(({ v, l }) => (
+              <div key={l} className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                <div className="text-[20px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
+                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="text-[24px] font-bold leading-[1.1]" style={{ color: TT1, letterSpacing: "-0.6px" }}>
-          Hi, {firstName} 👋
-        </div>
-        <div className="text-[11px] font-medium mt-1" style={{ color: TT3 }}>
-          Real-time data from your classes &amp; students
-        </div>
-      </div>
+      </button>
 
-      {/* ── KPI 2×2 (icon top-right light, label top, value, bar bottom) ── */}
-      <div className="grid grid-cols-2 gap-[10px] px-5 pt-[14px] pb-1">
+      {/* ── 2×2 stat cards ── */}
+      <div className="grid grid-cols-2 gap-[10px] px-4 pt-[14px]">
         {[
-          { val: stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—", label: "Attendance Rate", color: B1, iconBg: "rgba(0,85,255,0.10)", iconBdr: "rgba(0,85,255,0.18)", iconColor: B1, glow: "rgba(0,85,255,0.10)", barGrad: `linear-gradient(90deg, ${B1}, ${B3})`, icon: IcoBarChart, barPct: Math.min(stats.avgAttendance, 100), path: "/attendance" },
-          { val: `${stats.pendingGrading}`, label: "Pending Grading", color: "#FFAA00", iconBg: "rgba(255,170,0,0.10)", iconBdr: "rgba(255,170,0,0.22)", iconColor: "#FFAA00", glow: "rgba(255,170,0,0.10)", barGrad: "linear-gradient(90deg, #FFAA00, #FFCC22)", icon: IcoClipboard, barPct: stats.pendingGrading > 0 ? 60 : 0, path: "/gradebook" },
-          { val: `${stats.atRiskCount}`, label: "At-Risk Students", color: RED, iconBg: "rgba(255,51,85,0.10)", iconBdr: "rgba(255,51,85,0.22)", iconColor: RED, glow: "rgba(255,51,85,0.10)", barGrad: `linear-gradient(90deg, ${RED}, #FF5577)`, icon: IcoAlert, barPct: stats.atRiskCount > 0 ? 42 : 0, path: "/risks-alerts" },
-          { val: `${stats.activeClasses}`, label: "Classes Today", color: "#7B3FF4", iconBg: "rgba(123,63,244,0.10)", iconBdr: "rgba(123,63,244,0.22)", iconColor: "#7B3FF4", glow: "rgba(123,63,244,0.10)", barGrad: "linear-gradient(90deg, #7B3FF4, #9266FF)", icon: IcoHome, barPct: stats.activeClasses > 0 ? 66 : 0, path: "/my-classes" },
-        ].map(({ val, label, color, iconBg, iconBdr, iconColor, glow, barGrad, icon: Ico, barPct, path }) => (
+          {
+            label: "Attendance Rate",
+            val: stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—",
+            color: B1, iconBg: B1,
+            sub: stats.avgAttendance >= 85
+              ? <><span className="font-bold" style={{ color: GREEN }}>↑ Strong</span> · last 30d</>
+              : stats.avgAttendance > 0
+                ? <><span className="font-bold" style={{ color: ORANGE }}>● Watch</span> · last 30d</>
+                : <span>Awaiting data</span>,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="12" width="4" height="9" rx="1"/>
+                <rect x="10" y="8" width="4" height="13" rx="1"/>
+                <rect x="17" y="4" width="4" height="17" rx="1"/>
+              </svg>
+            ),
+            path: "/attendance",
+          },
+          {
+            label: "Pending Grading",
+            val: `${stats.pendingGrading}`,
+            color: ORANGE, iconBg: ORANGE,
+            sub: stats.pendingGrading === 0
+              ? <span className="font-bold" style={{ color: GREEN }}>✓ All caught up</span>
+              : <><span className="font-bold" style={{ color: ORANGE }}>● {stats.pendingGrading} to grade</span></>,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2"/>
+                <path d="M9 3v4h6V3"/>
+                <path d="M9 13l2 2 4-4"/>
+              </svg>
+            ),
+            path: "/gradebook",
+          },
+          {
+            label: "At-Risk Students",
+            val: `${stats.atRiskCount}`,
+            color: RED, iconBg: RED,
+            sub: stats.atRiskCount === 0
+              ? <span className="font-bold" style={{ color: GREEN }}>✓ On track</span>
+              : <span className="font-bold" style={{ color: RED }}>● Need outreach</span>,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 21h20L12 2z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12" y2="17"/>
+              </svg>
+            ),
+            path: "/risks-alerts",
+          },
+          {
+            label: "Classes Today",
+            val: `${stats.activeClasses}`,
+            color: VIOLET, iconBg: VIOLET,
+            sub: todayClasses.some(c => c.isNow)
+              ? <span className="font-bold" style={{ color: VIOLET }}>● 1 in progress</span>
+              : stats.activeClasses > 0
+                ? <span className="font-bold" style={{ color: VIOLET }}>● Scheduled</span>
+                : <span>None today</span>,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 11l9-8 9 8"/>
+                <path d="M5 10v10h14V10"/>
+                <path d="M10 20v-6h4v6"/>
+              </svg>
+            ),
+            path: "/my-classes",
+          },
+        ].map(({ label, val, color, iconBg, sub, icon, path }) => (
           <button type="button" key={label}
             onClick={() => navigate(path)}
-            className="bg-white rounded-[20px] p-[15px] relative overflow-hidden cursor-pointer active:scale-[0.96] transition-transform text-left"
-            style={{ boxShadow: SH_LG_D, border: "0.5px solid rgba(0,85,255,0.10)", minHeight: 108 }}>
-            <div className="absolute -top-[18px] -right-[14px] w-[65px] h-[65px] rounded-full pointer-events-none"
-              style={{ background: `radial-gradient(circle, ${glow} 0%, transparent 70%)` }} />
-            <div className="absolute top-[13px] right-[13px] w-[28px] h-[28px] rounded-[9px] flex items-center justify-center"
-              style={{ background: iconBg, border: `0.5px solid ${iconBdr}` }}>
-              <Ico size={13} color={iconColor} />
+            className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
+            style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+            <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
+              <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: TT3, letterSpacing: "1px" }}>
+                {label}
+              </div>
+              <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white"
+                style={{ background: iconBg }}>
+                {icon}
+              </div>
             </div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.07em] mb-[9px]" style={{ color: TT4 }}>{label}</div>
-            <div className="text-[28px] font-bold leading-none mb-[10px]" style={{ color, letterSpacing: "-1px" }}>{val}</div>
-            <div className="h-[4px] rounded-[2px]" style={{ background: BG2_D, overflow: "hidden" }}>
-              <div className="h-full rounded-[2px]" style={{ width: `${barPct}%`, background: barGrad, transition: "width 0.6s ease" }} />
+            <div className="text-[30px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.3px" }}>{val}</div>
+            <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
+              {sub}
             </div>
           </button>
         ))}
       </div>
 
-      {/* ── Schedule section label ── */}
-      <div className="px-5 pt-[18px] flex items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-[0.10em]" style={{ color: TT4 }}>Schedule</span>
-        <span className="px-[9px] py-[3px] rounded-full text-[9px] font-bold" style={{ background: "rgba(0,85,255,0.10)", border: "0.5px solid rgba(0,85,255,0.18)", color: B1 }}>
-          {todayClasses.length} scheduled
-        </span>
-        <div className="flex-1 h-[0.5px]" style={{ background: "rgba(0,85,255,0.12)" }} />
-      </div>
-
       {/* ── Today's Classes ── */}
-      <div className="mx-5 mt-3 bg-white rounded-[22px] relative overflow-hidden"
-        style={{ boxShadow: SH_LG_D, border: "0.5px solid rgba(0,85,255,0.10)" }}>
-        <div className="flex items-center gap-[11px] px-4 py-[15px] relative z-10">
-          <div className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(0,85,255,0.10)", border: "0.5px solid rgba(0,85,255,0.20)" }}>
-            <IcoCalendar size={15} color={B1} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px" }}>Today's Classes</div>
-            <div className="text-[10px] mt-[2px] font-medium" style={{ color: TT4 }}>{todayClasses.length} scheduled today</div>
+      <div className="mx-4 mt-[14px] bg-white rounded-[20px] p-[18px]"
+        style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+        <div className="flex items-center justify-between mb-[14px]">
+          <div className="flex items-center gap-[11px]">
+            <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: B1 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Today's Classes</div>
+              <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{todayClasses.length} scheduled</div>
+            </div>
           </div>
           <button type="button" onClick={() => navigate('/my-classes')}
-            className="text-[11px] font-bold px-1" style={{ color: B1 }}>
-            See all
+            className="text-[12px] font-bold flex items-center gap-[2px] py-[6px] active:opacity-70 transition-opacity"
+            style={{ color: B1, letterSpacing: "-0.1px" }}>
+            See all <span className="text-[18px] leading-none opacity-80 -mt-[3px] ml-[2px]">›</span>
           </button>
         </div>
-        <div className="h-[0.5px]" style={{ background: SEP_D }} />
         {todayClasses.length === 0 ? (
-          <div className="py-8 text-center text-[13px] font-medium" style={{ color: TT4 }}>
-            No classes scheduled today
-          </div>
+          <div className="py-6 text-center text-[13px] font-medium" style={{ color: TT4 }}>No classes scheduled today</div>
         ) : (
           todayClasses.map((cls, idx) => (
             <button type="button" key={idx}
               onClick={() => navigate('/my-classes')}
-              className="w-full flex items-center gap-[11px] px-[14px] py-3 active:bg-[color:var(--hv)] transition-colors text-left"
-              style={{ borderBottom: idx < todayClasses.length - 1 ? `0.5px solid ${SEP_D}` : "none", ["--hv" as any]: BG_D }}>
-              <div className="w-[3px] self-stretch rounded-[2px]" style={{
-                background: cls.isNow
-                  ? `linear-gradient(180deg, ${GREEN}, #22DD66)`
-                  : `linear-gradient(180deg, ${B1}, ${B4})`,
+              className={`w-full flex items-center gap-3 px-[11px] py-[14px] rounded-[14px] text-left active:scale-[0.98] transition ${idx < todayClasses.length - 1 ? "mb-2" : ""}`}
+              style={{ background: "#F4F7FE" }}>
+              <div className="w-[3px] self-stretch rounded-[3px] flex-shrink-0" style={{
+                background: cls.isNow ? GREEN : idx % 2 === 0 ? B1 : VIOLET,
                 minHeight: 32,
               }} />
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold truncate" style={{ color: TT1, letterSpacing: "-0.2px" }}>{cls.subject}</div>
-                <div className="text-[10px] font-medium mt-[2px] truncate" style={{ color: TT3 }}>
-                  {cls.className} · {cls.students} {cls.students === 1 ? "student" : "students"}
+                <div className="text-[14px] font-bold truncate" style={{ color: TT1, letterSpacing: "-0.25px" }}>{cls.subject}</div>
+                <div className="text-[11px] font-medium mt-[3px] truncate" style={{ color: TT3, letterSpacing: "-0.1px" }}>
+                  {cls.className}
+                  <span className="mx-[5px]" style={{ color: TT4 }}>·</span>
+                  {cls.students} {cls.students === 1 ? "student" : "students"}
+                  {cls.time && cls.time !== "—" && !cls.isNow && (
+                    <><span className="mx-[5px]" style={{ color: TT4 }}>·</span>{cls.time}</>
+                  )}
                 </div>
               </div>
               {cls.isNow ? (
-                <div className="flex items-center gap-[5px] px-[10px] py-[4px] rounded-full text-[10px] font-bold text-white flex-shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${GREEN}, #22DD66)`, boxShadow: "0 3px 10px rgba(0,200,83,0.38)" }}>
+                <div className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full text-[9px] font-black text-white uppercase flex-shrink-0"
+                  style={{ background: GREEN, letterSpacing: "0.6px" }}>
                   <span className="w-[5px] h-[5px] rounded-full bg-white animate-pulse" />
                   Now
                 </div>
               ) : (
-                <div className="px-[10px] py-[4px] rounded-full text-[10px] font-semibold flex-shrink-0"
-                  style={{ background: BG_D, border: "0.5px solid rgba(0,85,255,0.12)", color: TT3 }}>
-                  {cls.time || "Later"}
-                </div>
+                <svg className="flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TT4} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
               )}
             </button>
           ))
         )}
       </div>
 
-      {/* ── To-do section label ── */}
-      <div className="px-5 pt-[18px] flex items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-[0.10em]" style={{ color: TT4 }}>To-do</span>
-        <span className="px-[9px] py-[3px] rounded-full text-[9px] font-bold" style={{ background: "rgba(0,85,255,0.10)", border: "0.5px solid rgba(0,85,255,0.18)", color: B1 }}>
-          {pendingTasks.length} pending
-        </span>
-        <div className="flex-1 h-[0.5px]" style={{ background: "rgba(0,85,255,0.12)" }} />
-      </div>
-
       {/* ── Pending Tasks ── */}
-      <div className="mx-5 mt-3 bg-white rounded-[22px] relative overflow-hidden"
-        style={{ boxShadow: SH_LG_D, border: "0.5px solid rgba(0,85,255,0.10)" }}>
-        <div className="flex items-center gap-[11px] px-4 py-[15px] relative z-10">
-          <div className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(255,170,0,0.10)", border: "0.5px solid rgba(255,170,0,0.22)" }}>
-            <IcoCheck size={15} color="#FFAA00" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px" }}>Pending Tasks</div>
-            <div className="text-[10px] mt-[2px] font-medium" style={{ color: TT4 }}>{pendingTasks.length} to complete</div>
+      <div className="mx-4 mt-[14px] bg-white rounded-[20px] p-[18px]"
+        style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+        <div className="flex items-center justify-between mb-[14px]">
+          <div className="flex items-center gap-[11px]">
+            <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: ORANGE }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="8 12 11 15 16 9"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Pending Tasks</div>
+              <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>
+                {pendingTasks.length} {pendingTasks.length === 1 ? "to complete" : "to complete"}
+              </div>
+            </div>
           </div>
           <button type="button" onClick={() => navigate('/attendance')}
-            className="text-[11px] font-bold px-1" style={{ color: B1 }}>
-            + Add
+            className="text-[12px] font-bold flex items-center gap-[2px] py-[6px] active:opacity-70 transition-opacity"
+            style={{ color: B1, letterSpacing: "-0.1px" }}>
+            Add <span className="text-[18px] leading-none opacity-80 -mt-[3px] ml-[2px]">›</span>
           </button>
         </div>
-        <div className="h-[0.5px]" style={{ background: SEP_D }} />
         {pendingTasks.length === 0 ? (
-          <div className="py-8 text-center text-[13px] font-medium" style={{ color: TT4 }}>All tasks complete</div>
+          <div className="py-6 text-center text-[13px] font-medium" style={{ color: TT4 }}>All tasks complete</div>
         ) : (
           pendingTasks.map((task, idx) => (
             <button type="button" key={idx}
-              onClick={() => navigate(task.title.includes('Attendance') ? '/attendance' : '/gradebook')}
-              className="w-full flex items-center gap-[11px] px-[14px] py-3 active:brightness-95 transition text-left"
-              style={{
-                borderBottom: idx < pendingTasks.length - 1 ? `0.5px solid ${SEP_D}` : "none",
-                background: "rgba(255,170,0,0.05)",
-              }}>
-              <div className="w-[22px] h-[22px] rounded-[7px] flex items-center justify-center flex-shrink-0"
-                style={{ background: task.done ? GREEN : BG_D, border: task.done ? "none" : "1.5px solid rgba(0,85,255,0.22)", boxShadow: task.done ? "0 2px 6px rgba(0,200,83,0.28)" : "none" }}>
-                {task.done && <IcoCheckFilled size={11} />}
+              onClick={() => navigate(task.title.toLowerCase().includes('attendance') ? '/attendance' : '/gradebook')}
+              className={`w-full flex items-center gap-3 p-[14px] rounded-[14px] relative overflow-hidden text-left active:scale-[0.98] transition-transform ${idx < pendingTasks.length - 1 ? "mb-2" : ""}`}
+              style={{ background: "rgba(255,136,0,0.06)" }}>
+              <div className="absolute left-0 top-[14px] bottom-[14px] w-[3px] rounded-r-[3px]" style={{ background: ORANGE }} />
+              <div className="w-[36px] h-[36px] rounded-[12px] flex items-center justify-center text-white flex-shrink-0 ml-1"
+                style={{ background: ORANGE }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px", textDecoration: task.done ? "line-through" : "none" }}>
-                  {task.title}
-                </div>
-                <div className="text-[10px] font-medium mt-[2px]" style={{ color: TT3 }}>{task.sub}</div>
+                <div className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.25px", textDecoration: task.done ? "line-through" : "none" }}>{task.title}</div>
+                <div className="text-[11px] font-bold mt-[3px]" style={{ color: ORANGE, letterSpacing: "-0.1px" }}>{task.sub}</div>
               </div>
-              <div className="px-[10px] py-[4px] rounded-full text-[10px] font-bold flex-shrink-0"
-                style={{ background: "rgba(255,170,0,0.10)", color: "#8A5800", border: "0.5px solid rgba(255,170,0,0.28)" }}>
-                {task.status === 'Pending' ? 'Pending' : 'To-do'}
+              <div className="px-[11px] py-[5px] rounded-full text-[9px] font-black text-white uppercase flex-shrink-0"
+                style={{ background: ORANGE, letterSpacing: "0.7px" }}>
+                {task.status === 'Pending' ? 'Pending' : 'Todo'}
               </div>
             </button>
           ))
         )}
       </div>
 
-      {/* ── Needs Attention section label ── */}
-      <div className="px-5 pt-[18px] flex items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-[0.10em]" style={{ color: TT4 }}>Needs Attention</span>
-        <span className="px-[9px] py-[3px] rounded-full text-[9px] font-bold" style={{ background: "rgba(255,51,85,0.10)", color: RED, border: "0.5px solid rgba(255,51,85,0.22)" }}>
-          {criticalStudents.length} flagged
-        </span>
-        <div className="flex-1 h-[0.5px]" style={{ background: "rgba(0,85,255,0.12)" }} />
-      </div>
-
       {/* ── Needs Attention ── */}
-      <div className="mx-5 mt-3 bg-white rounded-[22px] relative overflow-hidden"
-        style={{ boxShadow: SH_LG_D, border: "0.5px solid rgba(0,85,255,0.10)" }}>
-        <div className="flex items-center gap-[11px] px-4 py-[15px] relative z-10">
-          <div className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(255,51,85,0.10)", border: "0.5px solid rgba(255,51,85,0.22)" }}>
-            <IcoAlert size={15} color={RED} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px" }}>Needs Attention</div>
-            <div className="text-[10px] mt-[2px] font-medium" style={{ color: TT4 }}>{criticalStudents.length} students flagged</div>
+      <div className="mx-4 mt-[14px] bg-white rounded-[20px] p-[18px]"
+        style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+        <div className="flex items-center justify-between mb-[14px]">
+          <div className="flex items-center gap-[11px]">
+            <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: RED }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 21h20L12 2z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12" y2="17"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Needs Attention</div>
+              <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{criticalStudents.length} flagged</div>
+            </div>
           </div>
           <button type="button" onClick={() => navigate('/risks-alerts')}
-            className="text-[11px] font-bold px-1" style={{ color: B1 }}>
-            View all
+            className="text-[12px] font-bold flex items-center gap-[2px] py-[6px] active:opacity-70 transition-opacity"
+            style={{ color: B1, letterSpacing: "-0.1px" }}>
+            View all <span className="text-[18px] leading-none opacity-80 -mt-[3px] ml-[2px]">›</span>
           </button>
         </div>
-        <div className="h-[0.5px]" style={{ background: SEP_D }} />
         {criticalStudents.length === 0 ? (
-          <div className="py-8 text-center text-[13px] font-medium" style={{ color: TT4 }}>All students on track</div>
+          <div className="py-6 text-center text-[13px] font-medium" style={{ color: TT4 }}>All students on track</div>
         ) : (
           criticalStudents.map((s, idx) => {
             const name = s.studentName || "Student";
             const initStr = (() => { const p = name.trim().split(" "); return (p.length >= 2 ? p[0][0] + p[1][0] : p[0].substring(0, 2)).toUpperCase(); })();
-            const isCritical = s.level === 'critical';
-            const avatarGrad = [
-              `linear-gradient(135deg, ${B1}, ${B2})`,
-              "linear-gradient(135deg, #FFAA00, #FFCC22)",
-              `linear-gradient(135deg, #7B3FF4, #9266FF)`,
-            ][idx % 3];
-            const avatarSh = [
-              "0 3px 10px rgba(0,85,255,0.32)",
-              "0 3px 10px rgba(255,170,0,0.32)",
-              "0 3px 10px rgba(123,63,244,0.32)",
-            ][idx % 3];
+            const avatarBg = [B1, ORANGE, VIOLET][idx % 3];
             return (
               <div key={idx}
                 onClick={() => navigate(`/students?studentId=${s.studentId || ''}`)}
                 role="button"
                 tabIndex={0}
-                className="flex items-center gap-[11px] px-[14px] py-3 cursor-pointer active:brightness-95 transition"
-                style={{
-                  borderBottom: idx < criticalStudents.length - 1 ? `0.5px solid ${SEP_D}` : "none",
-                  background: "rgba(255,51,85,0.025)",
-                }}>
-                <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
-                  style={{ background: avatarGrad, boxShadow: avatarSh }}>
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || ''}`); }}
+                className={`flex items-center gap-[11px] p-[10px] pl-3 rounded-[14px] cursor-pointer active:brightness-95 transition ${idx < criticalStudents.length - 1 ? "mb-2" : ""}`}
+                style={{ background: "rgba(255,51,85,0.04)" }}>
+                <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white text-[11px] font-extrabold flex-shrink-0"
+                  style={{ background: avatarBg, letterSpacing: "0.3px" }}>
                   {initStr}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-bold truncate" style={{ color: TT1, letterSpacing: "-0.2px" }}>{name}</div>
-                  <div className="flex items-center gap-1 mt-[2px] text-[10px] font-semibold" style={{ color: RED }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="7" y1="7" x2="17" y2="17" />
-                      <polyline points="17 7 17 17 7 17" />
-                    </svg>
+                  <div className="text-[13px] font-bold truncate" style={{ color: TT1, letterSpacing: "-0.25px" }}>{name}</div>
+                  <div className="flex items-center gap-[5px] mt-[3px] text-[11px] font-semibold" style={{ color: RED, letterSpacing: "-0.1px" }}>
+                    <span className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: RED }} />
                     <span className="truncate">{s.trigger}</span>
                   </div>
                 </div>
                 <button type="button"
                   onClick={(e) => { e.stopPropagation(); navigate('/risks-alerts'); }}
-                  className="flex items-center gap-1 px-3 py-[6px] rounded-full text-[10px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform"
-                  style={{
-                    background: isCritical ? `linear-gradient(135deg, ${RED}, #FF5577)` : "linear-gradient(135deg, #FFAA00, #FFCC22)",
-                    boxShadow: isCritical ? "0 4px 12px rgba(255,51,85,0.32)" : "0 4px 12px rgba(255,170,0,0.32)",
-                  }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 01-3.46 0" />
-                  </svg>
-                  {isCritical ? "Notify" : "Review"}
+                  className="px-[13px] py-[8px] rounded-[10px] text-[11px] font-bold text-white flex-shrink-0 active:scale-[0.92] transition-transform"
+                  style={{ background: RED, letterSpacing: "-0.1px" }}>
+                  Notify
                 </button>
               </div>
             );
@@ -662,76 +767,76 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* ── Daily Overview banner ── */}
-      <div className="mx-5 mt-[14px] rounded-[22px] px-[18px] py-4 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #001040 0%, #001888 35%, #0033CC 70%, #0055FF 100%)", boxShadow: "0 10px 30px rgba(0,8,60,0.3), 0 0 0 0.5px rgba(255,255,255,0.12)" }}>
-        <div className="absolute -top-9 -right-6 w-[160px] h-[160px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 65%)" }} />
-        <div className="mb-[14px] relative z-10">
-          <div className="text-[8px] font-bold uppercase tracking-[0.14em] mb-[6px]" style={{ color: "rgba(255,255,255,0.50)" }}>Daily Overview</div>
-          <div className="text-[22px] font-bold text-white leading-[1.1] mb-[5px]" style={{ letterSpacing: "-0.5px" }}>Keep up the great work 🎯</div>
-          <div className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>Real-time data from your classes &amp; students</div>
-        </div>
-        <div className="grid grid-cols-4 gap-[1px] rounded-[14px] overflow-hidden relative z-10" style={{ background: "rgba(255,255,255,0.12)" }}>
-          {[
-            { val: stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—", label: "Attend.", color: "#fff", path: "/attendance" },
-            { val: stats.pendingGrading, label: "Grading", color: "#fff", path: "/gradebook" },
-            { val: stats.atRiskCount, label: "At-Risk", color: stats.atRiskCount > 0 ? "#FF99AA" : "#fff", path: "/risks-alerts" },
-            { val: stats.activeClasses, label: "Classes", color: "#C8A4FF", path: "/my-classes" },
-          ].map(({ val, label, color: c, path }) => (
-            <button type="button" key={label}
-              onClick={() => navigate(path)}
-              className="py-[11px] px-[6px] text-center active:brightness-110 transition"
-              style={{ background: "rgba(255,255,255,0.08)" }}>
-              <div className="text-[18px] font-bold leading-none mb-[3px]" style={{ color: c, letterSpacing: "-0.4px" }}>{val}</div>
-              <div className="text-[8px] font-bold uppercase tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.42)" }}>{label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── AI Teacher Intelligence card ── */}
-      <div className="mx-5 mt-[14px] rounded-[22px] px-5 py-[18px] relative overflow-hidden"
-        style={{ background: "linear-gradient(140deg, #001888 0%, #0033CC 48%, #0055FF 100%)", boxShadow: "0 8px 28px rgba(0,51,204,0.28), 0 0 0 0.5px rgba(255,255,255,0.14)" }}>
-        <div className="absolute -top-[34px] -right-[22px] w-[140px] h-[140px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 65%)" }} />
-        <div className="flex items-center gap-[6px] mb-[10px] relative z-10">
-          <div className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.18)", border: "0.5px solid rgba(255,255,255,0.26)" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
+      {/* ── AI Teacher Intelligence ── */}
+      <div className="mx-4 mt-[14px] mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+        style={{
+          background: "linear-gradient(140deg, #000820 0%, #001888 28%, #0033CC 64%, #0957F7 100%)",
+          boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
+        }}>
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)"
+        }} />
+        <div className="relative z-[2]">
+          <div className="flex items-center gap-3 mb-[14px]">
+            <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-[20px]"
+              style={{
+                background: "rgba(255,255,255,0.14)",
+                backdropFilter: "blur(22px)",
+                WebkitBackdropFilter: "blur(22px)",
+                border: "0.5px solid rgba(255,255,255,0.22)",
+                color: "#FFDD55",
+                boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
+              }}>⚡</div>
+            <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Teacher Intelligence</div>
+            <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+              style={{
+                background: "rgba(123,63,244,0.3)",
+                border: "0.5px solid rgba(155,95,255,0.5)",
+                color: "#DCC8FF",
+                letterSpacing: "0.5px",
+              }}>Live</div>
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.55)" }}>AI Teacher Intelligence</span>
-        </div>
-        <div className="text-[12px] leading-[1.72] relative z-10" style={{ color: "rgba(255,255,255,0.85)" }}>
-          {aiMessage}
-        </div>
-        <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden relative z-10 mt-3" style={{ background: "rgba(255,255,255,0.12)" }}>
-          <button type="button" onClick={() => navigate('/attendance')}
-            className="py-[11px] px-2 text-center active:brightness-110 transition"
-            style={{ background: "rgba(255,255,255,0.08)" }}>
-            <div className="text-[18px] font-bold leading-none mb-[3px]" style={{ color: "#66EE88", letterSpacing: "-0.4px" }}>
-              {stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—"}
-            </div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.07em]" style={{ color: "rgba(255,255,255,0.40)" }}>Attend.</div>
-          </button>
-          <button type="button" onClick={() => navigate('/risks-alerts')}
-            className="py-[11px] px-2 text-center active:brightness-110 transition"
-            style={{ background: "rgba(255,255,255,0.08)" }}>
-            <div className="text-[18px] font-bold leading-none mb-[3px]" style={{ color: "#FF99AA", letterSpacing: "-0.4px" }}>{stats.atRiskCount}</div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.07em]" style={{ color: "rgba(255,255,255,0.40)" }}>At-Risk</div>
-          </button>
-          <button type="button" onClick={() => navigate('/my-classes')}
-            className="py-[11px] px-2 text-center active:brightness-110 transition"
-            style={{ background: "rgba(255,255,255,0.08)" }}>
-            <div className="text-[18px] font-bold leading-none mb-[3px] text-white" style={{ letterSpacing: "-0.4px" }}>{stats.activeClasses}</div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.07em]" style={{ color: "rgba(255,255,255,0.40)" }}>Classes</div>
-          </button>
+          <div className="text-[13px] font-normal leading-[1.6] mb-[18px]" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.15px" }}>
+            {aiMessage}
+          </div>
+          <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+            <button type="button" onClick={() => navigate('/attendance')}
+              className="py-[13px] px-[6px] text-center active:brightness-110 transition"
+              style={{ background: "rgba(0,20,80,0.55)" }}>
+              <div className="text-[19px] font-extrabold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.5px" }}>
+                {stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—"}
+              </div>
+              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
+            </button>
+            <button type="button" onClick={() => navigate('/risks-alerts')}
+              className="py-[13px] px-[6px] text-center active:brightness-110 transition"
+              style={{ background: "rgba(0,20,80,0.55)" }}>
+              <div className="text-[19px] font-extrabold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.5px" }}>{stats.atRiskCount}</div>
+              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
+            </button>
+            <button type="button" onClick={() => navigate('/my-classes')}
+              className="py-[13px] px-[6px] text-center active:brightness-110 transition"
+              style={{ background: "rgba(0,20,80,0.55)" }}>
+              <div className="text-[19px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.activeClasses}</div>
+              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Classes</div>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="h-5" />
+      <div className="h-2" />
+
+      {/* wave animation keyframes (scoped inline) */}
+      <style>{`
+        @keyframes tdWave {
+          0%, 60%, 100% { transform: rotate(0deg); }
+          10% { transform: rotate(14deg); }
+          20% { transform: rotate(-8deg); }
+          30% { transform: rotate(14deg); }
+          40% { transform: rotate(-4deg); }
+          50% { transform: rotate(10deg); }
+        }
+      `}</style>
       </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
 
       {/* ═══════════════════ DESKTOP VIEW — Blue Apple + 3D hover ═══════════════════ */}
