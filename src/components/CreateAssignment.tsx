@@ -226,7 +226,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     <div style={{ fontFamily: 'inherit', minHeight: '100vh' }} className="text-left pb-10">
 
     {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
-    <div className="md:hidden" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "-16px -16px 0", paddingBottom: 158 }}>
+    <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "-16px -16px 0", paddingBottom: 158 }}>
 
       {/* Sticky dark gradient header */}
       <div className="sticky top-0 z-20 px-[14px] pt-[10px] pb-[18px] relative"
@@ -513,7 +513,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     </div>
 
     {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
-    <div className="hidden md:block" style={{ background: T.s1, minHeight: '100vh' }}>
+    <div className="hidden md:block" style={{ background: "#EEF4FF", minHeight: '100vh' }}>
 
       {/* ── Dark Hero ─────────────────────────────────────────────────────── */}
       <div

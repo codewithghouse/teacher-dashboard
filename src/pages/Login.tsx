@@ -22,7 +22,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#EEF4FF] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-[#1e3272] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-900/20 rotate-3 hover:rotate-0 transition-transform duration-500">

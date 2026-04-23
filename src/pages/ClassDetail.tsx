@@ -440,7 +440,7 @@ const ClassDetail = () => {
   return (
     <>
     {/* ═══════════════════ MOBILE VIEW — EduIntellect v2 ═══════════════════ */}
-    <div className="md:hidden" style={{ background: M.BG, fontFamily: M.FONT, minHeight: "100vh", margin: "-1rem", marginBottom: 0 }}>
+    <div className="md:hidden" style={{ background: "#EEF4FF", fontFamily: M.FONT, minHeight: "100vh", margin: "-1rem", marginBottom: 0 }}>
 
       {/* Sticky page navbar */}
       <div className="sticky top-0 z-20 flex items-center justify-between px-[14px] py-[10px]"

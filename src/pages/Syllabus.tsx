@@ -413,7 +413,7 @@ const Syllabus = () => {
     <div
       className="md:hidden -mx-4 sm:-mx-6 px-4 sm:px-6 pt-[10px] pb-7 text-left"
       style={{
-        background: "linear-gradient(148deg, #EEF4FF 0%, #DCE6FF 100%)",
+        background: "#EEF4FF",
         minHeight: "100vh",
         fontVariantNumeric: "tabular-nums",
       }}

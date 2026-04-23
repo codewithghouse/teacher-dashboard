@@ -185,7 +185,7 @@ const PrincipalNotes = () => {
     />
 
     {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
-    <div className="hidden md:block" style={{ minHeight: "100vh", background: T.bg, paddingBottom: 0 }}>
+    <div className="hidden md:block" style={{ minHeight: "100vh", background: "#EEF4FF", paddingBottom: 0 }}>
 
       {/* ═══ DARK HERO + PRINCIPAL CARD ═══════════════════════════════════ */}
       <div
@@ -585,7 +585,7 @@ const MobilePrincipalChat = ({
     <div
       className="md:hidden -mx-4 sm:-mx-6"
       style={{
-        background: "linear-gradient(180deg, #EEF4FF 0%, #E7EEFD 100%)",
+        background: "#EEF4FF",
         display: "flex",
         flexDirection: "column",
         height: "calc(100vh - 56px - 88px)",

@@ -342,10 +342,10 @@ const Dashboard = () => {
   const avatarInitial = (teacherData?.name?.[0] || "T").toUpperCase();
 
   return (
-    <div style={{ fontFamily: FONT_D, background: BG_D }} className="min-h-screen pb-28 md:pb-0 text-left">
+    <div style={{ fontFamily: FONT_D, background: "#EEF4FF" }} className="min-h-screen pb-28 md:pb-0 text-left">
 
       {/* ═══════════════════ MOBILE VIEW — EduIntellect v2 ═══════════════════ */}
-      <div className="md:hidden animate-in fade-in duration-500" style={{ background: BG_D, minHeight: "100vh" }}>
+      <div className="md:hidden animate-in fade-in duration-500" style={{ background: "#EEF4FF", minHeight: "100vh" }}>
 
       {/* ── Greeting + actions (bell + avatar) ── */}
       <div className="flex items-center justify-between px-4 pt-[10px] pb-[18px]">
@@ -383,7 +383,7 @@ const Dashboard = () => {
             {showNotifPanel && (
               <div className="absolute right-0 top-12 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-[22px] z-50 overflow-hidden"
                 style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_LG_D }}>
-                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `0.5px solid ${BLUE_BDR}`, background: BG_D }}>
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `0.5px solid ${BLUE_BDR}`, background: "#EEF4FF" }}>
                   <div>
                     <p className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px" }}>Notifications</p>
                     <p className="text-[10px] font-medium mt-[1px]" style={{ color: TT3 }}>
@@ -841,7 +841,7 @@ const Dashboard = () => {
 
       {/* ═══════════════════ DESKTOP VIEW — Blue Apple + 3D hover ═══════════════════ */}
       <div className="hidden md:block animate-in fade-in duration-500 -m-4 sm:-m-6 md:-m-8 min-h-[calc(100vh-64px)]"
-        style={{ background: BG_D }}>
+        style={{ background: "#EEF4FF" }}>
         <div className="w-full px-6 pt-8 pb-12">
 
           {/* ── Toolbar ── */}
@@ -875,7 +875,7 @@ const Dashboard = () => {
                 {showNotifPanel && (
                   <div className="absolute right-0 top-12 w-80 rounded-[22px] z-50 overflow-hidden"
                     style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_LG_D }}>
-                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `0.5px solid ${BLUE_BDR}`, background: BG_D }}>
+                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `0.5px solid ${BLUE_BDR}`, background: "#EEF4FF" }}>
                       <div>
                         <p className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.2px" }}>Notifications</p>
                         <p className="text-[11px] mt-[1px]" style={{ color: TT3 }}>{unreadNotes.length > 0 ? `${unreadNotes.length} unread from parents` : "All caught up!"}</p>

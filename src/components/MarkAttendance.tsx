@@ -294,7 +294,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     <div style={{ fontFamily: 'inherit' }} className="text-left pb-8">
 
     {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
-    <div className="md:hidden" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "-16px -16px 0" }}>
+    <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "-16px -16px 0" }}>
 
       {/* Dark gradient sticky header */}
       <div className="sticky top-0 z-20 px-[14px] pt-[10px] pb-[16px] relative"

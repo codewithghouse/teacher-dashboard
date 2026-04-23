@@ -145,7 +145,7 @@ const SummarizeLesson = () => {
   const showResult = summary && !loading;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, paddingBottom: 0 }}>
+    <div style={{ minHeight: "100vh", background: "#EEF4FF", paddingBottom: 0 }}>
 
       {/* ═══ DARK HERO (form view only) ══════════════════════════════════ */}
       {!showResult && (

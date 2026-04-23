@@ -369,7 +369,7 @@ export default function Gradebook() {
     const col = selectedColForEdit;
 
     return (
-      <div style={{ fontFamily: 'inherit', minHeight: '100vh', background: T.s1 }} className="text-left pb-24">
+      <div style={{ fontFamily: 'inherit', minHeight: '100vh', background: '#EEF4FF' }} className="text-left pb-24">
 
         {/* Dark hero */}
         <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-[22px] pb-6 bg-[#162E93] md:bg-[#08090C]">
@@ -621,7 +621,7 @@ export default function Gradebook() {
       <div
         className="md:hidden gradebook-mobile-root -mx-4 sm:-mx-6 px-4 sm:px-6 pt-[10px] pb-7"
         style={{
-          background: 'linear-gradient(148deg, #EEF4FF 0%, #DCE6FF 100%)',
+          background: '#EEF4FF',
           minHeight: '100vh',
           fontVariantNumeric: 'tabular-nums',
         }}

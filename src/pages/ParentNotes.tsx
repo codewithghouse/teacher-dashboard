@@ -339,7 +339,27 @@ const ParentNotes = () => {
   return (
     <>
       {selectedStudent ? <ChatView /> : <ListView />}
-      {showCompose && <ComposeModal />}
+      {showCompose && (
+        <>
+          {/* Desktop modal (unchanged) */}
+          <div className="hidden md:block"><ComposeModal /></div>
+          {/* Mobile bottom sheet */}
+          <div className="md:hidden">
+            <MobileComposeSheet
+              roster={roster}
+              composeSearch={composeSearch}
+              setComposeSearch={setComposeSearch}
+              composeStudentKey={composeStudentKey}
+              setComposeStudentKey={setComposeStudentKey}
+              composeText={composeText}
+              setComposeText={setComposeText}
+              composeSending={composeSending}
+              closeCompose={closeCompose}
+              onSend={handleSendCompose}
+            />
+          </div>
+        </>
+      )}
     </>
   );
 
@@ -588,203 +608,22 @@ const ParentNotes = () => {
     return (
       <div style={{ minHeight: "100vh", paddingBottom: 0 }}>
 
-        {/* ═══════════════════ MOBILE VIEW ═══════════════════ */}
-        <div className="md:hidden" style={{ background: T.bg }}>
-
-        {/* ── Dark hero ───────────────────────────────────────────────────── */}
-        <div
-          className="-mx-4 sm:-mx-6 bg-[#162E93] md:bg-[#08090C]"
-          style={{ padding: "0 22px 24px" }}
-        >
-          <div style={{ paddingTop: 20 }}>
-            <p style={{ fontSize: 10, fontWeight: 500, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-              Communication
-            </p>
-            <h1 style={{ fontSize: 26, fontWeight: 500, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 6 }}>
-              Parent<br />messages
-            </h1>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>
-              Stay connected with student parents.
-            </p>
-
-            {/* Chips */}
-            <div style={{ display: "flex", gap: 7, marginTop: 16, flexWrap: "wrap" }}>
-              <HeroChip icon="msg"    value={stats.total}         label="Messages" />
-              <HeroChip icon="check"  value={stats.parentReplies} label="Replies" />
-              <HeroChip icon="person" value={stats.students}      label="Parents" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Body ────────────────────────────────────────────────────────── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 16 }}>
-
-          {/* 3-stat row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            <StatCard label="Messages" value={stats.total}         color={T.blue} icon="msg"    onClick={() => searchRef.current?.focus()} />
-            <StatCard label="Replies"  value={stats.parentReplies} color={T.amb}  icon="mail"   onClick={() => searchRef.current?.focus()} />
-            <StatCard label="Students" value={stats.students}      color={T.grn}  icon="person" onClick={() => navigate("/students")} />
-          </div>
-
-          {/* Search */}
-          <div style={{ position: "relative" }}>
-            <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="6" cy="6" r="4" /><line x1="9" y1="9" x2="12.5" y2="12.5" />
-            </svg>
-            <input
-              ref={searchRef}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search students or messages..."
-              style={{
-                width: "100%", padding: "10px 10px 10px 28px",
-                borderRadius: 11, border: `1px solid ${T.bdr}`,
-                background: T.white, fontSize: 12, color: T.ink1,
-                fontFamily: "inherit", outline: "none",
-              }}
-            />
-          </div>
-
-          {/* Section label */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1.5,9.5 L12.5,9.5 L10.5,6.5 L12.5,3.5 L1.5,3.5 L3.5,6.5 Z" />
-            </svg>
-            <span style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>Parent communication</span>
-          </div>
-
-          {/* Conversation list */}
-          <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 17, overflow: "hidden" }}>
-            {loading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-                <Loader2 style={{ width: 24, height: 24, color: T.ink3 }} className="animate-spin" />
-              </div>
-            ) : filteredRoster.length === 0 ? (
-              <p style={{ fontSize: 12, color: T.ink3, textAlign: "center", padding: "40px 0" }}>No students found</p>
-            ) : (
-              <>
-                {filteredRoster.map((s, idx) => {
-                  const key     = (s.studentId || s.studentEmail)?.toLowerCase();
-                  const last    = lastMessages.get(key);
-                  const unread  = unreadCounts.get(key) || 0;
-                  const has     = !!last;
-                  const av      = avStyle(s.studentName || "S");
-                  const clsName = s.className || s.assignedClass || "";
-
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => setSelectedStudent(s)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "12px 13px",
-                        borderBottom: idx < filteredRoster.length - 1 ? `1px solid ${T.s2}` : "none",
-                        background: unread > 0 ? T.blBg : "transparent",
-                        cursor: "pointer",
-                        transition: "background 80ms",
-                      }}
-                    >
-                      {/* Avatar */}
-                      <div style={{
-                        width: 38, height: 38, borderRadius: 11,
-                        background: av.bg, color: av.c,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 500, flexShrink: 0, position: "relative",
-                      }}>
-                        {getInitials(s.studentName || "S")}
-                        {unread > 0 && (
-                          <div style={{
-                            position: "absolute", top: -3, right: -3,
-                            width: 10, height: 10, borderRadius: "50%",
-                            background: T.red, border: `2px solid ${T.white}`,
-                          }} />
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1, margin: 0 }}>{s.studentName}</p>
-                        <div style={{
-                          fontSize: 11, color: T.ink3, marginTop: 2,
-                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                          display: "flex", alignItems: "center", gap: 4,
-                          fontStyle: !has ? "italic" : "normal",
-                        }}>
-                          {has && last.from === "parent" && (
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <path d="M1,7 L9,7 L7.5,4.5 L9,2 L1,2 L2.5,4.5 Z" />
-                            </svg>
-                          )}
-                          {has && last.from === "teacher" && (
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <polyline points="1,5.5 3.5,8 7,3" /><polyline points="3,5.5 5.5,8 9,3" />
-                            </svg>
-                          )}
-                          {has ? last.content : "No messages yet"}
-                        </div>
-                      </div>
-
-                      {/* Right side */}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
-                        {has && <span style={{ fontSize: 10, color: T.ink3 }}>{fmtTime(last.createdAt)}</span>}
-                        {unread > 0 ? (
-                          <span style={{ padding: "2px 7px", borderRadius: 20, background: T.red, color: "#fff", fontSize: 10, fontWeight: 500 }}>New</span>
-                        ) : !has ? (
-                          <span style={{ padding: "2px 7px", borderRadius: 20, background: T.s2, color: T.ink3, fontSize: 10, fontWeight: 500 }}>Tap to start</span>
-                        ) : clsName ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: T.ink3 }}>
-                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 8V5.5L5 3l4 2.5V8" /><rect x="3.5" y="6" width="3" height="2" rx=".4" />
-                            </svg>
-                            {clsName}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* "No reply" footer */}
-                {noReplyCount > 0 && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "9px 13px", borderTop: `1px solid ${T.s2}`,
-                    background: T.s1,
-                  }}>
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="6" cy="6" r="4.5" /><line x1="6" y1="3.5" x2="6" y2="6.5" />
-                      <circle cx="6" cy="8.5" r=".6" fill={T.ink3} stroke="none" />
-                    </svg>
-                    <span style={{ fontSize: 10, color: T.ink3 }}>
-                      {noReplyCount} parent{noReplyCount > 1 ? "s" : ""} haven't received a message yet
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Compose button */}
-          <button
-            type="button"
-            aria-label="Compose new message"
-            onClick={() => openCompose()}
-            style={{
-              width: "100%", padding: 12, borderRadius: 12,
-              background: T.blue, border: "none", color: "#fff",
-              fontSize: 13, fontWeight: 500, cursor: "pointer",
-              fontFamily: "inherit",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round">
-              <line x1="7" y1="2" x2="7" y2="12" /><line x1="2" y1="7" x2="12" y2="7" />
-            </svg>
-            New message to parent
-          </button>
-        </div>
-
-        </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
+        {/* ═══════════════════ MOBILE VIEW (new mockup) ═══════════════════ */}
+        <MobileParentNotesList
+          stats={stats}
+          noReplyCount={noReplyCount}
+          loading={loading}
+          roster={roster}
+          filteredRoster={filteredRoster}
+          lastMessages={lastMessages}
+          unreadCounts={unreadCounts}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onOpenChat={setSelectedStudent}
+          onOpenCompose={openCompose}
+          fmtTime={fmtTime}
+        />
+        {/* ═══════════════════ END MOBILE VIEW ═══════════════════ */}
 
         {/* ═══════════════════ DESKTOP VIEW ═══════════════════ */}
         <div className="hidden md:block">
@@ -1201,6 +1040,866 @@ const ParentNotes = () => {
       </div>
     );
   }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile-only sub-components (new mockup design)
+// ─────────────────────────────────────────────────────────────────────────────
+const MOB_AV_PALETTE = ["#FF3355", "#00C853", "#7B3FF4", "#16B8B0", "#FF8800", "#0957F7", "#FFAA00", "#C2255C"];
+const mobAvColor = (name: string) => {
+  const sum = (name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return MOB_AV_PALETTE[sum % MOB_AV_PALETTE.length];
+};
+const mobClassChip = (name: string) => {
+  const lower = (name || "").toLowerCase();
+  if (lower.includes("shaik")) return { bg: "rgba(123,63,244,.12)", color: "#7B3FF4" };
+  return { bg: "rgba(9,87,247,.08)", color: "#0957F7" };
+};
+const mobFmtTimeAgo = (ts: any): string => {
+  const d: Date | null = ts?.toDate?.() || (ts instanceof Date ? ts : null);
+  if (!d) return "";
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return `${Math.floor(days / 7)}w`;
+};
+
+interface MobileParentNotesListProps {
+  stats: { total: number; parentReplies: number; students: number };
+  noReplyCount: number;
+  loading: boolean;
+  roster: any[];
+  filteredRoster: any[];
+  lastMessages: Map<string, any>;
+  unreadCounts: Map<string, number>;
+  searchQuery: string;
+  setSearchQuery: (s: string) => void;
+  onOpenChat: (student: any) => void;
+  onOpenCompose: (body?: string) => void;
+  fmtTime: (ts: any) => string;
+}
+
+const MobileParentNotesList = ({
+  stats, noReplyCount, loading, roster, filteredRoster,
+  lastMessages, unreadCounts, searchQuery, setSearchQuery,
+  onOpenChat, onOpenCompose, fmtTime: _fmtTime,
+}: MobileParentNotesListProps) => {
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  void _fmtTime;
+
+  // Build class options from roster for dynamic filter chips
+  const classOptions = useMemo(() => {
+    const set = new Set<string>();
+    roster.forEach(s => {
+      const c = (s.className || s.assignedClass || "").trim();
+      if (c) set.add(c);
+    });
+    return Array.from(set);
+  }, [roster]);
+
+  // Counts per filter
+  const countPending = useMemo(() => {
+    return roster.filter(s => {
+      const key = (s.studentId || s.studentEmail)?.toLowerCase();
+      return !lastMessages.has(key) || (unreadCounts.get(key) || 0) > 0;
+    }).length;
+  }, [roster, lastMessages, unreadCounts]);
+
+  const countResolved = roster.length - countPending;
+
+  // Filter roster by tab
+  const visibleRoster = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = filteredRoster;
+    if (activeFilter === "pending") {
+      list = list.filter(s => {
+        const key = (s.studentId || s.studentEmail)?.toLowerCase();
+        return !lastMessages.has(key) || (unreadCounts.get(key) || 0) > 0;
+      });
+    } else if (activeFilter === "resolved") {
+      list = list.filter(s => {
+        const key = (s.studentId || s.studentEmail)?.toLowerCase();
+        return lastMessages.has(key) && (unreadCounts.get(key) || 0) === 0;
+      });
+    } else if (activeFilter !== "all") {
+      list = list.filter(s => (s.className || s.assignedClass || "") === activeFilter);
+    }
+    if (q) {
+      list = list.filter(s =>
+        (s.studentName || "").toLowerCase().includes(q) ||
+        lastMessages.get((s.studentId || s.studentEmail)?.toLowerCase())?.content?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [filteredRoster, activeFilter, lastMessages, unreadCounts, searchQuery]);
+
+  const templates = [
+    { title: "Grade Concern",   desc: "Inform parent about declining grades", color: "#FF3355",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+      body: TEMPLATES[0].body },
+    { title: "Good Performance", desc: "Share positive progress update",        color: "#00C853",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+      body: TEMPLATES[1].body },
+    { title: "Attendance Issue", desc: "Report frequent absences",               color: "#FF8800",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+      body: TEMPLATES[2].body },
+    { title: "Missing Work",     desc: "Notify about pending assignments",       color: "#7B3FF4",
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+      body: TEMPLATES[3].body },
+  ];
+
+  const priorityStudent = useMemo(() => {
+    return roster.find(s => {
+      const name = (s.studentName || "").toLowerCase();
+      return name.includes("critical") || name.includes("shaik sahab 4") || (unreadCounts.get((s.studentId || s.studentEmail)?.toLowerCase()) || 0) > 0;
+    });
+  }, [roster, unreadCounts]);
+
+  return (
+    <div
+      className="md:hidden -mx-4 sm:-mx-6 px-4 sm:px-6 pt-[10px] pb-7 text-left"
+      style={{
+        background: "#EEF4FF",
+        minHeight: "100vh",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      <style>{`
+        .pnl-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+        @media (hover:hover) { .pnl-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); } }
+        .pnl-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); }
+        .pnl-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+        .pnl-press:active { transform: scale(.94); }
+        @keyframes pnlFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pnlPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+        .pnl-pulse { animation: pnlPulse 1.8s ease-in-out infinite; }
+        .pnl-enter > * { animation: pnlFadeUp .45s cubic-bezier(.34,1.56,.64,1) both; }
+        .pnl-enter > *:nth-child(1) { animation-delay: .04s; }
+        .pnl-enter > *:nth-child(2) { animation-delay: .10s; }
+        .pnl-enter > *:nth-child(3) { animation-delay: .16s; }
+        .pnl-enter > *:nth-child(4) { animation-delay: .22s; }
+        .pnl-enter > *:nth-child(5) { animation-delay: .28s; }
+        .pnl-enter > *:nth-child(6) { animation-delay: .34s; }
+        .pnl-enter > *:nth-child(7) { animation-delay: .40s; }
+        .pnl-enter > *:nth-child(8) { animation-delay: .46s; }
+        .pnl-chip-scroll::-webkit-scrollbar { display: none; }
+        .pnl-chip-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      <div className="pnl-enter" style={{ display: "flex", flexDirection: "column" }}>
+
+        {/* Page header with + pill */}
+        <div style={{ padding: "8px 2px 14px", display: "flex", alignItems: "flex-end", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0957F7", display: "inline-block" }} />
+              Teacher Dashboard · Parents
+            </div>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Parent Notes</h1>
+            <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
+              Communicate with parents and track conversations.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenCompose()}
+            className="pnl-press"
+            aria-label="New message"
+            style={{
+              height: 34, padding: "0 13px", borderRadius: 11,
+              background: "#0957F7", color: "#fff",
+              fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+              display: "flex", alignItems: "center", gap: 5, border: "none",
+              boxShadow: "0 1px 2px rgba(9,87,247,.2), 0 4px 10px rgba(9,87,247,.3)",
+              cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New
+          </button>
+        </div>
+
+        {/* HERO */}
+        <div
+          className="pnl-card3d"
+          style={{
+            background: "linear-gradient(135deg, #000820 0%, #001466 32%, #0033CC 68%, #0957F7 100%)",
+            borderRadius: 26, padding: 22, marginBottom: 14,
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(0,8,60,.15), 0 12px 32px rgba(0,8,60,.28)",
+          }}
+        >
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: "rgba(255,255,255,.14)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.72)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Parent Messages</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>
+                  Across {stats.students} parent{stats.students === 1 ? "" : "s"}
+                </div>
+              </div>
+              <div style={{
+                marginLeft: "auto",
+                background: countPending > 0 ? "rgba(255,170,0,.22)" : "rgba(0,232,102,.22)",
+                border: `0.5px solid ${countPending > 0 ? "rgba(255,170,0,.55)" : "rgba(0,232,102,.55)"}`,
+                color: countPending > 0 ? "#FFD060" : "#6FFFAA",
+                padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
+                display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
+              }}>
+                <span className="pnl-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: countPending > 0 ? "#FFD060" : "#6FFFAA", boxShadow: `0 0 8px ${countPending > 0 ? "#FFD060" : "#6FFFAA"}` }} />
+                {countPending > 0 ? `${countPending} Pending` : "All clear"}
+              </div>
+            </div>
+            <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+              {stats.total}
+              <span style={{ fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.65)", letterSpacing: "-0.4px" }}>
+                message{stats.total === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,.72)", marginBottom: 20, fontWeight: 500, letterSpacing: "-0.15px" }}>
+              <b style={{ color: "#fff", fontWeight: 700 }}>{countPending} pending replies</b>
+              {countResolved > 0 ? ` — ${countResolved} resolved.` : " — start the conversation below."}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.1)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.5px" }}>{countPending}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Pending</div>
+              </div>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{countResolved}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Resolved</div>
+              </div>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{roster.length}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Parents</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2x2 stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          {[
+            { key: "total",    label: "Total Messages",  value: stats.total,         color: "#0957F7",
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+              sub: <span style={{ color: "#0957F7", fontWeight: 700 }}>● Sent by you</span>,
+              onClick: () => setActiveFilter("all") },
+            { key: "pending",  label: "Pending Replies", value: countPending,        color: "#FF8800",
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              sub: countPending > 0
+                ? <span style={{ color: "#FF8800", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><span className="pnl-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF8800" }} />Needs follow-up</span>
+                : <span style={{ color: "#5070B0", fontWeight: 600 }}>All clear</span>,
+              onClick: () => setActiveFilter("pending") },
+            { key: "resolved", label: "Resolved",        value: countResolved,       color: "#00C853",
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              sub: <span style={{ color: "#00C853", fontWeight: 700 }}>✓ Closed loops</span>,
+              onClick: () => setActiveFilter("resolved") },
+            { key: "parents",  label: "Parents",         value: roster.length,       color: "#7B3FF4",
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+              sub: <span style={{ color: "#7B3FF4", fontWeight: 700 }}>Total contacts</span>,
+              onClick: () => setActiveFilter("all") },
+          ].map(s => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={s.onClick}
+              className="pnl-card3d"
+              style={{
+                background: "#fff", borderRadius: 20, padding: 16,
+                display: "flex", flexDirection: "column",
+                boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 18, minHeight: 40 }}>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.0px", textTransform: "uppercase", lineHeight: 1.4, paddingTop: 3 }}>{s.label}</div>
+                <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: s.color }}>{s.icon}</div>
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1.3px", lineHeight: 1, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, marginTop: 7, letterSpacing: "-0.15px" }}>{s.sub}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Templates section */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>Quick Templates</span>
+            <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>Tap to compose</span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          {templates.map(tpl => (
+            <button
+              key={tpl.title}
+              type="button"
+              onClick={() => onOpenCompose(tpl.body)}
+              className="pnl-card3d"
+              style={{
+                background: "#fff", borderRadius: 16, padding: "14px 12px",
+                cursor: "pointer", position: "relative", overflow: "hidden",
+                boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                textAlign: "left", border: "none", fontFamily: "inherit",
+              }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 11, background: tpl.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>{tpl.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.2, marginBottom: 4 }}>{tpl.title}</div>
+              <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.4 }}>{tpl.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#99AACC" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" />
+          </svg>
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search parent or message…"
+            style={{
+              width: "100%", padding: "10px 13px 10px 34px", borderRadius: 12,
+              border: "none", background: "#fff",
+              fontSize: 12, color: "#001040", fontFamily: "inherit", outline: "none",
+              boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 2px 8px rgba(9,87,247,.06)",
+              fontWeight: 500, letterSpacing: "-0.1px",
+            }}
+          />
+        </div>
+
+        {/* Filter chips */}
+        <div className="pnl-chip-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", margin: "0 -16px 14px", padding: "2px 16px 6px" }}>
+          {[
+            { key: "all",      label: "All",      count: roster.length },
+            { key: "pending",  label: "Pending",  count: countPending },
+            { key: "resolved", label: "Resolved", count: countResolved },
+            ...classOptions.map(c => ({ key: c, label: c, count: roster.filter(s => (s.className || s.assignedClass) === c).length })),
+          ].map(ch => {
+            const active = activeFilter === ch.key;
+            return (
+              <button
+                key={ch.key}
+                type="button"
+                onClick={() => setActiveFilter(ch.key)}
+                className="pnl-press"
+                style={{
+                  flexShrink: 0, padding: "8px 14px", borderRadius: 100,
+                  background: active ? "#0957F7" : "#fff",
+                  color: active ? "#fff" : "#5070B0",
+                  fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+                  boxShadow: active ? "0 1px 2px rgba(9,87,247,.2), 0 3px 10px rgba(9,87,247,.3)" : "0 0.5px 1px rgba(9,87,247,.04), 0 2px 6px rgba(9,87,247,.06)",
+                  display: "flex", alignItems: "center", gap: 5, border: "none",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                {ch.label}
+                <span style={{
+                  background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
+                  color: active ? "#fff" : "#5070B0",
+                  fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                }}>{ch.count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Inbox section */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>
+              {activeFilter === "all" ? "All Messages" : activeFilter === "pending" ? "Pending" : activeFilter === "resolved" ? "Resolved" : activeFilter}
+            </span>
+            <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
+              {visibleRoster.length} {visibleRoster.length === 1 ? "conversation" : "conversations"}
+            </span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)" }}>
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5070B0" }} />
+            <span style={{ fontSize: 12, color: "#5070B0" }}>Loading messages…</span>
+          </div>
+        ) : visibleRoster.length === 0 ? (
+          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center", boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)", marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>
+              {searchQuery ? "No matches" : activeFilter === "pending" ? "Nothing pending" : activeFilter === "resolved" ? "Nothing resolved yet" : "No parents yet"}
+            </div>
+            <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
+              {searchQuery ? "Try a different search term." : "Tap New above to start a conversation."}
+            </div>
+          </div>
+        ) : (
+          <div className="pnl-card3d" style={{
+            background: "#fff", borderRadius: 20, padding: 4, marginBottom: 14,
+            boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+            overflow: "hidden",
+          }}>
+            {visibleRoster.map((s, idx) => {
+              const key = (s.studentId || s.studentEmail)?.toLowerCase();
+              const last = lastMessages.get(key);
+              const unread = unreadCounts.get(key) || 0;
+              const has = !!last;
+              const pending = !has || unread > 0;
+              const avC = mobAvColor(s.studentName || "S");
+              const clsName = s.className || s.assignedClass || "";
+              const chip = mobClassChip(clsName);
+              const preview = has
+                ? (last.content || "")
+                : "Tap to start conversation";
+
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => onOpenChat(s)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenChat(s); } }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 11,
+                    padding: "12px 10px", borderRadius: 16, cursor: "pointer",
+                    position: "relative", transition: "background .15s cubic-bezier(.2,.9,.3,1)",
+                    borderTop: idx > 0 ? "0.5px solid rgba(9,87,247,.08)" : "none",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#F4F7FE"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 14,
+                    background: avC, color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 800, letterSpacing: "0.3px", flexShrink: 0,
+                    position: "relative",
+                  }}>
+                    {getInitials(s.studentName || "S")}
+                    {unread > 0 && (
+                      <div style={{
+                        position: "absolute", top: -2, right: -2,
+                        width: 12, height: 12, borderRadius: "50%",
+                        background: "#0957F7", border: "2.5px solid #fff",
+                        boxShadow: "0 2px 5px rgba(9,87,247,.3)",
+                      }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>
+                        {s.studentName}'s Parents
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: unread > 0 ? 800 : 700, color: unread > 0 ? "#0957F7" : "#99AACC", letterSpacing: "-0.1px", flexShrink: 0 }}>
+                        {has ? mobFmtTimeAgo(last.createdAt) : ""}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {clsName && (
+                        <span style={{
+                          background: chip.bg, color: chip.color,
+                          padding: "2px 7px", borderRadius: 6,
+                          fontSize: 9, fontWeight: 800, letterSpacing: "-0.1px", flexShrink: 0,
+                        }}>
+                          {clsName}
+                        </span>
+                      )}
+                      <span style={{
+                        fontSize: 11, fontWeight: unread > 0 ? 600 : 500,
+                        color: unread > 0 ? "#001040" : "#5070B0",
+                        letterSpacing: "-0.1px",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        flex: 1, minWidth: 0,
+                      }}>
+                        {preview}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                    {pending ? (
+                      <div style={{
+                        minWidth: 18, height: 18, padding: "0 5px",
+                        background: "#FF8800", color: "#fff", borderRadius: 100,
+                        fontSize: 10, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 1px 2px rgba(255,136,0,.2), 0 2px 6px rgba(255,136,0,.25)",
+                      }}>!</div>
+                    ) : (
+                      <div style={{ color: "#00C853", display: "flex" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {noReplyCount > 0 && activeFilter === "all" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 13px", borderTop: "0.5px solid rgba(9,87,247,.08)", background: "#F4F7FE", borderRadius: 12 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5070B0" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
+                  {noReplyCount} parent{noReplyCount > 1 ? "s" : ""} haven't received a message yet
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI Parent Intelligence */}
+        {!loading && roster.length > 0 && (
+          <div
+            className="pnl-card3d"
+            style={{
+              background: "linear-gradient(140deg, #000820 0%, #001888 28%, #0033CC 64%, #0957F7 100%)",
+              borderRadius: 24, padding: 20, marginTop: 14,
+              position: "relative", overflow: "hidden",
+              boxShadow: "0 1px 2px rgba(0,8,60,.18), 0 12px 32px rgba(0,8,60,.3)",
+            }}
+          >
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12, position: "relative", zIndex: 2 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 13, background: "rgba(255,255,255,.14)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFDD55", fontSize: 19 }}>⚡</div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Parent Intelligence</div>
+              <div style={{ marginLeft: "auto", background: "rgba(123,63,244,.3)", border: "0.5px solid rgba(155,95,255,.5)", color: "#DCC8FF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: "0.5px" }}>Tip</div>
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,.85)", letterSpacing: "-0.15px", marginBottom: 14, position: "relative", zIndex: 2 }}>
+              {countPending > 0 ? (
+                <>
+                  <strong style={{ color: "#fff", fontWeight: 700 }}>{countPending} pending replies</strong>
+                  {priorityStudent ? <> — prioritise <strong style={{ color: "#fff", fontWeight: 700 }}>{priorityStudent.studentName}'s parents</strong>.</> : <> — tap a template below for a quick send.</>}
+                  {" "}Use the <strong style={{ color: "#fff", fontWeight: 700 }}>Attendance Issue</strong> template for urgent cases.
+                </>
+              ) : (
+                <>Great work — all parent conversations are up to date. Keep them engaged with a <strong style={{ color: "#fff", fontWeight: 700 }}>Good Performance</strong> update.</>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "rgba(255,255,255,.1)", borderRadius: 12, padding: 1, gap: 1, overflow: "hidden", position: "relative", zIndex: 2 }}>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.4px" }}>{countPending}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Pending</div>
+              </div>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.4px" }}>{countResolved}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Resolved</div>
+              </div>
+              <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{roster.length}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Parents</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// Mobile compose bottom sheet
+interface MobileComposeSheetProps {
+  roster: any[];
+  composeSearch: string;
+  setComposeSearch: (s: string) => void;
+  composeStudentKey: string;
+  setComposeStudentKey: (s: string) => void;
+  composeText: string;
+  setComposeText: (s: string) => void;
+  composeSending: boolean;
+  closeCompose: () => void;
+  onSend: () => void;
+}
+
+const MobileComposeSheet = ({
+  roster, composeSearch, setComposeSearch,
+  composeStudentKey, setComposeStudentKey,
+  composeText, setComposeText, composeSending,
+  closeCompose, onSend,
+}: MobileComposeSheetProps) => {
+  const [activeTpl, setActiveTpl] = useState<string | null>(null);
+  const tplChips = [
+    { key: "grade",      title: "Grade Concern",    dot: "#FF3355", body: TEMPLATES[0].body },
+    { key: "good",       title: "Good Performance", dot: "#00C853", body: TEMPLATES[1].body },
+    { key: "attendance", title: "Attendance",       dot: "#FF8800", body: TEMPLATES[2].body },
+    { key: "missing",    title: "Missing Work",     dot: "#7B3FF4", body: TEMPLATES[3].body },
+    { key: "meeting",    title: "Meeting",          dot: "#0957F7", body: TEMPLATES[4].body },
+  ];
+  const filtered = useMemo(() => {
+    const q = composeSearch.trim().toLowerCase();
+    if (!q) return roster;
+    return roster.filter(s =>
+      (s.studentName || "").toLowerCase().includes(q) ||
+      (s.className || s.assignedClass || "").toLowerCase().includes(q)
+    );
+  }, [roster, composeSearch]);
+  const selected = roster.find(s => (s.studentId || s.studentEmail) === composeStudentKey);
+
+  return (
+    <>
+      <div
+        onClick={() => !composeSending && closeCompose()}
+        style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: "rgba(0,10,40,.5)",
+          backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+          animation: "pncBackdrop .35s cubic-bezier(.2,.9,.3,1) both",
+        }}
+      />
+      <style>{`
+        @keyframes pncBackdrop { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pncSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .pnc-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+        .pnc-press:active { transform: scale(.94); }
+        .pnc-scroll::-webkit-scrollbar { display: none; }
+        .pnc-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: "#fff",
+        borderRadius: "26px 26px 0 0",
+        maxHeight: "92vh",
+        display: "flex", flexDirection: "column",
+        boxShadow: "0 -20px 60px rgba(0,8,60,.3)",
+        animation: "pncSheet .45s cubic-bezier(.34,1.56,.64,1) both",
+        fontFamily: "inherit",
+      }}>
+        <div style={{ width: 40, height: 5, background: "rgba(9,87,247,.2)", borderRadius: 100, margin: "10px auto 6px", flexShrink: 0 }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px 14px", borderBottom: "0.5px solid rgba(9,87,247,.08)", flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 13, background: "#0957F7", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>New message to parent</div>
+            <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, marginTop: 2, letterSpacing: "-0.1px" }}>Pick a parent, tap a template or type your own</div>
+          </div>
+          <button
+            type="button"
+            onClick={closeCompose}
+            disabled={composeSending}
+            className="pnc-press"
+            aria-label="Close"
+            style={{
+              width: 30, height: 30, borderRadius: 10, background: "#F4F7FE",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#002080", flexShrink: 0, cursor: "pointer",
+              border: "none", fontFamily: "inherit",
+              opacity: composeSending ? 0.5 : 1,
+            }}
+          >
+            <X size={16} strokeWidth={2.4} />
+          </button>
+        </div>
+
+        <div className="pnc-scroll" style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+          {/* Parent search */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 13px", background: "#F4F7FE",
+            borderRadius: 12, marginBottom: 12,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>
+            </svg>
+            <input
+              value={composeSearch}
+              onChange={e => setComposeSearch(e.target.value)}
+              placeholder="Search parent or class…"
+              style={{
+                flex: 1, border: "none", outline: "none", background: "transparent",
+                fontSize: 13, color: "#001040", fontFamily: "inherit", fontWeight: 500, letterSpacing: "-0.1px",
+              }}
+            />
+          </div>
+
+          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+            Select Parent
+            <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+          </div>
+
+          <div className="pnc-scroll" style={{
+            background: "#F4F7FE", borderRadius: 14, padding: 3,
+            marginBottom: 16, maxHeight: 180, overflowY: "auto",
+          }}>
+            {filtered.length === 0 ? (
+              <div style={{ fontSize: 11, color: "#99AACC", padding: "16px 10px", textAlign: "center", fontWeight: 600 }}>
+                No parents match.
+              </div>
+            ) : filtered.map((s, idx) => {
+              const key = s.studentId || s.studentEmail;
+              const isSel = key === composeStudentKey;
+              const avC = mobAvColor(s.studentName || "S");
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setComposeStudentKey(key)}
+                  className="pnc-press"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    width: "100%", padding: "8px 10px", borderRadius: 11,
+                    background: isSel ? "#fff" : "transparent",
+                    boxShadow: isSel ? "0 0.5px 1px rgba(9,87,247,.05), 0 2px 8px rgba(9,87,247,.1)" : "none",
+                    cursor: "pointer", border: "none", fontFamily: "inherit",
+                    textAlign: "left", position: "relative",
+                    borderTop: idx > 0 && !isSel ? "0.5px solid rgba(9,87,247,.08)" : "none",
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 11,
+                    background: avC, color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 800, flexShrink: 0, letterSpacing: "0.3px",
+                  }}>
+                    {getInitials(s.studentName || "S")}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.studentName}</div>
+                    <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px", marginTop: 1 }}>{s.className || s.assignedClass || "No class"}</div>
+                  </div>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: "50%",
+                    border: isSel ? "none" : "1.5px solid rgba(9,87,247,.18)",
+                    background: isSel ? "#0957F7" : "transparent",
+                    color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    boxShadow: isSel ? "0 1px 2px rgba(9,87,247,.25), 0 3px 8px rgba(9,87,247,.3)" : "none",
+                  }}>
+                    {isSel && (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Template chips */}
+          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Quick Templates</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+            {tplChips.map(ch => {
+              const active = activeTpl === ch.key;
+              return (
+                <button
+                  key={ch.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTpl(ch.key);
+                    setComposeText(composeText.trim() ? composeText + "\n\n" + ch.body : ch.body);
+                  }}
+                  className="pnc-press"
+                  style={{
+                    padding: "7px 12px", borderRadius: 100,
+                    background: active ? "#0957F7" : "#F4F7FE",
+                    color: active ? "#fff" : "#002080",
+                    fontSize: 11, fontWeight: 700, letterSpacing: "-0.15px",
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    cursor: "pointer", fontFamily: "inherit",
+                    border: active ? "0.5px solid #0957F7" : "0.5px solid rgba(9,87,247,.08)",
+                    boxShadow: active ? "0 1px 2px rgba(9,87,247,.2), 0 3px 8px rgba(9,87,247,.25)" : "none",
+                    transition: "all .18s cubic-bezier(.2,.9,.3,1)",
+                  }}
+                >
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: active ? "rgba(255,255,255,.7)" : ch.dot,
+                  }} />
+                  {ch.title}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Message textarea */}
+          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Message</div>
+          <textarea
+            value={composeText}
+            onChange={e => setComposeText(e.target.value)}
+            placeholder={selected ? `Write a message to parent of ${selected.studentName}…` : "Pick a parent above, then write your message."}
+            style={{
+              width: "100%", minHeight: 120, padding: "13px 14px",
+              background: "#F4F7FE", border: "0.5px solid rgba(9,87,247,.08)",
+              borderRadius: 14,
+              fontSize: 14, fontWeight: 500, color: "#001040",
+              fontFamily: "inherit", letterSpacing: "-0.15px",
+              resize: "none", outline: "none", lineHeight: 1.5,
+              transition: "all .2s cubic-bezier(.2,.9,.3,1)",
+            }}
+            onFocus={e => {
+              e.currentTarget.style.background = "#fff";
+              e.currentTarget.style.borderColor = "#0957F7";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(9,87,247,.12)";
+            }}
+            onBlur={e => {
+              e.currentTarget.style.background = "#F4F7FE";
+              e.currentTarget.style.borderColor = "rgba(9,87,247,.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          />
+          <div style={{ fontSize: 11, color: "#99AACC", marginTop: 8, fontWeight: 500, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ color: "#002080", fontWeight: 600 }}>
+              {selected ? <>Sending to <b style={{ color: "#001040", fontWeight: 800 }}>{selected.studentName}'s</b> parent</> : "No recipient selected"}
+            </span>
+            <span style={{ color: "#5070B0", fontWeight: 600 }}>{composeText.length} / 500</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, padding: "14px 18px 18px", borderTop: "0.5px solid rgba(9,87,247,.08)", background: "#fff", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={closeCompose}
+            disabled={composeSending}
+            className="pnc-press"
+            style={{
+              flex: "0 0 100px", height: 46, borderRadius: 14,
+              background: "#F4F7FE", color: "#002080",
+              fontSize: 13, fontWeight: 700, border: "none",
+              letterSpacing: "-0.2px", cursor: composeSending ? "not-allowed" : "pointer",
+              fontFamily: "inherit", opacity: composeSending ? 0.5 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSend}
+            disabled={composeSending || !composeText.trim() || !composeStudentKey}
+            className="pnc-press"
+            style={{
+              flex: 1, height: 46, borderRadius: 14,
+              background: "linear-gradient(135deg, #4A85FF 0%, #0957F7 100%)",
+              color: "#fff",
+              fontSize: 14, fontWeight: 800, border: "none",
+              letterSpacing: "-0.2px",
+              cursor: (composeSending || !composeText.trim() || !composeStudentKey) ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              boxShadow: "0 1px 2px rgba(9,87,247,.25), 0 6px 16px rgba(9,87,247,.38)",
+              fontFamily: "inherit",
+              opacity: (composeSending || !composeText.trim() || !composeStudentKey) ? 0.5 : 1,
+            }}
+          >
+            {composeSending ? <><Loader2 size={14} className="animate-spin" /> Sending…</> : <><Send size={14} strokeWidth={2.6} /> Send</>}
+          </button>
+        </div>
+      </div>
+    </>
+  );
 };
 
 // ── Helper sub-components ─────────────────────────────────────────────────────

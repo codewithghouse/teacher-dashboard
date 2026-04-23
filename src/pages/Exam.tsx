@@ -193,7 +193,7 @@ const Exam = () => {
     <div style={{ fontFamily: "inherit" }} className="min-h-screen pb-28 md:pb-0 text-left">
 
       {/* ═══════════════════ MOBILE VIEW ═══════════════════ */}
-      <div className="md:hidden" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
+      <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
 
         {/* Header */}
         <div className="px-4 pt-3 pb-[14px]">

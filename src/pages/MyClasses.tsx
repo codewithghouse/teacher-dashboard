@@ -151,7 +151,7 @@ const MyClasses = () => {
   };
 
   if (loading) return (
-    <div className="h-[60vh] flex items-center justify-center" style={{ background: BG_D }}>
+    <div className="h-[60vh] flex items-center justify-center" style={{ background: "#EEF4FF" }}>
       <Loader2 className="w-10 h-10 animate-spin" style={{ color: B1 }} />
     </div>
   );
@@ -209,10 +209,10 @@ const MyClasses = () => {
   });
 
   return (
-    <div style={{ fontFamily: FONT_D, background: BG_D }} className="min-h-screen text-left">
+    <div style={{ fontFamily: FONT_D, background: "#EEF4FF" }} className="min-h-screen text-left">
 
       {/* ═══════════════════ MOBILE VIEW — EduIntellect v2 ═══════════════════ */}
-      <div className="md:hidden animate-in fade-in duration-500" style={{ background: BG_D, minHeight: "100vh" }}>
+      <div className="md:hidden animate-in fade-in duration-500" style={{ background: "#EEF4FF", minHeight: "100vh" }}>
 
         {/* 1. Page title + search toggle + avatar */}
         <div className="flex items-start justify-between gap-3 px-4 pt-[10px] pb-4">
@@ -673,7 +673,7 @@ const MyClasses = () => {
 
       {/* ═══════════════════ DESKTOP VIEW — Blue Apple + 3D hover ═══════════════════ */}
       <div className="hidden md:block animate-in fade-in duration-500 -m-4 sm:-m-6 md:-m-8 min-h-[calc(100vh-64px)]"
-        style={{ background: BG_D }}>
+        style={{ background: "#EEF4FF" }}>
         <div className="w-full px-6 pt-8 pb-12">
 
           {/* Toolbar */}
@@ -821,7 +821,7 @@ const MyClasses = () => {
                               { icon: Calendar, label: "Next Class", val: nextTime ? `Today · ${nextTime}` : "—", color: TT2, iconBg: "rgba(255,136,0,0.10)", iconBdr: "rgba(255,136,0,0.22)", iconColor: ORANGE },
                             ].map(({ icon: Ico, label, val, color, iconBg, iconBdr, iconColor }) => (
                               <div key={label} className="flex items-center justify-between px-3 py-[10px] rounded-[12px]"
-                                style={{ background: BG_D, border: `0.5px solid ${SEP_D}` }}>
+                                style={{ background: "#EEF4FF", border: `0.5px solid ${SEP_D}` }}>
                                 <div className="flex items-center gap-[10px]">
                                   <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
                                     style={{ background: iconBg, border: `0.5px solid ${iconBdr}` }}>
@@ -845,7 +845,7 @@ const MyClasses = () => {
                             <button type="button"
                               onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                               className="h-11 rounded-[13px] text-[12px] font-bold flex items-center justify-center gap-[5px] transition-transform hover:scale-[1.02]"
-                              style={{ background: BG_D, color: TT2, border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_D, letterSpacing: "-0.1px" }}>
+                              style={{ background: "#EEF4FF", color: TT2, border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_D, letterSpacing: "-0.1px" }}>
                               <CheckCircle className="w-[13px] h-[13px]" style={{ color: B1 }} strokeWidth={2.3} /> Attendance
                             </button>
                           </div>

@@ -304,7 +304,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
 
   // ══════════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: embedded ? "auto" : "100vh", background: T.bg, fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    <div style={{ minHeight: embedded ? "auto" : "100vh", background: "#EEF4FF", fontFamily: "'Inter',-apple-system,sans-serif" }}>
       {!embedded && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <button type="button" onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>

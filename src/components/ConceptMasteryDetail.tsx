@@ -215,7 +215,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: T.bg }}>
+    <div style={{ minHeight: "100vh", background: "#EEF4FF" }}>
 
       {/* ═══════════════════ MOBILE VIEW ═══════════════════ */}
       <MobileConceptMasteryDetail
@@ -534,7 +534,7 @@ const MobileConceptMasteryDetail = ({
     <div
       className="md:hidden -mx-4 sm:-mx-6 pb-7"
       style={{
-        background: 'linear-gradient(148deg, #EEF4FF 0%, #DCE6FF 100%)',
+        background: '#EEF4FF',
         minHeight: '100vh',
         fontVariantNumeric: 'tabular-nums',
       }}

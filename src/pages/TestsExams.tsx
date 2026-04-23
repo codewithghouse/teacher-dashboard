@@ -209,7 +209,7 @@ export default function TestsExams() {
     <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
 
       {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
-      <div className="md:hidden" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
+      <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
 
         {/* Hidden SVG defs for perf ring gradient (shared by all phones) */}
         <svg width="0" height="0" style={{ position: "absolute" }}>

@@ -41,7 +41,7 @@ const TeacherLayout = () => {
   // Pages where the mobile navbar should be dark to blend with their hero
   // header. The list is enumerated (not "all routes") so that adding a new
   // page with a light/gradient header is a one-line change here.
-  const darkNavRoutes = ["/", "/my-classes", "/attendance", "/assignments", "/tests", "/students", "/parent-notes", "/lesson-planner", "/summarize-lesson", "/reports", "/settings"];
+  const darkNavRoutes = ["/", "/my-classes", "/attendance", "/assignments", "/tests", "/students", "/lesson-planner", "/summarize-lesson", "/reports", "/settings"];
   const isDarkNav = darkNavRoutes.includes(basePath);
 
   // Close the mobile sidebar drawer on Esc for keyboard users.
@@ -77,7 +77,7 @@ const TeacherLayout = () => {
       </div>
 
       {/* Main content area */}
-      <main className="flex-1 overflow-auto bg-[#f8fafc] min-w-0">
+      <main className="flex-1 overflow-auto bg-[#EEF4FF] min-w-0">
 
         {/* ── Mobile top bar (hidden on md+) ── */}
         <div className={`md:hidden sticky top-0 z-30 transition-colors duration-200 ${

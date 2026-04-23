@@ -214,7 +214,7 @@ const Reports = () => {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: T.bg }}>
+    <div style={{ minHeight: "100vh", background: "#EEF4FF" }}>
 
       {/* ═══ DARK HERO ═══════════════════════════════════════════════════ */}
       <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 bg-[#162E93] md:bg-[#08090C]" style={{ padding: "18px 22px 22px" }}>

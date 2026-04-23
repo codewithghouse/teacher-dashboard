@@ -243,7 +243,7 @@ const LessonPlanGenerator = () => {
   const showResult = activeTab === "generate" && plan && !loading;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg }}>
+    <div style={{ minHeight: "100vh", background: "#EEF4FF" }}>
 
       {/* ═══ DARK HERO ═══════════════════════════════════════════════════ */}
       {!showResult && (

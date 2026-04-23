@@ -261,7 +261,7 @@ const Attendance = () => {
     <div style={{ fontFamily: 'inherit' }} className="text-left pb-8">
 
       {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
-      <div className="md:hidden -mt-0" style={{ fontFamily: MA.FONT, background: MA.BG, minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
+      <div className="md:hidden -mt-0" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
 
         {/* Page header */}
         <div className="px-4 pt-3 pb-[14px]">
