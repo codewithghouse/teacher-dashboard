@@ -344,6 +344,244 @@ const ParentNotes = () => {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // COMPOSE MODAL — New Message + Quick Templates
+  // ═══════════════════════════════════════════════════════════════════════════
+  function ComposeModal() {
+    const recipients = useMemo(() => {
+      const q = composeSearch.trim().toLowerCase();
+      const base = q
+        ? roster.filter(s =>
+            (s.studentName || "").toLowerCase().includes(q) ||
+            (s.parentName || "").toLowerCase().includes(q) ||
+            (s.className || s.assignedClass || "").toLowerCase().includes(q),
+          )
+        : roster;
+      return base;
+    }, [roster, composeSearch]);
+
+    const selected = roster.find(
+      s => (s.studentId || s.studentEmail) === composeStudentKey,
+    );
+
+    return (
+      <div
+        onClick={closeCompose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 9998,
+          background: "rgba(8, 9, 12, 0.56)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 16,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white"
+          style={{
+            width: "100%", maxWidth: 720, maxHeight: "90vh",
+            borderRadius: 18, overflow: "hidden",
+            display: "flex", flexDirection: "column",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.28)",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            padding: "14px 18px", borderBottom: `1px solid ${T.bdr}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: T.white,
+          }}>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: T.ink1, margin: 0 }}>
+                New message to parent
+              </h2>
+              <p style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>
+                Pick a parent, tap a template or type your own.
+              </p>
+            </div>
+            <button
+              type="button" aria-label="Close"
+              onClick={closeCompose}
+              style={{
+                width: 32, height: 32, borderRadius: 10,
+                border: `1px solid ${T.bdr}`, background: T.s1,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <X size={14} color={T.ink3} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ display: "flex", flex: 1, minHeight: 0 }} className="flex-col md:flex-row">
+            {/* Left — recipient picker */}
+            <div style={{
+              width: "100%", maxWidth: 280, borderRight: `1px solid ${T.bdr}`,
+              display: "flex", flexDirection: "column", minHeight: 0,
+            }} className="md:max-w-[280px]">
+              <div style={{ padding: 12, borderBottom: `1px solid ${T.bdr}` }}>
+                <input
+                  value={composeSearch}
+                  onChange={(e) => setComposeSearch(e.target.value)}
+                  placeholder="Search parent or class…"
+                  style={{
+                    width: "100%", padding: "8px 12px",
+                    borderRadius: 10, border: `1px solid ${T.bdr}`,
+                    background: T.s1, fontSize: 12, color: T.ink1,
+                    fontFamily: "inherit", outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", maxHeight: 280 }}>
+                {recipients.length === 0 ? (
+                  <p style={{ fontSize: 11, color: T.ink3, padding: "24px 12px", textAlign: "center" }}>
+                    No parents match your search.
+                  </p>
+                ) : (
+                  recipients.map((s) => {
+                    const key = s.studentId || s.studentEmail;
+                    const av  = avStyle(s.studentName || "S");
+                    const isActive = key === composeStudentKey;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setComposeStudentKey(key)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          width: "100%", padding: "10px 12px",
+                          background: isActive ? T.blBg : "transparent",
+                          border: "none", borderBottom: `1px solid ${T.s2}`,
+                          cursor: "pointer", textAlign: "left",
+                        }}
+                      >
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 10,
+                          background: av.bg, color: av.c,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 600, flexShrink: 0,
+                        }}>
+                          {getInitials(s.studentName || "S")}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {s.studentName}
+                          </p>
+                          <p style={{ fontSize: 10, color: T.ink3, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {s.className || s.assignedClass || "No class"}
+                          </p>
+                        </div>
+                        {isActive && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="2,6 5,9 10,3" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Right — templates + text area */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              {/* Templates */}
+              <div style={{ padding: 12, borderBottom: `1px solid ${T.bdr}`, background: T.s1 }}>
+                <p style={{ fontSize: 10, fontWeight: 600, color: T.ink3, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Quick Templates
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.title}
+                      type="button"
+                      onClick={() => applyTemplate(tpl.body)}
+                      style={{
+                        padding: "6px 11px", borderRadius: 20,
+                        border: `1px solid ${T.bdr}`,
+                        background: T.white, color: T.ink1,
+                        fontSize: 11, fontWeight: 500, cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {tpl.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Text area */}
+              <div style={{ flex: 1, padding: 12, minHeight: 0, display: "flex" }}>
+                <textarea
+                  value={composeText}
+                  onChange={(e) => setComposeText(e.target.value)}
+                  placeholder={selected
+                    ? `Write a message to ${selected.parentName || `parent of ${selected.studentName}`}…`
+                    : "Select a parent from the left, or pick a template above."}
+                  style={{
+                    width: "100%", minHeight: 180, resize: "none",
+                    padding: 12, borderRadius: 12,
+                    border: `1px solid ${T.bdr}`, background: T.white,
+                    fontSize: 13, color: T.ink1, lineHeight: 1.55,
+                    fontFamily: "inherit", outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: "12px 18px", borderTop: `1px solid ${T.bdr}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: T.white, gap: 10,
+          }}>
+            <p style={{ fontSize: 11, color: T.ink3 }}>
+              {selected
+                ? <>Sending to <strong style={{ color: T.ink1, fontWeight: 600 }}>{selected.studentName}</strong>'s parent</>
+                : "No recipient selected"}
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={closeCompose}
+                style={{
+                  padding: "8px 14px", borderRadius: 10,
+                  border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2,
+                  fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSendCompose}
+                disabled={composeSending || !composeText.trim() || !composeStudentKey}
+                style={{
+                  padding: "8px 16px", borderRadius: 10,
+                  border: "none",
+                  background: (composeSending || !composeText.trim() || !composeStudentKey) ? T.s2 : T.blue,
+                  color: (composeSending || !composeText.trim() || !composeStudentKey) ? T.ink3 : "#fff",
+                  fontSize: 12, fontWeight: 600,
+                  cursor: (composeSending || !composeText.trim() || !composeStudentKey) ? "default" : "pointer",
+                  fontFamily: "inherit",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                {composeSending ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Send size={12} strokeWidth={2.2} />
+                )}
+                {composeSending ? "Sending…" : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // LIST VIEW
   // ═══════════════════════════════════════════════════════════════════════════
   function ListView() {
