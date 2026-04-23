@@ -151,7 +151,27 @@ const SettingsPage = () => {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#EEF4FF" }}>
+    <>
+
+    {/* ═══════════════════ MOBILE VIEW (new mockup) ═══════════════════ */}
+    <MobileSettings
+      initials={initials}
+      formData={formData}
+      setFormData={setFormData}
+      notifications={notifications}
+      toggleNotif={toggleNotif}
+      allNotifsOn={allNotifsOn}
+      toggleAllNotifs={toggleAllNotifs}
+      preferences={preferences}
+      setPreferences={setPreferences}
+      isSaving={isSaving}
+      onSave={handleSave}
+      onReset={handleReset}
+      onLogout={logout}
+    />
+
+    {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
+    <div className="hidden md:block" style={{ minHeight: "100vh", background: "#EEF4FF" }}>
 
       {/* ═══ DARK HERO ═══════════════════════════════════════════════════ */}
       <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 bg-[#162E93] md:bg-[#08090C]">
@@ -335,6 +355,570 @@ const SettingsPage = () => {
         </div>
 
         <div style={{ height: 8 }} />
+      </div>
+    </div>
+    {/* ═══════════════════ END DESKTOP VIEW ═══════════════════ */}
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile-only Settings view (new mockup design)
+// ─────────────────────────────────────────────────────────────────────────────
+interface MobileSettingsProps {
+  initials: string;
+  formData: { name: string; email: string; phone: string; subject: string };
+  setFormData: React.Dispatch<React.SetStateAction<{ name: string; email: string; phone: string; subject: string }>>;
+  notifications: NotificationSettings;
+  toggleNotif: (key: keyof NotificationSettings) => void;
+  allNotifsOn: boolean;
+  toggleAllNotifs: () => void;
+  preferences: { defaultView: string; gradeScale: string; dateFormat: string; language: string };
+  setPreferences: React.Dispatch<React.SetStateAction<{ defaultView: string; gradeScale: string; dateFormat: string; language: string }>>;
+  isSaving: boolean;
+  onSave: () => void;
+  onReset: () => void;
+  onLogout: () => void;
+}
+
+const MobileSettings = ({
+  initials, formData, setFormData,
+  notifications, toggleNotif, allNotifsOn, toggleAllNotifs,
+  preferences, setPreferences,
+  isSaving, onSave, onReset, onLogout,
+}: MobileSettingsProps) => {
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [loginNotifs, setLoginNotifs] = useState(true);
+
+  const editName = () => {
+    const v = prompt("Enter your name:", formData.name);
+    if (v !== null) setFormData(prev => ({ ...prev, name: v.trim() }));
+  };
+  const editPhone = () => {
+    const v = prompt("Enter your phone:", formData.phone);
+    if (v !== null) setFormData(prev => ({ ...prev, phone: v.trim() }));
+  };
+
+  const cyclePref = <K extends keyof typeof preferences>(key: K, options: string[]) => {
+    const cur = preferences[key];
+    const idx = options.indexOf(cur);
+    const next = options[(idx + 1) % options.length];
+    setPreferences(prev => ({ ...prev, [key]: next }));
+  };
+
+  return (
+    <div
+      className="md:hidden -mx-4 sm:-mx-6 px-4 sm:px-6 pt-[10px] text-left"
+      style={{
+        background: "#EEF4FF",
+        minHeight: "100vh",
+        fontVariantNumeric: "tabular-nums",
+        paddingBottom: 90,
+      }}
+    >
+      <style>{`
+        .st-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+        @media (hover:hover) { .st-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(0,85,255,.08), 0 24px 44px rgba(0,85,255,.18), 0 8px 16px rgba(0,85,255,.1); } }
+        .st-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 6px 16px rgba(0,85,255,.14); }
+        .st-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+        .st-press:active { transform: scale(.94); }
+        @keyframes stFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes stPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+        .st-pulse { animation: stPulse 1.6s ease-in-out infinite; }
+        .st-enter > * { animation: stFadeUp .45s cubic-bezier(.34,1.56,.64,1) both; }
+        .st-enter > *:nth-child(1) { animation-delay: .04s; }
+        .st-enter > *:nth-child(2) { animation-delay: .10s; }
+        .st-enter > *:nth-child(3) { animation-delay: .16s; }
+        .st-enter > *:nth-child(4) { animation-delay: .22s; }
+        .st-enter > *:nth-child(5) { animation-delay: .28s; }
+        .st-enter > *:nth-child(6) { animation-delay: .34s; }
+        .st-enter > *:nth-child(7) { animation-delay: .40s; }
+        .st-enter > *:nth-child(8) { animation-delay: .46s; }
+        .st-enter > *:nth-child(9) { animation-delay: .52s; }
+        .st-enter > *:nth-child(10) { animation-delay: .58s; }
+        .st-enter > *:nth-child(11) { animation-delay: .64s; }
+        .st-enter > *:nth-child(12) { animation-delay: .70s; }
+        .st-toggle { width: 46px; height: 28px; background: rgba(0,85,255,.1); border-radius: 100px; position: relative; flex-shrink: 0; cursor: pointer; transition: background .22s cubic-bezier(.2,.9,.3,1); }
+        .st-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; background: white; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.08); transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+        .st-toggle.on { background: #00C853; }
+        .st-toggle.on::after { transform: translateX(18px); }
+      `}</style>
+
+      <div className="st-enter" style={{ display: "flex", flexDirection: "column" }}>
+
+        {/* Page Header */}
+        <div style={{ padding: "8px 2px 14px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
+            Preferences
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Settings</h1>
+          <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
+            Manage your profile, notifications and preferences.
+          </div>
+        </div>
+
+        {/* Profile Hero */}
+        <div
+          className="st-card3d"
+          onClick={editName}
+          role="button"
+          tabIndex={0}
+          style={{
+            background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
+            borderRadius: 24, padding: "22px 20px", marginBottom: 20,
+            position: "relative", overflow: "hidden", cursor: "pointer",
+            boxShadow: "0 1px 2px rgba(0,26,102,.2), 0 12px 32px rgba(0,26,102,.3)",
+          }}
+        >
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 45%)", pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: 20,
+              background: "linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,.12))",
+              backdropFilter: "blur(22px)",
+              border: "0.5px solid rgba(255,255,255,.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 22, fontWeight: 800, letterSpacing: "-0.4px", flexShrink: 0,
+              boxShadow: "inset 0 0.5px 0 rgba(255,255,255,.22)",
+              position: "relative",
+            }}>
+              {initials}
+              <span style={{
+                position: "absolute", bottom: -4, right: -4,
+                width: 22, height: 22, background: "#0055FF",
+                borderRadius: "50%", border: "2.5px solid #fff",
+                boxShadow: "0 2px 6px rgba(0,85,255,.4)",
+                display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 3 }}>
+                {formData.name || "Teacher"}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", fontWeight: 500, letterSpacing: "-0.1px", marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formData.email || "—"}
+              </div>
+              <div style={{ display: "flex", gap: 5 }}>
+                <div style={{
+                  background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
+                  border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
+                  padding: "3px 9px", borderRadius: 100,
+                  fontSize: 9, fontWeight: 800, letterSpacing: "0.3px",
+                  display: "flex", alignItems: "center", gap: 4,
+                }}>
+                  <span className="st-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 6px #00E866" }} />
+                  Active
+                </div>
+                {formData.subject && (
+                  <div style={{
+                    background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
+                    border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
+                    padding: "3px 9px", borderRadius: 100,
+                    fontSize: 9, fontWeight: 800, letterSpacing: "0.3px",
+                  }}>Teacher · {formData.subject}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Section */}
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Profile</span>
+          <button type="button" onClick={editName} className="st-press" style={{ fontSize: 11, fontWeight: 700, color: "#0055FF", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px" }}>
+            Edit name
+          </button>
+        </div>
+        <div className="st-card3d" style={{
+          background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
+          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          border: "0.5px solid rgba(0,85,255,.07)",
+          overflow: "hidden",
+        }}>
+          <div
+            className="st-press"
+            onClick={editName}
+            role="button"
+            tabIndex={0}
+            style={{ padding: "10px 12px", position: "relative", cursor: "pointer", borderRadius: 11 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>
+              </svg>
+              Name
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#001040", letterSpacing: "-0.2px" }}>
+              {formData.name || <span style={{ color: "#99AACC", fontWeight: 500 }}>Tap to set name</span>}
+            </div>
+          </div>
+
+          <div style={{ padding: "10px 12px", position: "relative", background: "rgba(255,170,0,.04)", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1 0 2 1 2 2v12c0 1-1 2-2 2H4c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/><polyline points="22 6 12 13 2 6"/>
+              </svg>
+              Email
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFAA00" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#002080", letterSpacing: "-0.2px" }}>{formData.email || "—"}</div>
+            <div style={{ fontSize: 10, color: "#99AACC", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFAA00" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              Managed by school admin
+            </div>
+          </div>
+
+          <div
+            className="st-press"
+            onClick={editPhone}
+            role="button"
+            tabIndex={0}
+            style={{ padding: "10px 12px", position: "relative", cursor: "pointer", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+              Phone
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#001040", letterSpacing: "-0.2px" }}>
+              {formData.phone || <span style={{ color: "#99AACC", fontWeight: 500 }}>Tap to add phone</span>}
+            </div>
+          </div>
+
+          <div style={{ padding: "10px 12px", position: "relative", background: "rgba(255,170,0,.04)", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+              </svg>
+              Subject
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFAA00" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#002080", letterSpacing: "-0.2px" }}>{formData.subject || "—"}</div>
+            <div style={{ fontSize: 10, color: "#99AACC", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFAA00" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              Set by school admin
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications Section */}
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Notifications</span>
+          <button type="button" onClick={toggleAllNotifs} className="st-press" style={{ fontSize: 11, fontWeight: 700, color: allNotifsOn ? "#FF3355" : "#0055FF", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px" }}>
+            {allNotifsOn ? "Disable all" : "Enable all"}
+          </button>
+        </div>
+        <div className="st-card3d" style={{
+          background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
+          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          border: "0.5px solid rgba(0,85,255,.07)",
+          overflow: "hidden",
+        }}>
+          {([
+            { key: "assignments" as const, title: "Assignments",    sub: "Submission alerts",    color: "linear-gradient(135deg, #0055FF, #1166FF)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+            { key: "grading" as const,     title: "Grading",        sub: "Deadline reminders",    color: "linear-gradient(135deg, #FFAA00, #FFDD55)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+            { key: "attendance" as const,  title: "Attendance",     sub: "Threshold warnings",    color: "linear-gradient(135deg, #FF8800, #FFAB33)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+            { key: "messages" as const,    title: "Messages",       sub: "New parent messages",   color: "linear-gradient(135deg, #00C853, #00E866)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> },
+            { key: "risks" as const,       title: "Risks & alerts", sub: "Performance concerns",  color: "linear-gradient(135deg, #FF3355, #FF6680)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg> },
+          ]).map((item, idx) => {
+            const active = notifications[item.key];
+            return (
+              <div
+                key={item.key}
+                className="st-press"
+                onClick={() => toggleNotif(item.key)}
+                role="button"
+                tabIndex={0}
+                style={{
+                  display: "flex", alignItems: "center", gap: 11,
+                  padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+                  borderTop: idx > 0 ? "0.5px solid rgba(0,85,255,.07)" : "none",
+                }}
+              >
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: item.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(0,85,255,.12)" }}>
+                  {item.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.25 }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>{item.sub}</div>
+                </div>
+                <div className={`st-toggle ${active ? "on" : ""}`} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Preferences Section */}
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Preferences</div>
+        <div className="st-card3d" style={{
+          background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
+          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          border: "0.5px solid rgba(0,85,255,.07)",
+          overflow: "hidden",
+        }}>
+          {([
+            { key: "defaultView" as const, title: "Dashboard view", value: preferences.defaultView, options: ["Grid", "List", "Compact"], color: "linear-gradient(135deg, #16B8B0, #2FD4CC)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> },
+            { key: "gradeScale" as const, title: "Grade metric", value: preferences.gradeScale, options: ["Percentage", "Grade (A–F)", "Points"], color: "linear-gradient(135deg, #0055FF, #1166FF)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg> },
+            { key: "dateFormat" as const, title: "Date format", value: preferences.dateFormat, options: ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"], color: "linear-gradient(135deg, #FF8800, #FFAB33)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+            { key: "language" as const, title: "Language", value: preferences.language, options: ["English", "Hindi", "Urdu"], color: "linear-gradient(135deg, #001A66, #0044CC)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> },
+          ]).map((item, idx) => (
+            <div
+              key={item.key}
+              className="st-press"
+              onClick={() => cyclePref(item.key, item.options)}
+              role="button"
+              tabIndex={0}
+              style={{
+                display: "flex", alignItems: "center", gap: 11,
+                padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+                borderTop: idx > 0 ? "0.5px solid rgba(0,85,255,.07)" : "none",
+              }}
+            >
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: item.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(0,85,255,.12)" }}>
+                {item.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.25 }}>{item.title}</div>
+              </div>
+              <div style={{ fontSize: 13, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.15px", flexShrink: 0 }}>{item.value}</div>
+              <div style={{ color: "#99AACC", fontSize: 20, fontWeight: 400, lineHeight: 1, marginLeft: 4, flexShrink: 0 }}>›</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Security Section */}
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Security</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853", letterSpacing: "-0.1px", display: "flex", alignItems: "center", gap: 3 }}>✓ Secured</span>
+        </div>
+        <div className="st-card3d" style={{
+          background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
+          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          border: "0.5px solid rgba(0,85,255,.07)",
+          overflow: "hidden",
+        }}>
+          <div style={{ padding: "3px 3px 0" }}>
+            <div style={{
+              background: "rgba(0,200,83,.08)",
+              border: "0.5px solid rgba(0,200,83,.22)",
+              borderRadius: 13, padding: "11px 12px", marginBottom: 0,
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 9, background: "#00C853", color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                boxShadow: "0 1px 2px rgba(0,200,83,.15), 0 2px 5px rgba(0,200,83,.2)",
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px" }}>Admin-managed account</div>
+                <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 1, letterSpacing: "-0.1px", lineHeight: 1.4 }}>Contact admin to change password</div>
+              </div>
+              <div style={{
+                background: "rgba(0,200,83,.1)", color: "#00C853",
+                padding: "3px 9px", borderRadius: 100,
+                fontSize: 9, fontWeight: 900, letterSpacing: "0.5px", textTransform: "uppercase", flexShrink: 0,
+              }}>Safe</div>
+            </div>
+          </div>
+
+          <div
+            className="st-press"
+            onClick={() => setTwoFactor(v => !v)}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: "flex", alignItems: "center", gap: 11,
+              padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+              marginTop: 3,
+            }}
+          >
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg, #001A66, #0044CC)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(0,26,102,.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.25 }}>Two-factor auth</div>
+              <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>Extra login protection</div>
+            </div>
+            <div className={`st-toggle ${twoFactor ? "on" : ""}`} />
+          </div>
+
+          <div
+            className="st-press"
+            onClick={() => setLoginNotifs(v => !v)}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: "flex", alignItems: "center", gap: 11,
+              padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+              borderTop: "0.5px solid rgba(0,85,255,.07)",
+            }}
+          >
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg, #0055FF, #1166FF)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(0,85,255,.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.25 }}>Login notifications</div>
+              <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>Alert on new device login</div>
+            </div>
+            <div className={`st-toggle ${loginNotifs ? "on" : ""}`} />
+          </div>
+        </div>
+
+        {/* Danger zone */}
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Danger zone</div>
+        <div className="st-card3d" style={{
+          background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
+          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          border: "0.5px solid rgba(0,85,255,.07)",
+          overflow: "hidden",
+        }}>
+          <div
+            className="st-press"
+            onClick={() => { localStorage.clear(); toast.success("Local data cleared."); }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: "flex", alignItems: "center", gap: 11,
+              padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+            }}
+          >
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg, #FF8800, #FFAB33)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(255,136,0,.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.25 }}>Clear all data</div>
+              <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>Remove local cache and preferences</div>
+            </div>
+            <div style={{ color: "#99AACC", fontSize: 20, fontWeight: 400, lineHeight: 1, marginLeft: 4, flexShrink: 0 }}>›</div>
+          </div>
+
+          <div
+            className="st-press"
+            onClick={() => { if (confirm("Sign out?")) onLogout(); }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: "flex", alignItems: "center", gap: 11,
+              padding: "12px 11px", borderRadius: 13, cursor: "pointer",
+              borderTop: "0.5px solid rgba(0,85,255,.07)",
+            }}
+          >
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg, #FF3355, #FF6680)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 2px rgba(255,51,85,.2)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#FF3355", letterSpacing: "-0.2px", lineHeight: 1.25 }}>Sign out</div>
+              <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>Log out of your account</div>
+            </div>
+            <div style={{ color: "#FF3355", fontSize: 20, fontWeight: 400, lineHeight: 1, marginLeft: 4, flexShrink: 0 }}>›</div>
+          </div>
+        </div>
+
+        {/* App info footer */}
+        <div style={{ textAlign: "center", padding: "8px 0 4px", color: "#99AACC", fontSize: 10, fontWeight: 600, letterSpacing: "0.3px" }}>
+          EduIntellect · v2.4.1
+        </div>
+
+      </div>
+
+      {/* Sticky Save Bar */}
+      <div style={{
+        position: "fixed", bottom: 88, left: 0, right: 0,
+        background: "rgba(238,244,255,.94)",
+        backdropFilter: "saturate(220%) blur(32px)",
+        WebkitBackdropFilter: "saturate(220%) blur(32px)",
+        borderTop: "0.5px solid rgba(0,85,255,.07)",
+        padding: "12px 16px 14px",
+        zIndex: 50, display: "flex", gap: 10,
+      }}>
+        <button
+          type="button"
+          onClick={onReset}
+          disabled={isSaving}
+          className="st-press"
+          style={{
+            flex: "0 0 100px", height: 48, borderRadius: 14,
+            background: "#F4F7FE", color: "#002080",
+            fontSize: 13, fontWeight: 700,
+            border: "0.5px solid rgba(0,85,255,.07)",
+            letterSpacing: "-0.2px",
+            cursor: isSaving ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            opacity: isSaving ? 0.5 : 1,
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+          </svg>
+          Reset
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isSaving}
+          className="st-press"
+          style={{
+            flex: 1, height: 48, borderRadius: 14,
+            background: "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)",
+            color: "#fff",
+            fontSize: 14, fontWeight: 800, border: "none",
+            cursor: isSaving ? "wait" : "pointer",
+            letterSpacing: "-0.2px",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            boxShadow: "0 1px 2px rgba(0,26,102,.28), 0 6px 18px rgba(0,85,255,.38), inset 0 1px 0 rgba(255,255,255,.18)",
+            fontFamily: "inherit", position: "relative", overflow: "hidden",
+            opacity: isSaving ? 0.8 : 1,
+          }}
+        >
+          {isSaving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+          ) : (
+            <>
+              <span className="st-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 6px #FFDD55", marginRight: 3 }} />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Save changes
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

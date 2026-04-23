@@ -306,3 +306,153 @@ main > div,
   transform: scale(1.05);
   transition: transform 0.25s ease;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UNIVERSAL CARD — hover lift, tilt, and box-shadow applied everywhere
+   (DESKTOP + MOBILE). Targets all card-shaped elements regardless of
+   background colour, including Tailwind-coloured tiles (bg-rose-50, etc.),
+   inline-styled cards, named card classes, and `.xx-card3d` scoped wrappers.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Baseline — shadow + transition + pointer for every card surface */
+.clickable-card,
+.ds-card,
+.stat-card,
+.content-card,
+[class*="-card3d"],
+div[class*="rounded-2xl"],
+div[class*="rounded-3xl"],
+div[class*="rounded-xl"][class*="border"],
+div[class*="rounded-xl"][class*="shadow-"],
+a[class*="rounded-2xl"],
+a[class*="rounded-3xl"],
+a[class*="rounded-xl"][class*="border"] {
+  box-shadow:
+    0 0.5px 1px rgba(0, 85, 255, 0.05),
+    0 4px 14px rgba(0, 85, 255, 0.08),
+    0 12px 32px rgba(0, 85, 255, 0.06) !important;
+  transition:
+    transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+}
+
+/* Strong 3D hover — DESKTOP (pointer: fine). Also applies on hover-capable
+   laptops/trackpads; touch devices are excluded via media query so they
+   don't get stuck in a hovered state. */
+@media (hover: hover) and (pointer: fine) {
+  .clickable-card:hover,
+  .ds-card:hover,
+  .stat-card:hover,
+  .content-card:hover,
+  [class*="-card3d"]:hover,
+  div[class*="rounded-2xl"]:hover,
+  div[class*="rounded-3xl"]:hover,
+  div[class*="rounded-xl"][class*="border"]:hover,
+  div[class*="rounded-xl"][class*="shadow-"]:hover,
+  a[class*="rounded-2xl"]:hover,
+  a[class*="rounded-3xl"]:hover,
+  a[class*="rounded-xl"][class*="border"]:hover {
+    transform: translateY(-6px) rotateX(3deg) rotateY(-2deg) scale(1.025) !important;
+    box-shadow:
+      0 1px 2px rgba(0, 85, 255, 0.12),
+      0 32px 56px rgba(0, 85, 255, 0.24),
+      0 14px 26px rgba(0, 85, 255, 0.16),
+      0 4px 8px rgba(0, 85, 255, 0.08) !important;
+    z-index: 2;
+  }
+}
+
+/* Active (tap/press) — compress everywhere (mobile + desktop) */
+.clickable-card:active,
+.ds-card:active,
+.stat-card:active,
+.content-card:active,
+[class*="-card3d"]:active,
+div[class*="rounded-2xl"]:active,
+div[class*="rounded-3xl"]:active,
+div[class*="rounded-xl"][class*="border"]:active,
+a[class*="rounded-2xl"]:active,
+a[class*="rounded-3xl"]:active {
+  transform: translateY(-1px) scale(0.985) !important;
+  box-shadow:
+    0 1px 2px rgba(0, 85, 255, 0.1),
+    0 6px 16px rgba(0, 85, 255, 0.14) !important;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease !important;
+}
+
+/* Dark hero / gradient cards — softer tilt, warmer shadow */
+@media (hover: hover) and (pointer: fine) {
+  [class*="rounded-2xl"][style*="linear-gradient"]:hover,
+  [class*="rounded-3xl"][style*="linear-gradient"]:hover,
+  div[style*="linear-gradient(135deg, #000"]:hover,
+  div[style*="linear-gradient(140deg, #000"]:hover,
+  div[style*="linear-gradient(135deg, #1A"]:hover,
+  div[style*="linear-gradient(140deg, #1A"]:hover {
+    transform: translateY(-6px) scale(1.02) !important;
+    box-shadow:
+      0 2px 4px rgba(0, 8, 60, 0.22),
+      0 26px 52px rgba(0, 8, 60, 0.34),
+      0 10px 22px rgba(0, 8, 60, 0.22) !important;
+  }
+}
+
+/* Stat tiles with coloured Tailwind backgrounds (bg-rose-50, bg-amber-50,
+   bg-emerald-50, bg-blue-50, bg-indigo-50, bg-violet-50, bg-slate-50)
+   get the same treatment so Risks/Reports/Dashboard tiles all lift. */
+@media (hover: hover) and (pointer: fine) {
+  [class*="bg-rose-50"][class*="rounded-"]:hover,
+  [class*="bg-amber-50"][class*="rounded-"]:hover,
+  [class*="bg-emerald-50"][class*="rounded-"]:hover,
+  [class*="bg-blue-50"][class*="rounded-"]:hover,
+  [class*="bg-indigo-50"][class*="rounded-"]:hover,
+  [class*="bg-violet-50"][class*="rounded-"]:hover,
+  [class*="bg-slate-50"][class*="rounded-"]:hover,
+  [class*="bg-sky-50"][class*="rounded-"]:hover,
+  [class*="bg-teal-50"][class*="rounded-"]:hover {
+    transform: translateY(-6px) rotateX(3deg) rotateY(-2deg) scale(1.025) !important;
+    box-shadow:
+      0 1px 2px rgba(0, 85, 255, 0.12),
+      0 32px 56px rgba(0, 85, 255, 0.24),
+      0 14px 26px rgba(0, 85, 255, 0.16) !important;
+    z-index: 2;
+  }
+}
+
+/* Table rows — subtle hover on desktop tables */
+tbody tr:hover {
+  box-shadow: inset 3px 0 0 rgba(0, 85, 255, 0.3) !important;
+}
+
+/* Button cards / action tiles — lift on hover */
+button[class*="rounded-2xl"],
+button[class*="rounded-3xl"],
+button[class*="rounded-xl"][class*="border"] {
+  transition:
+    transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  button[class*="rounded-2xl"]:not([disabled]):hover,
+  button[class*="rounded-3xl"]:not([disabled]):hover,
+  button[class*="rounded-xl"][class*="border"]:not([disabled]):hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow:
+      0 1px 2px rgba(0, 85, 255, 0.15),
+      0 20px 44px rgba(0, 85, 255, 0.24),
+      0 8px 16px rgba(0, 85, 255, 0.16) !important;
+  }
+}
+
+/* Sidebar nav items (desktop) — subtle lift on hover */
+@media (hover: hover) and (pointer: fine) {
+  nav a[class*="rounded-"]:hover,
+  aside a[class*="rounded-"]:hover {
+    transform: translateX(3px) !important;
+    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+  }
+}
