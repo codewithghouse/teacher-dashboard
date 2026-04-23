@@ -118,4 +118,137 @@ export const AIController = {
       logPrefix: "LessonPlan",
     });
   },
+
+  // EXAM PAPER GENERATOR — OpenAI direct (frontend) with Firebase fallback
+  async getExamPaper(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    const openaiKey = (import.meta.env.VITE_OPENAI_API_KEY as string | undefined)?.trim();
+    if (openaiKey && openaiKey.startsWith("sk-")) {
+      try {
+        if (import.meta.env.DEV) console.debug("[ExamPaper] OpenAI call dispatched");
+        const paper = await callOpenAIExamPaper(data as AIPayload, openaiKey);
+        return { status: "success", data: paper };
+      } catch (e: unknown) {
+        console.error("[AIController:ExamPaper:OpenAI]", e);
+        return { status: "error", message: `OpenAI error: ${errMessage(e)}` };
+      }
+    }
+    if (import.meta.env.DEV) console.debug("[ExamPaper] falling back to Firebase callable");
+    return callAIInsights("exam_paper_generation", data, {
+      timeoutMs: 180_000,
+      logPrefix: "ExamPaper",
+    });
+  },
 };
+
+// ══════════════════════════ OpenAI direct client ══════════════════════════════
+// NOTE: calling OpenAI from the browser exposes your API key to anyone who
+// opens the page. This is acceptable for local dev / demo only — move to a
+// server endpoint before deploying publicly.
+async function callOpenAIExamPaper(payload: AIPayload, apiKey: string): Promise<unknown> {
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || "gpt-4o-mini";
+
+  const systemPrompt = [
+    "You are an expert school examination paper setter.",
+    "Generate a well-structured, grade-appropriate exam paper.",
+    "Return STRICT JSON only — no markdown, no code fences, no commentary.",
+    "",
+    "Shape the JSON exactly as:",
+    "{",
+    '  "title": string,',
+    '  "subject": string,',
+    '  "grade": string,',
+    '  "board": string,',
+    '  "duration": string,',
+    '  "totalMarks": number,',
+    '  "generalInstructions": string[],',
+    '  "sections": [',
+    "    {",
+    '      "title": string,            // e.g. "Section A — MCQ"',
+    '      "instructions": string,',
+    '      "marks": number,',
+    '      "questions": [',
+    "        {",
+    '          "number": number,',
+    '          "type": "mcq"|"short"|"long"|"numerical"|"truefalse"|"fillblanks",',
+    '          "marks": number,',
+    '          "question": string,',
+    '          "options": string[] | null,   // REQUIRED for mcq',
+    '          "answer": string,             // short correct answer',
+    '          "solution": string            // step-by-step explanation',
+    "        }",
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+    "",
+    "Rules:",
+    "- Total of all question marks MUST equal totalMarks.",
+    "- Number of questions MUST match numQuestions requested.",
+    "- Group questions into sections by type (e.g. MCQ in Section A, Short in B, Long in C).",
+    "- For MCQ, provide exactly 4 options and put the correct letter + text in `answer`.",
+    "- Match difficulty honestly (Easy/Medium/Hard/Mixed).",
+    "- Respect board conventions (CBSE/ICSE/IB/etc).",
+  ].join("\n");
+
+  const userPrompt = [
+    `Subject: ${payload.subject}`,
+    `Grade: ${payload.grade}`,
+    `Board: ${payload.board}`,
+    `Topics: ${payload.topics}`,
+    `Difficulty: ${payload.difficulty}`,
+    `Duration: ${payload.duration}`,
+    `Total Marks: ${payload.totalMarks}`,
+    `Number of Questions: ${payload.numQuestions}`,
+    `Question Types to include: ${Array.isArray(payload.questionTypes) ? (payload.questionTypes as string[]).join(", ") : "mcq, short, long"}`,
+    payload.instructions ? `Special Instructions: ${payload.instructions}` : "",
+    payload.teacherName ? `Teacher: ${payload.teacherName}` : "",
+    payload.schoolName ? `School: ${payload.schoolName}` : "",
+    "",
+    "Generate the exam paper now as JSON.",
+  ].filter(Boolean).join("\n");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 180_000);
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} — ${errText.slice(0, 200)}`);
+    }
+
+    const json = await res.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = json.choices?.[0]?.message?.content;
+    if (!content) throw new Error("Empty response from OpenAI");
+
+    try {
+      return JSON.parse(content);
+    } catch {
+      // Strip stray ```json fences if the model slips
+      const cleaned = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
+      return JSON.parse(cleaned);
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+}

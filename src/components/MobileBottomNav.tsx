@@ -29,7 +29,7 @@ const NAV_ITEMS = [
         <line x1="3" y1="10" x2="21" y2="10" />
       </>
     ),
-    match: ["/my-classes", "/assignments", "/tests", "/lesson-planner", "/summarize-lesson", "/syllabus"],
+    match: ["/my-classes", "/assignments", "/tests", "/exam", "/lesson-planner", "/summarize-lesson", "/syllabus"],
   },
   {
     label: "Grades",

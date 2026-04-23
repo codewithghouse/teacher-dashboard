@@ -19,7 +19,8 @@ import {
   X,
   Sparkles,
   ScrollText,
-  Library
+  Library,
+  FileSpreadsheet
 } from "lucide-react";
 
 const navItems = [
@@ -28,6 +29,7 @@ const navItems = [
   { title: "Attendance",      path: "/attendance",      icon: ClipboardCheck  },
   { title: "Assignments",     path: "/assignments",     icon: FileText        },
   { title: "Tests & Exams",   path: "/tests",           icon: GraduationCap   },
+  { title: "Exam Generator",  path: "/exam",            icon: FileSpreadsheet },
   { title: "Students",        path: "/students",        icon: Users           },
   { title: "Gradebook",       path: "/gradebook",       icon: BookMarked      },
   { title: "Concept Mastery", path: "/concept-mastery", icon: Brain           },
