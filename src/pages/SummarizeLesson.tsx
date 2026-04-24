@@ -1492,7 +1492,7 @@ const DesktopSummarizeLesson = ({
         .sld-spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(0,85,255,.15); border-top-color: #0055FF; animation: sldSpin 1s linear infinite; flex-shrink: 0; }
       `}</style>
 
-      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ width: "100%" }}>
 
         {/* Page header row */}
         <div style={{ marginBottom: 20 }}>

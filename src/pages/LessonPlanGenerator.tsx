@@ -1643,7 +1643,7 @@ const DesktopLessonPlanner = ({
         .lpd-pulse { animation: lpdPulse 1.6s ease-in-out infinite; }
       `}</style>
 
-      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ width: "100%" }}>
 
         {/* Page header row + tabs */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 18, flexWrap: "wrap" }}>

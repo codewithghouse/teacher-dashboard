@@ -264,7 +264,12 @@ const MyClasses = () => {
         )}
 
         {/* 2. Hero banner — Classroom Overview */}
-        <div className="mx-4 mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+        <div className="mx-4 mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/attendance')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/attendance'); } }}
+          aria-label="Classroom Overview — view attendance details"
           style={{
             background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
             boxShadow: "0 1px 2px rgba(0,8,60,0.15), 0 12px 32px rgba(0,8,60,0.28)",
@@ -311,14 +316,16 @@ const MyClasses = () => {
             </div>
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
               {[
-                { v: avgPerfStr, l: "Perform." },
-                { v: `${totalStudents}`, l: "Students" },
-                { v: `${activeCount}/${attentionCount}`, l: "Act./Att." },
-              ].map(({ v, l }) => (
-                <div key={l} className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                { v: avgPerfStr, l: "Perform.", to: '/gradebook' },
+                { v: `${totalStudents}`, l: "Students", to: '/students' },
+                { v: `${activeCount}/${attentionCount}`, l: "Act./Att.", to: '/risks-alerts' },
+              ].map(({ v, l, to }) => (
+                <button key={l} type="button"
+                  onClick={(e) => { e.stopPropagation(); navigate(to); }}
+                  className="py-[13px] px-[6px] text-center active:brightness-110 transition" style={{ background: "rgba(0,20,80,0.55)" }}>
                   <div className="text-[20px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
                   <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -601,7 +608,12 @@ const MyClasses = () => {
         )}
 
         {/* 6. AI Classes Intelligence */}
-        <div className="mx-4 mt-[14px] mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+        <div className="mx-4 mt-[14px] mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/concept-mastery')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/concept-mastery'); } }}
+          aria-label="AI Classes Intelligence — view concept mastery insights"
           style={{
             background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
             boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
@@ -645,7 +657,7 @@ const MyClasses = () => {
               }
             </div>
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <button type="button" onClick={() => navigate('/attendance')}
+              <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
                 <div className="text-[19px] font-extrabold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
@@ -653,7 +665,7 @@ const MyClasses = () => {
                 </div>
                 <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
               </button>
-              <button type="button" onClick={() => navigate('/gradebook')}
+              <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/gradebook'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
                 <div className="text-[19px] font-extrabold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
@@ -661,7 +673,7 @@ const MyClasses = () => {
                 </div>
                 <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
               </button>
-              <button type="button" onClick={() => navigate('/students')}
+              <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/students'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
                 <div className="text-[19px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{totalStudents}</div>
@@ -710,7 +722,12 @@ const MyClasses = () => {
           </div>
 
           {/* HERO banner — Classroom Overview */}
-          <div className="rounded-[28px] px-8 py-8 relative overflow-hidden mb-5"
+          <div className="rounded-[28px] px-8 py-8 relative overflow-hidden mb-5 cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/attendance')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/attendance'); } }}
+            aria-label="Classroom Overview — view attendance details"
             style={{
               background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
               boxShadow: "0 1px 2px rgba(0,8,60,0.15), 0 12px 32px rgba(0,8,60,0.28)",
@@ -760,14 +777,16 @@ const MyClasses = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[380px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                   {[
-                    { v: avgPerfStr, l: "Perform." },
-                    { v: `${totalStudents}`, l: "Students" },
-                    { v: `${activeCount}/${attentionCount}`, l: "Act./Att." },
-                  ].map(({ v, l }) => (
-                    <div key={l} className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                    { v: avgPerfStr, l: "Perform.", to: '/gradebook' },
+                    { v: `${totalStudents}`, l: "Students", to: '/students' },
+                    { v: `${activeCount}/${attentionCount}`, l: "Act./Att.", to: '/risks-alerts' },
+                  ].map(({ v, l, to }) => (
+                    <button key={l} type="button"
+                      onClick={(e) => { e.stopPropagation(); navigate(to); }}
+                      className="py-4 px-5 text-center hover:brightness-110 transition" style={{ background: "rgba(0,20,80,0.55)" }}>
                       <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{v}</div>
                       <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1048,7 +1067,12 @@ const MyClasses = () => {
           )}
 
           {/* AI Classes Intelligence */}
-          <div className="rounded-[26px] p-7 relative overflow-hidden"
+          <div className="rounded-[26px] p-7 relative overflow-hidden cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/concept-mastery')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/concept-mastery'); } }}
+            aria-label="AI Classes Intelligence — view concept mastery insights"
             style={{
               background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
               boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
@@ -1092,7 +1116,7 @@ const MyClasses = () => {
                 }
               </div>
               <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <button type="button" onClick={() => navigate('/attendance')}
+                <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
                   <div className="text-[22px] font-extrabold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
@@ -1100,7 +1124,7 @@ const MyClasses = () => {
                   </div>
                   <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
                 </button>
-                <button type="button" onClick={() => navigate('/gradebook')}
+                <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/gradebook'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
                   <div className="text-[22px] font-extrabold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
@@ -1108,7 +1132,7 @@ const MyClasses = () => {
                   </div>
                   <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
                 </button>
-                <button type="button" onClick={() => navigate('/students')}
+                <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/students'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
                   <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{totalStudents}</div>

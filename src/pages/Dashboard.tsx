@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db } from '../lib/firebase';
 import {
@@ -771,7 +771,12 @@ const Dashboard = () => {
       </div>
 
       {/* ── AI Teacher Intelligence ── */}
-      <div className="mx-4 mt-[14px] mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden"
+      <div className="mx-4 mt-[14px] mb-[14px] rounded-[26px] p-[22px] relative overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={() => navigate('/risks-alerts')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/risks-alerts'); } }}
+        aria-label="AI Teacher Intelligence — view risks and alerts"
         style={{
           background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
           boxShadow: "0 1px 2px rgba(0,8,60,0.18), 0 12px 32px rgba(0,8,60,0.3)",
@@ -803,7 +808,7 @@ const Dashboard = () => {
             {aiMessage}
           </div>
           <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-            <button type="button" onClick={() => navigate('/attendance')}
+            <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
               <div className="text-[19px] font-extrabold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.5px" }}>
@@ -811,13 +816,13 @@ const Dashboard = () => {
               </div>
               <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
             </button>
-            <button type="button" onClick={() => navigate('/risks-alerts')}
+            <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/risks-alerts'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
               <div className="text-[19px] font-extrabold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.5px" }}>{stats.atRiskCount}</div>
               <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
             </button>
-            <button type="button" onClick={() => navigate('/my-classes')}
+            <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/my-classes'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
               <div className="text-[19px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.activeClasses}</div>
@@ -1315,6 +1320,11 @@ const Dashboard = () => {
 
             {/* AI Teacher Intelligence */}
             <div {...tilt3D}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/risks-alerts')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/risks-alerts'); } }}
+              aria-label="AI Teacher Intelligence — view risks and alerts"
               className="rounded-[26px] p-7 relative overflow-hidden cursor-pointer"
               style={{
                 background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
@@ -1355,7 +1365,7 @@ const Dashboard = () => {
                   {aiMessage}
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-                  <button type="button" onClick={() => navigate('/attendance')}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
                     <div className="text-[22px] font-extrabold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.6px" }}>
@@ -1363,13 +1373,13 @@ const Dashboard = () => {
                     </div>
                     <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
                   </button>
-                  <button type="button" onClick={() => navigate('/risks-alerts')}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/risks-alerts'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
                     <div className="text-[22px] font-extrabold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.6px" }}>{stats.atRiskCount}</div>
                     <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
                   </button>
-                  <button type="button" onClick={() => navigate('/my-classes')}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/my-classes'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
                     <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{stats.activeClasses}</div>
