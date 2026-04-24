@@ -153,7 +153,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     ORANGE: "#FF8800",
     GOLD: "#FFAA00",
     VIOLET: "#7B3FF4",
-    SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
+    SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+    BDR: "0.5px solid rgba(0,85,255,0.07)",
     HEADER_GRAD: "linear-gradient(160deg, #000A33 0%, #001A66 55%, #0044CC 100%)",
   };
 

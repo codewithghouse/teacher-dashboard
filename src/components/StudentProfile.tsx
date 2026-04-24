@@ -30,13 +30,15 @@ const Card = ({children,title,action,style}:{children:React.ReactNode;title?:str
   return (
     <div ref={ref} onMouseMove={onMove} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setTilt({x:0,y:0});setHov(false);}}
       style={{
-        position:"relative",background:T.white,border:`1px solid ${hov?"rgba(59,91,219,0.25)":T.bdr}`,borderRadius:16,overflow:"hidden",
-        transform:`perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) ${hov?"translateY(-4px) scale(1.01)":""}`,
-        transition:"transform 0.2s ease,border-color 0.3s,box-shadow 0.3s",willChange:"transform",
-        boxShadow:hov?"0 20px 40px rgba(59,91,219,0.1),0 8px 16px rgba(0,0,0,0.06)":"0 1px 3px rgba(0,0,0,0.04)",
+        position:"relative",background:T.white,border:`0.5px solid rgba(0,85,255,${hov?0.14:0.07})`,borderRadius:16,overflow:"hidden",
+        transform:`perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) ${hov?"translateY(-5px) scale(1.02)":""}`,
+        transition:"transform 0.22s cubic-bezier(0.2,0.8,0.2,1),border-color 0.22s,box-shadow 0.22s ease",willChange:"transform,box-shadow",backfaceVisibility:"hidden",
+        boxShadow:hov
+          ? "0 0 0 0.5px rgba(0,85,255,0.14), 0 8px 24px rgba(0,85,255,0.16), 0 20px 46px rgba(0,85,255,0.18)"
+          : "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
         ...style,
       }}>
-      {hov&&<div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:1,borderRadius:16,background:`radial-gradient(circle at ${(tilt.y/8+0.5)*100}% ${(-tilt.x/8+0.5)*100}%,rgba(59,91,219,0.06) 0%,transparent 60%)`}}/>}
+      {hov&&<div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:1,borderRadius:16,background:`radial-gradient(circle at ${(tilt.y/8+0.5)*100}% ${(-tilt.x/8+0.5)*100}%,rgba(0,85,255,0.08) 0%,transparent 60%)`}}/>}
       {title&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:`1px solid ${T.s2}`,position:"relative",zIndex:2}}>
         <span style={{fontSize:14,fontWeight:600,color:T.ink}}>{title}</span>{action||null}
       </div>}

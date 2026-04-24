@@ -863,7 +863,7 @@ const MobileSummarizeLesson = ({
                   border: `1.5px dashed ${dragging ? "#0055FF" : "rgba(0,85,255,.22)"}`,
                   borderRadius: 22, padding: "28px 20px",
                   textAlign: "center", position: "relative", overflow: "hidden",
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   cursor: "pointer", transition: "all .25s cubic-bezier(.2,.9,.3,1)",
                   marginBottom: 14,
                 }}
@@ -931,7 +931,7 @@ const MobileSummarizeLesson = ({
                 className="sl-card3d"
                 style={{
                   background: "#fff", borderRadius: 18, padding: 12, marginBottom: 14,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                   display: "flex", alignItems: "center", gap: 12,
                 }}
@@ -1041,7 +1041,7 @@ const MobileSummarizeLesson = ({
             </div>
             <div className="sl-card3d" style={{
               background: "#fff", borderRadius: 20, padding: 6, marginBottom: 14,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
               overflow: "hidden",
             }}>
@@ -1137,7 +1137,7 @@ const MobileSummarizeLesson = ({
             {/* Uploaded file card */}
             <div className="sl-card3d" style={{
               background: "#fff", borderRadius: 18, padding: 12, marginBottom: 14,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
               display: "flex", alignItems: "center", gap: 12,
             }}>
@@ -1203,7 +1203,7 @@ const MobileSummarizeLesson = ({
                 className="sl-card3d"
                 style={{
                   background: "#fff", borderRadius: 18, padding: 16, marginBottom: 10,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                   position: "relative", overflow: "hidden",
                 }}
@@ -1632,7 +1632,7 @@ const DesktopSummarizeLesson = ({
                       border: `1.5px dashed ${dragging ? "#0055FF" : "rgba(0,85,255,.22)"}`,
                       borderRadius: 22, padding: "56px 24px",
                       textAlign: "center", position: "relative", overflow: "hidden",
-                      boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                       cursor: "pointer", transition: "all .25s cubic-bezier(.2,.9,.3,1)",
                       height: "100%",
                       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -1701,7 +1701,7 @@ const DesktopSummarizeLesson = ({
                     className="sld-card3d"
                     style={{
                       background: "#fff", borderRadius: 22, padding: 22,
-                      boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                       border: "0.5px solid rgba(0,85,255,.07)",
                       display: "flex", alignItems: "center", gap: 16,
                       height: "100%",
@@ -1769,7 +1769,7 @@ const DesktopSummarizeLesson = ({
               {/* What you'll get */}
               <div className="sld-card3d" style={{
                 background: "#fff", borderRadius: 22, padding: 8,
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
                 overflow: "hidden",
               }}>
@@ -1894,7 +1894,7 @@ const DesktopSummarizeLesson = ({
             {/* Uploaded file card */}
             <div className="sld-card3d" style={{
               background: "#fff", borderRadius: 22, padding: 18, marginBottom: 18,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
               display: "flex", alignItems: "center", gap: 16,
             }}>
@@ -1961,7 +1961,7 @@ const DesktopSummarizeLesson = ({
                   className="sld-card3d"
                   style={{
                     background: "#fff", borderRadius: 20, padding: 20,
-                    boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                    boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                     border: "0.5px solid rgba(0,85,255,.07)",
                     position: "relative", overflow: "hidden",
                   }}

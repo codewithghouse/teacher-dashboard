@@ -1122,7 +1122,7 @@ const MobileLessonPlanner = ({
             {/* Subject */}
             <div className="lp-card3d" style={{
               background: "#fff", borderRadius: 20, padding: 16, marginBottom: 12,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
               <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1162,7 +1162,7 @@ const MobileLessonPlanner = ({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               <div className="lp-card3d" style={{
                 background: "#fff", borderRadius: 20, padding: 16,
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1214,7 +1214,7 @@ const MobileLessonPlanner = ({
 
               <div className="lp-card3d" style={{
                 background: "#fff", borderRadius: 20, padding: 16,
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Board</div>
@@ -1247,7 +1247,7 @@ const MobileLessonPlanner = ({
             {/* Topic */}
             <div className="lp-card3d" style={{
               background: "#fff", borderRadius: 20, padding: 16, marginBottom: 12,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
               <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1282,7 +1282,7 @@ const MobileLessonPlanner = ({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               <div className="lp-card3d" style={{
                 background: "#fff", borderRadius: 20, padding: 16,
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Lessons</div>
@@ -1307,7 +1307,7 @@ const MobileLessonPlanner = ({
 
               <div className="lp-card3d" style={{
                 background: "#fff", borderRadius: 20, padding: 16,
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Duration</div>
@@ -1336,7 +1336,7 @@ const MobileLessonPlanner = ({
             {/* Include in Plan */}
             <div className="lp-card3d" style={{
               background: "#fff", borderRadius: 20, padding: 16, marginBottom: 12,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
               <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1466,7 +1466,7 @@ const MobileLessonPlanner = ({
             {history.length === 0 ? (
               <div className="lp-card3d" style={{
                 background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center",
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{
@@ -1496,7 +1496,7 @@ const MobileLessonPlanner = ({
                 style={{
                   background: "#fff", borderRadius: 18, padding: 14, marginBottom: 10,
                   position: "relative", overflow: "hidden", cursor: "pointer",
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}
               >
@@ -1800,7 +1800,7 @@ const DesktopLessonPlanner = ({
             <div className="lpd-card3d" style={{
               background: "#fff", borderRadius: 22, padding: "80px 24px",
               display: "flex", flexDirection: "column", alignItems: "center", gap: 18,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
               <div style={{
@@ -1848,7 +1848,7 @@ const DesktopLessonPlanner = ({
                 <div className="lpd-card3d" style={{
                   gridColumn: "1 / -1",
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1887,7 +1887,7 @@ const DesktopLessonPlanner = ({
                 {/* Class */}
                 <div className="lpd-card3d" style={{
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1940,7 +1940,7 @@ const DesktopLessonPlanner = ({
                 {/* Board */}
                 <div className="lpd-card3d" style={{
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Board</div>
@@ -1973,7 +1973,7 @@ const DesktopLessonPlanner = ({
                 <div className="lpd-card3d" style={{
                   gridColumn: "1 / -1",
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
@@ -2007,7 +2007,7 @@ const DesktopLessonPlanner = ({
                 {/* Lessons */}
                 <div className="lpd-card3d" style={{
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Lessons</div>
@@ -2033,7 +2033,7 @@ const DesktopLessonPlanner = ({
                 {/* Duration */}
                 <div className="lpd-card3d" style={{
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Duration</div>
@@ -2062,7 +2062,7 @@ const DesktopLessonPlanner = ({
                 <div className="lpd-card3d" style={{
                   gridColumn: "1 / -1",
                   background: "#fff", borderRadius: 22, padding: 22,
-                  boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
@@ -2184,7 +2184,7 @@ const DesktopLessonPlanner = ({
             {history.length === 0 ? (
               <div className="lpd-card3d" style={{
                 background: "#fff", borderRadius: 22, padding: "56px 24px", textAlign: "center",
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
                 <div style={{
@@ -2216,7 +2216,7 @@ const DesktopLessonPlanner = ({
                     style={{
                       background: "#fff", borderRadius: 20, padding: 18,
                       position: "relative", overflow: "hidden", cursor: "pointer",
-                      boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                       border: "0.5px solid rgba(0,85,255,.07)",
                     }}
                   >

@@ -31,6 +31,12 @@ const setImp = (el: HTMLElement, prop: string, val: string) => {
 };
 
 // ── Default: Dashboard-style pop (lift + slight grow) ──────────────────
+// Smooth easing — `cubic-bezier(0.22, 0.61, 0.36, 1)` is a gentle
+// ease-out that feels less snappy than the original 0.22s curve.
+const SMOOTH_EASE = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+const ENTER_MS = 420;
+const LEAVE_MS = 520;
+
 export const tilt3D = {
   onMouseEnter: (e: React.MouseEvent<TiltEl>) => {
     const el = e.currentTarget as HTMLElement;
@@ -39,7 +45,7 @@ export const tilt3D = {
     }
     el.style.backfaceVisibility = "hidden";
     (el.style as any).webkitBackfaceVisibility = "hidden";
-    setImp(el, "transition", "transform 0.22s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.22s ease");
+    setImp(el, "transition", `transform ${ENTER_MS}ms ${SMOOTH_EASE}, box-shadow ${ENTER_MS}ms ${SMOOTH_EASE}`);
     setImp(el, "transform", "translate3d(0,-5px,0) scale(1.02)");
     setImp(el, "box-shadow", HOVER_SHADOW);
     setImp(el, "z-index", "3");
@@ -49,7 +55,7 @@ export const tilt3D = {
   },
   onMouseLeave: (e: React.MouseEvent<TiltEl>) => {
     const el = e.currentTarget as HTMLElement;
-    setImp(el, "transition", "transform 0.28s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.28s ease");
+    setImp(el, "transition", `transform ${LEAVE_MS}ms ${SMOOTH_EASE}, box-shadow ${LEAVE_MS}ms ${SMOOTH_EASE}`);
     setImp(el, "transform", "translate3d(0,0,0) scale(1)");
     const orig = ORIGINAL_SHADOW.get(el);
     if (orig !== undefined && orig !== "") {
@@ -70,7 +76,7 @@ export const tilt3DProfile = {
     }
     el.style.backfaceVisibility = "hidden";
     (el.style as any).webkitBackfaceVisibility = "hidden";
-    setImp(el, "transition", "transform 0.22s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.22s ease");
+    setImp(el, "transition", `transform ${ENTER_MS}ms ${SMOOTH_EASE}, box-shadow ${ENTER_MS}ms ${SMOOTH_EASE}`);
     setImp(el, "transform", "translate3d(0,-7px,0) scale(1.025)");
     setImp(el, "box-shadow", HOVER_SHADOW);
     setImp(el, "z-index", "3");
@@ -78,7 +84,7 @@ export const tilt3DProfile = {
   onMouseMove: (_e: React.MouseEvent<TiltEl>) => {},
   onMouseLeave: (e: React.MouseEvent<TiltEl>) => {
     const el = e.currentTarget as HTMLElement;
-    setImp(el, "transition", "transform 0.28s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.28s ease");
+    setImp(el, "transition", `transform ${LEAVE_MS}ms ${SMOOTH_EASE}, box-shadow ${LEAVE_MS}ms ${SMOOTH_EASE}`);
     setImp(el, "transform", "translate3d(0,0,0) scale(1)");
     const orig = ORIGINAL_SHADOW.get(el);
     if (orig !== undefined && orig !== "") {

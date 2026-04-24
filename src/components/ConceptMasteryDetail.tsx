@@ -117,12 +117,12 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
   }: { type: keyof typeof STATUS; items: typeof mappedConcepts }) => {
     const s = STATUS[type];
     return (
-      <div style={{
+      <div className="cmd-card3d" style={{
         background: T.white,
-        border: `1.5px solid ${T.s2}`,
+        border: `0.5px solid rgba(0,85,255,0.07)`,
         borderRadius: 20,
         overflow: "hidden",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
       }}>
         {/* Card header */}
         <div style={{ background: s.bg, padding: "16px 20px", borderBottom: `1px solid ${T.s2}` }}>
@@ -355,13 +355,13 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
 
         {/* AI Remedial Output */}
         {aiData && selectedRemedial && (
-          <div style={{
+          <div className="cmd-card3d" style={{
             background: T.white,
-            border: "1.5px solid #e0e7ff",
+            border: "0.5px solid rgba(0,85,255,0.07)",
             borderRadius: 20,
             padding: "20px",
             marginBottom: 22,
-            boxShadow: "0 2px 12px rgba(99,102,241,0.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
           }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "#818cf8", letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 4px" }}>
               AI Remedial Plan
@@ -403,12 +403,12 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
         <div className="md:grid md:grid-cols-[1.4fr_1fr] md:gap-5 md:items-start">
 
         {/* Recommended actions */}
-        <div className="mb-[22px] md:!mb-0" style={{
+        <div className="cmd-card3d mb-[22px] md:!mb-0" style={{
           background: T.white,
-          border: `1.5px solid ${T.s2}`,
+          border: `0.5px solid rgba(0,85,255,0.07)`,
           borderRadius: 20,
           padding: "20px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
         }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: T.ink1, margin: "0 0 14px" }}>
             Recommended Actions
@@ -694,7 +694,7 @@ const MobileConceptMasteryDetail = ({
           return (
             <div key={tone} className="cmd-card3d" style={{
               background: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 12,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 9, background: headBg }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, flexShrink: 0 }} />
@@ -753,9 +753,9 @@ const MobileConceptMasteryDetail = ({
         {aiData && selectedRemedial && (
           <div className="cmd-card3d" style={{
             background: '#fff',
-            border: '0.5px solid rgba(129,140,248,.3)',
+            border: '0.5px solid rgba(0,85,255,0.07)',
             borderRadius: 20, padding: 18, marginBottom: 12,
-            boxShadow: '0 2px 12px rgba(99,102,241,0.08)',
+            boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
           }}>
             <div style={{ fontSize: 10, fontWeight: 900, color: '#818cf8', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 4 }}>AI Remedial Plan</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#001040', marginBottom: 14, letterSpacing: '-0.3px' }}>{formatTitle(selectedRemedial)}</div>
@@ -792,7 +792,7 @@ const MobileConceptMasteryDetail = ({
         {/* Recommended Actions */}
         <div className="cmd-card3d" style={{
           background: '#fff', borderRadius: 20, padding: 16, marginBottom: 12,
-          boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+          boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <div style={{ width: 34, height: 34, borderRadius: 11, background: '#0055FF', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

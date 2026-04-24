@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -15,6 +15,7 @@ import {
   Loader2, Search, BarChart2, TrendingUp, Calendar,
   Users, CheckCircle, AlertCircle, LayoutGrid, Home, GraduationCap, Sparkles
 } from "lucide-react";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 type FilterType = "All" | "Active" | "Attention";
 
@@ -390,11 +391,12 @@ const MyClasses = () => {
                   else { setFilter("All"); }
                 }}
                 aria-pressed={isActive}
+                {...tilt3D}
                 className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
                 style={{
-                  boxShadow: isActive
-                    ? `0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08), 0 0 0 2px ${color}`
-                    : "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
+                  boxShadow: isActive ? `${SH_LG_D}, 0 0 0 2px ${color}` : SH_LG_D,
+                  border: `0.5px solid ${SEP_D}`,
+                  ...tilt3DStyle,
                 }}>
                 <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
                   <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: TT3, letterSpacing: "1px" }}>
@@ -443,7 +445,7 @@ const MyClasses = () => {
         {/* 5. Class cards */}
         {filteredClasses.length === 0 ? (
           <div className="mx-4 bg-white rounded-[22px] py-12 px-6 flex flex-col items-center text-center relative overflow-hidden"
-            style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 6px 20px rgba(9,87,247,0.10)" }}>
+            style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}` }}>
             <div className="absolute -top-[50px] -right-[40px] w-[180px] h-[180px] rounded-full pointer-events-none"
               style={{ background: "radial-gradient(circle, rgba(0,85,255,0.05) 0%, transparent 70%)" }} />
             <div className="w-[64px] h-[64px] rounded-[20px] flex items-center justify-center mb-4 relative z-10"
@@ -476,8 +478,9 @@ const MyClasses = () => {
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/my-classes/${cls.id}`); }}
+                  {...tilt3D}
                   className="bg-white rounded-[22px] p-[18px] mb-3 relative overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
-                  style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 6px 20px rgba(9,87,247,0.10)" }}
+                  style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
                   aria-label={`Open ${cls.name || "class"}`}>
                   {/* Top accent stripe */}
                   <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: accent }} />
@@ -694,7 +697,7 @@ const MyClasses = () => {
                 <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search classes…"
                   className="pl-10 pr-5 py-[12px] rounded-[14px] text-[13px] outline-none w-[280px]"
-                  style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 12px rgba(9,87,247,0.08)", color: TT1, letterSpacing: "-0.1px" }} />
+                  style={{ background: "#fff", border: `0.5px solid ${BLUE_BDR}`, boxShadow: SH_D, color: TT1, letterSpacing: "-0.1px" }} />
               </div>
               <button type="button"
                 onClick={() => navigate('/settings')}
@@ -838,11 +841,12 @@ const MyClasses = () => {
                     else { setFilter("All"); }
                   }}
                   aria-pressed={isActive}
-                  className="bg-white rounded-[22px] p-5 relative flex flex-col text-left hover:-translate-y-[2px] active:scale-[0.98] transition-all"
+                  {...tilt3D}
+                  className="bg-white rounded-[22px] p-5 relative flex flex-col text-left active:scale-[0.98] transition-all"
                   style={{
-                    boxShadow: isActive
-                      ? `0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08), 0 0 0 2px ${color}`
-                      : "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
+                    boxShadow: isActive ? `${SH_LG_D}, 0 0 0 2px ${color}` : SH_LG_D,
+                    border: `0.5px solid ${SEP_D}`,
+                    ...tilt3DStyle,
                   }}>
                   <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
                     <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: TT3, letterSpacing: "1px" }}>
@@ -891,7 +895,7 @@ const MyClasses = () => {
           {/* Class cards grid */}
           {filteredClasses.length === 0 ? (
             <div className="bg-white rounded-[22px] py-16 px-8 flex flex-col items-center text-center relative overflow-hidden mb-5"
-              style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 6px 20px rgba(9,87,247,0.10)" }}>
+              style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}` }}>
               <div className="absolute -top-[60px] -right-[40px] w-[240px] h-[240px] rounded-full pointer-events-none"
                 style={{ background: "radial-gradient(circle, rgba(0,85,255,0.05) 0%, transparent 70%)" }} />
               <div className="w-[80px] h-[80px] rounded-[22px] flex items-center justify-center mb-5 relative z-10"
@@ -923,8 +927,9 @@ const MyClasses = () => {
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/my-classes/${cls.id}`); }}
-                    className="bg-white rounded-[22px] p-[22px] relative overflow-hidden hover:-translate-y-[3px] active:scale-[0.99] transition-all cursor-pointer"
-                    style={{ boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 6px 20px rgba(9,87,247,0.10)" }}
+                    {...tilt3D}
+                    className="bg-white rounded-[22px] p-[22px] relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
+                    style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
                     aria-label={`Open ${cls.name || "class"}`}>
                     {/* Top accent stripe */}
                     <div className="absolute top-0 left-0 right-0 h-[4px]" style={{ background: accent }} />

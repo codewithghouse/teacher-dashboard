@@ -15,6 +15,7 @@ import {
   Calendar, FileText, GraduationCap, TrendingUp, CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 const loadXLSX = () => import("xlsx");
 
 const ITEMS_PER_PAGE = 5;
@@ -409,6 +410,9 @@ const ClassDetail = () => {
     B1: "#0055FF", T1: "#001040", T2: "#002080", T3: "#5070B0", T4: "#99AACC",
     GREEN: "#00C853", RED: "#FF3355", ORANGE: "#FF8800", GOLD: "#FFAA00", VIOLET: "#7B3FF4",
     FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+    SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+    SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
+    BDR: "0.5px solid rgba(0,85,255,0.07)",
   };
   const TABS_M = [
     { key: "Students",    label: "Students" },
@@ -612,7 +616,7 @@ const ClassDetail = () => {
 
         {/* ───────────────── TAB: STUDENTS ───────────────── */}
         {activeTab === "Students" && (
-          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-[10px]">
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.B1 }}>
@@ -744,7 +748,7 @@ const ClassDetail = () => {
 
         {/* ───────────────── TAB: ATTENDANCE ───────────────── */}
         {activeTab === "Attendance" && (
-          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-[10px]">
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.ORANGE }}>
@@ -816,7 +820,7 @@ const ClassDetail = () => {
 
         {/* ───────────────── TAB: WORK (assignments) ───────────────── */}
         {activeTab === "Assignments" && (
-          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-[10px]">
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.B1 }}>
@@ -910,7 +914,7 @@ const ClassDetail = () => {
 
         {/* ───────────────── TAB: TESTS ───────────────── */}
         {activeTab === "Tests" && (
-          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+          <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-[10px]">
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.VIOLET }}>
@@ -992,7 +996,7 @@ const ClassDetail = () => {
           <>
             {/* Class average hero */}
             <div className="rounded-[20px] p-4 mb-[14px] flex items-center gap-3"
-              style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+              style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
               <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(9,87,247,0.12)", color: M.B1 }}>
                 <TrendingUp className="w-[22px] h-[22px]" strokeWidth={2.4} />
@@ -1008,7 +1012,7 @@ const ClassDetail = () => {
             </div>
 
             {performanceView.count === 0 ? (
-              <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+              <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
                 <div className="py-8 text-center">
                   <div className="w-[72px] h-[72px] rounded-[20px] mx-auto mb-3 flex items-center justify-center"
                     style={{ background: "linear-gradient(135deg, rgba(9,87,247,0.1), rgba(123,63,244,0.1))", color: M.B1 }}>
@@ -1027,7 +1031,7 @@ const ClassDetail = () => {
             ) : (
               <>
                 {/* Grade distribution */}
-                <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+                <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
                   <div className="flex items-center gap-[10px] mb-3">
                     <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.B1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1067,7 +1071,7 @@ const ClassDetail = () => {
 
                 {/* Top performers */}
                 {performanceView.top.length > 0 && (
-                  <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+                  <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
                     <div className="flex items-center gap-[10px] mb-3">
                       <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.GOLD }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1107,7 +1111,7 @@ const ClassDetail = () => {
 
                 {/* Needs attention */}
                 {performanceView.bottom.length > 0 && (
-                  <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)" }}>
+                  <div className="rounded-[20px] p-4 mb-[14px]" style={{ background: M.CARD, boxShadow: M.SH, border: M.BDR }}>
                     <div className="flex items-center gap-[10px] mb-3">
                       <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white" style={{ background: M.RED }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1287,7 +1291,9 @@ const ClassDetail = () => {
             onClick={() => navigate(card.route)}
             role="button"
             tabIndex={0}
-            className="clickable-card bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4"
+            {...tilt3D}
+            className="clickable-card bg-white rounded-2xl p-5 flex items-center gap-4"
+            style={{ boxShadow: M.SH, border: M.BDR, ...tilt3DStyle }}
           >
             <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${card.color}`} />
             <div>
@@ -1300,7 +1306,7 @@ const ClassDetail = () => {
 
       {/* Students Tab Content */}
       {activeTab === "Students" && (
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           {/* Table Header */}
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-800">Student List</h2>
@@ -1451,7 +1457,7 @@ const ClassDetail = () => {
 
       {/* Attendance Tab */}
       {activeTab === "Attendance" && (
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
@@ -1533,7 +1539,7 @@ const ClassDetail = () => {
 
       {/* Assignments Tab */}
       {activeTab === "Assignments" && (
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
@@ -1591,7 +1597,7 @@ const ClassDetail = () => {
 
       {/* Tests Tab */}
       {activeTab === "Tests" && (
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
@@ -1658,7 +1664,7 @@ const ClassDetail = () => {
       {activeTab === "Performance" && (
         <div className="space-y-4">
           {/* Summary header */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-5">
+          <div className="bg-white rounded-2xl p-5 flex items-center gap-5" style={{ boxShadow: M.SH, border: M.BDR }}>
             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
               <TrendingUp className="w-5 h-5 text-[#1e3272]" aria-hidden="true" />
             </div>
@@ -1673,13 +1679,13 @@ const ClassDetail = () => {
           </div>
 
           {performanceView.count === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400 text-sm shadow-sm">
+            <div className="bg-white rounded-2xl p-12 text-center text-slate-400 text-sm" style={{ boxShadow: M.SH, border: M.BDR }}>
               No scores recorded for this class yet.
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Grade distribution */}
-              <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+              <div className="bg-white rounded-2xl p-5" style={{ boxShadow: M.SH, border: M.BDR }}>
                 <h3 className="text-sm font-bold text-slate-800 mb-4">Grade distribution</h3>
                 <div className="space-y-3">
                   {[
@@ -1706,7 +1712,7 @@ const ClassDetail = () => {
 
               {/* Top & bottom performers */}
               <div className="space-y-4">
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                <div className="bg-white rounded-2xl p-5" style={{ boxShadow: M.SH, border: M.BDR }}>
                   <h3 className="text-sm font-bold text-slate-800 mb-3">Top performers</h3>
                   {performanceView.top.length === 0 ? (
                     <p className="text-xs text-slate-400">No scores yet.</p>
@@ -1721,7 +1727,7 @@ const ClassDetail = () => {
                     </ul>
                   )}
                 </div>
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                <div className="bg-white rounded-2xl p-5" style={{ boxShadow: M.SH, border: M.BDR }}>
                   <h3 className="text-sm font-bold text-slate-800 mb-3">Needs attention</h3>
                   {performanceView.bottom.length === 0 ? (
                     <p className="text-xs text-slate-400">No scores yet.</p>

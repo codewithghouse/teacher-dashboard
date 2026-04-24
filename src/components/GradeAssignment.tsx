@@ -303,7 +303,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl" style={{ boxShadow: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)", border: "0.5px solid rgba(0,85,255,0.07)" }}>
             <span className="text-xs text-slate-400 font-medium">Progress</span>
             <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
@@ -324,7 +324,7 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)", border: "0.5px solid rgba(0,85,255,0.07)" }}>
           <div className="overflow-x-auto text-left">
              <table className="w-full text-left" aria-label="Grade entries">
                 <thead>

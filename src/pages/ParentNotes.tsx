@@ -9,6 +9,10 @@ import {
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
+
+const HALO_SH = "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)";
+const HALO_BDR = "0.5px solid rgba(0,85,255,0.07)";
 
 // ── Quick Templates ───────────────────────────────────────────────────────────
 const TEMPLATES = [
@@ -653,7 +657,9 @@ const ParentNotes = () => {
               onClick={() => searchRef.current?.focus()}
               role="button"
               tabIndex={0}
-              className="clickable-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"
+              {...tilt3D}
+              className="clickable-card bg-white rounded-2xl p-5"
+              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.blBg }}>
@@ -669,7 +675,9 @@ const ParentNotes = () => {
               onClick={() => searchRef.current?.focus()}
               role="button"
               tabIndex={0}
-              className="clickable-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"
+              {...tilt3D}
+              className="clickable-card bg-white rounded-2xl p-5"
+              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.alBg }}>
@@ -685,7 +693,9 @@ const ParentNotes = () => {
               onClick={() => searchRef.current?.focus()}
               role="button"
               tabIndex={0}
-              className="clickable-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"
+              {...tilt3D}
+              className="clickable-card bg-white rounded-2xl p-5"
+              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.glBg }}>
@@ -701,7 +711,9 @@ const ParentNotes = () => {
               onClick={() => navigate("/students")}
               role="button"
               tabIndex={0}
-              className="clickable-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"
+              {...tilt3D}
+              className="clickable-card bg-white rounded-2xl p-5"
+              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.rlBg }}>
@@ -719,7 +731,7 @@ const ParentNotes = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* Quick templates */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: HALO_SH, border: HALO_BDR }}>
               <div className="px-5 py-4 border-b border-slate-100">
                 <h2 className="text-base font-semibold text-slate-900">Quick Templates</h2>
               </div>
@@ -739,7 +751,7 @@ const ParentNotes = () => {
             </div>
 
             {/* Conversations */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="lg:col-span-2 bg-white rounded-2xl overflow-hidden" style={{ boxShadow: HALO_SH, border: HALO_BDR }}>
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-slate-900">All Messages</h2>
                 <div className="relative">
@@ -1319,7 +1331,7 @@ const MobileParentNotesList = ({
               style={{
                 background: "#fff", borderRadius: 20, padding: 16,
                 display: "flex", flexDirection: "column",
-                boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit",
               }}
             >
@@ -1350,7 +1362,7 @@ const MobileParentNotesList = ({
               style={{
                 background: "#fff", borderRadius: 16, padding: "14px 12px",
                 cursor: "pointer", position: "relative", overflow: "hidden",
-                boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 textAlign: "left", border: "none", fontFamily: "inherit",
               }}
             >
@@ -1429,12 +1441,12 @@ const MobileParentNotesList = ({
         </div>
 
         {loading ? (
-          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)" }}>
+          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)" }}>
             <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5070B0" }} />
             <span style={{ fontSize: 12, color: "#5070B0" }}>Loading messages…</span>
           </div>
         ) : visibleRoster.length === 0 ? (
-          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center", boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)", marginBottom: 14 }}>
+          <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center", boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)", marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>
               {searchQuery ? "No matches" : activeFilter === "pending" ? "Nothing pending" : activeFilter === "resolved" ? "Nothing resolved yet" : "No parents yet"}
             </div>
@@ -1445,7 +1457,7 @@ const MobileParentNotesList = ({
         ) : (
           <div className="pnl-card3d" style={{
             background: "#fff", borderRadius: 20, padding: 4, marginBottom: 14,
-            boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             overflow: "hidden",
           }}>
             {visibleRoster.map((s, idx) => {

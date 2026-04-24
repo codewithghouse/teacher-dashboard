@@ -537,7 +537,7 @@ const MobileSettings = ({
         </div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
-          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
           border: "0.5px solid rgba(0,85,255,.07)",
           overflow: "hidden",
         }}>
@@ -625,7 +625,7 @@ const MobileSettings = ({
         </div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
-          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
           border: "0.5px solid rgba(0,85,255,.07)",
           overflow: "hidden",
         }}>
@@ -672,7 +672,7 @@ const MobileSettings = ({
         <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Preferences</div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
-          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
           border: "0.5px solid rgba(0,85,255,.07)",
           overflow: "hidden",
         }}>
@@ -717,7 +717,7 @@ const MobileSettings = ({
         </div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
-          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
           border: "0.5px solid rgba(0,85,255,.07)",
           overflow: "hidden",
         }}>
@@ -800,7 +800,7 @@ const MobileSettings = ({
         <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Danger zone</div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
-          boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
           border: "0.5px solid rgba(0,85,255,.07)",
           overflow: "hidden",
         }}>

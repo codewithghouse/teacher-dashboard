@@ -523,7 +523,7 @@ const MobileReports = ({
         {filtered.length === 0 ? (
           <div className="rp-card3d" style={{
             background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center",
-            boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)", marginBottom: 14,
           }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No reports match this filter</div>
@@ -544,7 +544,7 @@ const MobileReports = ({
               style={{
                 background: "#fff", borderRadius: 20, padding: 0, marginBottom: 11,
                 position: "relative", overflow: "hidden", cursor: "pointer",
-                boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}
             >
@@ -648,7 +648,7 @@ const MobileReports = ({
         {history.length === 0 ? (
           <div className="rp-card3d" style={{
             background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center",
-            boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)",
           }}>
             <div style={{
@@ -671,7 +671,7 @@ const MobileReports = ({
             className="rp-card3d"
             style={{
               background: "#fff", borderRadius: 20, padding: 4,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
               overflow: "hidden",
             }}
@@ -971,7 +971,7 @@ const DesktopReports = ({
         {filtered.length === 0 ? (
           <div className="rpd-card3d" style={{
             background: "#fff", borderRadius: 20, padding: "48px 24px", textAlign: "center",
-            boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)", marginBottom: 18,
           }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No reports match this filter</div>
@@ -994,7 +994,7 @@ const DesktopReports = ({
                   style={{
                     background: "#fff", borderRadius: 22, padding: 0,
                     position: "relative", overflow: "hidden", cursor: "pointer",
-                    boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+                    boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                     border: "0.5px solid rgba(0,85,255,.07)",
                   }}
                 >
@@ -1098,7 +1098,7 @@ const DesktopReports = ({
         {history.length === 0 ? (
           <div className="rpd-card3d" style={{
             background: "#fff", borderRadius: 22, padding: "56px 24px", textAlign: "center",
-            boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+            boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)",
           }}>
             <div style={{
@@ -1121,7 +1121,7 @@ const DesktopReports = ({
             className="rpd-card3d"
             style={{
               background: "#fff", borderRadius: 22, padding: 6,
-              boxShadow: "0 0.5px 1px rgba(0,85,255,.04), 0 4px 14px rgba(0,85,255,.08)",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
               overflow: "hidden",
             }}

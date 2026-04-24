@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
@@ -674,7 +674,7 @@ export default function Gradebook() {
                 display: 'flex', alignItems: 'center', gap: 11,
                 padding: '12px 14px', background: '#fff',
                 borderRadius: 14,
-                boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 10px rgba(9,87,247,.06)',
+                boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
                 cursor: 'pointer',
               }}
             >
@@ -767,7 +767,7 @@ export default function Gradebook() {
           </div>
 
           {/* Legend */}
-          <div className="gb-legend-scroll" style={{ display: 'flex', gap: 6, padding: '10px 12px', background: '#fff', borderRadius: 14, marginBottom: 14, overflowX: 'auto', boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 8px rgba(9,87,247,.06)' }}>
+          <div className="gb-legend-scroll" style={{ display: 'flex', gap: 6, padding: '10px 12px', background: '#fff', borderRadius: 14, marginBottom: 14, overflowX: 'auto', boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)' }}>
             {[
               { c: '#00C853', l: 'Excellent 90+' },
               { c: '#0055FF', l: 'Good 70–89' },
@@ -834,7 +834,7 @@ export default function Gradebook() {
                   width: '100%', padding: '9px 10px 9px 28px', borderRadius: 11,
                   border: 'none', background: '#fff',
                   fontSize: 12, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                  boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 8px rgba(9,87,247,.06)',
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
                 }}
               />
             </div>
@@ -868,7 +868,7 @@ export default function Gradebook() {
               background: '#fff',
               borderRadius: 16, padding: '14px 13px',
               display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
               border: '0.5px solid rgba(9,87,247,.1)',
             }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase' }}>
@@ -933,7 +933,7 @@ export default function Gradebook() {
             <div className="gb-card3d" style={{
               background: '#fff', borderRadius: 20, padding: '40px 14px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#5070B0' }} />
               <span style={{ fontSize: 12, color: '#5070B0' }}>Loading gradebook...</span>
@@ -942,7 +942,7 @@ export default function Gradebook() {
             <div className="gb-card3d" style={{
               background: '#fff', borderRadius: 20, padding: '40px 14px', textAlign: 'center',
               color: '#5070B0', fontSize: 12,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               {search ? 'No students match your search.' : 'No students enrolled yet.'}
             </div>
@@ -950,7 +950,7 @@ export default function Gradebook() {
             <div className="gb-card3d" style={{
               background: '#fff', borderRadius: 20, padding: '40px 14px', textAlign: 'center',
               color: '#5070B0', fontSize: 12,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               No units yet — tap <strong style={{ color: '#0055FF' }}>+ Unit</strong> above to add one.
             </div>
@@ -971,7 +971,7 @@ export default function Gradebook() {
                 style={{
                   background: '#fff', borderRadius: 20, padding: 16, marginBottom: 12,
                   position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
                 }}
               >
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: totalToneColor }} />
@@ -1098,7 +1098,7 @@ export default function Gradebook() {
               style={{
                 background: '#fff', borderRadius: 20, padding: 16, marginBottom: 14,
                 position: 'relative', overflow: 'hidden',
-                boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+                boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
                 border: '0.5px solid rgba(9,87,247,.1)',
               }}
             >
@@ -1247,7 +1247,7 @@ export default function Gradebook() {
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 18px', background: '#fff',
                   borderRadius: 14,
-                  boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 10px rgba(9,87,247,.06)',
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
                   cursor: 'pointer',
                 }}
               >
@@ -1346,7 +1346,7 @@ export default function Gradebook() {
 
           {/* Legend + toolbar row */}
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-            <div className="gbd-scroll" style={{ flex: 1, minWidth: 280, display: 'flex', gap: 8, padding: '12px 14px', background: '#fff', borderRadius: 14, overflowX: 'auto', boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 8px rgba(9,87,247,.06)' }}>
+            <div className="gbd-scroll" style={{ flex: 1, minWidth: 280, display: 'flex', gap: 8, padding: '12px 14px', background: '#fff', borderRadius: 14, overflowX: 'auto', boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)' }}>
               {[
                 { c: '#00C853', l: 'Excellent 90+' },
                 { c: '#0055FF', l: 'Good 70–89' },
@@ -1409,7 +1409,7 @@ export default function Gradebook() {
                     width: '100%', padding: '11px 14px 11px 36px', borderRadius: 12,
                     border: 'none', background: '#fff',
                     fontSize: 13, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                    boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 2px 8px rgba(9,87,247,.06)',
+                    boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
                   }}
                 />
               </div>
@@ -1444,7 +1444,7 @@ export default function Gradebook() {
               background: '#fff',
               borderRadius: 18, padding: 20,
               display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
               border: '0.5px solid rgba(9,87,247,.1)',
               flexWrap: 'wrap',
             }}>
@@ -1506,7 +1506,7 @@ export default function Gradebook() {
             <div className="gbd-card3d" style={{
               background: '#fff', borderRadius: 22, padding: '60px 24px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               <Loader2 className="w-7 h-7 animate-spin" style={{ color: '#5070B0' }} />
               <span style={{ fontSize: 13, color: '#5070B0' }}>Loading gradebook...</span>
@@ -1515,7 +1515,7 @@ export default function Gradebook() {
             <div className="gbd-card3d" style={{
               background: '#fff', borderRadius: 22, padding: '60px 24px', textAlign: 'center',
               color: '#5070B0', fontSize: 14,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               {search ? 'No students match your search.' : 'No students enrolled yet.'}
             </div>
@@ -1523,7 +1523,7 @@ export default function Gradebook() {
             <div className="gbd-card3d" style={{
               background: '#fff', borderRadius: 22, padding: '60px 24px', textAlign: 'center',
               color: '#5070B0', fontSize: 14,
-              boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
             }}>
               No units yet — click <strong style={{ color: '#0055FF' }}>+ Add Unit</strong> above to add one.
             </div>
@@ -1546,7 +1546,7 @@ export default function Gradebook() {
                     style={{
                       background: '#fff', borderRadius: 22, padding: 22,
                       position: 'relative', overflow: 'hidden',
-                      boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+                      boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
                     }}
                   >
                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: totalToneColor }} />
@@ -1678,7 +1678,7 @@ export default function Gradebook() {
                 style={{
                   background: '#fff', borderRadius: 22, padding: 22,
                   position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)',
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
                   border: '0.5px solid rgba(9,87,247,.1)',
                 }}
               >

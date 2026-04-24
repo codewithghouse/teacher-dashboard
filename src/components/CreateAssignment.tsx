@@ -200,8 +200,9 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
     RED: "#FF3355",
     ORANGE: "#FF8800",
     GOLD: "#FFAA00",
-    SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
-    SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+    SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+    SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
+    BDR: "0.5px solid rgba(0,85,255,0.07)",
     HEADER_GRAD: "linear-gradient(160deg, #000A33 0%, #001A66 55%, #0044CC 100%)",
   };
 

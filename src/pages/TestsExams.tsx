@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateTest from "../components/CreateTest";
 import EnterScores from "../components/EnterScores";
@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { Loader2, Search } from "lucide-react";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 // ── Design tokens (desktop) ──────────────────────────────────────────────────
 const T = {
@@ -32,8 +33,9 @@ const MA = {
   ORANGE: "#FF8800",
   GOLD: "#FFAA00",
   VIOLET: "#7B3FF4",
-  SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
-  SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+  SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+  SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
+  BDR: "0.5px solid rgba(0,85,255,0.07)",
   HERO_GRAD: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
 };
 
@@ -357,8 +359,9 @@ export default function TestsExams() {
             },
           ] as const).map(s => (
             <div key={s.key}
+              {...tilt3D}
               className="bg-white rounded-[20px] p-4 relative flex flex-col text-left"
-              style={{ boxShadow: MA.SH, fontFamily: MA.FONT }}>
+              style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
               <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
                 <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
                   {s.label}
@@ -376,7 +379,7 @@ export default function TestsExams() {
         </div>
 
         {/* Upcoming Tests section */}
-        <div className="mx-4 mb-[14px] p-[18px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+        <div className="mx-4 mb-[14px] p-[18px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
           <div className="flex items-center justify-between mb-[14px]">
             <div className="flex items-center gap-[11px]">
               <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white" style={{ background: MA.P }}>
@@ -499,7 +502,7 @@ export default function TestsExams() {
         </div>
 
         {/* Performance Overview */}
-        <div className="mx-4 mb-[14px] p-[18px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+        <div className="mx-4 mb-[14px] p-[18px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
           <div className="flex items-center justify-between mb-[14px]">
             <div className="flex items-center gap-[11px]">
               <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white" style={{ background: MA.GOLD }}>
@@ -815,8 +818,9 @@ export default function TestsExams() {
               },
             ] as const).map(s => (
               <div key={s.key}
+                {...tilt3D}
                 className="bg-white rounded-[22px] p-5 relative flex flex-col text-left"
-                style={{ boxShadow: MA.SH, fontFamily: MA.FONT }}>
+                style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
                 <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
                   <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
                     {s.label}
@@ -837,7 +841,7 @@ export default function TestsExams() {
           <div className="grid grid-cols-2 gap-4 mb-5">
 
             {/* Upcoming Tests */}
-            <div className="p-6 rounded-[22px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+            <div className="p-6 rounded-[22px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white" style={{ background: MA.P }}>
@@ -959,7 +963,7 @@ export default function TestsExams() {
             </div>
 
             {/* Performance Overview */}
-            <div className="p-6 rounded-[22px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+            <div className="p-6 rounded-[22px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white" style={{ background: MA.GOLD }}>

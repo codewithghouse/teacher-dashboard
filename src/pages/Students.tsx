@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -10,6 +10,7 @@ import { auditedAdd } from "../lib/auditedWrites";
 import { Loader2, X, UserPlus, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { sendStudentInviteEmail } from "../lib/resend";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 // ── Design tokens (desktop) ──────────────────────────────────────────────────
 const T = {
@@ -37,8 +38,9 @@ const MA = {
   GOLD: "#FFAA00",
   VIOLET: "#7B3FF4",
   TEAL: "#16B8B0",
-  SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
-  SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+  SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+  SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
+  BDR: "0.5px solid rgba(0,85,255,0.07)",
   HERO_GRAD: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
 };
 
@@ -515,11 +517,11 @@ export default function Students() {
         {/* Student list */}
         <div className="px-4">
           {loading ? (
-            <div className="bg-white rounded-[18px] py-10 flex justify-center" style={{ boxShadow: MA.SH }}>
+            <div className="bg-white rounded-[18px] py-10 flex justify-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
               <Loader2 className="w-7 h-7 animate-spin" style={{ color: MA.P }} />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-white rounded-[22px] pt-9 pb-7 px-5 text-center" style={{ boxShadow: MA.SH }}>
+            <div className="bg-white rounded-[22px] pt-9 pb-7 px-5 text-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
               <div className="relative w-[80px] h-[80px] rounded-[24px] flex items-center justify-center mx-auto mb-[18px]"
                 style={{
                   background: "linear-gradient(145deg, rgba(9,87,247,0.1) 0%, rgba(123,63,244,0.12) 100%)",
@@ -570,8 +572,9 @@ export default function Students() {
                     onClick={() => setSelectedStudent(stu)}
                     role="button" tabIndex={0}
                     onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStudent(stu); } }}
+                    {...tilt3D}
                     className="bg-white rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
-                    style={{ boxShadow: MA.SH }}>
+                    style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
                     <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: tone.accent }} />
 
                     <div className="flex items-center gap-[12px] mb-[12px]">
@@ -918,11 +921,11 @@ export default function Students() {
           {/* Student cards grid */}
           <div className="mb-5">
             {loading ? (
-              <div className="bg-white rounded-[22px] py-14 flex justify-center" style={{ boxShadow: MA.SH }}>
+              <div className="bg-white rounded-[22px] py-14 flex justify-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
                 <Loader2 className="w-9 h-9 animate-spin" style={{ color: MA.P }} />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="bg-white rounded-[22px] pt-12 pb-10 px-6 text-center" style={{ boxShadow: MA.SH }}>
+              <div className="bg-white rounded-[22px] pt-12 pb-10 px-6 text-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
                 <div className="relative w-[96px] h-[96px] rounded-[28px] flex items-center justify-center mx-auto mb-[20px]"
                   style={{
                     background: "linear-gradient(145deg, rgba(9,87,247,0.1) 0%, rgba(123,63,244,0.12) 100%)",
@@ -973,8 +976,9 @@ export default function Students() {
                       onClick={() => setSelectedStudent(stu)}
                       role="button" tabIndex={0}
                       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStudent(stu); } }}
-                      className="bg-white rounded-[20px] p-5 relative overflow-hidden hover:-translate-y-[2px] active:scale-[0.99] transition-all cursor-pointer"
-                      style={{ boxShadow: MA.SH }}>
+                      {...tilt3D}
+                      className="bg-white rounded-[20px] p-5 relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
+                      style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
                       <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: tone.accent }} />
 
                       <div className="flex items-center gap-3 mb-[14px]">

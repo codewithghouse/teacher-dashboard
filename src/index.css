@@ -335,8 +335,8 @@ a[class*="rounded-xl"][class*="border"] {
     0 4px 16px rgba(0, 85, 255, 0.12),
     0 18px 44px rgba(0, 85, 255, 0.15);
   transition:
-    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.22s ease;
+    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
   cursor: pointer;
   will-change: transform, box-shadow;
   backface-visibility: hidden;
@@ -345,9 +345,11 @@ a[class*="rounded-xl"][class*="border"] {
 }
 
 /* Strong hover — DESKTOP. Matches principal dashboard's signature:
-   5px lift + 1.02 scale + intensified blue halo. No !important so
-   `tilt3D` JS handlers (which use setProperty !important) win on cards
-   that explicitly attach them. */
+   5px lift + 1.02 scale + intensified blue halo. Uses !important so that
+   components providing a resting `style={{ boxShadow }}` inline don't
+   freeze the shadow on hover. `tilt3D` JS handlers also use inline
+   !important, which beats CSS !important (inline always wins ties) — so
+   cards that explicitly attach tilt3D still drive their own hover. */
 @media (hover: hover) and (pointer: fine) {
   .clickable-card:hover,
   .ds-card:hover,
@@ -361,11 +363,11 @@ a[class*="rounded-xl"][class*="border"] {
   a[class*="rounded-2xl"]:hover,
   a[class*="rounded-3xl"]:hover,
   a[class*="rounded-xl"][class*="border"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.02);
+    transform: translate3d(0, -5px, 0) scale(1.02) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18);
+      0 20px 46px rgba(0, 85, 255, 0.18) !important;
     z-index: 2;
   }
 }
@@ -390,8 +392,34 @@ a[class*="rounded-3xl"]:active {
     box-shadow 0.1s ease;
 }
 
-/* Dark hero / gradient cards — softer tilt, warmer shadow */
+/* Dark hero / gradient cards — softer tilt, warmer shadow.
+   More-specific selectors than the base halo rule so they win and the
+   gradient card keeps its own colored shadow family on hover instead of
+   jumping to the generic blue halo. */
 @media (hover: hover) and (pointer: fine) {
+  /* Red / orange gradient hero (e.g. Weak Concepts callout) — red halo */
+  [class*="-card3d"][style*="linear-gradient(135deg,#FF"]:hover,
+  [class*="-card3d"][style*="linear-gradient(135deg, #FF"]:hover,
+  div[style*="linear-gradient(135deg,#FF3355"]:hover,
+  div[style*="linear-gradient(135deg, #FF3355"]:hover {
+    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    box-shadow:
+      0 22px 52px rgba(255, 51, 85, 0.5),
+      0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+  }
+
+  /* Dark blue / navy gradient hero (e.g. Concept Mastery Summary) — navy halo */
+  [class*="-card3d"][style*="linear-gradient(135deg,#001"]:hover,
+  [class*="-card3d"][style*="linear-gradient(135deg,#000"]:hover,
+  [class*="-card3d"][style*="linear-gradient(135deg, #001"]:hover,
+  [class*="-card3d"][style*="linear-gradient(135deg, #000"]:hover {
+    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    box-shadow:
+      0 22px 52px rgba(0, 8, 60, 0.48),
+      0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+  }
+
+  /* Legacy wrappers using rounded-2xl/3xl with gradients (principal dashboard pattern) */
   [class*="rounded-2xl"][style*="linear-gradient"]:hover,
   [class*="rounded-3xl"][style*="linear-gradient"]:hover,
   div[style*="linear-gradient(135deg, #000"]:hover,
@@ -419,11 +447,11 @@ a[class*="rounded-3xl"]:active {
   [class*="bg-slate-50"][class*="rounded-"]:hover,
   [class*="bg-sky-50"][class*="rounded-"]:hover,
   [class*="bg-teal-50"][class*="rounded-"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.02);
+    transform: translate3d(0, -5px, 0) scale(1.02) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18);
+      0 20px 46px rgba(0, 85, 255, 0.18) !important;
     z-index: 2;
   }
 }
@@ -438,18 +466,18 @@ button[class*="rounded-2xl"],
 button[class*="rounded-3xl"],
 button[class*="rounded-xl"][class*="border"] {
   transition:
-    transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
-    box-shadow 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 @media (hover: hover) and (pointer: fine) {
   button[class*="rounded-2xl"]:not([disabled]):hover,
   button[class*="rounded-3xl"]:not([disabled]):hover,
   button[class*="rounded-xl"][class*="border"]:not([disabled]):hover {
-    transform: translate3d(0, -4px, 0) scale(1.02);
+    transform: translate3d(0, -4px, 0) scale(1.02) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18);
+      0 20px 46px rgba(0, 85, 255, 0.18) !important;
   }
 }
 

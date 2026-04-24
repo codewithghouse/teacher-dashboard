@@ -10,6 +10,10 @@ import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
+
+const HALO_SH = "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)";
+const HALO_BDR = "0.5px solid rgba(0,85,255,0.07)";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Alert {
@@ -790,7 +794,7 @@ const RisksAlerts = () => {
                     style={{
                       background: "#fff", borderRadius: 20, padding: 16,
                       display: "flex", flexDirection: "column",
-                      boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                       textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
@@ -850,14 +854,14 @@ const RisksAlerts = () => {
 
               {/* Alerts list */}
               {loading ? (
-                <div className="ra-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)" }}>
+                <div className="ra-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)" }}>
                   <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5070B0" }} />
                   <span style={{ fontSize: 12, color: "#5070B0" }}>Loading alerts…</span>
                 </div>
               ) : visible.length === 0 ? (
                 <div className="ra-card3d" style={{
                   background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center",
-                  boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                  boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 }}>
                   <div style={{
                     width: 78, height: 78, borderRadius: 24,
@@ -906,7 +910,7 @@ const RisksAlerts = () => {
                     style={{
                       background: "#fff", borderRadius: 20, padding: 14, marginBottom: 10,
                       position: "relative", overflow: "hidden", cursor: "pointer",
-                      boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 4px 14px rgba(9,87,247,.08)",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                     }}
                   >
                     <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: accentColor }} />
@@ -1715,186 +1719,502 @@ const RisksAlerts = () => {
 
       </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
 
-      {/* ═══════════════════ DESKTOP VIEW ═══════════════════ */}
-      <div className="hidden md:block">
+      {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
+      <div
+        className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+        style={{
+          background: '#EEF4FF',
+          minHeight: '100vh',
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        <style>{`
+          .rad-card3d { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+          @media (hover:hover) {
+            .rad-card3d:hover { transform: perspective(1100px) translateY(-5px) rotateX(3deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 24px 54px rgba(0,16,64,.2), 0 6px 18px rgba(0,85,255,.18); }
+          }
+          .rad-tile { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); cursor: pointer; }
+          @media (hover:hover) {
+            .rad-tile:hover { transform: perspective(1100px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.025); }
+          }
+          .rad-btn { transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+          .rad-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+          .rad-btn:active { transform: scale(.96); }
+          .rad-row { transition: transform .3s ease; }
+          .rad-row:hover { transform: translateX(3px); }
+          .rad-chip { transition: all .2s ease; }
+          .rad-chip:hover { transform: translateY(-1px); }
+          @keyframes radFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+          .rad-enter > * { animation: radFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
+          .rad-enter > *:nth-child(1) { animation-delay: .04s; }
+          .rad-enter > *:nth-child(2) { animation-delay: .10s; }
+          .rad-enter > *:nth-child(3) { animation-delay: .16s; }
+          .rad-enter > *:nth-child(4) { animation-delay: .22s; }
+          .rad-enter > *:nth-child(5) { animation-delay: .28s; }
+          .rad-enter > *:nth-child(6) { animation-delay: .34s; }
+          @keyframes radPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.25); } }
+          .rad-pulse-d { animation: radPulse 1.6s ease-in-out infinite; }
+        `}</style>
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-slate-900 leading-tight tracking-tight">Risks &amp; Alerts</h1>
-          <p className="text-sm text-slate-500 mt-1">Monitor and respond to student concerns.</p>
-        </div>
+        <div className="rad-enter max-w-[1600px] mx-auto">
 
-        {/* 4 stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div
-            onClick={() => navigate("/students")}
-            role="button"
-            tabIndex={0}
-            className="clickable-card rounded-2xl p-5 shadow-sm border"
-            style={{ background: T.rlBg, borderColor: T.rlBdr }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white">
-                <TriAlertIco c={T.red} />
+          {/* ═══ Page Head ═══ */}
+          <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  className={criticalCount > 0 ? 'rad-pulse-d' : ''}
+                  style={{
+                    width: 6, height: 6, borderRadius: 2,
+                    background: criticalCount > 0 ? '#FF3355' : '#0055FF',
+                    display: 'inline-block',
+                    boxShadow: criticalCount > 0 ? '0 0 10px rgba(255,51,85,.5)' : 'none',
+                  }}
+                />
+                Teacher Dashboard · {hc.eyebrow}
               </div>
-              <div>
-                <p className="text-[30px] font-bold leading-none" style={{ color: T.red }}>{criticalCount}</p>
-                <p className="text-xs font-semibold mt-1.5" style={{ color: T.red }}>Critical</p>
-              </div>
-            </div>
-          </div>
-          <div
-            onClick={() => navigate("/students")}
-            role="button"
-            tabIndex={0}
-            className="clickable-card rounded-2xl p-5 shadow-sm border"
-            style={{ background: T.alBg, borderColor: T.alBdr }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white">
-                <CircleInfoIco c={T.amb} />
-              </div>
-              <div>
-                <p className="text-[30px] font-bold leading-none" style={{ color: T.amb }}>{highCount}</p>
-                <p className="text-xs font-semibold mt-1.5" style={{ color: T.amb }}>High Priority</p>
+              <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+                {hc.line1} <span style={{ color: criticalCount > 0 ? '#FF3355' : '#0055FF' }}>{hc.line2}</span>
+              </h1>
+              <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
+                {hc.sub}
               </div>
             </div>
-          </div>
-          <div
-            onClick={() => navigate("/students")}
-            role="button"
-            tabIndex={0}
-            className="clickable-card rounded-2xl p-5 shadow-sm border"
-            style={{ background: T.blBg, borderColor: T.blBdr }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white">
-                <CircleInfoIco c={T.blue} />
-              </div>
-              <div>
-                <p className="text-[30px] font-bold leading-none" style={{ color: T.blue }}>{mediumCount}</p>
-                <p className="text-xs font-semibold mt-1.5" style={{ color: T.blue }}>Medium Priority</p>
-              </div>
-            </div>
-          </div>
-          <div
-            onClick={() => navigate("/gradebook")}
-            role="button"
-            tabIndex={0}
-            className="clickable-card rounded-2xl p-5 shadow-sm border"
-            style={{ background: T.glBg, borderColor: T.glBdr }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white">
-                <CheckIco c={T.grn2} />
-              </div>
-              <div>
-                <p className="text-[30px] font-bold leading-none" style={{ color: T.grn2 }}>{resolvedCount}</p>
-                <p className="text-xs font-semibold mt-1.5" style={{ color: T.grn2 }}>Resolved This Week</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex items-center gap-1 px-5 pt-4 border-b border-slate-100">
-            {FILTER_TABS.map(tab => (
+            <div className="flex items-center gap-3 flex-wrap">
+              {criticalCount > 0 && (
+                <div
+                  className="rad-chip"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '10px 16px', borderRadius: 14,
+                    background: 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)',
+                    color: '#fff',
+                    fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                    boxShadow: '0 6px 20px rgba(255,51,85,.35), 0 2px 5px rgba(255,51,85,.2)',
+                  }}
+                >
+                  <span className="rad-pulse-d" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }}/>
+                  {criticalCount} Critical{criticalCount > 1 ? ' Alerts' : ' Alert'}
+                </div>
+              )}
               <button
-                key={tab.id}
                 type="button"
-                aria-pressed={activeTab === tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                  activeTab === tab.id ? 'border-[#1e3272] text-[#1e3272]' : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
+                onClick={() => navigate('/students')}
+                className="rad-btn"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  height: 42, padding: '0 18px', borderRadius: 14,
+                  background: '#fff', color: '#0055FF',
+                  border: '0.5px solid rgba(0,85,255,.12)',
+                  fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 14px rgba(0,85,255,.08)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
               >
-                {tab.label}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                View Students
               </button>
+            </div>
+          </div>
+
+          {/* Dark Hero Banner */}
+          {(() => {
+            const statusColor = criticalCount > 0 ? '#FF99AA' : totalCount > 0 ? '#FFD088' : '#6FFFAA';
+            const statusLabel = criticalCount > 0 ? 'URGENT ACTION' : totalCount > 0 ? 'MONITORING' : 'ALL CLEAR';
+            return (
+              <div
+                className="rad-card3d"
+                style={{
+                  background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
+                  borderRadius: 24, padding: '28px 32px', color: '#fff',
+                  position: 'relative', overflow: 'hidden',
+                  boxShadow: '0 14px 40px rgba(0,8,60,.32), 0 0 0 .5px rgba(255,255,255,.12)',
+                  marginBottom: 22,
+                }}
+              >
+                <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: `radial-gradient(circle, ${criticalCount > 0 ? 'rgba(255,51,85,.22)' : 'rgba(255,255,255,.12)'} 0%, transparent 65%)`, borderRadius: '50%', pointerEvents: 'none' }}/>
+                <div style={{ position: 'absolute', bottom: -80, left: -60, width: 260, height: 260, background: 'radial-gradient(circle, rgba(111,255,170,.14) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, flex: 1, minWidth: 320 }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: 16,
+                      background: 'rgba(255,255,255,.16)', border: '0.5px solid rgba(255,255,255,.26)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+                    }}>
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
+                        {statusLabel}
+                      </div>
+                      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
+                        {criticalCount}
+                      </h2>
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '8px 0 0 0', lineHeight: 1.55 }}>
+                        {criticalCount === 0 ? (
+                          <>All students on track — <b style={{ color: '#fff', fontWeight: 700 }}>{totalCount} alert{totalCount === 1 ? '' : 's'}</b> still open across non-critical severity.</>
+                        ) : (
+                          <><b style={{ color: '#fff', fontWeight: 700 }}>{criticalCount} student{criticalCount === 1 ? '' : 's'}</b> need your outreach immediately — flagged critical. Resolved {resolvedCount} already this week.</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px,1fr))', gap: 10 }}>
+                    {[
+                      { label: 'Attendance', value: attCount.toString(), color: '#FFD088' },
+                      { label: 'Grades',     value: gradesCount.toString(), color: '#FF99AA' },
+                      { label: 'Resolved',   value: resolvedCount.toString(), color: '#6FFFAA' },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '12px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Bright 4-col KPI Tiles */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {[
+              { label: 'Critical', value: criticalCount.toString(), sub: criticalCount > 0 ? 'Needs outreach now' : 'No critical alerts', grad: 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)', onClick: () => setActiveTab('All') },
+              { label: 'High Priority', value: highCount.toString(), sub: highCount > 0 ? 'Follow up this week' : 'Stable', grad: 'linear-gradient(135deg,#FF8800 0%,#FFAA44 100%)', onClick: () => setActiveTab('All') },
+              { label: 'Medium Priority', value: mediumCount.toString(), sub: mediumCount > 0 ? 'Keep monitoring' : 'Class is steady', grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)', onClick: () => setActiveTab('All') },
+              { label: 'Resolved This Week', value: resolvedCount.toString(), sub: resolvedCount > 0 ? 'Great follow-through' : 'No resolutions yet', grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => navigate('/gradebook') },
+            ].map(k => (
+              <div
+                key={k.label}
+                onClick={k.onClick}
+                role="button"
+                tabIndex={0}
+                className="rad-tile"
+                style={{
+                  background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                  position: 'relative', overflow: 'hidden',
+                  boxShadow: '0 0 0 .5px rgba(255,255,255,.15), 0 14px 38px rgba(0,85,255,.26), 0 4px 12px rgba(0,85,255,.18)',
+                }}
+              >
+                <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {k.label === 'Critical' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                    {k.label === 'High Priority' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+                    {k.label === 'Medium Priority' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>}
+                    {k.label === 'Resolved This Week' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
+                  </div>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+              </div>
             ))}
           </div>
 
-          {/* Alert rows */}
-          <div className="p-5 space-y-3">
-            {visible.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-sm font-semibold text-slate-600">
-                  {activeTab === 'All' ? 'All students on track' : activeTab === 'Attendance' ? 'No attendance concerns' : 'No grade concerns'}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">No active alerts.</p>
+          {/* Filter Tabs as chips */}
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            {FILTER_TABS.map(tab => {
+              const active = activeTab === tab.id;
+              const tabGrad = tab.id === 'Attendance'
+                ? 'linear-gradient(135deg,#FF8800 0%,#FFAA44 100%)'
+                : tab.id === 'Grades'
+                ? 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)'
+                : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)';
+              const tabCount = tab.id === 'All' ? totalCount : tab.id === 'Attendance' ? attCount : gradesCount;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-pressed={active}
+                  className="rad-chip"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '9px 16px', borderRadius: 999,
+                    background: active ? tabGrad : '#fff',
+                    color: active ? '#fff' : '#5070B0',
+                    border: active ? 'none' : '0.5px solid rgba(0,85,255,.12)',
+                    boxShadow: active ? '0 6px 18px rgba(0,16,64,.22), 0 2px 5px rgba(0,0,0,.06)' : '0 1px 2px rgba(0,85,255,.06)',
+                    fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {tab.id}
+                  <span style={{
+                    padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+                    background: active ? 'rgba(255,255,255,.28)' : 'rgba(0,85,255,.08)',
+                    color: active ? '#fff' : '#0055FF',
+                  }}>{tabCount}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Alerts List card */}
+          <div
+            style={{
+              background: '#fff', borderRadius: 22,
+              border: '0.5px solid rgba(0,85,255,.08)',
+              boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 16px rgba(0,85,255,.08), 0 18px 44px rgba(0,85,255,.10)',
+              overflow: 'hidden', marginBottom: 22,
+            }}
+          >
+            <div style={{ padding: '16px 22px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px rgba(0,85,255,.28)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>
+                    {activeTab === 'All' ? 'All Active Alerts' : activeTab === 'Attendance' ? 'Attendance Alerts' : 'Grade Alerts'}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
+                    {visible.length} shown · prioritised by severity
+                  </div>
+                </div>
               </div>
-            ) : (
-              visible.map(a => {
-                const sev = SEV[a.severity];
-                return (
-                  <div
-                    key={a.id}
-                    className="rounded-xl border-l-4 p-4 flex items-start gap-4"
-                    style={{ background: sev.bg, borderLeftColor: sev.color, borderColor: sev.bdr, borderStyle: 'solid', borderWidth: '1px 1px 1px 4px' }}
-                  >
+            </div>
+
+            <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {visible.length === 0 ? (
+                <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 24px rgba(0,200,83,.28)' }}>
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>
+                      {activeTab === 'All' ? 'All students on track' : activeTab === 'Attendance' ? 'No attendance concerns' : 'No grade concerns'}
+                    </p>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: '#5070B0', margin: '6px 0 0 0' }}>
+                      Keep it up — no active alerts in this filter.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                visible.map(a => {
+                  const sevColor = a.severity === 'Critical' ? '#FF3355' : a.severity === 'High Priority' ? '#FF8800' : '#0055FF';
+                  const sevGrad = a.severity === 'Critical'
+                    ? 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)'
+                    : a.severity === 'High Priority'
+                    ? 'linear-gradient(135deg,#FF8800 0%,#FFAA44 100%)'
+                    : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)';
+                  const sevBg = a.severity === 'Critical'
+                    ? 'rgba(255,51,85,.05)'
+                    : a.severity === 'High Priority'
+                    ? 'rgba(255,136,0,.05)'
+                    : 'rgba(0,85,255,.035)';
+                  const actionLabel = a.severity === 'Critical'
+                    ? 'Contact Parent'
+                    : a.type === 'Attendance'
+                    ? 'Send Reminder'
+                    : a.type === 'Grades'
+                    ? 'Schedule Meeting'
+                    : 'Talk to Student';
+                  return (
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: avBg(a.name) }}
+                      key={a.id}
+                      className="rad-row rad-card3d"
+                      style={{
+                        background: sevBg, borderRadius: 16,
+                        border: `0.5px solid ${sevColor}33`,
+                        padding: '14px 16px 14px 20px',
+                        display: 'flex', alignItems: 'flex-start', gap: 14,
+                        position: 'relative', overflow: 'hidden',
+                      }}
                     >
-                      {a.initials || getInitials(a.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-sm font-bold text-slate-900">{a.name}</p>
-                        <span
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: sev.color, color: '#fff' }}
-                        >
-                          {a.severity}
-                        </span>
-                        <span className="text-xs text-slate-500">{a.cls}</span>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: sevGrad }}/>
+
+                      <div style={{
+                        width: 44, height: 44, borderRadius: '50%',
+                        background: avBg(a.name), color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 800, flexShrink: 0,
+                        boxShadow: `0 4px 12px ${avBg(a.name)}55`,
+                      }}>
+                        {a.initials || getInitials(a.name)}
                       </div>
-                      <p className="text-sm text-slate-700">{a.issue}</p>
-                      {a.details.length > 0 && (
-                        <div className="flex items-center gap-4 mt-1 flex-wrap">
-                          {a.details.map((d, i) => (
-                            <span key={i} className="text-xs text-slate-500">{d}</span>
-                          ))}
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{a.name}</p>
+                          <span
+                            style={{
+                              fontSize: 9, fontWeight: 800, padding: '3px 10px', borderRadius: 999,
+                              background: sevGrad, color: '#fff',
+                              letterSpacing: '0.1em', textTransform: 'uppercase',
+                              boxShadow: `0 3px 8px ${sevColor}40`,
+                            }}
+                          >
+                            {a.severity}
+                          </span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                            background: 'rgba(0,85,255,.08)', color: '#0055FF',
+                            letterSpacing: '0.04em',
+                          }}>
+                            {a.cls}
+                          </span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                            background: 'rgba(80,112,176,.08)', color: '#5070B0',
+                            letterSpacing: '0.04em',
+                          }}>
+                            {a.type}
+                          </span>
                         </div>
-                      )}
+                        <p style={{ fontSize: 13, fontWeight: 600, color: '#001040', margin: '4px 0 0 0', lineHeight: 1.5 }}>{a.issue}</p>
+                        {a.details.length > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                            {a.details.map((d, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
+                                  background: '#fff', color: '#5070B0',
+                                  border: '0.5px solid rgba(0,85,255,.08)',
+                                }}
+                              >
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => fetchContact(a.studentId, a.name)}
+                          className="rad-btn"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '9px 14px', borderRadius: 11,
+                            background: sevGrad, color: '#fff',
+                            fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            boxShadow: `0 6px 18px ${sevColor}45, 0 2px 5px ${sevColor}22`,
+                          }}
+                        >
+                          {actionLabel}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolve(a)}
+                          disabled={resolving === a.id}
+                          className="rad-btn"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '9px 14px', borderRadius: 11,
+                            background: '#fff', color: '#087F5B',
+                            border: '0.5px solid rgba(0,200,83,.28)',
+                            fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                            cursor: resolving === a.id ? 'not-allowed' : 'pointer',
+                            opacity: resolving === a.id ? 0.6 : 1,
+                            fontFamily: 'inherit',
+                            boxShadow: '0 1px 2px rgba(0,200,83,.08)',
+                          }}
+                        >
+                          {resolving === a.id ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Resolving
+                            </>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                              </svg>
+                              Resolved
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {a.severity === 'Critical' ? (
-                        <button
-                          type="button"
-                          onClick={() => fetchContact(a.studentId, a.name)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                          style={{ background: T.red }}
-                        >
-                          Contact Parent
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => fetchContact(a.studentId, a.name)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                          style={{ background: sev.color }}
-                        >
-                          {a.type === 'Attendance' ? 'Send Reminder' : a.type === 'Grades' ? 'Schedule Meeting' : 'Talk to Student'}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(a)}
-                        disabled={resolving === a.id}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {resolving === a.id ? "Resolving…" : "Mark Resolved"}
-                      </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* AI Intelligence card */}
+          {totalCount > 0 && (() => {
+            const mostFlagged = [...visible].reduce((acc, a) => { acc[a.name] = (acc[a.name] || 0) + 1; return acc; }, {} as Record<string, number>);
+            const topNames = Object.entries(mostFlagged).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([n]) => n);
+            const leadLine = criticalCount > 0
+              ? `${criticalCount} critical alert${criticalCount!==1?'s':''} need immediate outreach — ${topNames.length > 0 ? `prioritise ${topNames.join(' and ')}` : 'contact parents today'}.`
+              : `${totalCount} alert${totalCount!==1?'s':''} open — ${highCount} high-priority item${highCount!==1?'s':''} to follow up this week.`;
+            return (
+              <div
+                className="rad-card3d"
+                style={{
+                  background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
+                  borderRadius: 22, padding: '24px 28px', color: '#fff',
+                  position: 'relative', overflow: 'hidden',
+                  boxShadow: '0 14px 40px rgba(0,8,60,.32), 0 0 0 .5px rgba(255,255,255,.12)',
+                }}
+              >
+                <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                <div style={{ position: 'absolute', top: -30, right: -20, width: 200, height: 200, background: `radial-gradient(circle, ${criticalCount > 0 ? 'rgba(255,51,85,.22)' : 'rgba(255,255,255,.12)'} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }}/>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, position: 'relative', zIndex: 1, marginBottom: 18 }}>
+                  <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      AI Risk Intelligence
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                      Risk Summary &amp; Outreach Plan
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
+                      {leadLine}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, position: 'relative', zIndex: 1 }}>
+                  {[
+                    { label: 'Outreach Queue', value: criticalCount.toString(), sub: criticalCount > 0 ? 'Critical · today' : 'All clear', color: criticalCount > 0 ? '#FF99AA' : '#6FFFAA' },
+                    { label: 'Attendance',     value: attCount.toString(),     sub: attCount > 0 ? 'Send reminders' : 'On track', color: attCount > 0 ? '#FFD088' : '#6FFFAA' },
+                    { label: 'Grade Gaps',     value: gradesCount.toString(),  sub: gradesCount > 0 ? 'Schedule meetings' : 'Healthy', color: gradesCount > 0 ? '#FF99AA' : '#C8A4FF' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 1 }}>
+                  <div style={{ flex: 1, height: 10, borderRadius: 999, background: 'rgba(255,255,255,.12)', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${(criticalCount / maxBar) * 100}%`, background: 'linear-gradient(90deg,#FF3355,#FF6677)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
+                    <div style={{ width: `${(highCount / maxBar) * 100}%`, background: 'linear-gradient(90deg,#FF8800,#FFAA44)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
+                    <div style={{ width: `${(mediumCount / maxBar) * 100}%`, background: 'linear-gradient(90deg,#0055FF,#2277FF)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {totalCount} open
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
-      </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}
+        </div>
+      </div>{/* END DESKTOP VIEW */}
 
     </div>
   );

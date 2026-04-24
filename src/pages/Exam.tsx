@@ -1,8 +1,9 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Printer, Copy, RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 // ── Mobile tokens (matches Students page) ────────────────────────────────────
 const MA = {
@@ -19,8 +20,9 @@ const MA = {
   GOLD: "#FFAA00",
   VIOLET: "#7B3FF4",
   TEAL: "#16B8B0",
-  SH: "0 0.5px 1px rgba(9,87,247,0.04), 0 4px 14px rgba(9,87,247,0.08)",
-  SH_SM: "0 0.5px 1px rgba(9,87,247,0.04), 0 2px 10px rgba(9,87,247,0.06)",
+  SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+  SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
+  BDR: "0.5px solid rgba(0,85,255,0.07)",
   HERO_GRAD: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
 };
 
@@ -249,7 +251,7 @@ const Exam = () => {
         </div>
 
         {/* Form card */}
-        <div className="mx-4 mb-[14px] rounded-[22px] p-[16px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+        <div className="mx-4 mb-[14px] rounded-[22px] p-[16px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
           <SectionLabel>Basics</SectionLabel>
 
           <MField label="Subject">
@@ -385,14 +387,14 @@ const Exam = () => {
 
         {/* Output */}
         {loading && !paper && (
-          <div className="mx-4 bg-white rounded-[22px] py-10 flex flex-col items-center gap-[10px]" style={{ boxShadow: MA.SH }}>
+          <div className="mx-4 bg-white rounded-[22px] py-10 flex flex-col items-center gap-[10px]" style={{ boxShadow: MA.SH, border: MA.BDR }}>
             <Loader2 className="w-7 h-7 animate-spin" style={{ color: MA.P }} />
             <div className="text-[12px] font-semibold" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>AI aapka paper bana raha hai…</div>
           </div>
         )}
 
         {paper && (
-          <div className="mx-4 mb-[14px] rounded-[22px] overflow-hidden" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+          <div className="mx-4 mb-[14px] rounded-[22px] overflow-hidden" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
             <PaperHeader paper={paper} form={form} />
             <div className="px-[16px] py-[14px]">
               <div className="flex gap-[8px] mb-[14px]">
@@ -478,7 +480,7 @@ const Exam = () => {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
             {/* Form card */}
-            <div className="lg:col-span-2 rounded-[22px] p-6" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+            <div className="lg:col-span-2 rounded-[22px] p-6" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
               <SectionLabel>Basics</SectionLabel>
 
               <MField label="Subject">
@@ -613,7 +615,7 @@ const Exam = () => {
             </div>
 
             {/* Output panel */}
-            <div className="lg:col-span-3 rounded-[22px] overflow-hidden" style={{ background: MA.CARD, boxShadow: MA.SH }}>
+            <div className="lg:col-span-3 rounded-[22px] overflow-hidden" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
               {!paper && !loading && (
                 <div className="h-full flex flex-col items-center justify-center py-24 px-8 text-center">
                   <div className="w-20 h-20 rounded-[22px] flex items-center justify-center mb-5"
