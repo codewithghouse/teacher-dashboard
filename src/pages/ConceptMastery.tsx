@@ -344,6 +344,22 @@ const ConceptMastery = () => {
     );
   }
 
+  // Hover handlers — matches Dashboard vibe: clean translate + scale, no rotation
+  // (rotateX/Y causes sub-pixel text blur). Same lift/scale as .cmd-card3d.
+  const handle3DEnter = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    el.style.transition = "transform 0.22s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.22s ease";
+    el.style.transform = "translate3d(0,-5px,0) scale(1.02)";
+  };
+  const handle3DMove = (_e: React.MouseEvent<HTMLElement>) => {
+    // no-op — no cursor tracking, keeps text crisp
+  };
+  const handle3DLeave = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    el.style.transition = "transform 0.28s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.28s ease";
+    el.style.transform = "translate3d(0,0,0) scale(1)";
+  };
+
   // ── Main view ─────────────────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: 'inherit', minHeight: '100vh' }} className="text-left pb-24">
@@ -358,11 +374,9 @@ const ConceptMastery = () => {
         }}
       >
         <style>{`
-          .cm-card3d { transition: transform .45s cubic-bezier(.22,.61,.36,1), box-shadow .45s cubic-bezier(.22,.61,.36,1); will-change: transform, box-shadow; }
-          @media (hover:hover) {
-            .cm-card3d:hover { transform: translateY(-5px) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); }
-          }
-          .cm-card3d:active { transform: translateY(-1px) scale(.99); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); transition: transform .15s cubic-bezier(.22,.61,.36,1), box-shadow .15s cubic-bezier(.22,.61,.36,1); }
+          .cm-card3d { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
+          @media (hover:hover) { .cm-card3d:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
+          .cm-card3d:active { transform: translate3d(0,-1px,0) scale(.985); box-shadow: 0 0 0 .5px rgba(0,85,255,.12), 0 6px 16px rgba(0,85,255,.14) !important; }
           .cm-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
           .cm-press:active { transform: scale(.94); }
           @keyframes cmFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -863,14 +877,10 @@ const ConceptMastery = () => {
         }}
       >
         <style>{`
-          .cmd-card3d { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
-          @media (hover:hover) {
-            .cmd-card3d:hover { transform: perspective(1100px) translateY(-5px) rotateX(3deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 24px 54px rgba(0,16,64,.2), 0 6px 18px rgba(0,85,255,.18); }
-          }
-          .cmd-tile { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); cursor: pointer; }
-          @media (hover:hover) {
-            .cmd-tile:hover { transform: perspective(1100px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.025); }
-          }
+          .cmd-card3d { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
+          @media (hover:hover) { .cmd-card3d:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
+          .cmd-tile { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; cursor: pointer; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
+          @media (hover:hover) { .cmd-tile:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
           .cmd-row { transition: background .2s ease, transform .2s ease; }
           .cmd-row:hover { background: rgba(0,85,255,.05) !important; transform: translateX(3px); }
           .cmd-btn { transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
@@ -1358,7 +1368,9 @@ const ConceptMastery = () => {
             const hasWeak = weakList.length > 0;
             return (
               <div
-                className="cmd-card3d"
+                onMouseEnter={handle3DEnter}
+                onMouseMove={handle3DMove}
+                onMouseLeave={handle3DLeave}
                 style={{
                   background: hasWeak
                     ? 'linear-gradient(135deg,#FF3355 0%,#FF5577 50%,#FF8800 100%)'
@@ -1369,6 +1381,8 @@ const ConceptMastery = () => {
                     ? '0 14px 40px rgba(255,51,85,.35), 0 0 0 .5px rgba(255,255,255,.12)'
                     : '0 14px 40px rgba(0,8,60,.32), 0 0 0 .5px rgba(255,255,255,.12)',
                   marginBottom: 24,
+                  transformStyle: 'preserve-3d',
+                  willChange: 'transform',
                 }}
               >
                 <div style={{ position: 'absolute', top: -40, right: -30, width: 200, height: 200, background: 'radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -1462,12 +1476,16 @@ const ConceptMastery = () => {
               : `Class has significant gaps at ${classMasteryPct}% average. Prioritise remediation on the weakest concepts immediately.`;
             return (
               <div
-                className="cmd-card3d"
+                onMouseEnter={handle3DEnter}
+                onMouseMove={handle3DMove}
+                onMouseLeave={handle3DLeave}
                 style={{
                   background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                   borderRadius: 22, padding: '24px 28px', color: '#fff',
                   position: 'relative', overflow: 'hidden',
                   boxShadow: '0 14px 40px rgba(0,8,60,.32), 0 0 0 .5px rgba(255,255,255,.12)',
+                  transformStyle: 'preserve-3d',
+                  willChange: 'transform',
                 }}
               >
                 <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>

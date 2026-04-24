@@ -8,6 +8,8 @@ import {
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
+import { useIsMobile } from "../hooks/use-mobile";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -75,10 +77,15 @@ interface PrincipalMessage {
 // ── Main component ────────────────────────────────────────────────────────────
 const PrincipalNotes = () => {
   const { teacherData } = useAuth();
+  const isMobile = useIsMobile();
   const [allMessages, setAllMessages]       = useState<PrincipalMessage[]>([]);
   const [loading, setLoading]               = useState(true);
   const [messageContent, setMessageContent] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  // Track whether user is near the bottom so we only auto-scroll if they are.
+  // If user has scrolled up to read older messages, don't yank them back.
+  const stickToBottomRef = useRef<boolean>(true);
 
   // ── Firebase listener ───────────────────────────────────────────────────
   useEffect(() => {
@@ -110,8 +117,25 @@ const PrincipalNotes = () => {
     return () => unsub();
   }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
-  // Scroll to bottom
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [allMessages]);
+  // Scroll the chat container to bottom only if user is already near the bottom.
+  // This prevents the page from yanking down when the user has scrolled up to
+  // read older messages and a Firestore snapshot fires (e.g. mark-read update).
+  // CRITICAL: only touches the chat container's own scrollTop — never the window.
+  useEffect(() => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    if (stickToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [allMessages]);
+
+  // Update "near bottom" tracking on scroll inside the chat container.
+  const handleChatScroll = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
+  };
 
   // ── Computed values ─────────────────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -168,382 +192,536 @@ const PrincipalNotes = () => {
   const lastSeenStr = lastPrincipalMsg ? `Online · Last seen ${fmtTime(lastPrincipalMsg.timestamp)}` : "Offline";
 
   // ── Render ──────────────────────────────────────────────────────────────
+  // Render only ONE view at a time based on viewport — prevents both
+  // mobile and desktop content from mounting simultaneously.
+  if (isMobile) {
+    return (
+      <MobilePrincipalChat
+        principalName={principalName}
+        stats={stats}
+        loading={loading}
+        groupedMessages={groupedMessages}
+        messageContent={messageContent}
+        setMessageContent={setMessageContent}
+        handleSend={handleSend}
+        fmtTime={fmtTime}
+        lastPrincipalMsg={lastPrincipalMsg}
+      />
+    );
+  }
+
   return (
     <>
+    {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
+    <div
+      className="-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+      style={{
+        background: '#EEF4FF',
+        minHeight: '100vh',
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      <style>{`
+        @keyframes pnotFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .pnot-enter > * { animation: pnotFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
+        .pnot-enter > *:nth-child(1) { animation-delay: .04s; }
+        .pnot-enter > *:nth-child(2) { animation-delay: .10s; }
+        .pnot-enter > *:nth-child(3) { animation-delay: .16s; }
+        .pnot-enter > *:nth-child(4) { animation-delay: .22s; }
+        .pnot-enter > *:nth-child(5) { animation-delay: .28s; }
+        .pnot-chip { transition: transform .22s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, background .18s ease; }
+        .pnot-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,85,255,.18); }
+        .pnot-chip:active { transform: scale(.96); }
+        .pnot-btn-press { transition: transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, filter .22s ease; }
+        .pnot-btn-press:hover { transform: translateY(-1px); filter: brightness(1.08); }
+        .pnot-btn-press:active { transform: scale(.96); }
+        @keyframes pnotPulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:.5; transform: scale(1.3); } }
+        .pnot-pulse { animation: pnotPulse 1.8s ease-in-out infinite; }
+        .pnot-bubble { transition: transform .28s cubic-bezier(.22,.61,.36,1), box-shadow .28s ease; }
+        @media (hover:hover) { .pnot-bubble:hover { transform: translateY(-1px); } }
+      `}</style>
 
-    {/* ═══════════════════ MOBILE VIEW (new mockup) ═══════════════════ */}
-    <MobilePrincipalChat
-      principalName={principalName}
-      stats={stats}
-      loading={loading}
-      groupedMessages={groupedMessages}
-      messageContent={messageContent}
-      setMessageContent={setMessageContent}
-      handleSend={handleSend}
-      fmtTime={fmtTime}
-      lastPrincipalMsg={lastPrincipalMsg}
-    />
+      <div className="pnot-enter max-w-[1400px] mx-auto">
 
-    {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
-    <div className="hidden md:block" style={{ minHeight: "100vh", background: "#EEF4FF", paddingBottom: 0 }}>
 
-      {/* ═══ DARK HERO + PRINCIPAL CARD ═══════════════════════════════════ */}
-      <div
-        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 bg-[#001A66] md:bg-[#08090C]"
-        style={{ padding: "0 22px 0" }}
-      >
-        {/* Hero text */}
-        <div style={{ paddingTop: 18 }}>
-          <p style={{ fontSize: 10, fontWeight: 500, color: "rgba(255,255,255,0.28)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 5 }}>
-            Admin communication
-          </p>
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px", lineHeight: 1.1, marginBottom: 4 }}>
-            Principal<br />notes
-          </h1>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", lineHeight: 1.4 }}>
-            Direct channel with school administration.
-          </p>
-
-          {/* Stat chips row */}
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            {/* Messages */}
-            <div style={{
-              padding: "8px 12px", borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.07)",
-              display: "flex", alignItems: "center", gap: 7,
-            }}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1,8.5 L11,8.5 L9,5.5 L11,2.5 L1,2.5 L3,5.5 Z" />
+        {/* ═══ Page Head ═══ */}
+        <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                className={stats.unread > 0 ? 'pnot-pulse' : ''}
+                style={{
+                  width: 6, height: 6, borderRadius: 2,
+                  background: stats.unread > 0 ? '#FFAA00' : '#0055FF',
+                  display: 'inline-block',
+                  boxShadow: stats.unread > 0 ? '0 0 10px rgba(255,170,0,.5)' : 'none',
+                }}
+              />
+              Teacher Dashboard · Admin Communication
+            </div>
+            <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+              Principal <span style={{ color: '#0055FF' }}>notes</span>
+            </h1>
+            <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
+              Direct channel with school administration · secured &amp; private.
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {stats.unread > 0 && (
+              <div
+                className="pnot-btn-press"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '10px 16px', borderRadius: 14,
+                  background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  boxShadow: '0 6px 20px rgba(255,170,0,.36), 0 2px 5px rgba(255,170,0,.2)',
+                }}
+              >
+                <span className="pnot-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }}/>
+                {stats.unread} Unread
+              </div>
+            )}
+            <div
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '10px 14px', borderRadius: 14,
+                background: '#fff', color: '#087F5B',
+                border: '0.5px solid rgba(0,200,83,.18)',
+                fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                boxShadow: '0 1px 2px rgba(0,200,83,.08), 0 4px 14px rgba(0,200,83,.08)',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="2.5" fill="currentColor" stroke="none"/>
               </svg>
-              <div>
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.38)", display: "block" }}>Messages</span>
-                <span style={{ fontSize: 15, fontWeight: 500, color: "#fff", letterSpacing: "-0.3px" }}>{stats.total}</span>
-              </div>
-            </div>
-            {/* Unread */}
-            <div style={{
-              padding: "8px 12px", borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.07)",
-              display: "flex", alignItems: "center", gap: 7,
-            }}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="2" width="10" height="8" rx="1.5" /><polyline points="1,4.5 6,7 11,4.5" />
-              </svg>
-              <div>
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.38)", display: "block" }}>Unread</span>
-                <span style={{ fontSize: 15, fontWeight: 500, color: "#fff", letterSpacing: "-0.3px" }}>{stats.unread}</span>
-              </div>
-            </div>
-            {/* Status */}
-            <div style={{
-              padding: "8px 12px", borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.07)",
-              display: "flex", alignItems: "center", gap: 7,
-            }}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1.5,7 4.5,10 10.5,3" />
-              </svg>
-              <div>
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.38)", display: "block" }}>Status</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: "#fff" }}>Active</span>
-              </div>
+              Encrypted
             </div>
           </div>
         </div>
 
-        {/* ── Principal info card (inside dark) ─────────────────────────── */}
-        <div style={{
-          margin: "18px 0 20px",
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 16, padding: 13,
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          {/* Avatar */}
-          <div style={{
-            width: 44, height: 44, borderRadius: 13,
-            background: "rgba(59,91,219,0.3)",
-            border: "1.5px solid rgba(59,91,219,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <SchoolIco />
-          </div>
-
-          {/* Info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 15, fontWeight: 500, color: "#fff", letterSpacing: "-0.1px", margin: 0 }}>
-              {principalName}
-            </p>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>
-              School Administration
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4CC9A4" }} />
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{lastSeenStr}</span>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 6 }}>
-            <IcoBtn>
-              <path d="M2,3 C2,3 3,2 5,2.5 L6,4.5 C6,4.5 5.5,5 5,5.5 C5.5,6.5 6.5,7.5 7.5,8 C8,7.5 8.5,7 8.5,7 L10.5,8 C11,10 10,10 10,10 C8,11 2,7 2,3Z" />
-            </IcoBtn>
-            <IcoBtn>
-              <circle cx="6.5" cy="3.5" r=".8" fill="rgba(255,255,255,0.65)" stroke="none" />
-              <circle cx="6.5" cy="6.5" r=".8" fill="rgba(255,255,255,0.65)" stroke="none" />
-              <circle cx="6.5" cy="9.5" r=".8" fill="rgba(255,255,255,0.65)" stroke="none" />
-            </IcoBtn>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══ STAT CARDS ══════════════════════════════════════════════════ */}
-      <div style={{ display: "flex", gap: 8, padding: "14px 0 0" }}>
-        <div style={{ flex: 1, background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 13, padding: 11 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1,8.5 L11,8.5 L9,5.5 L11,2.5 L1,2.5 L3,5.5 Z" />
-            </svg>
-            <span style={{ fontSize: 9, color: T.ink3, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>Messages</span>
-          </div>
-          <p style={{ fontSize: 20, fontWeight: 500, color: T.blue, letterSpacing: "-0.5px", margin: 0 }}>{stats.total}</p>
-          <p style={{ fontSize: 9, color: T.ink3, marginTop: 2 }}>Total sent & received</p>
-        </div>
-        <div style={{ flex: 1, background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 13, padding: 11 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.grn2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="1.5,6.5 4.5,10 10.5,3" />
-            </svg>
-            <span style={{ fontSize: 9, color: T.ink3, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>Unread</span>
-          </div>
-          <p style={{ fontSize: 20, fontWeight: 500, color: T.grn2, letterSpacing: "-0.5px", margin: 0 }}>{stats.unread}</p>
-          <p style={{ fontSize: 9, color: T.ink3, marginTop: 2 }}>{stats.unread === 0 ? "All messages read" : `${stats.unread} pending`}</p>
-        </div>
-      </div>
-
-      {/* ═══ ENCRYPTED CHANNEL BANNER ════════════════════════════════════ */}
-      <div style={{
-        margin: "12px 0 0",
-        background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 13,
-        padding: "11px 13px",
-        display: "flex", alignItems: "center", gap: 9,
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: T.blBg,
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-        }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1,8.5 L11,8.5 L9,5.5 L11,2.5 L1,2.5 L3,5.5 Z" />
-          </svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 11, fontWeight: 500, color: T.ink1, margin: 0 }}>Encrypted channel</p>
-          <p style={{ fontSize: 10, color: T.ink3, marginTop: 1 }}>Messages only visible to you and the principal</p>
-        </div>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.grn2} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="1.5,6.5 4.5,10 10.5,3" />
-        </svg>
-      </div>
-
-      {/* ═══ CHAT AREA ═══════════════════════════════════════════════════ */}
-      <div
-        className="-mx-4 sm:-mx-6 md:-mx-8"
-        style={{
-          background: T.chatBg,
-          padding: "6px 12px 10px",
-          marginTop: 12,
-          minHeight: 280,
-        }}
-      >
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
-            <Loader2 style={{ width: 28, height: 28, color: T.ink3 }} className="animate-spin" />
-          </div>
-        ) : allMessages.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 16,
-              background: "rgba(59,91,219,0.12)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <SchoolIco size={24} color={T.blue} />
-            </div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1 }}>No messages yet</p>
-            <p style={{ fontSize: 11, color: T.ink3, textAlign: "center" }}>
-              Messages from your principal will appear here
-            </p>
-          </div>
-        ) : (
-          groupedMessages.map(group => (
-            <div key={group.date}>
-              {/* Date chip */}
-              <div style={{ textAlign: "center", margin: "8px 0 12px" }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 500, color: T.ink3,
-                  background: "rgba(142,148,164,0.13)",
-                  padding: "4px 11px", borderRadius: 20,
-                }}>
-                  {group.date}
-                </span>
-              </div>
-
-              {group.messages.map(n => {
-                const isTeacher = n.from === "teacher";
-                return (
-                  <div
-                    key={n.id}
-                    style={{
-                      display: "flex", flexDirection: "column", gap: 3,
-                      marginBottom: 12,
-                      alignItems: isTeacher ? "flex-end" : "flex-start",
-                    }}
-                  >
-                    {/* Sender label for principal */}
-                    {!isTeacher && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-                        <div style={{
-                          width: 26, height: 26, borderRadius: 9,
-                          background: "rgba(103,65,217,0.12)",
-                          border: "1px solid rgba(103,65,217,0.2)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.pur} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1.5 10V6.5L6 4l4.5 2.5V10" /><circle cx="6" cy="5.5" r="1.5" />
-                          </svg>
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: T.ink3 }}>
-                          {principalName}{n.from === "principal" ? " · Principal" : ""}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Bubble */}
-                    <div style={{
-                      maxWidth: "80%", padding: "10px 13px", borderRadius: 18,
-                      background: isTeacher ? T.blue : T.white,
-                      border: isTeacher ? "none" : `0.5px solid ${T.bdr}`,
-                      borderBottomRightRadius: isTeacher ? 4 : 18,
-                      borderBottomLeftRadius: isTeacher ? 18 : 4,
-                    }}>
-                      <p style={{
-                        fontSize: 13, lineHeight: 1.5, margin: 0,
-                        color: isTeacher ? "#fff" : T.ink1,
-                        whiteSpace: "pre-wrap",
-                      }}>
-                        {n.message}
-                      </p>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 5 }}>
-                        <span style={{ fontSize: 9, color: isTeacher ? "rgba(255,255,255,0.55)" : T.ink3 }}>
-                          {fmtTime(n.timestamp)}
-                        </span>
-                        {isTeacher && (
-                          <svg width="13" height="9" viewBox="0 0 14 9" fill="none"
-                            stroke={n.read ? "#4CC9A4" : "rgba(255,255,255,0.5)"}
-                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          >
-                            <polyline points="1,5 4,8 8,2" /><polyline points="5,5 8,8 13,2" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))
-        )}
-        <div ref={chatEndRef} />
-      </div>
-
-      {/* ═══ QUICK REPLY CHIPS ═══════════════════════════════════════════ */}
-      <div
-        className="-mx-4 sm:-mx-6 md:-mx-8"
-        style={{
-          background: T.chatBg,
-          padding: "0 12px 10px",
-          display: "flex", gap: 7,
-          overflowX: "auto",
-        }}
-      >
-        {QUICK_REPLIES.map(qr => (
-          <button type="button"
-            key={qr}
-            onClick={() => setMessageContent(qr)}
-            style={{
-              padding: "6px 12px", borderRadius: 20,
-              border: `1px solid ${T.bdr}`, background: T.white,
-              fontSize: 11, color: T.ink2,
-              whiteSpace: "nowrap", cursor: "pointer",
-              flexShrink: 0, fontFamily: "inherit",
-            }}
-          >
-            {qr}
-          </button>
-        ))}
-      </div>
-
-      {/* ═══ CHAT INPUT BAR ══════════════════════════════════════════════ */}
-      <div
-        className="-mx-4 sm:-mx-6 md:-mx-8"
-        style={{
-          background: T.white, borderTop: `1px solid ${T.bdr}`,
-          padding: "10px 12px",
-          display: "flex", alignItems: "center", gap: 8,
-        }}
-      >
-        {/* Emoji */}
-        <div style={{
-          width: 32, height: 32, borderRadius: "50%",
-          background: T.s1, border: `1px solid ${T.bdr}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, cursor: "pointer",
-        }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="7" cy="7" r="5.5" />
-            <circle cx="4.5" cy="5.5" r=".7" fill={T.ink3} stroke="none" />
-            <circle cx="9.5" cy="5.5" r=".7" fill={T.ink3} stroke="none" />
-            <path d="M4.5,8.5 C4.5,10 9.5,10 9.5,8.5" />
-          </svg>
-        </div>
-
-        {/* Input */}
-        <input
-          value={messageContent}
-          onChange={e => setMessageContent(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }}
-          placeholder="Reply to principal..."
+        {/* ═══ Dark Hero with Principal Card ═══ */}
+        <div
           style={{
-            flex: 1, padding: "9px 13px", borderRadius: 22,
-            border: `1px solid ${T.bdr}`, background: T.s1,
-            fontSize: 12, color: T.ink1, fontFamily: "inherit", outline: "none",
-          }}
-        />
-
-        {/* Send */}
-        <button type="button"
-          onClick={handleSend}
-          disabled={!messageContent.trim()}
-          style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: messageContent.trim() ? T.blue : T.s2,
-            border: "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: messageContent.trim() ? "pointer" : "default",
-            flexShrink: 0, transition: "background 0.15s",
+            background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
+            borderRadius: 24, padding: '28px 32px', color: '#fff',
+            position: 'relative', overflow: 'hidden',
+            boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+            marginBottom: 22,
           }}
         >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
-            stroke={messageContent.trim() ? "#fff" : T.ink3}
-            strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+          <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+          <div style={{ position: 'absolute', bottom: -80, left: -60, width: 260, height: 260, background: 'radial-gradient(circle, rgba(123,63,244,.22) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, position: 'relative', zIndex: 1 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: 18,
+              background: 'rgba(255,255,255,.16)', border: '0.5px solid rgba(255,255,255,.26)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+            }}>
+              <SchoolIco size={32} color="#fff" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, color: lastPrincipalMsg ? '#6FFFAA' : 'rgba(255,255,255,.6)' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: lastPrincipalMsg ? '#4CC9A4' : 'rgba(255,255,255,.4)' }}/>
+                {lastPrincipalMsg ? 'Active' : 'Offline'}
+              </div>
+              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.7px', margin: 0, color: '#fff', lineHeight: 1.1 }}>
+                {principalName}
+              </h2>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.72)', fontWeight: 500, margin: '6px 0 0 0' }}>
+                School Administration · <span style={{ color: 'rgba(255,255,255,.85)' }}>{lastSeenStr}</span>
+              </p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(100px,1fr))', gap: 10, flexShrink: 0 }}>
+              {[
+                { label: 'Messages', value: stats.total.toString(), color: '#fff' },
+                { label: 'Unread',   value: stats.unread.toString(), color: stats.unread > 0 ? '#FFD088' : '#6FFFAA' },
+                { label: 'Channel',  value: 'Secure', color: '#C8A4FF' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ Bright 2-col KPI tiles ═══ */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {[
+            {
+              label: 'Total Messages', value: stats.total.toString(), sub: 'Sent & received',
+              grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
+              iconStroke: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
+            },
+            {
+              label: 'Unread Messages', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Catch up now' : 'All caught up',
+              grad: stats.unread > 0 ? 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' : 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
+              iconStroke: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+            },
+            {
+              label: 'Secure Channel', value: 'Active', sub: 'End-to-end encrypted',
+              grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+              iconStroke: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
+            },
+          ].map(k => (
+            <div
+              key={k.label}
+              {...tilt3D}
+              style={{
+                background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                position: 'relative', overflow: 'hidden',
+                boxShadow: '0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.26), 0 18px 44px rgba(0,85,255,0.20)',
+                cursor: 'pointer',
+                ...tilt3DStyle,
+              }}
+            >
+              <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                    {k.iconStroke}
+                  </svg>
+                </div>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ Encrypted Channel Banner ═══ */}
+        <div
+          {...tilt3D}
+          style={{
+            background: '#fff', borderRadius: 18, padding: '14px 18px',
+            border: '0.5px solid rgba(0,85,255,0.07)',
+            boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+            display: 'flex', alignItems: 'center', gap: 14,
+            marginBottom: 22,
+            ...tilt3DStyle,
+          }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: 13,
+            background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: '0 6px 14px rgba(0,85,255,.28)',
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>End-to-end encrypted channel</p>
+            <p style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', margin: '3px 0 0 0' }}>
+              Messages are only visible to you and the principal. Audit logs maintained for compliance.
+            </p>
+          </div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 999,
+            background: 'rgba(0,200,83,.10)', color: '#087F5B',
+            border: '0.5px solid rgba(0,200,83,.22)',
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
+            flexShrink: 0,
+          }}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1.5,6.5 4.5,10 10.5,3" />
+            </svg>
+            Verified
+          </div>
+        </div>
+
+        {/* ═══ Chat Container (blue halo card) ═══ */}
+        <div
+          style={{
+            background: '#fff', borderRadius: 22,
+            border: '0.5px solid rgba(0,85,255,0.07)',
+            boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+            overflow: 'hidden',
+            marginBottom: 22,
+          }}
+        >
+          {/* Chat header */}
+          <div style={{ padding: '14px 22px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: '50%',
+                background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 6px 14px rgba(123,63,244,.28)',
+              }}>
+                <SchoolIco size={20} color="#fff" />
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{principalName}</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
+                  {allMessages.length} message{allMessages.length === 1 ? '' : 's'} · conversation
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat area */}
+          <div
+            ref={chatScrollRef}
+            onScroll={handleChatScroll}
+            style={{ background: '#F5F9FF', padding: '20px 22px 12px', minHeight: 380, maxHeight: 560, overflowY: 'auto', overscrollBehavior: 'contain' }}
           >
-            <line x1="2" y1="6.5" x2="11" y2="6.5" /><polyline points="8,3.5 11,6.5 8,9.5" />
-          </svg>
-        </button>
+            {loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                <Loader2 style={{ width: 32, height: 32, color: '#0055FF' }} className="animate-spin" />
+              </div>
+            ) : allMessages.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 14 }}>
+                <div style={{
+                  width: 68, height: 68, borderRadius: 18,
+                  background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 10px 24px rgba(123,63,244,.28)',
+                }}>
+                  <SchoolIco size={30} color="#fff" />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: '#001040', margin: 0, letterSpacing: '-0.3px' }}>No messages yet</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: '#5070B0', margin: '6px 0 0 0' }}>
+                    Messages from your principal will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              groupedMessages.map(group => (
+                <div key={group.date}>
+                  {/* Date divider */}
+                  <div style={{ textAlign: 'center', margin: '6px 0 16px' }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 800, color: '#5070B0',
+                      background: '#fff',
+                      border: '0.5px solid rgba(0,85,255,.1)',
+                      padding: '4px 12px', borderRadius: 20,
+                      boxShadow: '0 1px 2px rgba(0,85,255,.06)',
+                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>
+                      {group.date}
+                    </span>
+                  </div>
+
+                  {group.messages.map(n => {
+                    const isTeacher = n.from === 'teacher';
+                    return (
+                      <div
+                        key={n.id}
+                        style={{
+                          display: 'flex', flexDirection: 'column', gap: 4,
+                          marginBottom: 14,
+                          alignItems: isTeacher ? 'flex-end' : 'flex-start',
+                        }}
+                      >
+                        {!isTeacher && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <div style={{
+                              width: 30, height: 30, borderRadius: 10,
+                              background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+                              border: '0.5px solid rgba(255,255,255,.4)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: '0 4px 10px rgba(123,63,244,.22)',
+                            }}>
+                              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1.5 10V6.5L6 4l4.5 2.5V10" /><circle cx="6" cy="5.5" r="1.5" />
+                              </svg>
+                            </div>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '0.04em' }}>
+                              {principalName} · Principal
+                            </span>
+                          </div>
+                        )}
+                        <div
+                          className="pnot-bubble"
+                          style={{
+                            maxWidth: '75%', padding: '12px 16px', borderRadius: 20,
+                            background: isTeacher
+                              ? 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)'
+                              : '#fff',
+                            border: isTeacher ? 'none' : '0.5px solid rgba(0,85,255,.08)',
+                            borderBottomRightRadius: isTeacher ? 6 : 20,
+                            borderBottomLeftRadius: isTeacher ? 20 : 6,
+                            boxShadow: isTeacher
+                              ? '0 4px 14px rgba(0,85,255,.28), 0 1px 3px rgba(0,85,255,.18)'
+                              : '0 0 0 0.5px rgba(0,85,255,.06), 0 2px 10px rgba(0,85,255,.08)',
+                          }}
+                        >
+                          <p style={{
+                            fontSize: 13, lineHeight: 1.55, margin: 0,
+                            color: isTeacher ? '#fff' : '#001040',
+                            fontWeight: 500,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}>
+                            {n.message}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 6 }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: isTeacher ? 'rgba(255,255,255,.72)' : '#99AACC' }}>
+                              {fmtTime(n.timestamp)}
+                            </span>
+                            {isTeacher && (
+                              <svg width="14" height="10" viewBox="0 0 14 9" fill="none"
+                                stroke={n.read ? '#4CC9A4' : 'rgba(255,255,255,.55)'}
+                                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                              >
+                                <polyline points="1,5 4,8 8,2" /><polyline points="5,5 8,8 13,2" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Quick reply chips */}
+          <div style={{
+            background: '#fff',
+            padding: '12px 22px 0',
+            display: 'flex', gap: 8,
+            overflowX: 'auto',
+            borderTop: '0.5px solid rgba(0,85,255,.06)',
+          }}>
+            {QUICK_REPLIES.map(qr => (
+              <button
+                type="button"
+                key={qr}
+                onClick={() => setMessageContent(qr)}
+                className="pnot-chip"
+                style={{
+                  padding: '7px 14px', borderRadius: 999,
+                  border: '0.5px solid rgba(0,85,255,.12)',
+                  background: '#F5F9FF', color: '#0055FF',
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+                  whiteSpace: 'nowrap', cursor: 'pointer',
+                  flexShrink: 0, fontFamily: 'inherit',
+                  boxShadow: '0 1px 2px rgba(0,85,255,.06)',
+                }}
+              >
+                {qr}
+              </button>
+            ))}
+          </div>
+
+          {/* Input bar */}
+          <div style={{
+            background: '#fff',
+            borderTop: '0.5px solid rgba(0,85,255,.08)',
+            padding: '14px 22px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <input
+              value={messageContent}
+              onChange={e => setMessageContent(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
+              placeholder="Reply to principal..."
+              style={{
+                flex: 1, padding: '12px 18px', borderRadius: 14,
+                border: '0.5px solid rgba(0,85,255,.12)',
+                background: '#F5F9FF',
+                fontSize: 13, color: '#001040', fontWeight: 500,
+                fontFamily: 'inherit', outline: 'none',
+                boxShadow: '0 1px 2px rgba(0,85,255,.04)',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!messageContent.trim()}
+              className="pnot-btn-press"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                height: 44, padding: '0 20px', borderRadius: 14,
+                background: messageContent.trim()
+                  ? 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)'
+                  : '#F5F6F9',
+                color: messageContent.trim() ? '#fff' : '#99AACC',
+                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                border: 'none',
+                cursor: messageContent.trim() ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit', flexShrink: 0,
+                boxShadow: messageContent.trim()
+                  ? '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)'
+                  : 'none',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <line x1="2" y1="6.5" x2="11" y2="6.5" /><polyline points="8,3.5 11,6.5 8,9.5" />
+              </svg>
+              Send
+            </button>
+          </div>
+        </div>
+
+        {/* ═══ AI Intelligence card ═══ */}
+        {stats.total > 0 && (() => {
+          const leadLine = stats.unread > 0
+            ? `${stats.unread} unread message${stats.unread !== 1 ? 's' : ''} from your principal — clear your inbox to stay aligned with school priorities.`
+            : `You're fully caught up — ${stats.total} total exchange${stats.total !== 1 ? 's' : ''} with ${principalName}. Keep the channel warm with quick acknowledgements.`;
+          return (
+            <div
+              style={{
+                background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
+                borderRadius: 22, padding: '24px 28px', color: '#fff',
+                position: 'relative', overflow: 'hidden',
+                boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+              }}
+            >
+              <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+              <div style={{ position: 'absolute', top: -30, right: -20, width: 200, height: 200, background: `radial-gradient(circle, ${stats.unread > 0 ? 'rgba(255,170,0,.22)' : 'rgba(255,255,255,.12)'} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }}/>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, position: 'relative', zIndex: 1, marginBottom: 18 }}>
+                <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                    AI Admin Intelligence
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                    Communication Summary
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
+                    {leadLine}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, position: 'relative', zIndex: 1 }}>
+                {[
+                  { label: 'Total',  value: stats.total.toString(),  sub: 'All messages', color: '#fff' },
+                  { label: 'Unread', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Reply soon' : 'Caught up', color: stats.unread > 0 ? '#FFD088' : '#6FFFAA' },
+                  { label: 'Status', value: lastPrincipalMsg ? 'Active' : 'Waiting', sub: lastSeenStr, color: '#C8A4FF' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
       </div>
 
     </div>

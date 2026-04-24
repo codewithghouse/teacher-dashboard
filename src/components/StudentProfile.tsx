@@ -31,8 +31,9 @@ const Card = ({children,title,action,style}:{children:React.ReactNode;title?:str
     <div ref={ref} onMouseMove={onMove} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setTilt({x:0,y:0});setHov(false);}}
       style={{
         position:"relative",background:T.white,border:`0.5px solid rgba(0,85,255,${hov?0.14:0.07})`,borderRadius:16,overflow:"hidden",
-        transform:`perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) ${hov?"translateY(-5px) scale(1.02)":""}`,
-        transition:"transform 0.22s cubic-bezier(0.2,0.8,0.2,1),border-color 0.22s,box-shadow 0.22s ease",willChange:"transform,box-shadow",backfaceVisibility:"hidden",
+        transform:`perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) ${hov?"translateY(-5px) scale(1.015)":""}`,
+        transformOrigin:"center center",
+        transition:"transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),border-color 0.4s ease,box-shadow 0.45s cubic-bezier(0.22, 0.61, 0.36, 1)",willChange:"transform,box-shadow",backfaceVisibility:"hidden",
         boxShadow:hov
           ? "0 0 0 0.5px rgba(0,85,255,0.14), 0 8px 24px rgba(0,85,255,0.16), 0 20px 46px rgba(0,85,255,0.18)"
           : "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",

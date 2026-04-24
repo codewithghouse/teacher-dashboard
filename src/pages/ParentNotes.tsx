@@ -629,192 +629,467 @@ const ParentNotes = () => {
         />
         {/* ═══════════════════ END MOBILE VIEW ═══════════════════ */}
 
-        {/* ═══════════════════ DESKTOP VIEW ═══════════════════ */}
-        <div className="hidden md:block">
+        {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
+        <div
+          className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+          style={{
+            background: '#EEF4FF',
+            minHeight: '100vh',
+            fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          <style>{`
+            @keyframes pnFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+            .pn-enter > * { animation: pnFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
+            .pn-enter > *:nth-child(1) { animation-delay: .04s; }
+            .pn-enter > *:nth-child(2) { animation-delay: .10s; }
+            .pn-enter > *:nth-child(3) { animation-delay: .16s; }
+            .pn-enter > *:nth-child(4) { animation-delay: .22s; }
+            .pn-enter > *:nth-child(5) { animation-delay: .28s; }
+            .pn-tpl-btn { transition: transform .32s cubic-bezier(.22,.61,.36,1), background .22s ease, box-shadow .32s cubic-bezier(.22,.61,.36,1), border-color .22s ease; }
+            @media (hover:hover) { .pn-tpl-btn:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 8px 22px rgba(0,85,255,.12); background: #fff; border-color: rgba(0,85,255,.22); } }
+            .pn-row { transition: transform .3s cubic-bezier(.22,.61,.36,1), background .22s ease; }
+            .pn-row:hover { transform: translateX(4px); }
+            .pn-btn-press { transition: transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, filter .22s ease; }
+            .pn-btn-press:hover { transform: translateY(-1px); filter: brightness(1.06); }
+            .pn-btn-press:active { transform: scale(.96); }
+            @keyframes pnPulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:.5; transform: scale(1.3); } }
+            .pn-pulse { animation: pnPulse 1.8s ease-in-out infinite; }
+          `}</style>
 
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6 gap-4">
-            <div>
-              <h1 className="text-[28px] font-bold text-slate-900 leading-tight tracking-tight">Parent Notes</h1>
-              <p className="text-sm text-slate-500 mt-1">Communicate with parents and track conversations.</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Compose new message"
-              onClick={() => openCompose()}
-              className="h-11 px-5 rounded-lg bg-[#1e3272] text-white text-sm font-semibold hover:bg-[#162552] flex items-center gap-2 shadow-sm"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <line x1="7" y1="2" x2="7" y2="12" /><line x1="2" y1="7" x2="12" y2="7" />
-              </svg>
-              New Message
-            </button>
-          </div>
+          <div className="pn-enter max-w-[1600px] mx-auto">
 
-          {/* 4 stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div
-              onClick={() => searchRef.current?.focus()}
-              role="button"
-              tabIndex={0}
-              {...tilt3D}
-              className="clickable-card bg-white rounded-2xl p-5"
-              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.blBg }}>
-                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round"><path d="M2,3 L12,3 L12,10 L4,10 L2,12 Z"/></svg>
-                </div>
-                <div>
-                  <p className="text-[28px] font-bold text-slate-900 leading-none">{stats.total}</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Total Messages</p>
-                </div>
-              </div>
-            </div>
-            <div
-              onClick={() => searchRef.current?.focus()}
-              role="button"
-              tabIndex={0}
-              {...tilt3D}
-              className="clickable-card bg-white rounded-2xl p-5"
-              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.alBg }}>
-                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke={T.amb} strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="7" r="5"/><polyline points="7,4 7,7 9,8"/></svg>
-                </div>
-                <div>
-                  <p className="text-[28px] font-bold text-slate-900 leading-none">{noReplyCount}</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Pending Replies</p>
-                </div>
-              </div>
-            </div>
-            <div
-              onClick={() => searchRef.current?.focus()}
-              role="button"
-              tabIndex={0}
-              {...tilt3D}
-              className="clickable-card bg-white rounded-2xl p-5"
-              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.glBg }}>
-                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke={T.grn} strokeWidth="1.5" strokeLinecap="round"><polyline points="2,7 6,11 12,3"/></svg>
-                </div>
-                <div>
-                  <p className="text-[28px] font-bold text-slate-900 leading-none">{stats.parentReplies}</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Resolved</p>
-                </div>
-              </div>
-            </div>
-            <div
-              onClick={() => navigate("/students")}
-              role="button"
-              tabIndex={0}
-              {...tilt3D}
-              className="clickable-card bg-white rounded-2xl p-5"
-              style={{ boxShadow: HALO_SH, border: HALO_BDR, ...tilt3DStyle }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: T.rlBg }}>
-                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke={T.red} strokeWidth="1.5" strokeLinecap="round"><path d="M2 3.5C2 2.7 2.7 2 3.5 2h7C11.3 2 12 2.7 12 3.5v5c0 .8-.7 1.5-1.5 1.5H5L2 12V3.5z"/></svg>
-                </div>
-                <div>
-                  <p className="text-[28px] font-bold text-slate-900 leading-none">{stats.students}</p>
-                  <p className="text-xs text-slate-500 mt-1.5">Parents</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 2-col: templates | conversation list */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-            {/* Quick templates */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: HALO_SH, border: HALO_BDR }}>
-              <div className="px-5 py-4 border-b border-slate-100">
-                <h2 className="text-base font-semibold text-slate-900">Quick Templates</h2>
-              </div>
-              <div className="p-4 space-y-2">
-                {TEMPLATES.map(tpl => (
-                  <button
-                    key={tpl.title}
-                    type="button"
-                    onClick={() => applyTemplate(tpl.body)}
-                    className="w-full text-left px-3 py-3 rounded-lg border border-slate-100 hover:bg-slate-50 hover:border-slate-200"
-                  >
-                    <p className="text-sm font-semibold text-slate-900">{tpl.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{tpl.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Conversations */}
-            <div className="lg:col-span-2 bg-white rounded-2xl overflow-hidden" style={{ boxShadow: HALO_SH, border: HALO_BDR }}>
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">All Messages</h2>
-                <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <circle cx="6" cy="6" r="4"/><line x1="9" y1="9" x2="12.5" y2="12.5"/>
-                  </svg>
-                  <input
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search..."
-                    className="w-48 h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-100"
+            {/* ═══ Page Head ═══ */}
+            <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    className={noReplyCount > 0 ? 'pn-pulse' : ''}
+                    style={{
+                      width: 6, height: 6, borderRadius: 2,
+                      background: noReplyCount > 0 ? '#FFAA00' : '#0055FF',
+                      display: 'inline-block',
+                      boxShadow: noReplyCount > 0 ? '0 0 10px rgba(255,170,0,.5)' : 'none',
+                    }}
                   />
+                  Teacher Dashboard · Communication
+                </div>
+                <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+                  Parent <span style={{ color: '#0055FF' }}>Notes</span>
+                </h1>
+                <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
+                  Communicate with parents · track conversations · keep everyone aligned.
                 </div>
               </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {noReplyCount > 0 && (
+                  <div
+                    className="pn-btn-press"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      padding: '10px 16px', borderRadius: 14,
+                      background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
+                      fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      boxShadow: '0 6px 20px rgba(255,170,0,.36), 0 2px 5px rgba(255,170,0,.2)',
+                    }}
+                  >
+                    <span className="pn-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }}/>
+                    {noReplyCount} Pending
+                  </div>
+                )}
+                <button
+                  type="button"
+                  aria-label="Compose new message"
+                  onClick={() => openCompose()}
+                  className="pn-btn-press"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    height: 44, padding: '0 20px', borderRadius: 14,
+                    background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', color: '#fff',
+                    fontSize: 13, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                    <line x1="7" y1="2" x2="7" y2="12" /><line x1="2" y1="7" x2="12" y2="7" />
+                  </svg>
+                  New Message
+                </button>
+              </div>
+            </div>
 
-              {loading ? (
-                <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>
-              ) : filteredRoster.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-12">No students found</p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {filteredRoster.map(s => {
-                    const key = (s.studentId || s.studentEmail)?.toLowerCase();
-                    const last = lastMessages.get(key);
-                    const unread = unreadCounts.get(key) || 0;
-                    const av = avStyle(s.studentName || 'S');
-                    const clsName = s.className || s.assignedClass || '';
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => setSelectedStudent(s)}
-                        className={`flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-slate-50 ${unread > 0 ? 'bg-blue-50/50' : ''}`}
-                      >
-                        <div
-                          className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                          style={{ background: av.color }}
-                        >
-                          {getInitials(s.studentName || 'S')}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="text-sm font-bold text-slate-900 truncate">{s.studentName}'s Parents</p>
-                            {unread > 0 && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">
-                                Pending Reply
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mb-1">
-                            {clsName} {last?.createdAt ? `• ${new Date(last.createdAt.toMillis?.() || last.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                          </p>
-                          {last && (
-                            <p className="text-sm text-slate-700 line-clamp-2">{last.content}</p>
-                          )}
-                        </div>
+            {/* ═══ Dark Hero Banner ═══ */}
+            {(() => {
+              const responsePct = stats.total > 0 ? Math.round((stats.parentReplies / stats.total) * 100) : 0;
+              const statusLabel = noReplyCount > 0 ? 'AWAITING REPLIES' : stats.total > 0 ? 'ACTIVE CHAT' : 'READY TO ENGAGE';
+              const statusColor = noReplyCount > 0 ? '#FFD088' : '#6FFFAA';
+              return (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
+                    borderRadius: 24, padding: '28px 32px', color: '#fff',
+                    position: 'relative', overflow: 'hidden',
+                    boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+                    marginBottom: 22,
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                  <div style={{ position: 'absolute', bottom: -80, left: -60, width: 260, height: 260, background: 'radial-gradient(circle, rgba(123,63,244,.22) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flex: 1, minWidth: 320 }}>
+                      <div style={{
+                        width: 64, height: 64, borderRadius: 16,
+                        background: 'rgba(255,255,255,.16)', border: '0.5px solid rgba(255,255,255,.26)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+                      }}>
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        </svg>
                       </div>
+                      <div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
+                          {statusLabel}
+                        </div>
+                        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
+                          {stats.total}
+                        </h2>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '8px 0 0 0', lineHeight: 1.55 }}>
+                          {stats.total === 0 ? (
+                            <>Start your first message — parents want to hear from you about their child's progress.</>
+                          ) : noReplyCount > 0 ? (
+                            <><b style={{ color: '#fff', fontWeight: 700 }}>{noReplyCount} parent{noReplyCount === 1 ? '' : 's'}</b> haven't replied yet · <b style={{ color: '#fff', fontWeight: 700 }}>{responsePct}%</b> response rate overall across {stats.students} parent{stats.students === 1 ? '' : 's'}.</>
+                          ) : (
+                            <>Great engagement — <b style={{ color: '#fff', fontWeight: 700 }}>{responsePct}%</b> response rate across {stats.students} parent{stats.students === 1 ? '' : 's'}. Keep the conversation going.</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px,1fr))', gap: 10 }}>
+                      {[
+                        { label: 'Pending',   value: noReplyCount.toString(), color: '#FFD088' },
+                        { label: 'Replies',   value: stats.parentReplies.toString(), color: '#6FFFAA' },
+                        { label: 'Response',  value: `${responsePct}%`, color: '#C8A4FF' },
+                      ].map(s => (
+                        <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '12px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ═══ Bright 4-col KPI tiles ═══ */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {[
+                { label: 'Total Messages', value: stats.total.toString(), sub: 'Across all parents', grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)', onClick: () => searchRef.current?.focus(),
+                  iconStroke: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
+                },
+                { label: 'Pending Replies', value: noReplyCount.toString(), sub: noReplyCount > 0 ? 'Follow up soon' : 'All caught up', grad: noReplyCount > 0 ? 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' : 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => searchRef.current?.focus(),
+                  iconStroke: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+                },
+                { label: 'Parent Replies', value: stats.parentReplies.toString(), sub: stats.parentReplies > 0 ? 'Active dialogue' : 'Awaiting first reply', grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => searchRef.current?.focus(),
+                  iconStroke: <><polyline points="20 6 9 17 4 12"/></>,
+                },
+                { label: 'Parents', value: stats.students.toString(), sub: `${stats.students === 1 ? 'family' : 'families'} in loop`, grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', onClick: () => navigate('/students'),
+                  iconStroke: <><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+                },
+              ].map(k => (
+                <div
+                  key={k.label}
+                  onClick={k.onClick}
+                  role="button"
+                  tabIndex={0}
+                  {...tilt3D}
+                  style={{
+                    background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                    position: 'relative', overflow: 'hidden',
+                    boxShadow: '0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.26), 0 18px 44px rgba(0,85,255,0.20)',
+                    cursor: 'pointer',
+                    ...tilt3DStyle,
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        {k.iconStroke}
+                      </svg>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                  <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ═══ 2-col: Templates | Conversations ═══ */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+              {/* Quick Templates */}
+              <div
+                {...tilt3D}
+                className="bg-white overflow-hidden"
+                style={{
+                  borderRadius: 22,
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+                  border: '0.5px solid rgba(0,85,255,0.07)',
+                  ...tilt3DStyle,
+                }}
+              >
+                <div style={{ padding: '16px 20px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px rgba(123,63,244,.28)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>Quick Templates</h2>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>Tap to apply</p>
+                  </div>
+                </div>
+                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {TEMPLATES.map((tpl, idx) => {
+                    const tones = [
+                      { bg: 'rgba(255,51,85,.10)',   border: 'rgba(255,51,85,.18)',   ico: 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)' },
+                      { bg: 'rgba(0,200,83,.10)',    border: 'rgba(0,200,83,.20)',    ico: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)' },
+                      { bg: 'rgba(255,170,0,.10)',   border: 'rgba(255,170,0,.22)',   ico: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' },
+                      { bg: 'rgba(0,85,255,.08)',    border: 'rgba(0,85,255,.14)',    ico: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)' },
+                      { bg: 'rgba(123,63,244,.10)',  border: 'rgba(123,63,244,.22)',  ico: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)' },
+                    ][idx % 5];
+                    return (
+                      <button
+                        key={tpl.title}
+                        type="button"
+                        onClick={() => applyTemplate(tpl.body)}
+                        className="pn-tpl-btn"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          width: '100%', textAlign: 'left',
+                          padding: '12px 14px', borderRadius: 14,
+                          background: tones.bg,
+                          border: `0.5px solid ${tones.border}`,
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 11, background: tones.ico,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                          boxShadow: '0 4px 10px rgba(0,85,255,.18)',
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{tpl.title}</p>
+                          <p style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', margin: '3px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tpl.desc}</p>
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
+              {/* Conversations list */}
+              <div
+                className="lg:col-span-2 bg-white overflow-hidden"
+                style={{
+                  borderRadius: 22,
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+                  border: '0.5px solid rgba(0,85,255,0.07)',
+                }}
+              >
+                <div style={{ padding: '16px 22px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px rgba(0,85,255,.28)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>All Conversations</h2>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{filteredRoster.length} {filteredRoster.length === 1 ? 'parent' : 'parents'} · click to chat</p>
+                    </div>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="#99AACC" strokeWidth="1.8" strokeLinecap="round">
+                      <circle cx="6" cy="6" r="4"/><line x1="9" y1="9" x2="12.5" y2="12.5"/>
+                    </svg>
+                    <input
+                      ref={searchRef}
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="Search parent or student..."
+                      style={{
+                        width: 240, height: 40, paddingLeft: 36, paddingRight: 14,
+                        background: '#F5F9FF',
+                        border: '0.5px solid rgba(0,85,255,.10)',
+                        borderRadius: 12,
+                        fontSize: 13, fontWeight: 500, color: '#001040',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div style={{ padding: '48px 0', display: 'flex', justifyContent: 'center' }}>
+                    <Loader2 className="w-7 h-7 animate-spin" style={{ color: '#0055FF' }}/>
+                  </div>
+                ) : filteredRoster.length === 0 ? (
+                  <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 60, height: 60, borderRadius: 18, background: '#F5F9FF', border: '0.5px solid rgba(0,85,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                    </div>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: '#5070B0', margin: 0 }}>No parents match your search</p>
+                    <p style={{ fontSize: 11, fontWeight: 500, color: '#99AACC', margin: 0 }}>Try a different name or class.</p>
+                  </div>
+                ) : (
+                  <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+                    {filteredRoster.map(s => {
+                      const key = (s.studentId || s.studentEmail)?.toLowerCase();
+                      const last = lastMessages.get(key);
+                      const unread = unreadCounts.get(key) || 0;
+                      const av = avStyle(s.studentName || 'S');
+                      const clsName = s.className || s.assignedClass || '';
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedStudent(s)}
+                          className="pn-row"
+                          style={{
+                            display: 'flex', alignItems: 'flex-start', gap: 14,
+                            padding: '14px 22px',
+                            borderBottom: '0.5px solid rgba(0,85,255,.05)',
+                            cursor: 'pointer',
+                            background: unread > 0 ? 'rgba(0,85,255,.04)' : 'transparent',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44, height: 44, borderRadius: '50%',
+                              background: av.color, color: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 13, fontWeight: 800, flexShrink: 0,
+                              boxShadow: `0 4px 12px ${av.color}55`,
+                            }}
+                          >
+                            {getInitials(s.studentName || 'S')}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
+                              <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {s.studentName}'s Parents
+                              </p>
+                              {unread > 0 && (
+                                <span style={{
+                                  flexShrink: 0,
+                                  fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 999,
+                                  background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
+                                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                                  boxShadow: '0 3px 8px rgba(255,170,0,.32)',
+                                }}>
+                                  Pending Reply
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                              {clsName && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                                  background: 'rgba(0,85,255,.08)', color: '#0055FF',
+                                  letterSpacing: '0.04em',
+                                }}>
+                                  {clsName}
+                                </span>
+                              )}
+                              {last?.createdAt && (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#99AACC' }}>
+                                  {new Date(last.createdAt.toMillis?.() || last.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              )}
+                            </div>
+                            {last ? (
+                              <p style={{ fontSize: 12, fontWeight: 500, color: '#42475A', margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {last.content}
+                              </p>
+                            ) : (
+                              <p style={{ fontSize: 11, fontWeight: 600, color: '#99AACC', margin: 0, fontStyle: 'italic' }}>
+                                No messages yet — start the conversation.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ═══ AI Intelligence card ═══ */}
+            {stats.total > 0 && (() => {
+              const responsePct = Math.round((stats.parentReplies / Math.max(stats.total, 1)) * 100);
+              const leadLine = noReplyCount > 0
+                ? `${noReplyCount} parent${noReplyCount !== 1 ? 's' : ''} ${noReplyCount === 1 ? 'has' : 'have'} no messages yet — consider sending a quick intro or status update to open the channel.`
+                : `Engagement is healthy — ${responsePct}% response rate across ${stats.students} parent${stats.students !== 1 ? 's' : ''}. Keep replying promptly to maintain momentum.`;
+              return (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
+                    borderRadius: 22, padding: '24px 28px', color: '#fff',
+                    position: 'relative', overflow: 'hidden',
+                    boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+                    marginTop: 22,
+                  }}
+                >
+                  <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+                  <div style={{ position: 'absolute', top: -30, right: -20, width: 200, height: 200, background: `radial-gradient(circle, ${noReplyCount > 0 ? 'rgba(255,170,0,.22)' : 'rgba(255,255,255,.12)'} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }}/>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, position: 'relative', zIndex: 1, marginBottom: 18 }}>
+                    <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                        AI Communication Intelligence
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                        Engagement Summary
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
+                        {leadLine}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, position: 'relative', zIndex: 1 }}>
+                    {[
+                      { label: 'Response Rate', value: `${responsePct}%`, sub: responsePct >= 70 ? 'Healthy dialogue' : responsePct >= 40 ? 'Developing' : 'Needs nudging', color: responsePct >= 70 ? '#6FFFAA' : responsePct >= 40 ? '#FFD088' : '#FF99AA' },
+                      { label: 'Pending Follow-ups', value: noReplyCount.toString(), sub: noReplyCount > 0 ? 'Ping a reminder' : 'All engaged', color: noReplyCount > 0 ? '#FFD088' : '#6FFFAA' },
+                      { label: 'Reach', value: `${stats.students}`, sub: `parent${stats.students !== 1 ? 's' : ''} in loop`, color: '#C8A4FF' },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+          </div>
         </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}
 
       </div>

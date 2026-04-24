@@ -170,57 +170,144 @@ const SettingsPage = () => {
       onLogout={logout}
     />
 
-    {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
-    <div className="hidden md:block" style={{ minHeight: "100vh", background: "#EEF4FF" }}>
+    {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
+    <div
+      className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+      style={{
+        minHeight: "100vh",
+        background: "#EEF4FF",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+      }}
+    >
+      <style>{`
+        @keyframes setsFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .sets-enter > * { animation: setsFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
+        .sets-enter > *:nth-child(1) { animation-delay: .04s; }
+        .sets-enter > *:nth-child(2) { animation-delay: .10s; }
+        .sets-enter > *:nth-child(3) { animation-delay: .16s; }
+        .sets-enter > *:nth-child(4) { animation-delay: .22s; }
+        .sets-enter > *:nth-child(5) { animation-delay: .28s; }
+        .sets-enter > *:nth-child(6) { animation-delay: .34s; }
+        .sets-btn-press { transition: transform .2s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, filter .22s ease; }
+        .sets-btn-press:hover { transform: translateY(-1px); filter: brightness(1.06); }
+        .sets-btn-press:active { transform: scale(.96); }
+      `}</style>
 
-      {/* ═══ DARK HERO ═══════════════════════════════════════════════════ */}
-      <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 bg-[#001A66] md:bg-[#08090C]">
-        <div style={{ padding: "18px 22px 0" }}>
-          <p style={{ fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.28)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 5 }}>
-            Preferences
-          </p>
-          <h1 style={{ fontSize: 21, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px", lineHeight: 1.1 }}>Settings</h1>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>
-            Manage your profile, notifications and preferences.
-          </p>
-        </div>
+      <div className="sets-enter max-w-[1200px] mx-auto">
 
-        {/* Save + Reset buttons */}
-        <div style={{ display: "flex", gap: 8, padding: "18px 22px 18px" }}>
-          <button type="button" onClick={handleReset} style={{
-            padding: "11px 14px", borderRadius: 12,
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 500,
-            cursor: "pointer", fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-          }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11,5 A5,5 0 1,1 8.5,1.5" /><polyline points="8.5,0 8.5,2 10.5,2" />
-            </svg>
-            Reset
-          </button>
-          <button type="button" onClick={handleSave} disabled={isSaving} style={{
-            flex: 1, padding: "11px", borderRadius: 12,
-            background: T.blue, border: "none", color: "#fff",
-            fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            opacity: isSaving ? 0.7 : 1,
-          }}>
-            {isSaving ? (
-              <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1.5,6.5 4.5,10 10.5,2.5" />
+        {/* ═══ Page Head ═══ */}
+        <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }}/>
+              Teacher Dashboard · Preferences
+            </div>
+            <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+              Settings
+            </h1>
+            <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
+              Manage your profile, notifications, and teaching preferences.
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="sets-btn-press"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                height: 44, padding: '0 18px', borderRadius: 14,
+                background: '#fff', color: '#5070B0',
+                border: '0.5px solid rgba(0,85,255,.12)',
+                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 14px rgba(0,85,255,.08)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11,5 A5,5 0 1,1 8.5,1.5" /><polyline points="8.5,0 8.5,2 10.5,2" />
               </svg>
-            )}
-            {isSaving ? "Saving..." : "Save changes"}
-          </button>
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="sets-btn-press"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                height: 44, padding: '0 22px', borderRadius: 14,
+                background: isSaving ? '#F5F6F9' : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
+                color: isSaving ? '#99AACC' : '#fff',
+                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                border: 'none',
+                cursor: isSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                boxShadow: isSaving ? 'none' : '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)',
+              }}
+            >
+              {isSaving ? (
+                <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1.5,6.5 4.5,10 10.5,2.5" />
+                </svg>
+              )}
+              {isSaving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* ═══ Dark Hero Banner ═══ */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
+            borderRadius: 24, padding: '28px 32px', color: '#fff',
+            position: 'relative', overflow: 'hidden',
+            boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+            marginBottom: 22,
+          }}
+        >
+          <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+          <div style={{ position: 'absolute', bottom: -80, left: -60, width: 260, height: 260, background: 'radial-gradient(circle, rgba(123,63,244,.22) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: 18,
+              background: 'rgba(255,255,255,.16)', border: '0.5px solid rgba(255,255,255,.26)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, fontWeight: 800, color: '#fff',
+              flexShrink: 0, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+            }}>
+              {initials}
+            </div>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: '#6FFFAA' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4CC9A4' }}/>
+                Active Profile
+              </div>
+              <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.8px', margin: 0, color: '#fff', lineHeight: 1.05 }}>
+                {formData.name || "Teacher"}
+              </h2>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '6px 0 0 0' }}>
+                {formData.email} {formData.subject ? `· ${formData.subject}` : ''}
+              </p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(110px,1fr))', gap: 10 }}>
+              {[
+                { label: 'Notifications', value: `${Object.values(notifications).filter(Boolean).length}/5`, color: Object.values(notifications).filter(Boolean).length === 5 ? '#6FFFAA' : '#FFD088' },
+                { label: 'Language', value: preferences.language.slice(0, 8), color: '#fff' },
+                { label: 'Format', value: preferences.dateFormat.slice(0, 10), color: '#C8A4FF' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
       {/* ═══ BODY ════════════════════════════════════════════════════════ */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 11, paddingTop: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* ── PROFILE ──────────────────────────────────────────────────── */}
         <SectionCard title="Profile" iconBg={T.blBg} iconColor={T.blue}
@@ -355,6 +442,59 @@ const SettingsPage = () => {
         </div>
 
         <div style={{ height: 8 }} />
+      </div>
+
+      {/* ═══ AI Intelligence card ═══ */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
+          borderRadius: 22, padding: '24px 28px', color: '#fff',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+          marginTop: 14,
+        }}
+      >
+        <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+        <div style={{ position: 'absolute', top: -30, right: -20, width: 200, height: 200, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, position: 'relative', zIndex: 1, marginBottom: 18 }}>
+          <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              AI Settings Intelligence
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+              Profile &amp; Preferences Summary
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
+              {allNotifsOn ? (
+                <>All 5 notification channels are active — you'll stay on top of every student update.</>
+              ) : Object.values(notifications).some(Boolean) ? (
+                <><b style={{ color: '#fff', fontWeight: 700 }}>{Object.values(notifications).filter(Boolean).length} of 5</b> notification channels enabled. Consider turning on the rest to catch every alert.</>
+              ) : (
+                <>All notifications are off — you may miss key student and admin updates.</>
+              )}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, position: 'relative', zIndex: 1 }}>
+          {[
+            { label: 'Notifications', value: `${Object.values(notifications).filter(Boolean).length}/5`, sub: allNotifsOn ? 'All active' : 'Partial', color: allNotifsOn ? '#6FFFAA' : '#FFD088' },
+            { label: 'Display', value: preferences.defaultView, sub: 'Dashboard view', color: '#C8A4FF' },
+            { label: 'Locale', value: preferences.language, sub: preferences.dateFormat, color: '#fff' },
+          ].map(s => (
+            <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       </div>
     </div>
     {/* ═══════════════════ END DESKTOP VIEW ═══════════════════ */}
