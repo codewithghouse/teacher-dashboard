@@ -10,16 +10,29 @@ import * as pdfjsLib from "pdfjs-dist";
 // `import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'`.
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
+type KeyConcept = string | { concept?: string; explanation?: string; definition?: string };
+type Definition = { term: string; definition?: string; meaning?: string };
+type Formula = string | { formula?: string };
+type SectionBreak = { section?: string; title?: string; points?: string[] };
+type ExamPoint = string | { point?: string; text?: string };
+type RevisionPoint = string | { point?: string; text?: string };
+
 type SummaryDoc = {
   title?: string;
   summary?: string;
-  key_concepts?: string[];
-  sections?: Array<{ title: string; points: string[] }>;
-  definitions?: Array<{ term: string; meaning: string }>;
-  formulas?: string[];
-  exam_points?: string[];
-  revision_points?: string[];
-  [key: string]: unknown;
+  brief_summary?: string;
+  key_concepts?: KeyConcept[];
+  important_definitions?: Definition[];
+  definitions?: Definition[];
+  key_formulas_or_rules?: Formula[];
+  formulas?: Formula[];
+  section_breakdown?: SectionBreak[];
+  sections?: SectionBreak[];
+  exam_important_points?: ExamPoint[];
+  exam_points?: ExamPoint[];
+  quick_revision?: RevisionPoint[];
+  revision_points?: RevisionPoint[];
+  estimated_study_time?: string;
 };
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -82,13 +95,13 @@ const SummarizeLesson = () => {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      full += `\n\n[Page ${i}]\n${content.items.map((item: { str?: string }) => item.str ?? "").join(" ")}`;
+      full += `\n\n[Page ${i}]\n${content.items.map((item) => ("str" in item ? item.str : "")).join(" ")}`;
     }
     return { text: full.trim(), pages: pdf.numPages };
   };
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const handleFile = async (selectedFile: File) => {
+  const handleFile = useCallback(async (selectedFile: File) => {
     if (!selectedFile || selectedFile.type !== "application/pdf") {
       setError("Only PDF files are allowed."); return;
     }
@@ -105,13 +118,13 @@ const SummarizeLesson = () => {
       setFile(null);
     }
     setExtracting(false);
-  };
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragging(false);
     const dropped = e.dataTransfer.files[0];
     if (dropped) handleFile(dropped);
-  }, []);
+  }, [handleFile]);
 
   const handleGenerate = async () => {
     if (!file) return;
@@ -421,7 +434,7 @@ const SummarizeLesson = () => {
                 icon={<><circle cx="6" cy="6" r="4.5" /><circle cx="6" cy="6" r="2" /></>}
                 noPad
               >
-                {summary.key_concepts.map((kc: any, i: number) => (
+                {summary.key_concepts.map((kc: KeyConcept, i: number) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: i < summary.key_concepts.length - 1 ? `1px solid ${T.s2}` : "none" }}>
                     <div style={{ width: 20, height: 20, borderRadius: 6, background: T.blBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: T.blue, flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
                     <div>
@@ -441,7 +454,7 @@ const SummarizeLesson = () => {
                 icon={<><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="7.5" y2="7" /></>}
                 noPad
               >
-                {summary.important_definitions.map((d: any, i: number) => (
+                {summary.important_definitions.map((d: Definition, i: number) => (
                   <div key={i} style={{ padding: "9px 0", borderBottom: i < summary.important_definitions.length - 1 ? `1px solid ${T.s2}` : "none" }}>
                     <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: 0 }}>{d.term}</p>
                     <p style={{ fontSize: 11, color: T.ink3, marginTop: 2, lineHeight: 1.4 }}>{d.definition}</p>
@@ -507,7 +520,7 @@ const SummarizeLesson = () => {
                 icon={<><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="6.5" y2="7" /></>}
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {summary.section_breakdown.map((sec: any, i: number) => (
+                  {summary.section_breakdown.map((sec: SectionBreak, i: number) => (
                     <div key={i} style={{ padding: "8px 10px", background: T.glBg, border: `1px solid ${T.bdr}`, borderRadius: 12 }}>
                       <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: "0 0 4px" }}>{sec.section}</p>
                       {sec.points?.map((pt: string, pi: number) => (
@@ -611,20 +624,20 @@ const MobileSummarizeLesson = ({
   };
 
   // Result sections to render
-  const briefSummary = (summary as any)?.brief_summary || (summary as any)?.summary;
-  const keyConcepts = ((summary as any)?.key_concepts || []) as any[];
-  const examPoints = ((summary as any)?.exam_important_points || []) as any[];
-  const quickRevision = ((summary as any)?.quick_revision || []) as any[];
-  const definitions = ((summary as any)?.important_definitions || (summary as any)?.definitions || []) as any[];
-  const formulas = ((summary as any)?.key_formulas_or_rules || (summary as any)?.formulas || []) as any[];
-  const sections = ((summary as any)?.section_breakdown || (summary as any)?.sections || []) as any[];
+  const briefSummary = summary?.brief_summary || summary?.summary;
+  const keyConcepts = summary?.key_concepts ?? [];
+  const examPoints = summary?.exam_important_points ?? [];
+  const quickRevision = summary?.quick_revision ?? [];
+  const definitions = summary?.important_definitions ?? summary?.definitions ?? [];
+  const formulas = summary?.key_formulas_or_rules ?? summary?.formulas ?? [];
+  const sections = summary?.section_breakdown ?? summary?.sections ?? [];
 
   const resultCards = [
     briefSummary && { key: "brief", title: "Brief Summary", icon: mobBenefits[0].icon, color: "b1",
       body: <div style={{ fontSize: 12, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>{briefSummary}</div> },
     keyConcepts.length > 0 && { key: "key", title: "Key Concepts", icon: mobBenefits[1].icon, color: "navy",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 7, margin: 0, padding: 0 }}>
-        {keyConcepts.map((kc: any, i: number) => (
+        {keyConcepts.map((kc: KeyConcept, i: number) => (
           <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#002080", lineHeight: 1.5, fontWeight: 500, letterSpacing: "-0.1px" }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#0055FF", marginTop: 6, flexShrink: 0, boxShadow: "0 0 4px rgba(0,85,255,.3)" }} />
             {typeof kc === "string" ? kc : (
@@ -638,7 +651,7 @@ const MobileSummarizeLesson = ({
       </ul> },
     examPoints.length > 0 && { key: "exam", title: "Exam Important Points", icon: mobBenefits[5].icon, color: "gold",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 7, margin: 0, padding: 0 }}>
-        {examPoints.map((pt: any, i: number) => {
+        {examPoints.map((pt: ExamPoint, i: number) => {
           const text = typeof pt === "string" ? pt : pt.point || pt.text || "";
           return (
             <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#002080", lineHeight: 1.5, fontWeight: 500, letterSpacing: "-0.1px" }}>
@@ -650,7 +663,7 @@ const MobileSummarizeLesson = ({
       </ul> },
     quickRevision.length > 0 && { key: "revise", title: "Quick Revision Points", icon: mobBenefits[6].icon, color: "green",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 7, margin: 0, padding: 0 }}>
-        {quickRevision.map((pt: any, i: number) => {
+        {quickRevision.map((pt: ExamPoint, i: number) => {
           const text = typeof pt === "string" ? pt : pt.point || pt.text || "";
           return (
             <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#002080", lineHeight: 1.5, fontWeight: 500, letterSpacing: "-0.1px" }}>
@@ -662,7 +675,7 @@ const MobileSummarizeLesson = ({
       </ul> },
     definitions.length > 0 && { key: "defs", title: "Important Definitions", icon: mobBenefits[3].icon, color: "gold",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 7, margin: 0, padding: 0 }}>
-        {definitions.map((d: any, i: number) => (
+        {definitions.map((d: Definition, i: number) => (
           <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#002080", lineHeight: 1.5, fontWeight: 500, letterSpacing: "-0.1px" }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#0055FF", marginTop: 6, flexShrink: 0, boxShadow: "0 0 4px rgba(0,85,255,.3)" }} />
             <span><b style={{ color: "#001040", fontWeight: 700 }}>{d.term}: </b>{d.definition || d.meaning}</span>
@@ -671,7 +684,7 @@ const MobileSummarizeLesson = ({
       </ul> },
     formulas.length > 0 && { key: "formula", title: "Formulas & Rules", icon: mobBenefits[4].icon, color: "red",
       body: <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {formulas.map((f: any, i: number) => (
+        {formulas.map((f: Formula, i: number) => (
           <div key={i} style={{ padding: "8px 12px", background: "rgba(255,51,85,.08)", border: "0.5px solid rgba(255,51,85,.2)", borderRadius: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#FF3355", fontFamily: "monospace", lineHeight: 1.5 }}>{typeof f === "string" ? f : f.formula || ""}</div>
           </div>
@@ -679,7 +692,7 @@ const MobileSummarizeLesson = ({
       </div> },
     sections.length > 0 && { key: "section", title: "Section Breakdown", icon: mobBenefits[2].icon, color: "green",
       body: <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {sections.map((sec: any, i: number) => (
+        {sections.map((sec: SectionBreak, i: number) => (
           <div key={i} style={{ padding: "10px 12px", background: "rgba(0,200,83,.06)", border: "0.5px solid rgba(0,200,83,.15)", borderRadius: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
             {(sec.points || []).map((pt: string, pi: number) => (
@@ -753,7 +766,7 @@ const MobileSummarizeLesson = ({
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
             {showResult ? (
               <>
-                {(summary as any)?.title ? <>{(summary as any).title}{" "}</> : "Chapter "}
+                {summary?.title ? <>{summary.title}{" "}</> : "Chapter "}
                 <span style={{
                   background: "linear-gradient(135deg, #0055FF 0%, #1166FF 100%)",
                   WebkitBackgroundClip: "text",
@@ -1385,20 +1398,20 @@ const DesktopSummarizeLesson = ({
     teal:   "linear-gradient(135deg, #16B8B0, #2FD4CC)",
   };
 
-  const briefSummary = (summary as any)?.brief_summary || (summary as any)?.summary;
-  const keyConcepts = ((summary as any)?.key_concepts || []) as any[];
-  const examPoints = ((summary as any)?.exam_important_points || []) as any[];
-  const quickRevision = ((summary as any)?.quick_revision || []) as any[];
-  const definitions = ((summary as any)?.important_definitions || (summary as any)?.definitions || []) as any[];
-  const formulas = ((summary as any)?.key_formulas_or_rules || (summary as any)?.formulas || []) as any[];
-  const sections = ((summary as any)?.section_breakdown || (summary as any)?.sections || []) as any[];
+  const briefSummary = summary?.brief_summary || summary?.summary;
+  const keyConcepts = summary?.key_concepts ?? [];
+  const examPoints = summary?.exam_important_points ?? [];
+  const quickRevision = summary?.quick_revision ?? [];
+  const definitions = summary?.important_definitions ?? summary?.definitions ?? [];
+  const formulas = summary?.key_formulas_or_rules ?? summary?.formulas ?? [];
+  const sections = summary?.section_breakdown ?? summary?.sections ?? [];
 
   const resultCards = [
     briefSummary && { key: "brief", title: "Brief Summary", icon: mobBenefits[0].icon, color: "b1",
       body: <div style={{ fontSize: 14, color: "#002080", lineHeight: 1.6, fontWeight: 500, letterSpacing: "-0.1px" }}>{briefSummary}</div> },
     keyConcepts.length > 0 && { key: "key", title: "Key Concepts", icon: mobBenefits[1].icon, color: "navy",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9, margin: 0, padding: 0 }}>
-        {keyConcepts.map((kc: any, i: number) => (
+        {keyConcepts.map((kc: KeyConcept, i: number) => (
           <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0055FF", marginTop: 7, flexShrink: 0, boxShadow: "0 0 4px rgba(0,85,255,.3)" }} />
             {typeof kc === "string" ? kc : (
@@ -1412,7 +1425,7 @@ const DesktopSummarizeLesson = ({
       </ul> },
     examPoints.length > 0 && { key: "exam", title: "Exam Important Points", icon: mobBenefits[5].icon, color: "gold",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9, margin: 0, padding: 0 }}>
-        {examPoints.map((pt: any, i: number) => {
+        {examPoints.map((pt: ExamPoint, i: number) => {
           const text = typeof pt === "string" ? pt : pt.point || pt.text || "";
           return (
             <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>
@@ -1424,7 +1437,7 @@ const DesktopSummarizeLesson = ({
       </ul> },
     quickRevision.length > 0 && { key: "revise", title: "Quick Revision Points", icon: mobBenefits[6].icon, color: "green",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9, margin: 0, padding: 0 }}>
-        {quickRevision.map((pt: any, i: number) => {
+        {quickRevision.map((pt: ExamPoint, i: number) => {
           const text = typeof pt === "string" ? pt : pt.point || pt.text || "";
           return (
             <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>
@@ -1436,7 +1449,7 @@ const DesktopSummarizeLesson = ({
       </ul> },
     definitions.length > 0 && { key: "defs", title: "Important Definitions", icon: mobBenefits[3].icon, color: "gold",
       body: <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9, margin: 0, padding: 0 }}>
-        {definitions.map((d: any, i: number) => (
+        {definitions.map((d: Definition, i: number) => (
           <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0055FF", marginTop: 7, flexShrink: 0, boxShadow: "0 0 4px rgba(0,85,255,.3)" }} />
             <span><b style={{ color: "#001040", fontWeight: 700 }}>{d.term}: </b>{d.definition || d.meaning}</span>
@@ -1445,7 +1458,7 @@ const DesktopSummarizeLesson = ({
       </ul> },
     formulas.length > 0 && { key: "formula", title: "Formulas & Rules", icon: mobBenefits[4].icon, color: "red",
       body: <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {formulas.map((f: any, i: number) => (
+        {formulas.map((f: Formula, i: number) => (
           <div key={i} style={{ padding: "10px 14px", background: "rgba(255,51,85,.08)", border: "0.5px solid rgba(255,51,85,.2)", borderRadius: 11 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#FF3355", fontFamily: "monospace", lineHeight: 1.55 }}>{typeof f === "string" ? f : f.formula || ""}</div>
           </div>
@@ -1453,7 +1466,7 @@ const DesktopSummarizeLesson = ({
       </div> },
     sections.length > 0 && { key: "section", title: "Section Breakdown", icon: mobBenefits[2].icon, color: "green",
       body: <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {sections.map((sec: any, i: number) => (
+        {sections.map((sec: SectionBreak, i: number) => (
           <div key={i} style={{ padding: "12px 14px", background: "rgba(0,200,83,.06)", border: "0.5px solid rgba(0,200,83,.15)", borderRadius: 13 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", marginBottom: 7, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
             {(sec.points || []).map((pt: string, pi: number) => (
@@ -1514,7 +1527,7 @@ const DesktopSummarizeLesson = ({
           <h1 style={{ fontSize: 42, fontWeight: 800, color: "#001040", letterSpacing: "-1.6px", lineHeight: 1.05, margin: 0 }}>
             {showResult ? (
               <>
-                {(summary as any)?.title ? <>{(summary as any).title}{" "}</> : "Chapter "}
+                {summary?.title ? <>{summary.title}{" "}</> : "Chapter "}
                 <span style={{
                   background: "linear-gradient(135deg, #0055FF 0%, #1166FF 100%)",
                   WebkitBackgroundClip: "text",
