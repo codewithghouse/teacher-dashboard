@@ -149,6 +149,27 @@ const SettingsPage = () => {
 
   const initials = getInitials(formData.name);
 
+  // 3D tilt handlers (cursor-following — smooth/buttery vibe)
+  const handle3DEnter = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    el.style.transition = "transform 0.4s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.4s cubic-bezier(0.2,0.8,0.2,1)";
+  };
+  const handle3DMove = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    el.style.transition = "transform 0.4s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.4s cubic-bezier(0.2,0.8,0.2,1)";
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotX = (((y / rect.height) - 0.5) * -6).toFixed(2);
+    const rotY = (((x / rect.width) - 0.5) * 6).toFixed(2);
+    el.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-5px) scale(1.012)`;
+  };
+  const handle3DLeave = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    el.style.transition = "transform 0.6s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.6s cubic-bezier(0.2,0.8,0.2,1)";
+    el.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1)";
+  };
+
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <>
@@ -172,7 +193,7 @@ const SettingsPage = () => {
 
     {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
     <div
-      className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+      className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-4 pt-6 pb-10"
       style={{
         minHeight: "100vh",
         background: "#EEF4FF",
@@ -193,7 +214,7 @@ const SettingsPage = () => {
         .sets-btn-press:active { transform: scale(.96); }
       `}</style>
 
-      <div className="sets-enter max-w-[1200px] mx-auto">
+      <div className="sets-enter w-full">
 
         {/* ═══ Page Head ═══ */}
         <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
@@ -259,12 +280,17 @@ const SettingsPage = () => {
 
         {/* ═══ Dark Hero Banner ═══ */}
         <div
+          onMouseEnter={handle3DEnter}
+          onMouseMove={handle3DMove}
+          onMouseLeave={handle3DLeave}
           style={{
             background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
             borderRadius: 24, padding: '28px 32px', color: '#fff',
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
             marginBottom: 22,
+            transformStyle: 'preserve-3d',
+            willChange: 'transform',
           }}
         >
           <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -423,7 +449,14 @@ const SettingsPage = () => {
         </SectionCard>
 
         {/* ── DANGER ZONE ──────────────────────────────────────────────── */}
-        <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: "hidden" }}>
+        <div className="sets-card3d" style={{
+          background: T.white,
+          border: "0.5px solid rgba(0,85,255,0.07)",
+          borderRadius: 18,
+          overflow: "hidden",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+          marginBottom: 16,
+        }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "13px 14px", borderBottom: `1px solid ${T.s2}` }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: T.rlBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.red} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -446,12 +479,17 @@ const SettingsPage = () => {
 
       {/* ═══ AI Intelligence card ═══ */}
       <div
+        onMouseEnter={handle3DEnter}
+        onMouseMove={handle3DMove}
+        onMouseLeave={handle3DLeave}
         style={{
           background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
           borderRadius: 22, padding: '24px 28px', color: '#fff',
           position: 'relative', overflow: 'hidden',
           boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
           marginTop: 14,
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
         }}
       >
         <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -1071,7 +1109,14 @@ const SectionCard = ({ title, iconBg, iconColor, icon, right, children }: {
   icon: React.ReactNode; right?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: "hidden" }}>
+  <div className="sets-card3d" style={{
+    background: T.white,
+    border: "0.5px solid rgba(0,85,255,0.07)",
+    borderRadius: 18,
+    overflow: "hidden",
+    boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
+    marginBottom: 16,
+  }}>
     <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "13px 14px", borderBottom: `1px solid ${T.s2}` }}>
       <div style={{ width: 30, height: 30, borderRadius: 9, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

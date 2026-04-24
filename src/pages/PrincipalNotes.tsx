@@ -214,7 +214,7 @@ const PrincipalNotes = () => {
     <>
     {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
     <div
-      className="-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-8 pt-6 pb-10"
+      className="-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-4 pt-6 pb-10"
       style={{
         background: '#EEF4FF',
         minHeight: '100vh',
@@ -242,7 +242,7 @@ const PrincipalNotes = () => {
         @media (hover:hover) { .pnot-bubble:hover { transform: translateY(-1px); } }
       `}</style>
 
-      <div className="pnot-enter max-w-[1400px] mx-auto">
+      <div className="pnot-enter w-full">
 
 
         {/* ═══ Page Head ═══ */}

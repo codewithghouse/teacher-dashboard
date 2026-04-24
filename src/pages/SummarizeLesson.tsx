@@ -1473,7 +1473,7 @@ const DesktopSummarizeLesson = ({
 
   return (
     <div
-      className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-8 pt-8 pb-12 text-left"
+      className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 px-4 pt-8 pb-12 text-left"
       style={{
         background: "#EEF4FF",
         minHeight: "100vh",
