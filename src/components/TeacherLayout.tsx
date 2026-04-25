@@ -24,6 +24,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/syllabus":          "Syllabus",
   "/reports":           "Reports",
   "/settings":          "Settings",
+  "/leaderboard":       "Leaderboard",
 };
 
 const TeacherLayout = () => {

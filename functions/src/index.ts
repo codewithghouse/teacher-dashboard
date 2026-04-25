@@ -45,7 +45,9 @@ export const getTeacherAIInsights = functions
     // Auth + role gate (was auth-only, missing role check).
     requireRole(context, TEACHER_ROLES);
 
-    const openai = new OpenAI({ apiKey: openaiApiKey.value() });
+    // Trim defensively — Secret Manager retains trailing whitespace/newline
+    // from CLI input, which makes the Bearer header invalid.
+    const openai = new OpenAI({ apiKey: openaiApiKey.value().trim() });
     const { type, payload } = data || {};
 
     // Input bounds on payload — prevent prompt-cost amplification.
@@ -181,11 +183,101 @@ Rules:
 - exam_important_points: 5-8 high-priority points
 - quick_revision: 8-12 ultra-short bullet points (max 10 words each)
 - Return ONLY the JSON, no markdown`;
+    } else if (type === "class_action_plan") {
+      systemPrompt = "You are a senior school data analyst and teacher coach for Indian K-12 schools. Give honest, specific, data-driven recommendations to a class teacher. Use Hinglish (Hindi + English mixed naturally) in diagnosis and action reasons — keep action titles in English. Never shame or demoralize. Respond ONLY in valid JSON.";
+      userPrompt = `Generate an action plan for a class teacher based on the live metrics below.
+
+CONTEXT:
+${payloadJson}
+
+Generate 4-5 specific actions. Each action must:
+- Target the biggest measurable gap (low marks, low attendance, at-risk count, or a specific weak student)
+- Be completable in 1-2 weeks
+- Be concrete and trackable
+
+Return ONLY this JSON:
+{
+  "diagnosis": [
+    { "type": "good", "text": "Hinglish text — what is working with specific numbers" },
+    { "type": "concern", "text": "Hinglish text — biggest issue with data" },
+    { "type": "note", "text": "Hinglish text — pattern, context, or callout (optional)" }
+  ],
+  "actions": [
+    {
+      "id": "a1",
+      "num": "01",
+      "title": "Short English action title with target",
+      "reason": "Hinglish 1-2 sentence reason with data",
+      "tracking": "auto" | "auto_pct" | "manual",
+      "status": "pending",
+      "subStatus": "Short English label like '0 / 5 sessions' or '72% → 85%'"
+    }
+  ]
+}`;
+    } else if (type === "student_action_plan") {
+      systemPrompt = "You are a teacher coach helping a teacher plan interventions for a specific student. Generate empathetic, concrete interventions. Use Hinglish in reasons, English in titles. Never shame. Respond ONLY in valid JSON.";
+      userPrompt = `Generate a personalised intervention plan for one student.
+
+CONTEXT:
+${payloadJson}
+
+Generate 4-5 SPECIFIC interventions targeting this student's worst metrics and weakest subjects.
+
+Return ONLY this JSON:
+{
+  "diagnosis": [
+    { "type": "concern", "text": "Hinglish — biggest issue with student-specific data" },
+    { "type": "concern", "text": "Hinglish — secondary issue (optional)" },
+    { "type": "note", "text": "Hinglish — pattern or recommendation context (optional)" }
+  ],
+  "actions": [
+    {
+      "id": "s1",
+      "num": "01",
+      "title": "Short English action title",
+      "reason": "Hinglish 1-2 sentence reason citing student metrics",
+      "tracking": "auto" | "manual",
+      "status": "pending",
+      "subStatus": "Short English label"
+    }
+  ]
+}`;
+    } else if (type === "teacher_self_action_plan") {
+      systemPrompt = "You are a senior educator performance coach. Give honest, constructive feedback to a teacher to help them improve their professional metrics. Use Hinglish naturally in diagnosis and action reasons. Keep action titles in English. Never demoralize. Respond ONLY in valid JSON.";
+      userPrompt = `Generate self-improvement actions for a teacher based on their composite metrics across classes.
+
+CONTEXT:
+${payloadJson}
+
+Generate 4-5 self-improvement actions targeting their weakest classes or biggest gaps.
+
+Return ONLY this JSON:
+{
+  "diagnosis": [
+    { "type": "good", "text": "Hinglish — what is working with specifics" },
+    { "type": "concern", "text": "Hinglish — biggest weakness with numbers" },
+    { "type": "note", "text": "Hinglish — class-specific concern or callout (optional)" }
+  ],
+  "actions": [
+    {
+      "id": "t1",
+      "num": "01",
+      "title": "Short English action title",
+      "reason": "Hinglish 1-2 sentence reason with data",
+      "tracking": "auto" | "auto_pct" | "manual",
+      "status": "pending",
+      "subStatus": "Short English label"
+    }
+  ]
+}`;
     }
 
     const maxTokens =
       type === "lesson_plan_generation" ? 4096 :
       type === "lesson_summary" ? 3000 :
+      type === "class_action_plan" ? 1500 :
+      type === "student_action_plan" ? 1500 :
+      type === "teacher_self_action_plan" ? 1500 :
       1024;
 
     try {

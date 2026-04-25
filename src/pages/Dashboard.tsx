@@ -593,6 +593,58 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* ── Leaderboard entry cards ── */}
+      <div className="grid grid-cols-2 gap-[10px] px-4 pt-[10px]">
+        {[
+          {
+            label: "Class Leaderboard",
+            sub: "See how students rank",
+            iconBg: B1,
+            path: "/leaderboard",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+                <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                <path d="M4 22h16"/>
+                <path d="M10 14.66V17a2 2 0 002 2v0a2 2 0 002-2v-2.34"/>
+                <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
+              </svg>
+            ),
+          },
+          {
+            label: "Teacher Rankings",
+            sub: `You're #${7} in branch`,
+            iconBg: VIOLET,
+            path: "/leaderboard/teachers",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l2.4 5.4L20 8l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-.6L12 2z"/>
+              </svg>
+            ),
+          },
+        ].map(({ label, sub, iconBg, path, icon }) => (
+          <button type="button" key={label}
+            onClick={() => navigate(path)}
+            {...tilt3D}
+            className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
+            style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}>
+            <div className="flex items-start gap-[10px] mb-[14px]" style={{ minHeight: 40 }}>
+              <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.3] pt-[3px]" style={{ color: TT3, letterSpacing: "0.6px" }}>
+                {label}
+              </div>
+              <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white"
+                style={{ background: iconBg }}>
+                {icon}
+              </div>
+            </div>
+            <div className="text-[12px] font-semibold flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.1px" }}>
+              {sub}
+              <span className="ml-auto text-[16px] leading-none" style={{ color: B1 }}>›</span>
+            </div>
+          </button>
+        ))}
+      </div>
+
       {/* ── Today's Classes ── */}
       <div {...tilt3D} className="mx-4 mt-[14px] bg-white rounded-[20px] p-[18px]"
         style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}>
@@ -1113,6 +1165,62 @@ const Dashboard = () => {
                 <div className="text-[38px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
                 <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
                   {sub}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* ── Leaderboard entry cards ── */}
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            {[
+              {
+                label: "Class Leaderboard",
+                sub: "See how students rank this week",
+                iconBg: B1,
+                path: "/leaderboard",
+                icon: (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+                    <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                    <path d="M4 22h16"/>
+                    <path d="M10 14.66V17a2 2 0 002 2v0a2 2 0 002-2v-2.34"/>
+                    <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
+                  </svg>
+                ),
+              },
+              {
+                label: "Teacher Rankings",
+                sub: "You're #7 in your branch this week",
+                iconBg: VIOLET,
+                path: "/leaderboard/teachers",
+                icon: (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l2.4 5.4L20 8l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-.6L12 2z"/>
+                  </svg>
+                ),
+              },
+            ].map(({ label, sub, iconBg, path, icon }) => (
+              <button type="button" key={label}
+                onClick={() => navigate(path)}
+                {...tilt3D}
+                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]/40"
+                style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}>
+                <div className="flex items-start gap-[10px] mb-5 relative" style={{ minHeight: 44 }}>
+                  <div className="flex-1 min-w-0 text-[12px] font-bold uppercase leading-[1.3] pt-[4px]" style={{ color: TT3, letterSpacing: "0.8px" }}>
+                    {label}
+                  </div>
+                  <div className="flex-shrink-0 w-[44px] h-[44px] rounded-[13px] flex items-center justify-center text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${iconBg}, ${iconBg}DD)`,
+                      boxShadow: `0 4px 14px ${iconBg}44`,
+                      transform: "translateZ(18px)",
+                    }}>
+                    {icon}
+                  </div>
+                </div>
+                <div className="text-[14px] font-semibold flex items-center gap-2" style={{ color: TT3, letterSpacing: "-0.15px", transform: "translateZ(10px)" }}>
+                  <span className="flex-1 truncate">{sub}</span>
+                  <span className="text-[20px] leading-none" style={{ color: B1 }}>›</span>
                 </div>
               </button>
             ))}

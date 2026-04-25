@@ -89,6 +89,24 @@ export const AIController = {
   async getParentNoteGeneration(_data: unknown): Promise<AIResult> { return notImplemented("getParentNoteGeneration"); },
   async getClassReportCards(_data: unknown): Promise<AIResult> { return notImplemented("getClassReportCards"); },
 
+  // LEADERBOARD: Class action plan (Hinglish diagnosis + 4-5 actions)
+  async getClassActionPlan(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("class_action_plan", data, { logPrefix: "ClassActionPlan", timeoutMs: 60_000 });
+  },
+
+  // LEADERBOARD: Per-student intervention plan
+  async getStudentActionPlan(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("student_action_plan", data, { logPrefix: "StudentActionPlan", timeoutMs: 60_000 });
+  },
+
+  // LEADERBOARD: Teacher self-improvement plan
+  async getTeacherSelfActionPlan(data: unknown): Promise<AIResult> {
+    if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
+    return callAIInsights("teacher_self_action_plan", data, { logPrefix: "TeacherSelfActionPlan", timeoutMs: 60_000 });
+  },
+
   async getDetailedSubjectReport(data: unknown): Promise<AIResult> {
     if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
     return callAIInsights("class_performance_report", data, { logPrefix: "ClassReport" });

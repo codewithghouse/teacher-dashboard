@@ -52,6 +52,7 @@ const LessonPlanGenerator = lazyWithRetry(() => import("./pages/LessonPlanGenera
 const SummarizeLesson    = lazyWithRetry(() => import("./pages/SummarizeLesson"));
 const Syllabus           = lazyWithRetry(() => import("./pages/Syllabus"));
 const Exam               = lazyWithRetry(() => import("./pages/Exam"));
+const Leaderboard        = lazyWithRetry(() => import("./pages/Leaderboard"));
 const NotFound           = lazyWithRetry(() => import("./pages/NotFound"));
 const Login              = lazyWithRetry(() => import("./pages/Login"));
 
@@ -141,6 +142,7 @@ const AppRoutes = () => {
           <Route path="/summarize-lesson" element={<SummarizeLesson />} />
           <Route path="/syllabus" element={<Syllabus />} />
           <Route path="/exam" element={<Exam />} />
+          <Route path="/leaderboard/*" element={<Leaderboard />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
