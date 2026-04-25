@@ -629,14 +629,15 @@ export default function Gradebook() {
 
         {/* Scoped styles for this mobile view only */}
         <style>{`
-          .gb-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+          .gb-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
           @media (hover:hover) {
-            .gb-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); }
+            .gb-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); }
           }
-          .gb-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); }
-          .gb-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+          .gb-card3d:active { transform: translateY(-1px) scale(.99); }
+          .gb-press { transition: all 0.3s ease; }
+          .gb-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .gb-press:active { transform: scale(.94); }
-          .gb-score-input { transition: all .2s cubic-bezier(.2,.9,.3,1); }
+          .gb-score-input { transition: all 0.3s ease; }
           .gb-score-input:focus { background: #fff !important; border-color: #0055FF !important; box-shadow: 0 0 0 3px rgba(9,87,247,.14) !important; }
           @keyframes gbFadeInUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
           .gb-enter > * { animation: gbFadeInUp .5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -709,6 +710,11 @@ export default function Gradebook() {
           {/* HERO — Class Average */}
           <div
             className="gb-card3d"
+            role="button"
+            tabIndex={0}
+            aria-label="Open class report"
+            onClick={() => navigate('/reports')}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
             style={{
               background: 'linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)',
               borderRadius: 26, padding: 22, marginBottom: 14,
@@ -976,8 +982,14 @@ export default function Gradebook() {
               >
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: totalToneColor }} />
 
-                {/* Head */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                {/* Head — clickable: opens Students page */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View ${stu.name}`}
+                  onClick={() => navigate('/students')}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/students'); } }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, cursor: 'pointer' }}>
                   <div style={{
                     width: 42, height: 42, borderRadius: 13,
                     background: avBg, color: '#fff',
@@ -1095,6 +1107,11 @@ export default function Gradebook() {
           {!loading && filtered.length > 0 && columns.length > 0 && (
             <div
               className="gb-card3d"
+              role="button"
+              tabIndex={0}
+              aria-label="Open detailed class report"
+              onClick={() => navigate('/reports')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
               style={{
                 background: '#fff', borderRadius: 20, padding: 16, marginBottom: 14,
                 position: 'relative', overflow: 'hidden',
@@ -1167,6 +1184,11 @@ export default function Gradebook() {
           {!loading && filtered.length > 0 && columns.length > 0 && (
             <div
               className="gb-card3d"
+              role="button"
+              tabIndex={0}
+              aria-label="Open detailed insights"
+              onClick={() => navigate('/reports')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
               style={{
                 background: 'linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)',
                 borderRadius: 24, padding: 20,
@@ -1215,11 +1237,13 @@ export default function Gradebook() {
         style={{ background: '#EEF4FF', minHeight: '100vh', fontVariantNumeric: 'tabular-nums' }}
       >
         <style>{`
-          .gbd-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); will-change: transform; }
-          @media (hover:hover) { .gbd-card3d:hover { transform: translateY(-3px) scale(1.004); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); } }
-          .gbd-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+          .gbd-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
+          @media (hover:hover) { .gbd-card3d:hover { transform: translateY(-4px) scale(1.008); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); } }
+          .gbd-card3d:active { transform: translateY(-1px) scale(.99); }
+          .gbd-press { transition: all 0.3s ease; }
+          .gbd-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .gbd-press:active { transform: scale(.96); }
-          .gbd-score-input { transition: all .2s cubic-bezier(.2,.9,.3,1); }
+          .gbd-score-input { transition: all 0.3s ease; }
           .gbd-score-input:focus { background: #fff !important; border-color: #0055FF !important; box-shadow: 0 0 0 3px rgba(9,87,247,.14) !important; }
           .gbd-scroll::-webkit-scrollbar { display: none; }
           .gbd-scroll { -ms-overflow-style: none; scrollbar-width: none; }
@@ -1283,6 +1307,11 @@ export default function Gradebook() {
           {/* HERO — Class Average */}
           <div
             className="gbd-card3d"
+            role="button"
+            tabIndex={0}
+            aria-label="Open class report"
+            onClick={() => navigate('/reports')}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
             style={{
               background: 'linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)',
               borderRadius: 28, padding: 32, marginBottom: 18,
@@ -1551,8 +1580,14 @@ export default function Gradebook() {
                   >
                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: totalToneColor }} />
 
-                    {/* Head */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                    {/* Head — clickable: opens Students page */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View ${stu.name}`}
+                      onClick={() => navigate('/students')}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/students'); } }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, cursor: 'pointer' }}>
                       <div style={{
                         width: 50, height: 50, borderRadius: 15,
                         background: avBg, color: '#fff',
@@ -1675,6 +1710,11 @@ export default function Gradebook() {
               {/* Class Avg Card */}
               <div
                 className="gbd-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed class report"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: '#fff', borderRadius: 22, padding: 22,
                   position: 'relative', overflow: 'hidden',
@@ -1745,6 +1785,11 @@ export default function Gradebook() {
               {/* AI Intelligence */}
               <div
                 className="gbd-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed insights"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: 'linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)',
                   borderRadius: 26, padding: 28,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ConceptMasteryDetail from "@/components/ConceptMasteryDetail";
 import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
@@ -70,6 +71,7 @@ const getStudentMastery = (student: any): number | null => {
 // ─────────────────────────────────────────────────────────────────────────────
 const ConceptMastery = () => {
   const { teacherData } = useAuth();
+  const navigate = useNavigate();
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   const [dynamicHeaders, setDynamicHeaders] = useState<string[]>([]);
@@ -374,10 +376,11 @@ const ConceptMastery = () => {
         }}
       >
         <style>{`
-          .cm-card3d { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
-          @media (hover:hover) { .cm-card3d:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
-          .cm-card3d:active { transform: translate3d(0,-1px,0) scale(.985); box-shadow: 0 0 0 .5px rgba(0,85,255,.12), 0 6px 16px rgba(0,85,255,.14) !important; }
-          .cm-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+          .cm-card3d { transition: all 0.3s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform, box-shadow; cursor: pointer; }
+          @media (hover:hover) { .cm-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22) !important; } }
+          .cm-card3d:active { transform: translateY(-1px) scale(.99); }
+          .cm-press { transition: all 0.3s ease; }
+          .cm-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .cm-press:active { transform: scale(.94); }
           @keyframes cmFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes cmPulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
@@ -509,6 +512,11 @@ const ConceptMastery = () => {
           {/* HERO — Class Mastery */}
           <div
             className="cm-card3d"
+            role="button"
+            tabIndex={0}
+            aria-label="Open mastery report"
+            onClick={() => navigate('/reports')}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
             style={{
               background: 'linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)',
               borderRadius: 26, padding: 22, marginBottom: 14,
@@ -685,6 +693,11 @@ const ConceptMastery = () => {
           {!loading && filtered.length > 0 && dynamicHeaders.length > 0 && (
             <div
               className="cm-card3d"
+              role="button"
+              tabIndex={0}
+              aria-label="Open detailed mastery report"
+              onClick={() => navigate('/reports')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
               style={{
                 background: '#fff', borderRadius: 20, padding: 16,
                 border: '0.5px solid rgba(9,87,247,.12)',
@@ -798,6 +811,11 @@ const ConceptMastery = () => {
             return (
               <div
                 className="cm-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed insights"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: 'linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)',
                   borderRadius: 24, padding: 20,
@@ -877,14 +895,17 @@ const ConceptMastery = () => {
         }}
       >
         <style>{`
-          .cmd-card3d { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
-          @media (hover:hover) { .cmd-card3d:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
-          .cmd-tile { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; cursor: pointer; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform; }
-          @media (hover:hover) { .cmd-tile:hover { transform: translate3d(0,-5px,0) scale(1.02); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 8px 24px rgba(0,85,255,.16), 0 20px 46px rgba(0,85,255,.18) !important; } }
-          .cmd-row { transition: background .2s ease, transform .2s ease; }
+          .cmd-card3d { transition: all 0.3s ease; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform, box-shadow; cursor: pointer; }
+          @media (hover:hover) { .cmd-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22) !important; } }
+          .cmd-card3d:active { transform: translateY(-1px) scale(.99); }
+          .cmd-tile { transition: all 0.3s ease; cursor: pointer; backface-visibility: hidden; -webkit-backface-visibility: hidden; will-change: transform, box-shadow; }
+          @media (hover:hover) { .cmd-tile:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(255,255,255,.2), 0 18px 44px rgba(0,85,255,.32), 0 6px 16px rgba(0,85,255,.22) !important; } }
+          .cmd-tile:active { transform: translateY(-1px) scale(.99); }
+          .cmd-row { transition: all 0.3s ease; cursor: pointer; }
           .cmd-row:hover { background: rgba(0,85,255,.05) !important; transform: translateX(3px); }
-          .cmd-btn { transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
-          .cmd-btn:hover { transform: translateY(-1px); }
+          .cmd-btn { transition: all 0.3s ease; }
+          .cmd-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+          .cmd-btn:active { transform: scale(.97); }
           @keyframes cmdFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
           .cmd-enter > * { animation: cmdFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
           .cmd-enter > *:nth-child(1) { animation-delay: .04s; }
@@ -1041,10 +1062,17 @@ const ConceptMastery = () => {
             ];
             return (
               <div className="grid grid-cols-4 gap-4 mb-6">
-                {kpis.map(k => (
+                {kpis.map(k => {
+                  const dest = k.label === 'Total Students' ? '/students' : '/reports';
+                  return (
                   <div
                     key={k.label}
                     className="cmd-tile"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${k.label}`}
+                    onClick={() => navigate(dest)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(dest); } }}
                     style={{
                       background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
                       position: 'relative', overflow: 'hidden',
@@ -1063,7 +1091,8 @@ const ConceptMastery = () => {
                     <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
@@ -1075,6 +1104,11 @@ const ConceptMastery = () => {
               {/* Ring card */}
               <div
                 className="cmd-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="Open mastery report"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: '#fff', borderRadius: 22, padding: '22px 24px',
                   border: '0.5px solid rgba(0,85,255,.08)',
@@ -1127,6 +1161,11 @@ const ConceptMastery = () => {
               {/* Concept averages bar chart */}
               <div
                 className="cmd-card3d col-span-2"
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed concept report"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: '#fff', borderRadius: 22, padding: '22px 24px',
                   border: '0.5px solid rgba(0,85,255,.08)',
@@ -1368,6 +1407,11 @@ const ConceptMastery = () => {
             const hasWeak = weakList.length > 0;
             return (
               <div
+                role="button"
+                tabIndex={0}
+                aria-label={hasWeak ? 'Open weak concepts report' : 'Open class report'}
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 onMouseEnter={handle3DEnter}
                 onMouseMove={handle3DMove}
                 onMouseLeave={handle3DLeave}
@@ -1383,6 +1427,7 @@ const ConceptMastery = () => {
                   marginBottom: 24,
                   transformStyle: 'preserve-3d',
                   willChange: 'transform',
+                  cursor: 'pointer',
                 }}
               >
                 <div style={{ position: 'absolute', top: -40, right: -30, width: 200, height: 200, background: 'radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -1476,6 +1521,11 @@ const ConceptMastery = () => {
               : `Class has significant gaps at ${classMasteryPct}% average. Prioritise remediation on the weakest concepts immediately.`;
             return (
               <div
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed insights"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 onMouseEnter={handle3DEnter}
                 onMouseMove={handle3DMove}
                 onMouseLeave={handle3DLeave}
@@ -1486,6 +1536,7 @@ const ConceptMastery = () => {
                   boxShadow: '0 14px 40px rgba(0,8,60,.32), 0 0 0 .5px rgba(255,255,255,.12)',
                   transformStyle: 'preserve-3d',
                   willChange: 'transform',
+                  cursor: 'pointer',
                 }}
               >
                 <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>

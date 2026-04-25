@@ -647,11 +647,17 @@ const ParentNotes = () => {
             .pn-enter > *:nth-child(3) { animation-delay: .16s; }
             .pn-enter > *:nth-child(4) { animation-delay: .22s; }
             .pn-enter > *:nth-child(5) { animation-delay: .28s; }
-            .pn-tpl-btn { transition: transform .32s cubic-bezier(.22,.61,.36,1), background .22s ease, box-shadow .32s cubic-bezier(.22,.61,.36,1), border-color .22s ease; }
+            .pn-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
+            @media (hover:hover) { .pn-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); } }
+            .pn-card3d:active { transform: translateY(-1px) scale(.99); }
+            .pn-tile { transition: all 0.3s ease; cursor: pointer; will-change: transform, box-shadow; }
+            @media (hover:hover) { .pn-tile:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(255,255,255,.2), 0 18px 44px rgba(0,85,255,.32), 0 6px 16px rgba(0,85,255,.22); } }
+            .pn-tile:active { transform: translateY(-1px) scale(.99); }
+            .pn-tpl-btn { transition: all 0.3s ease; }
             @media (hover:hover) { .pn-tpl-btn:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 8px 22px rgba(0,85,255,.12); background: #fff; border-color: rgba(0,85,255,.22); } }
-            .pn-row { transition: transform .3s cubic-bezier(.22,.61,.36,1), background .22s ease; }
+            .pn-row { transition: all 0.3s ease; cursor: pointer; }
             .pn-row:hover { transform: translateX(4px); }
-            .pn-btn-press { transition: transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, filter .22s ease; }
+            .pn-btn-press { transition: all 0.3s ease; }
             .pn-btn-press:hover { transform: translateY(-1px); filter: brightness(1.06); }
             .pn-btn-press:active { transform: scale(.96); }
             @keyframes pnPulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:.5; transform: scale(1.3); } }
@@ -727,6 +733,12 @@ const ParentNotes = () => {
               const statusColor = noReplyCount > 0 ? '#FFD088' : '#6FFFAA';
               return (
                 <div
+                  className="pn-card3d"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Compose new message"
+                  onClick={() => openCompose()}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCompose(); } }}
                   style={{
                     background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
                     borderRadius: 24, padding: '28px 32px', color: '#fff',
@@ -1044,6 +1056,12 @@ const ParentNotes = () => {
                 : `Engagement is healthy — ${responsePct}% response rate across ${stats.students} parent${stats.students !== 1 ? 's' : ''}. Keep replying promptly to maintain momentum.`;
               return (
                 <div
+                  className="pn-card3d"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Compose new message"
+                  onClick={() => openCompose()}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCompose(); } }}
                   style={{
                     background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                     borderRadius: 22, padding: '24px 28px', color: '#fff',
@@ -1457,10 +1475,11 @@ const MobileParentNotesList = ({
       }}
     >
       <style>{`
-        .pnl-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
-        @media (hover:hover) { .pnl-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); } }
-        .pnl-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); }
-        .pnl-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+        .pnl-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
+        @media (hover:hover) { .pnl-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); } }
+        .pnl-card3d:active { transform: translateY(-1px) scale(.99); }
+        .pnl-press { transition: all 0.3s ease; }
+        .pnl-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
         .pnl-press:active { transform: scale(.94); }
         @keyframes pnlFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pnlPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
@@ -1516,6 +1535,11 @@ const MobileParentNotesList = ({
         {/* HERO */}
         <div
           className="pnl-card3d"
+          role="button"
+          tabIndex={0}
+          aria-label="Compose new message"
+          onClick={() => onOpenCompose()}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenCompose(); } }}
           style={{
             background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
             borderRadius: 26, padding: 22, marginBottom: 14,
@@ -1849,6 +1873,11 @@ const MobileParentNotesList = ({
         {!loading && roster.length > 0 && (
           <div
             className="pnl-card3d"
+            role="button"
+            tabIndex={0}
+            aria-label="Compose new message"
+            onClick={() => onOpenCompose()}
+            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenCompose(); } }}
             style={{
               background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
               borderRadius: 24, padding: 20, marginTop: 14,

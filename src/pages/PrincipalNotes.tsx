@@ -137,6 +137,63 @@ const PrincipalNotes = () => {
     stickToBottomRef.current = distanceFromBottom < 80;
   };
 
+  // ── Action helpers (wired to clickable cards across the page) ───────────
+  const replyInputRef = useRef<HTMLInputElement>(null);
+
+  const scrollChatToBottom = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    stickToBottomRef.current = true;
+  };
+
+  const scrollToFirstUnread = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const firstUnread = el.querySelector<HTMLElement>('[data-unread="true"]');
+    if (firstUnread) {
+      el.scrollTo({ top: Math.max(0, firstUnread.offsetTop - 20), behavior: "smooth" });
+      stickToBottomRef.current = false;
+    } else {
+      scrollChatToBottom();
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unread = allMessages.filter(m => m.read === false && m.from === "principal");
+    if (unread.length === 0) {
+      toast.success("All caught up — no unread messages.");
+      return;
+    }
+    try {
+      await Promise.all(unread.map(m =>
+        auditedUpdate(doc(db, "principal_to_teacher_notes", m.id), { read: true })
+      ));
+      toast.success(`Marked ${unread.length} message${unread.length === 1 ? "" : "s"} as read.`);
+    } catch (e) {
+      console.error("[PrincipalNotes] mark-all-read failed", e);
+      toast.error("Failed to mark as read.");
+    }
+  };
+
+  const showChannelInfo = () => {
+    toast.success("End-to-end encrypted channel", {
+      description: "Only you and the principal can read these messages. Audit logs maintained for compliance.",
+    });
+  };
+
+  const focusReplyInput = () => {
+    replyInputRef.current?.focus();
+    scrollChatToBottom();
+  };
+
+  const showPrincipalInfo = () => {
+    const seen = lastPrincipalMsg ? `last seen ${fmtTime(lastPrincipalMsg.timestamp)}` : "offline";
+    toast.success(`${principalName} · ${seen}`, {
+      description: `${stats.total} message${stats.total === 1 ? "" : "s"} exchanged · ${stats.unread} unread.`,
+    });
+  };
+
   // ── Computed values ─────────────────────────────────────────────────────
   const stats = useMemo(() => ({
     total:  allMessages.length,
@@ -269,21 +326,29 @@ const PrincipalNotes = () => {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {stats.unread > 0 && (
-              <div
+              <button
+                type="button"
+                onClick={scrollToFirstUnread}
                 className="pnot-btn-press"
+                aria-label={`${stats.unread} unread messages — jump to first unread`}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '10px 16px', borderRadius: 14,
                   background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
                   fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
                   boxShadow: '0 6px 20px rgba(255,170,0,.36), 0 2px 5px rgba(255,170,0,.2)',
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 <span className="pnot-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }}/>
                 {stats.unread} Unread
-              </div>
+              </button>
             )}
-            <div
+            <button
+              type="button"
+              onClick={showChannelInfo}
+              className="pnot-btn-press"
+              aria-label="View encrypted channel info"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '10px 14px', borderRadius: 14,
@@ -291,24 +356,32 @@ const PrincipalNotes = () => {
                 border: '0.5px solid rgba(0,200,83,.18)',
                 fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
                 boxShadow: '0 1px 2px rgba(0,200,83,.08), 0 4px 14px rgba(0,200,83,.08)',
+                cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="6" cy="6" r="2.5" fill="currentColor" stroke="none"/>
               </svg>
               Encrypted
-            </div>
+            </button>
           </div>
         </div>
 
         {/* ═══ Dark Hero with Principal Card ═══ */}
         <div
+          role="button"
+          tabIndex={0}
+          onClick={showPrincipalInfo}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showPrincipalInfo(); } }}
+          aria-label={`${principalName} — view info`}
+          className="pnot-bubble"
           style={{
             background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
             borderRadius: 24, padding: '28px 32px', color: '#fff',
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
             marginBottom: 22,
+            cursor: 'pointer',
           }}
         >
           <div style={{ position: 'absolute', top: -60, right: -40, width: 320, height: 320, background: 'radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -336,15 +409,22 @@ const PrincipalNotes = () => {
               </p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(100px,1fr))', gap: 10, flexShrink: 0 }}>
-              {[
-                { label: 'Messages', value: stats.total.toString(), color: '#fff' },
-                { label: 'Unread',   value: stats.unread.toString(), color: stats.unread > 0 ? '#FFD088' : '#6FFFAA' },
-                { label: 'Channel',  value: 'Secure', color: '#C8A4FF' },
-              ].map(s => (
-                <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)', textAlign: 'center' }}>
+              {([
+                { label: 'Messages', value: stats.total.toString(), color: '#fff', action: scrollChatToBottom, hint: 'Jump to latest' },
+                { label: 'Unread',   value: stats.unread.toString(), color: stats.unread > 0 ? '#FFD088' : '#6FFFAA', action: stats.unread > 0 ? scrollToFirstUnread : markAllAsRead, hint: stats.unread > 0 ? 'See first unread' : 'All caught up' },
+                { label: 'Channel',  value: 'Secure', color: '#C8A4FF', action: showChannelInfo, hint: 'Channel info' },
+              ] as const).map(s => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={e => { e.stopPropagation(); s.action(); }}
+                  className="pnot-btn-press"
+                  aria-label={`${s.label}: ${s.value} — ${s.hint}`}
+                  style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit', color: '#fff' }}
+                >
                   <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -352,31 +432,38 @@ const PrincipalNotes = () => {
 
         {/* ═══ Bright 2-col KPI tiles ═══ */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {[
+          {([
             {
-              label: 'Total Messages', value: stats.total.toString(), sub: 'Sent & received',
+              label: 'Total Messages', value: stats.total.toString(), sub: 'Sent & received · click to view chat',
               grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
               iconStroke: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
+              action: scrollChatToBottom,
             },
             {
-              label: 'Unread Messages', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Catch up now' : 'All caught up',
+              label: 'Unread Messages', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Click to jump to first unread' : 'All caught up — click to refresh',
               grad: stats.unread > 0 ? 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' : 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
               iconStroke: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+              action: stats.unread > 0 ? scrollToFirstUnread : markAllAsRead,
             },
             {
-              label: 'Secure Channel', value: 'Active', sub: 'End-to-end encrypted',
+              label: 'Secure Channel', value: 'Active', sub: 'End-to-end encrypted · click for details',
               grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
               iconStroke: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
+              action: showChannelInfo,
             },
-          ].map(k => (
-            <div
+          ] as const).map(k => (
+            <button
               key={k.label}
+              type="button"
+              onClick={k.action}
               {...tilt3D}
+              aria-label={`${k.label}: ${k.value} — ${k.sub}`}
               style={{
                 background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
                 position: 'relative', overflow: 'hidden',
                 boxShadow: '0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.26), 0 18px 44px rgba(0,85,255,0.20)',
                 cursor: 'pointer',
+                border: 'none', textAlign: 'left', fontFamily: 'inherit', width: '100%',
                 ...tilt3DStyle,
               }}
             >
@@ -391,19 +478,23 @@ const PrincipalNotes = () => {
               <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
               <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
-            </div>
+            </button>
           ))}
         </div>
 
         {/* ═══ Encrypted Channel Banner ═══ */}
-        <div
+        <button
+          type="button"
+          onClick={showChannelInfo}
           {...tilt3D}
+          aria-label="View encrypted channel info"
           style={{
             background: '#fff', borderRadius: 18, padding: '14px 18px',
             border: '0.5px solid rgba(0,85,255,0.07)',
             boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
             display: 'flex', alignItems: 'center', gap: 14,
             marginBottom: 22,
+            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%',
             ...tilt3DStyle,
           }}
         >
@@ -437,7 +528,7 @@ const PrincipalNotes = () => {
             </svg>
             Verified
           </div>
-        </div>
+        </button>
 
         {/* ═══ Chat Container (blue halo card) ═══ */}
         <div
@@ -451,7 +542,12 @@ const PrincipalNotes = () => {
         >
           {/* Chat header */}
           <div style={{ padding: '14px 22px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={showPrincipalInfo}
+              className="pnot-btn-press"
+              aria-label={`Show info for ${principalName}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}>
               <div style={{
                 width: 42, height: 42, borderRadius: '50%',
                 background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
@@ -467,7 +563,7 @@ const PrincipalNotes = () => {
                   {allMessages.length} message{allMessages.length === 1 ? '' : 's'} · conversation
                 </p>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Chat area */}
@@ -516,9 +612,11 @@ const PrincipalNotes = () => {
 
                   {group.messages.map(n => {
                     const isTeacher = n.from === 'teacher';
+                    const isUnread = n.from === 'principal' && n.read === false;
                     return (
                       <div
                         key={n.id}
+                        data-unread={isUnread ? 'true' : 'false'}
                         style={{
                           display: 'flex', flexDirection: 'column', gap: 4,
                           marginBottom: 14,
@@ -627,6 +725,7 @@ const PrincipalNotes = () => {
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <input
+              ref={replyInputRef}
               value={messageContent}
               onChange={e => setMessageContent(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
@@ -678,11 +777,18 @@ const PrincipalNotes = () => {
             : `You're fully caught up — ${stats.total} total exchange${stats.total !== 1 ? 's' : ''} with ${principalName}. Keep the channel warm with quick acknowledgements.`;
           return (
             <div
+              role="button"
+              tabIndex={0}
+              onClick={focusReplyInput}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusReplyInput(); } }}
+              aria-label="AI summary — click to start replying"
+              className="pnot-bubble"
               style={{
                 background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                 borderRadius: 22, padding: '24px 28px', color: '#fff',
                 position: 'relative', overflow: 'hidden',
                 boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+                cursor: 'pointer',
               }}
             >
               <div style={{ position: 'absolute', bottom: -50, left: -40, width: 280, height: 280, background: 'radial-gradient(circle, rgba(123,63,244,.28) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }}/>
@@ -706,16 +812,23 @@ const PrincipalNotes = () => {
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, position: 'relative', zIndex: 1 }}>
-                {[
-                  { label: 'Total',  value: stats.total.toString(),  sub: 'All messages', color: '#fff' },
-                  { label: 'Unread', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Reply soon' : 'Caught up', color: stats.unread > 0 ? '#FFD088' : '#6FFFAA' },
-                  { label: 'Status', value: lastPrincipalMsg ? 'Active' : 'Waiting', sub: lastSeenStr, color: '#C8A4FF' },
-                ].map(s => (
-                  <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
+                {([
+                  { label: 'Total',  value: stats.total.toString(),  sub: 'All messages', color: '#fff', action: scrollChatToBottom },
+                  { label: 'Unread', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Reply soon' : 'Caught up', color: stats.unread > 0 ? '#FFD088' : '#6FFFAA', action: stats.unread > 0 ? scrollToFirstUnread : markAllAsRead },
+                  { label: 'Status', value: lastPrincipalMsg ? 'Active' : 'Waiting', sub: lastSeenStr, color: '#C8A4FF', action: showPrincipalInfo },
+                ] as const).map(s => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={e => { e.stopPropagation(); s.action(); }}
+                    className="pnot-btn-press"
+                    aria-label={`${s.label}: ${s.value}`}
+                    style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: '#fff' }}
+                  >
                     <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

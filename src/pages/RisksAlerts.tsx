@@ -631,10 +631,11 @@ const RisksAlerts = () => {
         }}
       >
         <style>{`
-          .ra-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
-          @media (hover:hover) { .ra-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); } }
-          .ra-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); }
-          .ra-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+          .ra-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
+          @media (hover:hover) { .ra-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); } }
+          .ra-card3d:active { transform: translateY(-1px) scale(.99); }
+          .ra-press { transition: all 0.3s ease; }
+          .ra-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .ra-press:active { transform: scale(.94); }
           @keyframes raFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes raPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.25); } }
@@ -706,6 +707,11 @@ const RisksAlerts = () => {
               {/* HERO — Dark red gradient */}
               <div
                 className="ra-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="View all alerts"
+                onClick={() => { setActiveTab("All"); window.scrollTo({ top: 300, behavior: "smooth" }); }}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab("All"); window.scrollTo({ top: 300, behavior: "smooth" }); } }}
                 style={{
                   background: "linear-gradient(135deg, #1A0614 0%, #3D0B1E 35%, #8A1530 72%, #FF3355 100%)",
                   borderRadius: 26, padding: 22, marginBottom: 14,
@@ -1089,6 +1095,11 @@ const RisksAlerts = () => {
                 return (
                   <div
                     className="ra-card3d"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Open detailed risk report"
+                    onClick={() => navigate('/reports')}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                     style={{
                       background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
                       borderRadius: 24, padding: 20, marginTop: 14,
@@ -1730,20 +1741,22 @@ const RisksAlerts = () => {
         }}
       >
         <style>{`
-          .rad-card3d { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+          .rad-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
           @media (hover:hover) {
-            .rad-card3d:hover { transform: perspective(1100px) translateY(-5px) rotateX(3deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 24px 54px rgba(0,16,64,.2), 0 6px 18px rgba(0,85,255,.18); }
+            .rad-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); }
           }
-          .rad-tile { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); cursor: pointer; }
+          .rad-card3d:active { transform: translateY(-1px) scale(.99); }
+          .rad-tile { transition: all 0.3s ease; cursor: pointer; will-change: transform, box-shadow; }
           @media (hover:hover) {
-            .rad-tile:hover { transform: perspective(1100px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.025); }
+            .rad-tile:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(255,255,255,.2), 0 18px 44px rgba(0,85,255,.32), 0 6px 16px rgba(0,85,255,.22); }
           }
-          .rad-btn { transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+          .rad-tile:active { transform: translateY(-1px) scale(.99); }
+          .rad-btn { transition: all 0.3s ease; }
           .rad-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .rad-btn:active { transform: scale(.96); }
-          .rad-row { transition: transform .3s ease; }
+          .rad-row { transition: all 0.3s ease; cursor: pointer; }
           .rad-row:hover { transform: translateX(3px); }
-          .rad-chip { transition: all .2s ease; }
+          .rad-chip { transition: all 0.3s ease; }
           .rad-chip:hover { transform: translateY(-1px); }
           @keyframes radFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
           .rad-enter > * { animation: radFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -1827,6 +1840,11 @@ const RisksAlerts = () => {
             return (
               <div
                 className="rad-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="View all alerts"
+                onClick={() => setActiveTab('All')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab('All'); } }}
                 style={{
                   background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
                   borderRadius: 24, padding: '28px 32px', color: '#fff',
@@ -2027,6 +2045,11 @@ const RisksAlerts = () => {
                     <div
                       key={a.id}
                       className="rad-row rad-card3d"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View ${a.name}`}
+                      onClick={() => navigate(`/students?studentId=${a.studentId || ''}`)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/students?studentId=${a.studentId || ''}`); } }}
                       style={{
                         background: sevBg, borderRadius: 16,
                         border: `0.5px solid ${sevColor}33`,
@@ -2097,7 +2120,7 @@ const RisksAlerts = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
                         <button
                           type="button"
-                          onClick={() => fetchContact(a.studentId, a.name)}
+                          onClick={e => { e.stopPropagation(); fetchContact(a.studentId, a.name); }}
                           className="rad-btn"
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -2112,7 +2135,7 @@ const RisksAlerts = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleResolve(a)}
+                          onClick={e => { e.stopPropagation(); handleResolve(a); }}
                           disabled={resolving === a.id}
                           className="rad-btn"
                           style={{
@@ -2159,6 +2182,11 @@ const RisksAlerts = () => {
             return (
               <div
                 className="rad-card3d"
+                role="button"
+                tabIndex={0}
+                aria-label="Open detailed risk report"
+                onClick={() => navigate('/reports')}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/reports'); } }}
                 style={{
                   background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                   borderRadius: 22, padding: '24px 28px', color: '#fff',

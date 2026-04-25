@@ -299,6 +299,29 @@ export default function Students() {
   const attentionCount = students.filter(s => s.statusTag === 'Attention').length;
   const atRiskCount    = students.filter(s => s.statusTag === 'At Risk').length;
 
+  const scrollToEl = (id: string) => {
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+  const scrollToList = () =>
+    scrollToEl(typeof window !== "undefined" && window.innerWidth < 768 ? "students-list-mobile" : "students-list-desktop");
+  const scrollToChips = () =>
+    scrollToEl(typeof window !== "undefined" && window.innerWidth < 768 ? "students-filter-chips-mobile" : "students-filter-chips-desktop");
+
+  const setStatusAndScroll = (status: string) => {
+    setFilterStatus(status);
+    setFilterClass('All');
+    scrollToList();
+  };
+  const resetAndScroll = () => {
+    setFilterStatus('All');
+    setFilterClass('All');
+    setSearch('');
+    scrollToList();
+  };
+
   const filtered = students.filter(s => {
     const mSearch = s.name?.toLowerCase().includes(search.toLowerCase()) || s.rollNo?.includes(search);
     const mStatus = filterStatus === 'All' || s.statusTag === filterStatus;
@@ -393,18 +416,27 @@ export default function Students() {
               )}
             </div>
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+              <button type="button" onClick={() => setStatusAndScroll("Good")}
+                aria-label={`Filter to ${goodCount} good students`}
+                className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 <div className="text-[18px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{goodCount}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Good</div>
-              </div>
-              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+              </button>
+              <button type="button" onClick={() => setStatusAndScroll("Attention")}
+                aria-label={`Filter to ${attentionCount + atRiskCount} students needing attention`}
+                className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 <div className="text-[18px] font-extrabold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{attentionCount + atRiskCount}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Attention</div>
-              </div>
-              <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+              </button>
+              <button type="button" onClick={scrollToChips}
+                aria-label={`Browse ${uniqueClasses.length} classes`}
+                className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 <div className="text-[18px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{uniqueClasses.length}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Classes</div>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -440,7 +472,7 @@ export default function Students() {
         </div>
 
         {/* Filter chips */}
-        <div className="flex gap-[7px] overflow-x-auto px-4 pb-[10px] mb-[14px]"
+        <div id="students-filter-chips-mobile" className="flex gap-[7px] overflow-x-auto px-4 pb-[10px] mb-[14px] scroll-mt-4"
           style={{ scrollbarWidth: "none" as const }}>
           {([
             { key: "All",       kind: "status" as const, label: "All",       count: students.length },
@@ -515,7 +547,7 @@ export default function Students() {
         </div>
 
         {/* Student list */}
-        <div className="px-4">
+        <div id="students-list-mobile" className="px-4 scroll-mt-4">
           {loading ? (
             <div className="bg-white rounded-[18px] py-10 flex justify-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
               <Loader2 className="w-7 h-7 animate-spin" style={{ color: MA.P }} />
@@ -680,18 +712,24 @@ export default function Students() {
                       )}
                     </div>
                     <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                      <button type="button" onClick={() => setStatusAndScroll("Good")}
+                        className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                        style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                         <div className="text-[17px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{goodCount}</div>
                         <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Good</div>
-                      </div>
-                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                      </button>
+                      <button type="button" onClick={() => setStatusAndScroll("Attention")}
+                        className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                        style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                         <div className="text-[17px] font-extrabold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.4px" }}>{needAttn}</div>
                         <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Attention</div>
-                      </div>
-                      <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                      </button>
+                      <button type="button" onClick={resetAndScroll}
+                        className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
+                        style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                         <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{students.length}</div>
                         <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Total</div>
-                      </div>
+                      </button>
                     </div>
                   </>
                 );
@@ -796,18 +834,27 @@ export default function Students() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[380px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-                  <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                  <button type="button" onClick={() => setStatusAndScroll("Good")}
+                    aria-label={`Filter to ${goodCount} good students`}
+                    className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                    style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     <div className="text-[26px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.8px" }}>{goodCount}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Good</div>
-                  </div>
-                  <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                  </button>
+                  <button type="button" onClick={() => setStatusAndScroll("Attention")}
+                    aria-label={`Filter to ${attentionCount + atRiskCount} students needing attention`}
+                    className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                    style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     <div className="text-[26px] font-extrabold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.8px" }}>{attentionCount + atRiskCount}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Attention</div>
-                  </div>
-                  <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                  </button>
+                  <button type="button" onClick={scrollToChips}
+                    aria-label={`Browse ${uniqueClasses.length} classes`}
+                    className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                    style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{uniqueClasses.length}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Classes</div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -844,7 +891,7 @@ export default function Students() {
           </div>
 
           {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-5"
+          <div id="students-filter-chips-desktop" className="flex gap-2 overflow-x-auto pb-2 mb-5 scroll-mt-4"
             style={{ scrollbarWidth: "none" as const }}>
             {([
               { key: "All",       kind: "status" as const, label: "All",       count: students.length },
@@ -919,7 +966,7 @@ export default function Students() {
           </div>
 
           {/* Student cards grid */}
-          <div className="mb-5">
+          <div id="students-list-desktop" className="mb-5 scroll-mt-4">
             {loading ? (
               <div className="bg-white rounded-[22px] py-14 flex justify-center" style={{ boxShadow: MA.SH, border: MA.BDR }}>
                 <Loader2 className="w-9 h-9 animate-spin" style={{ color: MA.P }} />
@@ -1084,18 +1131,24 @@ export default function Students() {
                         )}
                       </div>
                       <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-                        <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        <button type="button" onClick={() => setStatusAndScroll("Good")}
+                          className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                          style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                           <div className="text-[22px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.6px" }}>{goodCount}</div>
                           <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Good</div>
-                        </div>
-                        <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        </button>
+                        <button type="button" onClick={() => setStatusAndScroll("Attention")}
+                          className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                          style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                           <div className="text-[22px] font-extrabold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.6px" }}>{needAttn}</div>
                           <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attention</div>
-                        </div>
-                        <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
+                        </button>
+                        <button type="button" onClick={resetAndScroll}
+                          className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
+                          style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                           <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{students.length}</div>
                           <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Total</div>
-                        </div>
+                        </button>
                       </div>
                     </>
                   );

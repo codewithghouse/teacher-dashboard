@@ -419,10 +419,11 @@ const Syllabus = () => {
       }}
     >
       <style>{`
-        .syl-card3d { transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
-        @media (hover:hover) { .syl-card3d:hover { transform: translateY(-4px) rotateX(4deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(9,87,247,.08), 0 24px 44px rgba(9,87,247,.18), 0 8px 16px rgba(9,87,247,.1); } }
-        .syl-card3d:active { transform: translateY(-1px) scale(.985); box-shadow: 0 1px 2px rgba(9,87,247,.1), 0 6px 16px rgba(9,87,247,.14); }
-        .syl-press { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+        .syl-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
+        @media (hover:hover) { .syl-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); } }
+        .syl-card3d:active { transform: translateY(-1px) scale(.99); }
+        .syl-press { transition: all 0.3s ease; }
+        .syl-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
         .syl-press:active { transform: scale(.94); }
         @keyframes sylFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .syl-enter > * { animation: sylFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -476,6 +477,11 @@ const Syllabus = () => {
         {/* HERO */}
         <div
           className="syl-card3d"
+          role="button"
+          tabIndex={0}
+          aria-label="Upload a new document"
+          onClick={() => { if (!loading && classes.length > 0) openMobileSheet(); }}
+          onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !loading && classes.length > 0) { e.preventDefault(); openMobileSheet(); } }}
           style={{
             background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
             borderRadius: 26, padding: 22, marginBottom: 14,
@@ -672,6 +678,11 @@ const Syllabus = () => {
                 <div
                   key={d.id}
                   className="syl-card3d"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open ${d.title}`}
+                  onClick={() => { if (isHttpUrl(d.fileUrl)) window.open(d.fileUrl, '_blank', 'noopener,noreferrer'); }}
+                  onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isHttpUrl(d.fileUrl)) { e.preventDefault(); window.open(d.fileUrl, '_blank', 'noopener,noreferrer'); } }}
                   style={{
                     background: "#fff", borderRadius: 18, padding: 14, marginBottom: 10,
                     position: "relative", overflow: "hidden",
@@ -716,6 +727,7 @@ const Syllabus = () => {
                         href={d.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
                         className="syl-press"
                         style={{
                           flex: 1, height: 38, borderRadius: 11,
@@ -750,6 +762,7 @@ const Syllabus = () => {
                         download={d.fileName}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
                         className="syl-press"
                         style={{
                           flex: 1, height: 38, borderRadius: 11,
@@ -767,7 +780,7 @@ const Syllabus = () => {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleDelete(d)}
+                      onClick={e => { e.stopPropagation(); handleDelete(d); }}
                       aria-label={`Delete ${d.title}`}
                       className="syl-press"
                       style={{
@@ -790,6 +803,11 @@ const Syllabus = () => {
         {!loading && classes.length > 0 && (
           <div
             className="syl-card3d"
+            role="button"
+            tabIndex={0}
+            aria-label="Upload a new document"
+            onClick={() => openMobileSheet()}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMobileSheet(); } }}
             style={{
               background: "linear-gradient(140deg, #000A33 0%, #001A66 28%, #0044CC 64%, #0055FF 100%)",
               borderRadius: 24, padding: 20, marginTop: 14,
@@ -1120,17 +1138,20 @@ const Syllabus = () => {
       }}
     >
       <style>{`
-        .syld-card3d { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); transform-style: preserve-3d; will-change: transform; }
+        .syld-card3d { transition: all 0.3s ease; will-change: transform, box-shadow; cursor: pointer; }
         @media (hover:hover) {
-          .syld-card3d:hover { transform: perspective(1100px) translateY(-5px) rotateX(3deg) rotateY(-3deg) scale(1.012); box-shadow: 0 1px 2px rgba(0,85,255,.1), 0 24px 54px rgba(0,16,64,.2), 0 6px 18px rgba(0,85,255,.18); }
+          .syld-card3d:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 0.5px rgba(0,85,255,.14), 0 10px 26px rgba(0,85,255,.18), 0 26px 54px rgba(0,85,255,.22); }
         }
-        .syld-tile { transition: transform .45s cubic-bezier(.2,.9,.3,1), box-shadow .35s cubic-bezier(.2,.9,.3,1); cursor: pointer; }
+        .syld-card3d:active { transform: translateY(-1px) scale(.99); }
+        .syld-tile { transition: all 0.3s ease; cursor: pointer; will-change: transform, box-shadow; }
         @media (hover:hover) {
-          .syld-tile:hover { transform: perspective(1100px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.025); }
+          .syld-tile:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 0 0 .5px rgba(255,255,255,.2), 0 18px 44px rgba(0,85,255,.32), 0 6px 16px rgba(0,85,255,.22); }
         }
-        .syld-btn { transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
-        .syld-btn:hover { transform: translateY(-1px); }
-        .syld-chip { transition: all .2s ease; }
+        .syld-tile:active { transform: translateY(-1px) scale(.99); }
+        .syld-btn { transition: all 0.3s ease; }
+        .syld-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .syld-btn:active { transform: scale(.97); }
+        .syld-chip { transition: all 0.3s ease; }
         .syld-chip:hover { transform: translateY(-1px); }
         @keyframes syldFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
         .syld-enter > * { animation: syldFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -1193,6 +1214,11 @@ const Syllabus = () => {
           return (
             <div
               className="syld-card3d"
+              role="button"
+              tabIndex={0}
+              aria-label="Upload a new document"
+              onClick={openModal}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
               style={{
                 background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
                 borderRadius: 24, padding: '28px 32px', color: '#fff',
@@ -1251,21 +1277,25 @@ const Syllabus = () => {
             {
               label: 'Total Documents', value: docs.length.toString(), sub: `${formatBytes(totalBytes)} stored`,
               grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
+              onClick: () => setActiveFilter('all'),
               iconStroke: (<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></>),
             },
             {
               label: 'Classes Covered', value: `${classesWithDocs}`, sub: `of ${classes.length} assigned class${classes.length!==1?'es':''}`,
               grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+              onClick: () => setActiveFilter('all'),
               iconStroke: (<><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>),
             },
             {
               label: 'Syllabus Files', value: syllabusCount.toString(), sub: syllabusCount > 0 ? 'Curriculum shared' : 'Upload a syllabus',
               grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
+              onClick: () => syllabusCount > 0 ? setActiveFilter('syllabus') : openModal(),
               iconStroke: (<><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>),
             },
             {
               label: 'Notes & Resources', value: notesCount.toString(), sub: notesCount > 0 ? 'Study material live' : 'Share quick notes',
               grad: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)',
+              onClick: () => notesCount > 0 ? setActiveFilter('notes') : openModal(),
               iconStroke: (<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></>),
             },
           ];
@@ -1275,6 +1305,11 @@ const Syllabus = () => {
                 <div
                   key={k.label}
                   className="syld-tile"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open ${k.label}`}
+                  onClick={k.onClick}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); k.onClick(); } }}
                   style={{
                     background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
                     position: 'relative', overflow: 'hidden',
@@ -1430,6 +1465,11 @@ const Syllabus = () => {
                       <div
                         key={d.id}
                         className="syld-card3d"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open ${d.title}`}
+                        onClick={() => { if (isHttpUrl(d.fileUrl)) window.open(d.fileUrl, '_blank', 'noopener,noreferrer'); }}
+                        onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isHttpUrl(d.fileUrl)) { e.preventDefault(); window.open(d.fileUrl, '_blank', 'noopener,noreferrer'); } }}
                         style={{
                           background: '#fff', borderRadius: 18,
                           border: '0.5px solid rgba(0,85,255,.08)',
@@ -1556,6 +1596,11 @@ const Syllabus = () => {
           return (
             <div
               className="syld-card3d"
+              role="button"
+              tabIndex={0}
+              aria-label="Upload a new document"
+              onClick={openModal}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
               style={{
                 background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                 borderRadius: 22, padding: '24px 28px', color: '#fff',

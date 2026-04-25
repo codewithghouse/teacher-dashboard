@@ -79,6 +79,8 @@ const daysLabel = (dateStr: string) => {
 const perfColor = (avg: number) =>
   avg >= 75 ? T.blue : avg >= 60 ? T.amber : T.red;
 
+type FilterKey = "All" | "Upcoming" | "Completed" | "Pending";
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function TestsExams() {
   const { teacherData } = useAuth();
@@ -91,6 +93,21 @@ export default function TestsExams() {
   const [classes, setClasses]         = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState("");
+  const [filter, setFilter]           = useState<FilterKey>("All");
+
+  // Scroll the relevant tests-list panel into view (mobile vs desktop).
+  const scrollToTests = () => {
+    if (typeof window === "undefined") return;
+    const id = window.innerWidth < 768 ? "tests-section-mobile" : "tests-section-desktop";
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const applyFilter = (key: FilterKey) => {
+    setFilter(key);
+    scrollToTests();
+  };
 
   // Fetch tests
   useEffect(() => {
@@ -202,10 +219,23 @@ export default function TestsExams() {
   if (view === "create")       return <CreateTest onCancel={() => setView("list")} onCreate={() => setView("list")} />;
   if (view === "enter-scores") return <EnterScores test={selectedTest} onBack={() => setView("list")} />;
 
-  const filtered = tests.filter(t =>
-    (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
-    (t.className || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filterCounts = {
+    All:       tests.length,
+    Upcoming:  tests.filter(t => t.status !== "Completed" && t.status !== "Pending Scores").length,
+    Completed: tests.filter(t => t.status === "Completed").length,
+    Pending:   tests.filter(t => t.status === "Pending Scores" || t.status === "Draft").length,
+  };
+
+  const filtered = tests.filter(t => {
+    const text = ((t.title || "") + " " + (t.className || "")).toLowerCase();
+    if (search && !text.includes(search.toLowerCase())) return false;
+    if (filter === "Upcoming")  return t.status !== "Completed" && t.status !== "Pending Scores";
+    if (filter === "Completed") return t.status === "Completed";
+    if (filter === "Pending")   return t.status === "Pending Scores" || t.status === "Draft";
+    return true;
+  });
+
+  const filterChips: FilterKey[] = ["All", "Upcoming", "Completed", "Pending"];
 
   return (
     <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
@@ -329,6 +359,7 @@ export default function TestsExams() {
               sub: stats.upcoming > 0
                 ? <span className="font-bold" style={{ color: MA.GOLD }}>● Scheduled</span>
                 : <span className="font-semibold" style={{ color: MA.T3 }}>Nothing scheduled</span>,
+              onClick: () => applyFilter("Upcoming"),
               icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
             },
             {
@@ -336,6 +367,7 @@ export default function TestsExams() {
               sub: stats.completed > 0
                 ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Done</span>
                 : <span className="font-semibold" style={{ color: MA.T3 }}>No history yet</span>,
+              onClick: () => applyFilter("Completed"),
               icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             },
             {
@@ -343,6 +375,7 @@ export default function TestsExams() {
               sub: stats.pendingScores > 0
                 ? <span className="font-bold" style={{ color: MA.RED }}>● Needs entry</span>
                 : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All entered</span>,
+              onClick: () => applyFilter("Pending"),
               icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
             },
             {
@@ -355,12 +388,13 @@ export default function TestsExams() {
                   : stats.classAvg >= 60
                     ? <span className="font-bold" style={{ color: MA.GOLD }}>● Fair</span>
                     : <span className="font-bold" style={{ color: MA.RED }}>↓ Needs lift</span>,
+              onClick: () => navigate("/reports"),
               icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
             },
           ] as const).map(s => (
-            <div key={s.key}
+            <button key={s.key} type="button" onClick={s.onClick}
               {...tilt3D}
-              className="bg-white rounded-[20px] p-4 relative flex flex-col text-left"
+              className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
               style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
               <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
                 <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
@@ -374,25 +408,55 @@ export default function TestsExams() {
               <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
                 {s.sub}
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
         {/* Upcoming Tests section */}
-        <div className="mx-4 mb-[14px] p-[18px] rounded-[20px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
+        <div id="tests-section-mobile" className="mx-4 mb-[14px] p-[18px] rounded-[20px] scroll-mt-4" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
           <div className="flex items-center justify-between mb-[14px]">
             <div className="flex items-center gap-[11px]">
               <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white" style={{ background: MA.P }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </div>
               <div>
-                <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Upcoming Tests</div>
+                <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+                  {filter === "All" ? "Upcoming Tests" : `${filter} Tests`}
+                </div>
                 <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                   {loading ? "Loading…" : `${filtered.length} ${filtered.length === 1 ? "test" : "tests"}`}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Filter chips (only shown when there are tests) */}
+          {!loading && tests.length > 0 && (
+            <div className="mb-[12px] p-[5px] rounded-[14px] flex gap-[7px]"
+              style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.06)" }}>
+              {filterChips.map(key => {
+                const isActive = filter === key;
+                return (
+                  <button key={key} type="button" onClick={() => setFilter(key)}
+                    aria-pressed={isActive}
+                    className="flex-1 py-[8px] px-[6px] rounded-[10px] flex items-center justify-center gap-[5px] transition-all active:scale-[0.96]"
+                    style={{
+                      background: isActive ? MA.P : "transparent",
+                      color: isActive ? "#fff" : MA.T3,
+                      fontSize: 11, fontWeight: isActive ? 800 : 700, letterSpacing: "-0.2px",
+                      boxShadow: isActive ? "0 1px 2px rgba(9,87,247,0.2), 0 3px 8px rgba(9,87,247,0.25)" : "none",
+                      fontFamily: MA.FONT, border: "none", cursor: "pointer",
+                    }}>
+                    {key}
+                    <span className="text-[9px] font-extrabold px-[6px] py-[1px] rounded-full min-w-[16px] text-center"
+                      style={{ background: isActive ? "rgba(255,255,255,0.22)" : "#fff", color: isActive ? "#fff" : MA.T3 }}>
+                      {filterCounts[key]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Search (only shown when there are tests) */}
           {!loading && tests.length > 0 && (
@@ -426,11 +490,13 @@ export default function TestsExams() {
                 </div>
               </div>
               <div className="text-[16px] font-extrabold mb-[5px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
-                {search ? "No matches" : "No tests yet"}
+                {search ? "No matches" : filter !== "All" ? `No ${filter.toLowerCase()} tests` : "No tests yet"}
               </div>
               <div className="text-[12px] font-medium leading-[1.5] mb-[14px] px-[14px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                 {search ? (
                   <>Try a different search term or clear the query.</>
+                ) : filter !== "All" ? (
+                  <>Nothing here right now. Try the <b className="font-bold" style={{ color: MA.T1 }}>All</b> filter or create a new test.</>
                 ) : (
                   <><b className="font-bold" style={{ color: MA.T1 }}>Create your first test</b> to schedule assessments for your classes.</>
                 )}
@@ -788,6 +854,7 @@ export default function TestsExams() {
                 sub: stats.upcoming > 0
                   ? <span className="font-bold" style={{ color: MA.GOLD }}>● Scheduled</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>Nothing scheduled</span>,
+                onClick: () => applyFilter("Upcoming"),
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
               },
               {
@@ -795,6 +862,7 @@ export default function TestsExams() {
                 sub: stats.completed > 0
                   ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Done</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>No history yet</span>,
+                onClick: () => applyFilter("Completed"),
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
               },
               {
@@ -802,6 +870,7 @@ export default function TestsExams() {
                 sub: stats.pendingScores > 0
                   ? <span className="font-bold" style={{ color: MA.RED }}>● Needs entry</span>
                   : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All entered</span>,
+                onClick: () => applyFilter("Pending"),
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
               },
               {
@@ -814,12 +883,13 @@ export default function TestsExams() {
                     : stats.classAvg >= 60
                       ? <span className="font-bold" style={{ color: MA.GOLD }}>● Fair</span>
                       : <span className="font-bold" style={{ color: MA.RED }}>↓ Needs lift</span>,
+                onClick: () => navigate("/reports"),
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
               },
             ] as const).map(s => (
-              <div key={s.key}
+              <button key={s.key} type="button" onClick={s.onClick}
                 {...tilt3D}
-                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left"
+                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left hover:scale-[1.02] active:scale-[0.98] transition-all"
                 style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
                 <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
                   <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
@@ -833,7 +903,7 @@ export default function TestsExams() {
                 <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
                   {s.sub}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -841,20 +911,49 @@ export default function TestsExams() {
           <div className="grid grid-cols-2 gap-4 mb-5">
 
             {/* Upcoming Tests */}
-            <div className="p-6 rounded-[22px]" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
+            <div id="tests-section-desktop" className="p-6 rounded-[22px] scroll-mt-4" style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR }}>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white" style={{ background: MA.P }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </div>
                   <div>
-                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Upcoming Tests</div>
+                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
+                      {filter === "All" ? "Upcoming Tests" : `${filter} Tests`}
+                    </div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                       {loading ? "Loading…" : `${filtered.length} ${filtered.length === 1 ? "test" : "tests"}`}
                     </div>
                   </div>
                 </div>
               </div>
+
+              {!loading && tests.length > 0 && (
+                <div className="mb-[14px] p-[5px] rounded-[14px] flex gap-[7px]"
+                  style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.06)" }}>
+                  {filterChips.map(key => {
+                    const isActive = filter === key;
+                    return (
+                      <button key={key} type="button" onClick={() => setFilter(key)}
+                        aria-pressed={isActive}
+                        className="flex-1 py-[9px] px-[8px] rounded-[10px] flex items-center justify-center gap-[6px] transition-all hover:brightness-[0.98] active:scale-[0.97]"
+                        style={{
+                          background: isActive ? MA.P : "transparent",
+                          color: isActive ? "#fff" : MA.T3,
+                          fontSize: 12, fontWeight: isActive ? 800 : 700, letterSpacing: "-0.2px",
+                          boxShadow: isActive ? "0 1px 2px rgba(9,87,247,0.2), 0 3px 8px rgba(9,87,247,0.25)" : "none",
+                          fontFamily: MA.FONT, border: "none", cursor: "pointer",
+                        }}>
+                        {key}
+                        <span className="text-[10px] font-extrabold px-[7px] py-[1px] rounded-full min-w-[18px] text-center"
+                          style={{ background: isActive ? "rgba(255,255,255,0.22)" : "#fff", color: isActive ? "#fff" : MA.T3 }}>
+                          {filterCounts[key]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {!loading && tests.length > 0 && (
                 <div className="flex items-center gap-2 py-[10px] px-[14px] rounded-[12px] mb-[14px]"
@@ -887,11 +986,13 @@ export default function TestsExams() {
                     </div>
                   </div>
                   <div className="text-[18px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
-                    {search ? "No matches" : "No tests yet"}
+                    {search ? "No matches" : filter !== "All" ? `No ${filter.toLowerCase()} tests` : "No tests yet"}
                   </div>
                   <div className="text-[13px] font-medium leading-[1.5] mb-[18px] max-w-[360px] mx-auto" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                     {search ? (
                       <>Try a different search term or clear the query.</>
+                    ) : filter !== "All" ? (
+                      <>Nothing here right now. Try the <b className="font-bold" style={{ color: MA.T1 }}>All</b> filter or create a new test.</>
                     ) : (
                       <><b className="font-bold" style={{ color: MA.T1 }}>Create your first test</b> to schedule assessments for your classes.</>
                     )}
