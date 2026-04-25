@@ -242,6 +242,66 @@ Return ONLY this JSON:
     }
   ]
 }`;
+    } else if (type === "exam_paper_generation") {
+      systemPrompt = [
+        "You are an expert school examination paper setter.",
+        "Generate a well-structured, grade-appropriate exam paper.",
+        "Return STRICT JSON only — no markdown, no code fences, no commentary.",
+        "",
+        "Shape the JSON exactly as:",
+        "{",
+        '  "title": string,',
+        '  "subject": string,',
+        '  "grade": string,',
+        '  "board": string,',
+        '  "duration": string,',
+        '  "totalMarks": number,',
+        '  "generalInstructions": string[],',
+        '  "sections": [',
+        "    {",
+        '      "title": string,',
+        '      "instructions": string,',
+        '      "marks": number,',
+        '      "questions": [',
+        "        {",
+        '          "number": number,',
+        '          "type": "mcq"|"short"|"long"|"numerical"|"truefalse"|"fillblanks",',
+        '          "marks": number,',
+        '          "question": string,',
+        '          "options": string[] | null,',
+        '          "answer": string,',
+        '          "solution": string',
+        "        }",
+        "      ]",
+        "    }",
+        "  ]",
+        "}",
+        "",
+        "Rules:",
+        "- Total of all question marks MUST equal totalMarks.",
+        "- Number of questions MUST match numQuestions requested.",
+        "- Group questions into sections by type (e.g. MCQ in Section A, Short in B, Long in C).",
+        "- For MCQ, provide exactly 4 options and put the correct letter + text in `answer`.",
+        "- Match difficulty honestly (Easy/Medium/Hard/Mixed).",
+        "- Respect board conventions (CBSE/ICSE/IB/etc).",
+      ].join("\n");
+      const p = payload || {};
+      userPrompt = [
+        `Subject: ${p.subject}`,
+        `Grade: ${p.grade}`,
+        `Board: ${p.board}`,
+        `Topics: ${p.topics}`,
+        `Difficulty: ${p.difficulty}`,
+        `Duration: ${p.duration}`,
+        `Total Marks: ${p.totalMarks}`,
+        `Number of Questions: ${p.numQuestions}`,
+        `Question Types to include: ${Array.isArray(p.questionTypes) ? (p.questionTypes as string[]).join(", ") : "mcq, short, long"}`,
+        p.instructions ? `Special Instructions: ${p.instructions}` : "",
+        p.teacherName ? `Teacher: ${p.teacherName}` : "",
+        p.schoolName ? `School: ${p.schoolName}` : "",
+        "",
+        "Generate the exam paper now as JSON.",
+      ].filter(Boolean).join("\n");
     } else if (type === "teacher_self_action_plan") {
       systemPrompt = "You are a senior educator performance coach. Give honest, constructive feedback to a teacher to help them improve their professional metrics. Use Hinglish naturally in diagnosis and action reasons. Keep action titles in English. Never demoralize. Respond ONLY in valid JSON.";
       userPrompt = `Generate self-improvement actions for a teacher based on their composite metrics across classes.
@@ -275,6 +335,7 @@ Return ONLY this JSON:
     const maxTokens =
       type === "lesson_plan_generation" ? 4096 :
       type === "lesson_summary" ? 3000 :
+      type === "exam_paper_generation" ? 4096 :
       type === "class_action_plan" ? 1500 :
       type === "student_action_plan" ? 1500 :
       type === "teacher_self_action_plan" ? 1500 :
