@@ -768,25 +768,29 @@ const RisksAlerts = () => {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                 {[
                   { key: "Critical", label: "Critical", count: criticalCount, color: "#FF3355",
-                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>,
+                    tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", tintBorder: "rgba(255,51,85,0.14)",
+                    iconStroke: (<><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></>),
                     sub: count => count > 0
                       ? <span style={{ color: "#FF3355", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><span className="ra-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF3355" }} />Act now</span>
                       : <span style={{ color: "#5070B0", fontWeight: 600 }}>All clear</span>,
                     onClick: () => { setActiveTab("All"); window.scrollTo({ top: 300, behavior: "smooth" }); } },
                   { key: "High Priority", label: "High Priority", count: highCount, color: "#FF8800",
-                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+                    tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
+                    iconStroke: (<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></>),
                     sub: count => count > 0
                       ? <span style={{ color: "#FF8800", fontWeight: 700 }}>Priority</span>
                       : <span style={{ color: "#5070B0", fontWeight: 600 }}>All clear</span>,
                     onClick: () => setActiveTab("All") },
                   { key: "Medium", label: "Medium", count: mediumCount, color: "#0055FF",
-                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+                    tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)", tintBorder: "rgba(0,85,255,0.10)",
+                    iconStroke: (<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>),
                     sub: count => count > 0
                       ? <span style={{ color: "#0055FF", fontWeight: 700 }}>Watching</span>
                       : <span style={{ color: "#5070B0", fontWeight: 600 }}>Low risk</span>,
                     onClick: () => setActiveTab("All") },
                   { key: "Resolved", label: "Resolved This Week", count: resolvedCount, color: "#00C853",
-                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                    tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", tintBorder: "rgba(0,200,83,0.16)",
+                    iconStroke: (<><polyline points="20 6 9 17 4 12"/></>),
                     sub: count => count > 0
                       ? <span style={{ color: "#00C853", fontWeight: 700 }}>{count} closed</span>
                       : <span style={{ color: "#5070B0", fontWeight: 600 }}>None yet</span>,
@@ -798,18 +802,27 @@ const RisksAlerts = () => {
                     onClick={s.onClick}
                     className="ra-card3d"
                     style={{
-                      background: "#fff", borderRadius: 20, padding: 16,
+                      background: s.tintBg, borderRadius: 20, padding: 14,
                       display: "flex", flexDirection: "column",
-                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
-                      textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit",
+                      position: "relative", overflow: "hidden",
+                      border: `0.5px solid ${s.tintBorder}`,
+                      boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)",
+                      textAlign: "left", cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 18, minHeight: 40 }}>
-                      <div style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.0px", textTransform: "uppercase", lineHeight: 1.4, paddingTop: 3 }}>{s.label}</div>
-                      <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: s.color }}>{s.icon}</div>
+                    <div style={{ position: "absolute", right: 10, bottom: 8, color: s.color, opacity: 0.22, pointerEvents: "none" }}>
+                      <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        {s.iconStroke}
+                      </svg>
                     </div>
-                    <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1.3px", lineHeight: 1, color: s.color }}>{s.count}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginTop: 7, letterSpacing: "-0.15px" }}>{s.sub(s.count)}</div>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: `${s.color}1F`, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, position: "relative", zIndex: 1 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        {s.iconStroke}
+                      </svg>
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.count}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginTop: 6, letterSpacing: "-0.15px", position: "relative", zIndex: 1 }}>{s.sub(s.count)}</div>
                   </button>
                 ))}
               </div>
@@ -1901,13 +1914,45 @@ const RisksAlerts = () => {
             );
           })()}
 
-          {/* Bright 4-col KPI Tiles */}
+          {/* Matte 4-col KPI Tiles */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             {[
-              { label: 'Critical', value: criticalCount.toString(), sub: criticalCount > 0 ? 'Needs outreach now' : 'No critical alerts', grad: 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)', onClick: () => setActiveTab('All') },
-              { label: 'High Priority', value: highCount.toString(), sub: highCount > 0 ? 'Follow up this week' : 'Stable', grad: 'linear-gradient(135deg,#FF8800 0%,#FFAA44 100%)', onClick: () => setActiveTab('All') },
-              { label: 'Medium Priority', value: mediumCount.toString(), sub: mediumCount > 0 ? 'Keep monitoring' : 'Class is steady', grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)', onClick: () => setActiveTab('All') },
-              { label: 'Resolved This Week', value: resolvedCount.toString(), sub: resolvedCount > 0 ? 'Great follow-through' : 'No resolutions yet', grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => navigate('/gradebook') },
+              {
+                label: 'Critical', value: criticalCount.toString(),
+                sub: criticalCount > 0 ? 'Needs outreach now' : 'No critical alerts',
+                color: '#FF3355',
+                tintBg: 'linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)',
+                tintBorder: 'rgba(255,51,85,0.14)',
+                iconStroke: (<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
+                onClick: () => setActiveTab('All'),
+              },
+              {
+                label: 'High Priority', value: highCount.toString(),
+                sub: highCount > 0 ? 'Follow up this week' : 'Stable',
+                color: '#FF8800',
+                tintBg: 'linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)',
+                tintBorder: 'rgba(255,136,0,0.14)',
+                iconStroke: (<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
+                onClick: () => setActiveTab('All'),
+              },
+              {
+                label: 'Medium Priority', value: mediumCount.toString(),
+                sub: mediumCount > 0 ? 'Keep monitoring' : 'Class is steady',
+                color: '#0055FF',
+                tintBg: 'linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)',
+                tintBorder: 'rgba(0,85,255,0.10)',
+                iconStroke: (<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>),
+                onClick: () => setActiveTab('All'),
+              },
+              {
+                label: 'Resolved This Week', value: resolvedCount.toString(),
+                sub: resolvedCount > 0 ? 'Great follow-through' : 'No resolutions yet',
+                color: '#00C853',
+                tintBg: 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+                tintBorder: 'rgba(0,200,83,0.16)',
+                iconStroke: (<><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>),
+                onClick: () => navigate('/gradebook'),
+              },
             ].map(k => (
               <div
                 key={k.label}
@@ -1916,23 +1961,25 @@ const RisksAlerts = () => {
                 tabIndex={0}
                 className="rad-tile"
                 style={{
-                  background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                  background: k.tintBg, borderRadius: 22, padding: '22px 24px',
                   position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 0 0 .5px rgba(255,255,255,.15), 0 14px 38px rgba(0,85,255,.26), 0 4px 12px rgba(0,85,255,.18)',
+                  border: `0.5px solid ${k.tintBorder}`,
+                  boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
                 }}
               >
-                <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {k.label === 'Critical' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-                    {k.label === 'High Priority' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
-                    {k.label === 'Medium Priority' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>}
-                    {k.label === 'Resolved This Week' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
-                  </div>
+                <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    {k.iconStroke}
+                  </svg>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    {k.iconStroke}
+                  </svg>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
               </div>
             ))}
           </div>

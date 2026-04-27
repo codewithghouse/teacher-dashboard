@@ -345,7 +345,7 @@ const Attendance = () => {
           <button type="button"
             onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
             className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.98] transition-transform"
-            style={{ background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.35)", fontFamily: MA.FONT }}>
+            style={{ background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Mark today's attendance
           </button>
@@ -355,21 +355,30 @@ const Attendance = () => {
         <div className="grid grid-cols-3 gap-[10px] px-4 mb-[14px]">
           {([
             { key: "present", color: MA.GREEN, value: stats.presentToday, label: "Present", onClick: () => navigate('/students'),
-              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
+              tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", tintBorder: "rgba(0,200,83,0.16)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg>,
+              decor: <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
             { key: "absent", color: MA.RED, value: stats.absentToday, label: "Absent", onClick: () => navigate('/risks-alerts'),
-              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
+              tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", tintBorder: "rgba(255,51,85,0.14)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg>,
+              decor: <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
             { key: "late", color: MA.ORANGE, value: stats.lateToday, label: "Late", onClick: () => navigate('/risks-alerts'),
-              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+              tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              decor: <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
           ] as const).map(s => (
             <button key={s.key} type="button" onClick={s.onClick}
               {...tilt3D}
-              className="bg-white rounded-[18px] p-[14px] text-center active:scale-[0.96] transition-transform"
-              style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-              <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white mx-auto mb-[8px]" style={{ background: s.color }}>
+              className="rounded-[18px] p-[14px] text-left relative overflow-hidden active:scale-[0.96] transition-transform"
+              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+              <div className="absolute pointer-events-none" style={{ right: 6, bottom: 4, color: s.color, opacity: 0.22 }}>
+                {s.decor}
+              </div>
+              <div className="w-[28px] h-[28px] rounded-[9px] flex items-center justify-center mb-[8px]" style={{ background: `${s.color}1F`, color: s.color }}>
                 {s.icon}
               </div>
-              <div className="text-[24px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-0.9px" }}>{s.value}</div>
-              <div className="text-[9px] font-extrabold uppercase mt-[5px]" style={{ color: MA.T3, letterSpacing: "1.2px" }}>{s.label}</div>
+              <div className="text-[9px] font-bold uppercase mb-[4px]" style={{ color: s.color, letterSpacing: "1.1px" }}>{s.label}</div>
+              <div className="text-[24px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-0.9px" }}>{s.value}</div>
             </button>
           ))}
         </div>
@@ -704,7 +713,7 @@ const Attendance = () => {
             <button type="button"
               onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
               className="h-auto rounded-[22px] flex flex-col items-center justify-center gap-2 p-5 hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              style={{ background: MA.GREEN, color: "#fff", fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.35)", fontFamily: MA.FONT }}>
+              style={{ background: MA.GREEN, color: "#fff", fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
               <div className="w-11 h-11 rounded-[12px] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
@@ -712,21 +721,30 @@ const Attendance = () => {
             </button>
             {([
               { key: "present", color: MA.GREEN, value: stats.presentToday, label: "Present", onClick: () => navigate('/students'),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
+                tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", tintBorder: "rgba(0,200,83,0.16)",
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
               { key: "absent", color: MA.RED, value: stats.absentToday, label: "Absent", onClick: () => navigate('/risks-alerts'),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
+                tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", tintBorder: "rgba(255,51,85,0.14)",
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
               { key: "late", color: MA.ORANGE, value: stats.lateToday, label: "Late", onClick: () => navigate('/risks-alerts'),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
                 {...tilt3D}
-                className="bg-white rounded-[22px] p-5 text-center active:scale-[0.98] transition-all"
-                style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-                <div className="w-11 h-11 rounded-[12px] flex items-center justify-center text-white mx-auto mb-3" style={{ background: s.color }}>
+                className="rounded-[22px] p-5 relative flex flex-col text-left overflow-hidden active:scale-[0.98] transition-all"
+                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+                <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color: s.color, opacity: 0.22 }}>
+                  {s.decor}
+                </div>
+                <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]" style={{ background: `${s.color}1F`, color: s.color }}>
                   {s.icon}
                 </div>
-                <div className="text-[32px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.2px" }}>{s.value}</div>
-                <div className="text-[10px] font-extrabold uppercase mt-[7px]" style={{ color: MA.T3, letterSpacing: "1.2px" }}>{s.label}</div>
+                <div className="text-[11px] font-bold uppercase mb-[8px]" style={{ color: s.color, letterSpacing: "1px" }}>{s.label}</div>
+                <div className="text-[36px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.value}</div>
               </button>
             ))}
           </div>

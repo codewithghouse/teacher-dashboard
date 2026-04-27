@@ -10,18 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import { auditedSet } from "../lib/auditedWrites";
 import { toast } from "sonner";
 
-// ── Design tokens (desktop) ───────────────────────────────────────────────────
-const T = {
-  ink0: '#08090C', ink1: '#42475A', ink2: '#8C92A4',
-  s0: '#FFFFFF', s1: '#F5F6F9', s2: '#ECEEF4', bdr: '#E2E5EE',
-  blue: '#3B5BDB', blueL: '#EDF2FF',
-  green: '#087F5B', green2: '#2F9E44', greenL: '#EBFBEE',
-  red: '#C92A2A', redL: '#FFF5F5',
-  amber: '#C87014', amberL: '#FFF9DB',
-  teal: '#0C8599', tealL: '#E3FAFC',
-};
-
-// ── Mobile tokens (EduIntellect v2) ───────────────────────────────────────────
+// ── Edullent v2 design tokens (shared mobile + desktop) ──────────────────────
 const MA = {
   FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
@@ -62,56 +51,6 @@ const avStyle = (name = "") => {
   const i = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % AV_BG.length;
   return { bg: AV_BG[i], color: AV_FG[i] };
 };
-
-// ── SVG Icons ─────────────────────────────────────────────────────────────────
-const IcoCheck = ({ color = '#fff', size = 12 }: { color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="1.5,6.5 4.5,10 10.5,2.5"/>
-  </svg>
-);
-const IcoX = ({ color = '#fff', size = 12 }: { color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
-  </svg>
-);
-const IcoClock = ({ color = '#fff', size = 12 }: { color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="6" cy="6" r="4.5"/><polyline points="6,3.5 6,6 8.5,6"/>
-  </svg>
-);
-const IcoBack = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={T.blue} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="9,2 4,7 9,12"/>
-  </svg>
-);
-const IcoMarkAll = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="1.5,6.5 4.5,10 10.5,2.5"/>
-  </svg>
-);
-const IcoCopy = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="1.5" width="7" height="9" rx="1.2"/>
-    <rect x="3.5" y="3.5" width="7" height="9" rx="1.2"/>
-  </svg>
-);
-const IcoChevLeft = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.ink1} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="8,2 4,6 8,10"/>
-  </svg>
-);
-const IcoChevRight = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.ink1} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="4,2 8,6 4,10"/>
-  </svg>
-);
-
-// ── Badge ─────────────────────────────────────────────────────────────────────
-const Badge = ({ text, bg, color }: { text: string; bg: string; color: string }) => (
-  <span style={{ background: bg, color, borderRadius: 20, padding: '3px 8px', fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap' as const }}>
-    {text}
-  </span>
-);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Student {
@@ -554,150 +493,209 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
       </div>
     </div>
 
-    {/* ═══════════════════ DESKTOP VIEW (unchanged) ═══════════════════ */}
-    <div className="hidden md:block">
+    {/* ═══════════════════ DESKTOP VIEW (Edullent v2 — matches Dashboard theme) ═══════════════════ */}
+    <div className="hidden md:block animate-in fade-in duration-500" style={{ fontFamily: MA.FONT, background: "#EEF4FF" }}>
 
-      {/* ── Dark Hero (back + save + class info) ─────────────────────────────── */}
-      <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 md:-mx-8 md:-mt-8 px-[22px] pb-7 bg-[#001A66] md:bg-[#08090C]">
+      {/* ── Hero (full-bleed dark gradient — Dashboard pattern) ─────────────────── */}
+      <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 md:-mx-8 md:-mt-8 mb-6 px-8 lg:px-10 py-7 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #001040 0%, #001A66 35%, #0044CC 70%, #0055FF 100%)",
+          boxShadow: "0 10px 36px rgba(0,51,204,0.30), 0 0 0 0.5px rgba(255,255,255,0.10)",
+        }}>
+        {/* Gloss + radial glow + subtle grid overlays */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 45%)" }} />
+        <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 65%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
+        }} />
 
-        {/* Nav row: Back | title | Save */}
-        <div className="flex items-center justify-between pt-3 mb-5">
-          <button type="button" onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <IcoBack />
-            <span style={{ fontSize: 13, color: T.blue }}>Back</span>
-          </button>
-          <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-            Mark attendance
-          </p>
-          <button onClick={handleSave} disabled={saving || loading}
-            type="button"
-            aria-label={saving ? "Saving attendance" : "Save attendance"}
-            style={{
-              padding: '8px 14px', borderRadius: 11, background: T.green2,
-              border: 'none', color: '#fff', fontSize: 12, fontWeight: 500,
-              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || loading ? 0.6 : 1,
-              display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit',
-            }}>
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <IcoCheck color="#fff" size={12} />}
-            Save
-          </button>
-        </div>
-
-        {/* Hero content */}
-        <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
-          {selClass?.name || "Class"} · Mark attendance
-        </p>
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.15, marginBottom: 6 }}>
-          {dateLabel.split(",")[0]},<br />{dateLabel.split(",").slice(1).join(",").trim()}
-        </h1>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', fontWeight: 400 }}>
-          {yearLabel} · {selClass?.subject || selClass?.name || "Class"}
-        </p>
-      </div>
-
-      <div className="pt-4 space-y-3">
-
-        {/* ── Quick Actions ──────────────────────────────────────────────────── */}
-        <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 16, padding: '13px 14px' }}>
-          <p style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 9 }}>
-            Quick actions
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button type="button" onClick={markAllPresent}
-              style={{
-                padding: '10px 8px', borderRadius: 10, border: `1px solid ${T.bdr}`,
-                background: T.s1, fontSize: 11, fontWeight: 500, color: T.ink1,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              }}>
-              <IcoMarkAll /> Mark all present
+        <div className="relative z-[2] max-w-[1280px] mx-auto">
+          {/* Top nav: Back | eyebrow | Save */}
+          <div className="flex items-center justify-between mb-7">
+            <button type="button" onClick={onBack}
+              className="flex items-center gap-1.5 py-2 pr-2 active:opacity-70 transition-opacity"
+              style={{ color: "#6FB0FF", fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", background: 'none', border: 'none', cursor: 'pointer' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back
             </button>
-            <button type="button" onClick={copyFromYesterday}
+            <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.8px" }}>
+              Mark Attendance
+            </div>
+            <button type="button" onClick={handleSave} disabled={saving || loading}
+              aria-label={saving ? "Saving attendance" : "Save attendance"}
+              className="h-10 px-5 rounded-[12px] flex items-center gap-2 active:scale-[0.97] transition-transform"
               style={{
-                padding: '10px 8px', borderRadius: 10, border: `1px solid ${T.bdr}`,
-                background: T.s1, fontSize: 11, fontWeight: 500, color: T.ink1,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.15px",
+                boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.42)",
+                opacity: saving || loading ? 0.65 : 1, cursor: saving ? "not-allowed" : "pointer", border: "none",
               }}>
-              <IcoCopy /> Copy yesterday
+              {saving
+                ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              Save Attendance
             </button>
           </div>
 
-          {/* Live summary */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 11, paddingTop: 11, borderTop: `1px solid ${T.s2}` }}>
-            {[
-              { dot: T.green2, label: 'Present', val: counts.present },
-              { dot: T.red,    label: 'Absent',  val: counts.absent  },
-              { dot: T.amber,  label: 'Late',     val: counts.late    },
-            ].map(r => (
-              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: T.ink1 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: r.dot }} />
-                {r.label}: <strong style={{ fontWeight: 500 }}>{r.val}</strong>
+          {/* Date block */}
+          <div className="text-[11px] font-extrabold uppercase mb-2" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+            {selClass?.name || "Class"}{selClass?.subject ? ` · ${selClass.subject}` : ""}
+          </div>
+          <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: "#fff", letterSpacing: "-1.6px" }}>
+            {dateLabel}
+          </h1>
+          <p className="text-[13px] font-semibold mt-2 uppercase" style={{ color: "rgba(255,255,255,0.62)", letterSpacing: "0.4px" }}>
+            {yearLabel} · {students.length} student{students.length === 1 ? "" : "s"}{selClass?.subject ? ` · ${selClass.subject}` : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Content (constrained) ──────────────────────────────────────────────── */}
+      <div className="max-w-[1180px] mx-auto">
+
+        {/* Class switcher (when multiple classes) */}
+        {classes.length > 1 && (
+          <div className="mb-4 p-1.5 rounded-[16px] flex gap-2 overflow-x-auto"
+            style={{ background: MA.CARD, boxShadow: MA.SH_SM, scrollbarWidth: "none" as const }}>
+            {classes.map(cls => {
+              const isActive = selectedClassId === cls.id;
+              return (
+                <button key={cls.id} type="button" onClick={() => setSelectedClassId(cls.id)}
+                  className="py-2.5 px-5 rounded-[12px] text-[13px] font-bold transition-all active:scale-[0.97]"
+                  style={{
+                    background: isActive ? MA.P : "transparent",
+                    color: isActive ? "#fff" : MA.T3,
+                    letterSpacing: "-0.2px", whiteSpace: "nowrap" as const, border: "none", cursor: "pointer",
+                    boxShadow: isActive ? "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.32)" : "none",
+                  }}>
+                  {cls.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Quick Actions + Live Tally row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+          <button type="button" onClick={markAllPresent} disabled={loading || !students.length}
+            className="bg-white rounded-[18px] py-5 px-5 flex items-center gap-4 active:scale-[0.98] hover:-translate-y-0.5 transition-all text-left"
+            style={{ boxShadow: MA.SH, opacity: loading || !students.length ? 0.6 : 1, fontFamily: MA.FONT, border: "none", cursor: loading || !students.length ? "not-allowed" : "pointer" }}>
+            <div className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white shrink-0"
+              style={{ background: `linear-gradient(135deg, ${MA.GREEN}, #22EE66)`, boxShadow: "0 4px 14px rgba(0,200,83,0.32)" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Mark all present</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: MA.T3 }}>One-tap shortcut</div>
+            </div>
+          </button>
+
+          <button type="button" onClick={copyFromYesterday} disabled={loading || !students.length}
+            className="bg-white rounded-[18px] py-5 px-5 flex items-center gap-4 active:scale-[0.98] hover:-translate-y-0.5 transition-all text-left"
+            style={{ boxShadow: MA.SH, opacity: loading || !students.length ? 0.6 : 1, fontFamily: MA.FONT, border: "none", cursor: loading || !students.length ? "not-allowed" : "pointer" }}>
+            <div className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white shrink-0"
+              style={{ background: `linear-gradient(135deg, ${MA.P}, ${MA.P}DD)`, boxShadow: "0 4px 14px rgba(0,85,255,0.32)" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Copy yesterday</div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: MA.T3 }}>Reuse last session</div>
+            </div>
+          </button>
+
+          {/* Live tally */}
+          <div className="bg-white rounded-[18px] py-3.5 px-4 flex items-center gap-2.5"
+            style={{ boxShadow: MA.SH }}>
+            {([
+              { key: "present", label: "Present", val: counts.present, color: MA.GREEN, bg: "rgba(0,200,83,0.08)" },
+              { key: "absent",  label: "Absent",  val: counts.absent,  color: MA.RED,   bg: "rgba(255,51,85,0.06)" },
+              { key: "late",    label: "Late",    val: counts.late,    color: MA.ORANGE,bg: "rgba(255,136,0,0.07)" },
+            ] as const).map(p => (
+              <div key={p.key} className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[10px]" style={{ background: p.bg }}>
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
+                <span className="text-[11px] font-semibold" style={{ color: MA.T3 }}>{p.label}</span>
+                <span className="ml-auto text-[16px] font-extrabold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── Student Attendance Cards ───────────────────────────────────────── */}
-        <div style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 14px', borderBottom: `1px solid ${T.s2}` }}>
-            <p style={{ fontSize: 13, fontWeight: 500, color: T.ink0 }}>Student attendance</p>
-            <p style={{ fontSize: 10, color: T.ink2, marginTop: 2 }}>
-              {students.length} students · Tap to change status
+        {/* Students header */}
+        <div className="flex items-end justify-between px-1 mb-3">
+          <div>
+            <h2 className="text-[18px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Students</h2>
+            <p className="text-[12px] font-semibold mt-1" style={{ color: MA.T3 }}>
+              {students.length} student{students.length === 1 ? "" : "s"} · Click to change status
             </p>
           </div>
+          {students.length > 0 && (
+            <button type="button"
+              onClick={() => setStudents(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)))}
+              className="text-[13px] font-bold py-2 px-3.5 rounded-[10px] flex items-center gap-1 active:opacity-70 hover:bg-white/60 transition-all"
+              style={{ color: MA.P, background: "rgba(255,255,255,0.6)", border: "none", cursor: "pointer" }}>
+              Sort A–Z
+            </button>
+          )}
+        </div>
 
-          {loading ? (
-            <div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}>
-              <Loader2 className="w-7 h-7 animate-spin" style={{ color: T.blue }} />
-            </div>
-          ) : paginated.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', fontSize: 12, color: T.ink2 }}>
-              No students enrolled in this class
-            </div>
-          ) : (
-            paginated.map((student, idx) => {
-              const statusBadge =
-                student.status === "present" ? { text: "Present", bg: T.greenL, color: T.green } :
-                student.status === "absent"  ? { text: "Absent",  bg: T.redL,   color: T.red   } :
-                student.status === "late"    ? { text: "Late",    bg: T.amberL, color: T.amber } :
-                                               { text: "—",       bg: T.s2,     color: T.ink2  };
+        {/* Student cards (2-col on lg) */}
+        {loading ? (
+          <div className="bg-white rounded-[18px] py-16 flex justify-center" style={{ boxShadow: MA.SH }}>
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: MA.P }} />
+          </div>
+        ) : paginated.length === 0 ? (
+          <div className="bg-white rounded-[18px] py-12 px-6 text-center text-[13px] font-medium" style={{ boxShadow: MA.SH, color: MA.T3 }}>
+            No students enrolled in this class
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {paginated.map((student) => {
+              const currentPill =
+                student.status === "present" ? { label: "Present", color: MA.GREEN, bg: "rgba(0,200,83,0.1)" } :
+                student.status === "absent"  ? { label: "Absent",  color: MA.RED,   bg: "rgba(255,51,85,0.1)" } :
+                student.status === "late"    ? { label: "Late",    color: MA.ORANGE,bg: "rgba(255,136,0,0.1)" } :
+                                               { label: "Unmarked",color: MA.T4,   bg: MA.SURFACE };
               return (
-                <div key={student.id} style={{ padding: 14, borderBottom: idx < paginated.length - 1 ? `1px solid ${T.s2}` : 'none' }}>
-                  {/* Student header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: student.av.bg, color: student.av.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
+                <div key={student.id} className="bg-white rounded-[18px] p-5" style={{ boxShadow: MA.SH }}>
+                  {/* Student head */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-11 h-11 rounded-[13px] flex items-center justify-center shrink-0 text-white text-[13px] font-extrabold"
+                      style={{ background: student.av.color, letterSpacing: "0.3px" }}>
                       {student.initials}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, fontWeight: 500, color: T.ink0 }}>{student.name}</p>
-                      <p style={{ fontSize: 11, color: T.ink2, marginTop: 1 }}>Roll: {student.rollNo}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[15px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{student.name}</div>
+                      <div className="text-[12px] font-semibold mt-0.5" style={{ color: MA.T3 }}>Roll: {student.rollNo}</div>
                     </div>
-                    <Badge text={statusBadge.text} bg={statusBadge.bg} color={statusBadge.color} />
+                    <span className="px-3 py-1.5 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 shrink-0"
+                      style={{ background: currentPill.bg, color: currentPill.color, letterSpacing: "0.2px" }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: currentPill.color }} />
+                      {currentPill.label}
+                    </span>
                   </div>
 
-                  {/* Toggle buttons */}
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 9 }}>
+                  {/* Segmented Present/Absent/Late buttons */}
+                  <div className="grid grid-cols-3 gap-1 p-1 rounded-[12px] mb-3" style={{ background: MA.SURFACE }}>
                     {([
-                      { key: "present", label: "Present", Icon: IcoCheck, activeColor: T.green2 },
-                      { key: "absent",  label: "Absent",  Icon: IcoX,     activeColor: T.red    },
-                      { key: "late",    label: "Late",    Icon: IcoClock, activeColor: T.amber  },
-                    ] as const).map(({ key, label, Icon, activeColor }) => {
+                      { key: "present" as const, label: "Present", color: MA.GREEN, shadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,200,83,0.18)",
+                        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
+                      { key: "absent" as const, label: "Absent", color: MA.RED, shadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(255,51,85,0.18)",
+                        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> },
+                      { key: "late" as const, label: "Late", color: MA.ORANGE, shadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(255,136,0,0.18)",
+                        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                    ]).map(({ key, label, color, shadow, icon }) => {
                       const isOn = student.status === key;
                       return (
-                        <button type="button" key={key}
-                          onClick={() => setStatus(student.id, key)}
+                        <button key={key} type="button" onClick={() => setStatus(student.id, key)}
+                          aria-pressed={isOn}
+                          className="py-2.5 px-2 rounded-[10px] flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] hover:opacity-90"
                           style={{
-                            flex: 1, padding: '9px 6px', borderRadius: 10, fontSize: 12, fontWeight: 500,
-                            border: `1px solid ${isOn ? activeColor : T.bdr}`,
-                            background: isOn ? activeColor : T.s1,
-                            color: isOn ? '#fff' : T.ink1,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                            transition: 'all 0.12s ease',
+                            background: isOn ? "#fff" : "transparent",
+                            color: isOn ? color : MA.T3,
+                            fontSize: 12, fontWeight: isOn ? 800 : 700, letterSpacing: "-0.1px",
+                            boxShadow: isOn ? shadow : "none", fontFamily: MA.FONT, border: "none", cursor: "pointer",
                           }}>
-                          <Icon color={isOn ? '#fff' : T.ink2} size={11} />
+                          {icon}
                           {label}
                         </button>
                       );
@@ -705,44 +703,55 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                   </div>
 
                   {/* Note input */}
-                  <input
-                    type="text"
-                    placeholder="Add note (optional)..."
-                    value={student.note}
-                    onChange={e => setNote(student.id, e.target.value)}
-                    style={{
-                      width: '100%', padding: '8px 10px', borderRadius: 9,
-                      border: `1px solid ${T.bdr}`, background: T.s1,
-                      fontSize: 11, color: T.ink2, fontFamily: 'inherit', outline: 'none',
-                    }}
-                  />
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-[10px]"
+                    style={{ background: student.note ? "rgba(9,87,247,0.05)" : MA.SURFACE }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={student.note ? MA.P : MA.T4} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <input
+                      type="text"
+                      placeholder="Add note (optional)…"
+                      value={student.note}
+                      onChange={e => setNote(student.id, e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-[12px]"
+                      style={{
+                        color: student.note ? MA.T1 : MA.T3,
+                        fontWeight: student.note ? 600 : 500,
+                        letterSpacing: "-0.1px",
+                        fontFamily: MA.FONT,
+                      }}
+                    />
+                  </div>
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
+        )}
 
-          {/* Pagination */}
-          {!loading && students.length > ITEMS_PER_PAGE && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderTop: `1px solid ${T.s2}`, background: T.s0 }}>
-              <p style={{ fontSize: 11, color: T.ink2 }}>
-                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, students.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, students.length)} of {students.length} students
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage === 1}
-                  style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${T.bdr}`, background: T.s0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}>
-                  <IcoChevLeft />
-                </button>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: T.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, color: '#fff' }}>
-                  {currentPage}
-                </div>
-                <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage === totalPages}
-                  style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${T.bdr}`, background: T.s0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}>
-                  <IcoChevRight />
-                </button>
-              </div>
+        {/* Pagination */}
+        {!loading && students.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between mt-5 py-3 px-5 bg-white rounded-[14px]" style={{ boxShadow: MA.SH_SM }}>
+            <div className="text-[12px] font-semibold" style={{ color: MA.T3 }}>
+              Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, students.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, students.length)} of {students.length} students
             </div>
-          )}
-        </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage === 1}
+                aria-label="Previous page"
+                className="w-9 h-9 rounded-[11px] flex items-center justify-center active:scale-[0.95] transition-transform"
+                style={{ background: MA.SURFACE, opacity: currentPage === 1 ? 0.4 : 1, border: "none", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MA.T1} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div className="min-w-[44px] h-9 px-3 rounded-[11px] flex items-center justify-center text-white text-[13px] font-extrabold"
+                style={{ background: MA.P, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.3)" }}>
+                {currentPage} / {totalPages}
+              </div>
+              <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage === totalPages}
+                aria-label="Next page"
+                className="w-9 h-9 rounded-[11px] flex items-center justify-center active:scale-[0.95] transition-transform"
+                style={{ background: MA.SURFACE, opacity: currentPage === totalPages ? 0.4 : 1, border: "none", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MA.T1} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

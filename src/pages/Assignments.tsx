@@ -332,7 +332,6 @@ const Assignments = () => {
             style={{
               background: MA.P, color: "#fff",
               fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
-              boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.3)",
               fontFamily: MA.FONT, border: "none",
             }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -345,53 +344,68 @@ const Assignments = () => {
           {([
             {
               key: "total", label: "Total Active", val: stats.totalActive, color: MA.P,
+              tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)", tintBorder: "rgba(0,85,255,0.10)",
               sub: stats.totalActive > 0
                 ? <span className="font-bold" style={{ color: MA.P }}>● Currently running</span>
                 : <span className="font-semibold" style={{ color: MA.T3 }}>No active work</span>,
               onClick: () => setFilter("All"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h6"/></svg>,
             },
             {
               key: "due", label: "Due This Week", val: stats.dueThisWeek, color: MA.ORANGE,
+              tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
               sub: stats.dueThisWeek > 0
                 ? <span className="font-bold" style={{ color: MA.ORANGE }}>● Due in 7 days</span>
                 : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All clear</span>,
               onClick: () => setFilter("All"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
             },
             {
               key: "pending", label: "Pending Grading", val: stats.pendingGrading, color: stats.pendingGrading > 0 ? MA.RED : MA.GREEN,
+              tintBg: stats.pendingGrading > 0
+                ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+                : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+              tintBorder: stats.pendingGrading > 0 ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
               sub: stats.pendingGrading > 0
                 ? <span className="font-bold" style={{ color: MA.RED }}>● Needs review</span>
                 : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All caught up</span>,
               onClick: () => setFilter("To grade"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>,
             },
             {
               key: "avg", label: "Avg Submission", val: `${stats.avgSubmission}%`, color: stats.avgSubmission >= 80 ? MA.GREEN : MA.VIOLET,
+              tintBg: stats.avgSubmission >= 80
+                ? "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)"
+                : "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+              tintBorder: stats.avgSubmission >= 80 ? "rgba(0,200,83,0.16)" : "rgba(123,63,244,0.12)",
               sub: stats.avgSubmission >= 80
                 ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Strong</span>
                 : stats.avgSubmission > 0
                   ? <span className="font-bold" style={{ color: MA.P }}>● In progress</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>Awaiting subs</span>,
               onClick: () => setFilter("Submitted"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             },
           ] as const).map(s => (
             <button key={s.key} type="button" onClick={s.onClick}
               {...tilt3D}
-              className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
-              style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-              <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
-                <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
-                  {s.label}
-                </div>
-                <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: s.color }}>
-                  {s.icon}
-                </div>
+              className="rounded-[20px] p-4 relative flex flex-col text-left overflow-hidden active:scale-[0.96] transition-transform"
+              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+              <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color: s.color, opacity: 0.22 }}>
+                {s.decor}
               </div>
-              <div className="text-[30px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.3px" }}>{s.val}</div>
-              <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
+              <div className="flex-shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center mb-[10px]" style={{ background: `${s.color}1F`, color: s.color }}>
+                {s.icon}
+              </div>
+              <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color: s.color, letterSpacing: "1px" }}>
+                {s.label}
+              </div>
+              <div className="text-[28px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.2px" }}>{s.val}</div>
+              <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                 {s.sub}
               </div>
             </button>
@@ -747,7 +761,6 @@ const Assignments = () => {
               style={{
                 background: MA.P, color: "#fff",
                 fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
-                boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.3)",
                 fontFamily: MA.FONT, border: "none",
               }}>
               <div className="w-11 h-11 rounded-[12px] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
@@ -758,53 +771,68 @@ const Assignments = () => {
             {([
               {
                 key: "total", label: "Total Active", val: stats.totalActive, color: MA.P,
+                tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)", tintBorder: "rgba(0,85,255,0.10)",
                 sub: stats.totalActive > 0
                   ? <span className="font-bold" style={{ color: MA.P }}>● Currently running</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>No active work</span>,
                 onClick: () => setFilter("All"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h6"/></svg>,
               },
               {
                 key: "due", label: "Due This Week", val: stats.dueThisWeek, color: MA.ORANGE,
+                tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
                 sub: stats.dueThisWeek > 0
                   ? <span className="font-bold" style={{ color: MA.ORANGE }}>● Due in 7 days</span>
                   : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All clear</span>,
                 onClick: () => setFilter("All"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
               },
               {
                 key: "pending", label: "Pending Grading", val: stats.pendingGrading, color: stats.pendingGrading > 0 ? MA.RED : MA.GREEN,
+                tintBg: stats.pendingGrading > 0
+                  ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+                  : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+                tintBorder: stats.pendingGrading > 0 ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
                 sub: stats.pendingGrading > 0
                   ? <span className="font-bold" style={{ color: MA.RED }}>● Needs review</span>
                   : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All caught up</span>,
                 onClick: () => setFilter("To grade"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>,
               },
               {
                 key: "avg", label: "Avg Submission", val: `${stats.avgSubmission}%`, color: stats.avgSubmission >= 80 ? MA.GREEN : MA.VIOLET,
+                tintBg: stats.avgSubmission >= 80
+                  ? "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)"
+                  : "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+                tintBorder: stats.avgSubmission >= 80 ? "rgba(0,200,83,0.16)" : "rgba(123,63,244,0.12)",
                 sub: stats.avgSubmission >= 80
                   ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Strong</span>
                   : stats.avgSubmission > 0
                     ? <span className="font-bold" style={{ color: MA.P }}>● In progress</span>
                     : <span className="font-semibold" style={{ color: MA.T3 }}>Awaiting subs</span>,
                 onClick: () => setFilter("Submitted"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
               },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
                 {...tilt3D}
-                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left active:scale-[0.98] transition-all"
-                style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-                <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
-                  <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
-                    {s.label}
-                  </div>
-                  <div className="flex-shrink-0 w-[44px] h-[44px] rounded-[13px] flex items-center justify-center text-white" style={{ background: s.color }}>
-                    {s.icon}
-                  </div>
+                className="rounded-[22px] p-5 relative flex flex-col text-left overflow-hidden active:scale-[0.98] transition-all"
+                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+                <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color: s.color, opacity: 0.22 }}>
+                  {s.decor}
                 </div>
-                <div className="text-[38px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.6px" }}>{s.val}</div>
-                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
+                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]" style={{ background: `${s.color}1F`, color: s.color }}>
+                  {s.icon}
+                </div>
+                <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color: s.color, letterSpacing: "1px" }}>
+                  {s.label}
+                </div>
+                <div className="text-[36px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.val}</div>
+                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                   {s.sub}
                 </div>
               </button>

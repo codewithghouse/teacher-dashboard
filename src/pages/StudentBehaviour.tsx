@@ -435,24 +435,37 @@ export default function StudentBehaviour() {
                       key: "rating", label: "Avg Rating",
                       value: ratings.length === 0 ? "—" : avgRating.toFixed(1),
                       sub: `${ratings.length} ratings on record`,
-                      grad: "linear-gradient(135deg,#FFAA00 0%,#FFCC55 100%)",
-                      icon: <Star className="w-5 h-5" />,
+                      color: "#FFAA00",
+                      tintBg: "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)",
+                      tintBorder: "rgba(255,170,0,0.16)",
+                      icon: <Star className="w-[18px] h-[18px]" />,
+                      decor: <Star className="w-[86px] h-[86px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-quick-rate")?.scrollIntoView({ behavior: "smooth", block: "center" }),
                     },
                     {
                       key: "behaviour", label: "Behaviour Entries",
                       value: incidents.length.toString(),
                       sub: `${positiveCount} positive · ${concernCount} concern`,
-                      grad: incidents.length === 0 ? "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)" : concernCount > positiveCount ? "linear-gradient(135deg,#FF3355 0%,#FF6680 100%)" : "linear-gradient(135deg,#00C853 0%,#33DD77 100%)",
-                      icon: <AlertTriangle className="w-5 h-5" />,
+                      color: incidents.length === 0 ? "#0055FF" : concernCount > positiveCount ? "#FF3355" : "#00C853",
+                      tintBg: incidents.length === 0
+                        ? "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)"
+                        : concernCount > positiveCount
+                          ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+                          : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+                      tintBorder: incidents.length === 0 ? "rgba(0,85,255,0.10)" : concernCount > positiveCount ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
+                      icon: <AlertTriangle className="w-[18px] h-[18px]" />,
+                      decor: <AlertTriangle className="w-[86px] h-[86px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-behaviour-log")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                     },
                     {
                       key: "improvements", label: "Active Improvements",
                       value: activeImprovements.toString(),
                       sub: improvements.length === 0 ? "Nothing tracked yet" : `${improvements.length - activeImprovements} resolved`,
-                      grad: "linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)",
-                      icon: <TrendingUp className="w-5 h-5" />,
+                      color: "#7B3FF4",
+                      tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+                      tintBorder: "rgba(123,63,244,0.12)",
+                      icon: <TrendingUp className="w-[18px] h-[18px]" />,
+                      decor: <TrendingUp className="w-[86px] h-[86px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-improvements")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                     },
                   ] as const).map(k => (
@@ -463,22 +476,24 @@ export default function StudentBehaviour() {
                       {...tilt3D}
                       aria-label={`${k.label}: ${k.value}`}
                       style={{
-                        background: k.grad, borderRadius: 20, padding: isMobile ? 14 : 20, color: "#fff",
+                        background: k.tintBg, borderRadius: 20, padding: isMobile ? 14 : 20,
                         position: "relative", overflow: "hidden",
-                        boxShadow: "0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.18), 0 18px 44px rgba(0,85,255,0.18)",
-                        cursor: "pointer", border: "none", textAlign: "left",
+                        border: `0.5px solid ${k.tintBorder}`,
+                        boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)",
+                        cursor: "pointer", textAlign: "left",
                         fontFamily: MA.FONT,
                         ...tilt3DStyle,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.22)", border: "0.5px solid rgba(255,255,255,0.28)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {k.icon}
-                        </div>
+                      <div style={{ position: "absolute", right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: "none" }}>
+                        {k.decor}
                       </div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.78)", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 6 }}>{k.label}</div>
-                      <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 800, color: "#fff", letterSpacing: "-0.8px", lineHeight: 1.05 }}>{k.value}</div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.78)", marginTop: 8 }}>{k.sub}</div>
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, position: "relative", zIndex: 1 }}>
+                        {k.icon}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: k.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{k.label}</div>
+                      <div style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: "#001040", letterSpacing: "-1.2px", lineHeight: 1.05, position: "relative", zIndex: 1 }}>{k.value}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#5070B0", marginTop: 8, position: "relative", zIndex: 1 }}>{k.sub}</div>
                     </button>
                   ))}
                 </div>

@@ -1268,7 +1268,7 @@ const Syllabus = () => {
           );
         })()}
 
-        {/* ═══ Bright KPI Row (4 gradient tiles) ═══ */}
+        {/* ═══ Matte KPI Row (4 pastel tiles) ═══ */}
         {!loading && classes.length > 0 && (() => {
           const classesWithDocs = classes.filter(c => (docsByClass.get(c.classId) || []).length > 0).length;
           const syllabusCount = docs.filter(d => keywordMatch(d.title, 'syllabus')).length;
@@ -1276,25 +1276,33 @@ const Syllabus = () => {
           const kpis = [
             {
               label: 'Total Documents', value: docs.length.toString(), sub: `${formatBytes(totalBytes)} stored`,
-              grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
+              color: '#0055FF',
+              tintBg: 'linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)',
+              tintBorder: 'rgba(0,85,255,0.10)',
               onClick: () => setActiveFilter('all'),
               iconStroke: (<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></>),
             },
             {
               label: 'Classes Covered', value: `${classesWithDocs}`, sub: `of ${classes.length} assigned class${classes.length!==1?'es':''}`,
-              grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+              color: '#7B3FF4',
+              tintBg: 'linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)',
+              tintBorder: 'rgba(123,63,244,0.12)',
               onClick: () => setActiveFilter('all'),
               iconStroke: (<><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>),
             },
             {
               label: 'Syllabus Files', value: syllabusCount.toString(), sub: syllabusCount > 0 ? 'Curriculum shared' : 'Upload a syllabus',
-              grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
+              color: '#00C853',
+              tintBg: 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+              tintBorder: 'rgba(0,200,83,0.16)',
               onClick: () => syllabusCount > 0 ? setActiveFilter('syllabus') : openModal(),
               iconStroke: (<><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>),
             },
             {
               label: 'Notes & Resources', value: notesCount.toString(), sub: notesCount > 0 ? 'Study material live' : 'Share quick notes',
-              grad: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)',
+              color: '#FFAA00',
+              tintBg: 'linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)',
+              tintBorder: 'rgba(255,170,0,0.16)',
               onClick: () => notesCount > 0 ? setActiveFilter('notes') : openModal(),
               iconStroke: (<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></>),
             },
@@ -1311,22 +1319,25 @@ const Syllabus = () => {
                   onClick={k.onClick}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); k.onClick(); } }}
                   style={{
-                    background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                    background: k.tintBg, borderRadius: 22, padding: '22px 24px',
                     position: 'relative', overflow: 'hidden',
-                    boxShadow: '0 0 0 .5px rgba(255,255,255,.15), 0 14px 38px rgba(0,85,255,.26), 0 4px 12px rgba(0,85,255,.18)',
+                    border: `0.5px solid ${k.tintBorder}`,
+                    boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
                   }}
                 >
-                  <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                        {k.iconStroke}
-                      </svg>
-                    </div>
+                  <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
+                    <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      {k.iconStroke}
+                    </svg>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.75)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                  <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      {k.iconStroke}
+                    </svg>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                  <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                 </div>
               ))}
             </div>

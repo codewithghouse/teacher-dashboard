@@ -599,19 +599,22 @@ export default function Students() {
                 const scorePct = stu.avgScorePct;
                 const hasScore = scorePct > 0;
                 const scoreTone = scorePct >= 75 ? MA.GREEN : scorePct >= 50 ? MA.ORANGE : MA.RED;
+                const cardTint = stu.statusTag === 'Good'
+                  ? { bg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", border: "rgba(0,200,83,0.16)" }
+                  : stu.statusTag === 'Attention'
+                    ? { bg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", border: "rgba(255,136,0,0.14)" }
+                    : { bg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", border: "rgba(255,51,85,0.14)" };
                 return (
                   <div key={stu.id}
                     onClick={() => setSelectedStudent(stu)}
                     role="button" tabIndex={0}
                     onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStudent(stu); } }}
                     {...tilt3D}
-                    className="bg-white rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
-                    style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
-                    <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: tone.accent }} />
-
+                    className="rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
+                    style={{ background: cardTint.bg, boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${cardTint.border}`, ...tilt3DStyle }}>
                     <div className="flex items-center gap-[12px] mb-[12px]">
-                      <div className="w-12 h-12 rounded-[15px] flex items-center justify-center text-white text-[14px] font-extrabold flex-shrink-0"
-                        style={{ background: avBg, letterSpacing: "0.3px" }}>
+                      <div className="w-12 h-12 rounded-[15px] flex items-center justify-center text-[14px] font-extrabold flex-shrink-0"
+                        style={{ background: `${avBg}22`, color: avBg, letterSpacing: "0.3px" }}>
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1018,19 +1021,22 @@ export default function Students() {
                   const scorePct = stu.avgScorePct;
                   const hasScore = scorePct > 0;
                   const scoreTone = scorePct >= 75 ? MA.GREEN : scorePct >= 50 ? MA.ORANGE : MA.RED;
+                  const cardTint = stu.statusTag === 'Good'
+                    ? { bg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", border: "rgba(0,200,83,0.16)" }
+                    : stu.statusTag === 'Attention'
+                      ? { bg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", border: "rgba(255,136,0,0.14)" }
+                      : { bg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", border: "rgba(255,51,85,0.14)" };
                   return (
                     <div key={stu.id}
                       onClick={() => setSelectedStudent(stu)}
                       role="button" tabIndex={0}
                       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStudent(stu); } }}
                       {...tilt3D}
-                      className="bg-white rounded-[20px] p-5 relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
-                      style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
-                      <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: tone.accent }} />
-
+                      className="rounded-[20px] p-5 relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
+                      style={{ background: cardTint.bg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${cardTint.border}`, ...tilt3DStyle }}>
                       <div className="flex items-center gap-3 mb-[14px]">
-                        <div className="w-14 h-14 rounded-[17px] flex items-center justify-center text-white text-[16px] font-extrabold flex-shrink-0"
-                          style={{ background: avBg, letterSpacing: "0.3px" }}>
+                        <div className="w-14 h-14 rounded-[17px] flex items-center justify-center text-[16px] font-extrabold flex-shrink-0"
+                          style={{ background: `${avBg}22`, color: avBg, letterSpacing: "0.3px" }}>
                           {initials}
                         </div>
                         <div className="flex-1 min-w-0">

@@ -335,11 +335,21 @@ const MyClasses = () => {
         <div className="grid grid-cols-2 gap-[10px] px-4 mb-[14px]">
           {[
             {
-              label: "Total Classes", val: `${classes.length}`, iconBg: B1, color: B1,
+              label: "Total Classes", val: `${classes.length}`, color: B1,
+              tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)",
+              tintBorder: "rgba(0,85,255,0.10)",
               sub: <span className="font-bold" style={{ color: GREEN }}>✓ All assigned</span>,
               filterKey: "All" as FilterType,
               icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+              ),
+              decor: (
+                <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="7" height="7" rx="1.5"/>
                   <rect x="14" y="3" width="7" height="7" rx="1.5"/>
                   <rect x="3" y="14" width="7" height="7" rx="1.5"/>
@@ -348,40 +358,67 @@ const MyClasses = () => {
               ),
             },
             {
-              label: "Active", val: `${activeCount}`, iconBg: GREEN, color: GREEN,
+              label: "Active", val: `${activeCount}`, color: GREEN,
+              tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+              tintBorder: "rgba(0,200,83,0.16)",
               sub: activeCount === classes.length && classes.length > 0
                 ? <span className="font-bold" style={{ color: GREEN }}>● All running</span>
                 : <span className="font-bold" style={{ color: TT3 }}>● {activeCount} of {classes.length}</span>,
               filterKey: "Active" as FilterType,
               icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="8 12 11 15 16 9"/>
+                </svg>
+              ),
+              decor: (
+                <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="8 12 11 15 16 9"/>
                 </svg>
               ),
             },
             {
-              label: "Attention", val: `${attentionCount}`, iconBg: ORANGE, color: ORANGE,
+              label: "Attention", val: `${attentionCount}`, color: ORANGE,
+              tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)",
+              tintBorder: "rgba(255,136,0,0.14)",
               sub: attentionCount === 0
                 ? <span className="font-bold" style={{ color: GREEN }}>✓ All clear</span>
                 : <span className="font-bold" style={{ color: ORANGE }}>● Needs focus</span>,
               filterKey: "Attention" as FilterType,
               icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="8" x2="12" y2="12"/>
                   <line x1="12" y1="16" x2="12" y2="16"/>
                 </svg>
               ),
+              decor: (
+                <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <circle cx="12" cy="16" r="0.6" fill="currentColor"/>
+                </svg>
+              ),
             },
             {
-              label: "Students", val: `${totalStudents}`, iconBg: VIOLET, color: VIOLET,
+              label: "Students", val: `${totalStudents}`, color: VIOLET,
+              tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+              tintBorder: "rgba(107,33,232,0.12)",
               sub: classes.length > 0
                 ? <span className="font-bold" style={{ color: VIOLET }}>● Across {classes.length} {classes.length === 1 ? "class" : "classes"}</span>
                 : <span className="font-semibold" style={{ color: TT3 }}>No classes yet</span>,
               filterKey: null,
               icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+              ),
+              decor: (
+                <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                   <circle cx="9" cy="7" r="4"/>
                   <path d="M23 21v-2a4 4 0 00-3-3.87"/>
@@ -389,7 +426,7 @@ const MyClasses = () => {
                 </svg>
               ),
             },
-          ].map(({ label, val, iconBg, color, sub, filterKey, icon }) => {
+          ].map(({ label, val, color, tintBg, tintBorder, sub, filterKey, icon, decor }) => {
             const isActive = filterKey !== null && filter === filterKey;
             return (
               <button key={label} type="button"
@@ -399,22 +436,29 @@ const MyClasses = () => {
                 }}
                 aria-pressed={isActive}
                 {...tilt3D}
-                className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
+                className="rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform overflow-hidden"
                 style={{
-                  boxShadow: isActive ? `${SH_LG_D}, 0 0 0 2px ${color}` : SH_LG_D,
-                  border: `0.5px solid ${SEP_D}`,
+                  background: tintBg,
+                  boxShadow: isActive
+                    ? `0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04), 0 0 0 2px ${color}`
+                    : "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)",
+                  border: `0.5px solid ${tintBorder}`,
                   ...tilt3DStyle,
                 }}>
-                <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
-                  <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: TT3, letterSpacing: "1px" }}>
-                    {label}
-                  </div>
-                  <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: iconBg }}>
-                    {icon}
-                  </div>
+                {/* decorative icon (bottom-right) */}
+                <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color, opacity: 0.22 }}>
+                  {decor}
                 </div>
-                <div className="text-[30px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.3px" }}>{val}</div>
-                <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
+                {/* top-left icon chip */}
+                <div className="flex-shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center mb-[10px]"
+                  style={{ background: `${color}1F`, color }}>
+                  {icon}
+                </div>
+                <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color, letterSpacing: "1px" }}>
+                  {label}
+                </div>
+                <div className="text-[28px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
+                <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                   {sub}
                 </div>
               </button>
@@ -487,15 +531,12 @@ const MyClasses = () => {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/my-classes/${cls.id}`); }}
                   {...tilt3D}
                   className="bg-white rounded-[22px] p-[18px] mb-3 relative overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
-                  style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
+                  style={{ boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
                   aria-label={`Open ${cls.name || "class"}`}>
-                  {/* Top accent stripe */}
-                  <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: accent }} />
-
                   {/* Head */}
                   <div className="flex items-start gap-[13px] mb-4">
-                    <div className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center text-white flex-shrink-0"
-                      style={{ background: accent }}>
+                    <div className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${accent}1A`, color: accent }}>
                       <Home className="w-[22px] h-[22px]" strokeWidth={2.2} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -581,7 +622,7 @@ const MyClasses = () => {
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); navigate(`/my-classes/${cls.id}`); }}
                       className="flex-1 h-11 rounded-[13px] text-[13px] font-bold text-white flex items-center justify-center gap-[6px] active:scale-[0.96] transition-transform"
-                      style={{ background: B1, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.3)" }}>
+                      style={{ background: B1, letterSpacing: "-0.2px" }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                         <circle cx="12" cy="12" r="3"/>
@@ -797,11 +838,21 @@ const MyClasses = () => {
           <div className="grid grid-cols-4 gap-4 mb-5">
             {[
               {
-                label: "Total Classes", val: `${classes.length}`, iconBg: B1, color: B1,
+                label: "Total Classes", val: `${classes.length}`, color: B1,
+                tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)",
+                tintBorder: "rgba(0,85,255,0.10)",
                 sub: <span className="font-bold" style={{ color: GREEN }}>✓ All assigned</span>,
                 filterKey: "All" as FilterType,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="7" height="7" rx="1.5"/>
                     <rect x="14" y="3" width="7" height="7" rx="1.5"/>
                     <rect x="3" y="14" width="7" height="7" rx="1.5"/>
@@ -810,40 +861,67 @@ const MyClasses = () => {
                 ),
               },
               {
-                label: "Active", val: `${activeCount}`, iconBg: GREEN, color: GREEN,
+                label: "Active", val: `${activeCount}`, color: GREEN,
+                tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+                tintBorder: "rgba(0,200,83,0.16)",
                 sub: activeCount === classes.length && classes.length > 0
                   ? <span className="font-bold" style={{ color: GREEN }}>● All running</span>
                   : <span className="font-bold" style={{ color: TT3 }}>● {activeCount} of {classes.length}</span>,
                 filterKey: "Active" as FilterType,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="8 12 11 15 16 9"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="8 12 11 15 16 9"/>
                   </svg>
                 ),
               },
               {
-                label: "Attention", val: `${attentionCount}`, iconBg: ORANGE, color: ORANGE,
+                label: "Attention", val: `${attentionCount}`, color: ORANGE,
+                tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)",
+                tintBorder: "rgba(255,136,0,0.14)",
                 sub: attentionCount === 0
                   ? <span className="font-bold" style={{ color: GREEN }}>✓ All clear</span>
                   : <span className="font-bold" style={{ color: ORANGE }}>● Needs focus</span>,
                 filterKey: "Attention" as FilterType,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <line x1="12" y1="16" x2="12" y2="16"/>
                   </svg>
                 ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <circle cx="12" cy="16" r="0.6" fill="currentColor"/>
+                  </svg>
+                ),
               },
               {
-                label: "Students", val: `${totalStudents}`, iconBg: VIOLET, color: VIOLET,
+                label: "Students", val: `${totalStudents}`, color: VIOLET,
+                tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+                tintBorder: "rgba(107,33,232,0.12)",
                 sub: classes.length > 0
                   ? <span className="font-bold" style={{ color: VIOLET }}>● Across {classes.length} {classes.length === 1 ? "class" : "classes"}</span>
                   : <span className="font-semibold" style={{ color: TT3 }}>No classes yet</span>,
                 filterKey: null,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 00-3-3.87"/>
@@ -851,7 +929,7 @@ const MyClasses = () => {
                   </svg>
                 ),
               },
-            ].map(({ label, val, iconBg, color, sub, filterKey, icon }) => {
+            ].map(({ label, val, color, tintBg, tintBorder, sub, filterKey, icon, decor }) => {
               const isActive = filterKey !== null && filter === filterKey;
               return (
                 <button key={label} type="button"
@@ -861,22 +939,29 @@ const MyClasses = () => {
                   }}
                   aria-pressed={isActive}
                   {...tilt3D}
-                  className="bg-white rounded-[22px] p-5 relative flex flex-col text-left active:scale-[0.98] transition-all"
+                  className="rounded-[22px] p-5 relative flex flex-col text-left active:scale-[0.98] transition-all overflow-hidden"
                   style={{
-                    boxShadow: isActive ? `${SH_LG_D}, 0 0 0 2px ${color}` : SH_LG_D,
-                    border: `0.5px solid ${SEP_D}`,
+                    background: tintBg,
+                    boxShadow: isActive
+                      ? `0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04), 0 0 0 2px ${color}`
+                      : "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)",
+                    border: `0.5px solid ${tintBorder}`,
                     ...tilt3DStyle,
                   }}>
-                  <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
-                    <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: TT3, letterSpacing: "1px" }}>
-                      {label}
-                    </div>
-                    <div className="flex-shrink-0 w-[44px] h-[44px] rounded-[13px] flex items-center justify-center text-white" style={{ background: iconBg }}>
-                      {icon}
-                    </div>
+                  {/* decorative icon (bottom-right) */}
+                  <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color, opacity: 0.22, transform: "translateZ(4px)" }}>
+                    {decor}
                   </div>
-                  <div className="text-[38px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.6px" }}>{val}</div>
-                  <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
+                  {/* top-left icon chip */}
+                  <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]"
+                    style={{ background: `${color}1F`, color, transform: "translateZ(18px)" }}>
+                    {icon}
+                  </div>
+                  <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color, letterSpacing: "1px", transform: "translateZ(10px)" }}>
+                    {label}
+                  </div>
+                  <div className="text-[36px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
+                  <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                     {sub}
                   </div>
                 </button>
@@ -948,15 +1033,12 @@ const MyClasses = () => {
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/my-classes/${cls.id}`); }}
                     {...tilt3D}
                     className="bg-white rounded-[22px] p-[22px] relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
-                    style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
+                    style={{ boxShadow: "0 8px 24px rgba(20,40,90,0.05), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}
                     aria-label={`Open ${cls.name || "class"}`}>
-                    {/* Top accent stripe */}
-                    <div className="absolute top-0 left-0 right-0 h-[4px]" style={{ background: accent }} />
-
                     {/* Head */}
                     <div className="flex items-start gap-[14px] mb-4">
-                      <div className="w-[54px] h-[54px] rounded-[15px] flex items-center justify-center text-white flex-shrink-0"
-                        style={{ background: accent }}>
+                      <div className="w-[54px] h-[54px] rounded-[15px] flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${accent}1A`, color: accent }}>
                         <Home className="w-[26px] h-[26px]" strokeWidth={2.2} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1042,7 +1124,7 @@ const MyClasses = () => {
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); navigate(`/my-classes/${cls.id}`); }}
                         className="flex-1 h-12 rounded-[13px] text-[13px] font-bold text-white flex items-center justify-center gap-[6px] hover:scale-[1.02] active:scale-[0.96] transition-transform"
-                        style={{ background: B1, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.3)" }}>
+                        style={{ background: B1, letterSpacing: "-0.2px" }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                           <circle cx="12" cy="12" r="3"/>

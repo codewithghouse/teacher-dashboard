@@ -343,7 +343,6 @@ export default function TestsExams() {
             style={{
               background: MA.P, color: "#fff",
               fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
-              boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.3)",
               fontFamily: MA.FONT, border: "none",
             }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -356,31 +355,48 @@ export default function TestsExams() {
           {([
             {
               key: "upcoming", label: "Upcoming", val: `${stats.upcoming}`, color: MA.GOLD,
+              tintBg: "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)", tintBorder: "rgba(255,170,0,0.16)",
               sub: stats.upcoming > 0
                 ? <span className="font-bold" style={{ color: MA.GOLD }}>● Scheduled</span>
                 : <span className="font-semibold" style={{ color: MA.T3 }}>Nothing scheduled</span>,
               onClick: () => applyFilter("Upcoming"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
             },
             {
               key: "completed", label: "Completed", val: `${stats.completed}`, color: MA.VIOLET,
+              tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)", tintBorder: "rgba(123,63,244,0.12)",
               sub: stats.completed > 0
                 ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Done</span>
                 : <span className="font-semibold" style={{ color: MA.T3 }}>No history yet</span>,
               onClick: () => applyFilter("Completed"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             },
             {
               key: "pending", label: "Pending Scores", val: `${stats.pendingScores}`, color: stats.pendingScores > 0 ? MA.RED : MA.GREEN,
+              tintBg: stats.pendingScores > 0
+                ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+                : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+              tintBorder: stats.pendingScores > 0 ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
               sub: stats.pendingScores > 0
                 ? <span className="font-bold" style={{ color: MA.RED }}>● Needs entry</span>
                 : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All entered</span>,
               onClick: () => applyFilter("Pending"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
             },
             {
               key: "avg", label: "Class Avg", val: stats.classAvg !== null ? `${stats.classAvg.toFixed(1)}%` : "—",
               color: stats.classAvg === null ? MA.P : stats.classAvg >= 75 ? MA.GREEN : stats.classAvg >= 60 ? MA.GOLD : MA.RED,
+              tintBg: stats.classAvg === null
+                ? "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)"
+                : stats.classAvg >= 75
+                  ? "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)"
+                  : stats.classAvg >= 60
+                    ? "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)"
+                    : "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)",
+              tintBorder: stats.classAvg === null ? "rgba(0,85,255,0.10)" : stats.classAvg >= 75 ? "rgba(0,200,83,0.16)" : stats.classAvg >= 60 ? "rgba(255,170,0,0.16)" : "rgba(255,51,85,0.14)",
               sub: stats.classAvg === null
                 ? <span className="font-semibold" style={{ color: MA.T3 }}>Awaiting scores</span>
                 : stats.classAvg >= 75
@@ -389,23 +405,25 @@ export default function TestsExams() {
                     ? <span className="font-bold" style={{ color: MA.GOLD }}>● Fair</span>
                     : <span className="font-bold" style={{ color: MA.RED }}>↓ Needs lift</span>,
               onClick: () => navigate("/reports"),
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+              decor: <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
             },
           ] as const).map(s => (
             <button key={s.key} type="button" onClick={s.onClick}
               {...tilt3D}
-              className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
-              style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-              <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
-                <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
-                  {s.label}
-                </div>
-                <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white" style={{ background: s.color }}>
-                  {s.icon}
-                </div>
+              className="rounded-[20px] p-4 relative flex flex-col text-left overflow-hidden active:scale-[0.96] transition-transform"
+              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+              <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color: s.color, opacity: 0.22 }}>
+                {s.decor}
               </div>
-              <div className="text-[30px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.3px" }}>{s.val}</div>
-              <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
+              <div className="flex-shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center mb-[10px]" style={{ background: `${s.color}1F`, color: s.color }}>
+                {s.icon}
+              </div>
+              <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color: s.color, letterSpacing: "1px" }}>
+                {s.label}
+              </div>
+              <div className="text-[28px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.2px" }}>{s.val}</div>
+              <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                 {s.sub}
               </div>
             </button>
@@ -840,7 +858,6 @@ export default function TestsExams() {
               style={{
                 background: MA.P, color: "#fff",
                 fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
-                boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.3)",
                 fontFamily: MA.FONT, border: "none",
               }}>
               <div className="w-11 h-11 rounded-[12px] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
@@ -851,31 +868,48 @@ export default function TestsExams() {
             {([
               {
                 key: "upcoming", label: "Upcoming", val: `${stats.upcoming}`, color: MA.GOLD,
+                tintBg: "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)", tintBorder: "rgba(255,170,0,0.16)",
                 sub: stats.upcoming > 0
                   ? <span className="font-bold" style={{ color: MA.GOLD }}>● Scheduled</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>Nothing scheduled</span>,
                 onClick: () => applyFilter("Upcoming"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
               },
               {
                 key: "completed", label: "Completed", val: `${stats.completed}`, color: MA.VIOLET,
+                tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)", tintBorder: "rgba(123,63,244,0.12)",
                 sub: stats.completed > 0
                   ? <span className="font-bold" style={{ color: MA.GREEN }}>✓ Done</span>
                   : <span className="font-semibold" style={{ color: MA.T3 }}>No history yet</span>,
                 onClick: () => applyFilter("Completed"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
               },
               {
                 key: "pending", label: "Pending Scores", val: `${stats.pendingScores}`, color: stats.pendingScores > 0 ? MA.RED : MA.GREEN,
+                tintBg: stats.pendingScores > 0
+                  ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+                  : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+                tintBorder: stats.pendingScores > 0 ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
                 sub: stats.pendingScores > 0
                   ? <span className="font-bold" style={{ color: MA.RED }}>● Needs entry</span>
                   : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All entered</span>,
                 onClick: () => applyFilter("Pending"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
               },
               {
                 key: "avg", label: "Class Avg", val: stats.classAvg !== null ? `${stats.classAvg.toFixed(1)}%` : "—",
                 color: stats.classAvg === null ? MA.P : stats.classAvg >= 75 ? MA.GREEN : stats.classAvg >= 60 ? MA.GOLD : MA.RED,
+                tintBg: stats.classAvg === null
+                  ? "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)"
+                  : stats.classAvg >= 75
+                    ? "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)"
+                    : stats.classAvg >= 60
+                      ? "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)"
+                      : "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)",
+                tintBorder: stats.classAvg === null ? "rgba(0,85,255,0.10)" : stats.classAvg >= 75 ? "rgba(0,200,83,0.16)" : stats.classAvg >= 60 ? "rgba(255,170,0,0.16)" : "rgba(255,51,85,0.14)",
                 sub: stats.classAvg === null
                   ? <span className="font-semibold" style={{ color: MA.T3 }}>Awaiting scores</span>
                   : stats.classAvg >= 75
@@ -884,23 +918,25 @@ export default function TestsExams() {
                       ? <span className="font-bold" style={{ color: MA.GOLD }}>● Fair</span>
                       : <span className="font-bold" style={{ color: MA.RED }}>↓ Needs lift</span>,
                 onClick: () => navigate("/reports"),
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
               },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
                 {...tilt3D}
-                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left hover:scale-[1.02] active:scale-[0.98] transition-all"
-                style={{ boxShadow: MA.SH, border: MA.BDR, fontFamily: MA.FONT, ...tilt3DStyle }}>
-                <div className="flex items-start gap-[10px] mb-5" style={{ minHeight: 44 }}>
-                  <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: MA.T3, letterSpacing: "1px" }}>
-                    {s.label}
-                  </div>
-                  <div className="flex-shrink-0 w-[44px] h-[44px] rounded-[13px] flex items-center justify-center text-white" style={{ background: s.color }}>
-                    {s.icon}
-                  </div>
+                className="rounded-[22px] p-5 relative flex flex-col text-left overflow-hidden hover:scale-[1.02] active:scale-[0.98] transition-all"
+                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+                <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color: s.color, opacity: 0.22 }}>
+                  {s.decor}
                 </div>
-                <div className="text-[38px] font-extrabold leading-none" style={{ color: s.color, letterSpacing: "-1.6px" }}>{s.val}</div>
-                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: MA.T4, letterSpacing: "-0.15px" }}>
+                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]" style={{ background: `${s.color}1F`, color: s.color }}>
+                  {s.icon}
+                </div>
+                <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color: s.color, letterSpacing: "1px" }}>
+                  {s.label}
+                </div>
+                <div className="text-[36px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.val}</div>
+                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                   {s.sub}
                 </div>
               </button>

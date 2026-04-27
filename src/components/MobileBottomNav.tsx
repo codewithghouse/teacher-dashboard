@@ -1,10 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 
-/* ── Blue Apple tokens (mockup) ── */
-const B1 = "#0055FF";
-const INACTIVE = "rgba(0,85,255,0.26)";
-const ACTIVE_LBL = "#0055FF";
-const INACTIVE_LBL = "#99AACC";
+/* ── Blue Apple tokens ── */
+const ACTIVE = "#0055FF";
+const INACTIVE = "#94A3B8";
 
 const NAV_ITEMS = [
   {
@@ -73,85 +71,74 @@ const MobileBottomNav = () => {
   const basePath = "/" + location.pathname.split("/")[1];
 
   return (
-    <div
-      className="flex md:hidden"
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 88,
-        background: "rgba(238,244,255,0.92)",
-        WebkitBackdropFilter: "saturate(220%) blur(32px)",
-        backdropFilter: "saturate(220%) blur(32px)",
-        borderTop: "0.5px solid rgba(0,85,255,0.10)",
-        alignItems: "flex-start",
-        justifyContent: "space-around",
-        padding: "12px 4px max(12px, env(safe-area-inset-bottom)) 4px",
-        zIndex: 50,
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-      }}
+    // Outer fixed wrapper centers the floating pill with margin from edges.
+    // pointer-events-none lets taps pass through the gutters; the inner pill
+    // re-enables them with pointer-events-auto.
+    <nav
+      className="md:hidden fixed inset-x-0 z-50 flex justify-center px-3 pointer-events-none"
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
     >
-      {NAV_ITEMS.map((item) => {
-        const active = item.match.includes(basePath);
-        const strokeColor = active ? B1 : INACTIVE;
-        const strokeWidth = active ? 2 : 1.7;
-
-        return (
-          <button type="button"
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            aria-label={item.label}
-            aria-current={active ? "page" : undefined}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "2px 4px",
-              minWidth: 52,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <div style={{
-              width: 27,
-              height: 27,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
+      <div
+        className="flex items-center w-full max-w-[440px] pointer-events-auto"
+        style={{
+          height: 68,
+          padding: "0 6px",
+          borderRadius: 28,
+          background: "rgba(255,255,255,0.62)",
+          backdropFilter: "saturate(220%) blur(28px)",
+          WebkitBackdropFilter: "saturate(220%) blur(28px)",
+          border: "0.5px solid rgba(255,255,255,0.85)",
+          boxShadow:
+            "0 0 0 0.5px rgba(0,85,255,0.10), 0 2px 6px rgba(0,85,255,0.08), 0 12px 28px rgba(0,85,255,0.18), 0 28px 64px rgba(0,85,255,0.22)",
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        }}
+      >
+        {NAV_ITEMS.map((item) => {
+          const active = item.match.includes(basePath);
+          return (
+            <button
+              type="button"
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              aria-label={item.label}
+              aria-current={active ? "page" : undefined}
+              className="flex-1 h-full flex flex-col items-center justify-center gap-[3px] transition-transform active:scale-[0.92]"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+                transitionTimingFunction: "cubic-bezier(0.34,1.56,0.64,1)",
+              }}
+            >
               <svg
-                width={22}
-                height={22}
+                width={20}
+                height={20}
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
+                stroke={active ? ACTIVE : INACTIVE}
+                strokeWidth={active ? 2.4 : 2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"
+                style={{ transition: "stroke 0.15s ease" }}
               >
                 {item.icon}
               </svg>
-            </div>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: active ? 700 : 500,
-                color: active ? ACTIVE_LBL : INACTIVE_LBL,
-                lineHeight: 1,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+              <span
+                className="text-[10px] tracking-tight leading-tight transition-colors"
+                style={{
+                  color: active ? ACTIVE : INACTIVE,
+                  fontWeight: active ? 700 : 500,
+                }}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 };
 

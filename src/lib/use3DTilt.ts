@@ -50,7 +50,7 @@ export const tilt3D = {
     (el.style as any).webkitBackfaceVisibility = "hidden";
     el.style.transformOrigin = "center center";
     setImp(el, "transition", `transform ${ENTER_MS}ms ${SCALE_EASE}, box-shadow ${ENTER_MS - 100}ms ${SHADOW_EASE}`);
-    setImp(el, "transform", "translate3d(0,-5px,0) scale(1.015)");
+    setImp(el, "transform", "translate3d(0,-5px,0)");
     setImp(el, "box-shadow", HOVER_SHADOW);
     setImp(el, "z-index", "3");
   },
@@ -60,7 +60,7 @@ export const tilt3D = {
   onMouseLeave: (e: React.MouseEvent<TiltEl>) => {
     const el = e.currentTarget as HTMLElement;
     setImp(el, "transition", `transform ${LEAVE_MS}ms ${SCALE_EASE}, box-shadow ${LEAVE_MS - 100}ms ${SHADOW_EASE}`);
-    setImp(el, "transform", "translate3d(0,0,0) scale(1)");
+    setImp(el, "transform", "translate3d(0,0,0)");
     const orig = ORIGINAL_SHADOW.get(el);
     if (orig !== undefined && orig !== "") {
       setImp(el, "box-shadow", orig);
@@ -82,7 +82,7 @@ export const tilt3DProfile = {
     (el.style as any).webkitBackfaceVisibility = "hidden";
     el.style.transformOrigin = "center center";
     setImp(el, "transition", `transform ${ENTER_MS}ms ${SCALE_EASE}, box-shadow ${ENTER_MS - 100}ms ${SHADOW_EASE}`);
-    setImp(el, "transform", "translate3d(0,-7px,0) scale(1.02)");
+    setImp(el, "transform", "translate3d(0,-7px,0)");
     setImp(el, "box-shadow", HOVER_SHADOW);
     setImp(el, "z-index", "3");
   },
@@ -90,7 +90,7 @@ export const tilt3DProfile = {
   onMouseLeave: (e: React.MouseEvent<TiltEl>) => {
     const el = e.currentTarget as HTMLElement;
     setImp(el, "transition", `transform ${LEAVE_MS}ms ${SCALE_EASE}, box-shadow ${LEAVE_MS - 100}ms ${SHADOW_EASE}`);
-    setImp(el, "transform", "translate3d(0,0,0) scale(1)");
+    setImp(el, "transform", "translate3d(0,0,0)");
     const orig = ORIGINAL_SHADOW.get(el);
     if (orig !== undefined && orig !== "") {
       setImp(el, "box-shadow", orig);

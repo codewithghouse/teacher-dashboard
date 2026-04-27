@@ -1,50 +1,57 @@
 {
+  "id": "/",
   "name": "Edullent — Teacher Dashboard",
-  "short_name": "Edullent",
+  "short_name": "Teacher",
   "description": "AI-powered teacher dashboard for managing students, classes, attendance, grades, and communication.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#08090C",
   "theme_color": "#1e3272",
+  "background_color": "#1e3272",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "scope": "/",
+  "start_url": "/?source=pwa",
+  "lang": "en",
+  "dir": "ltr",
   "categories": ["education", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "256x256",
-      "type": "image/png"
-    }
+    { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
+    { "src": "/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png" },
+    { "src": "/icons/icon-128x128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-144x144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icons/icon-152x152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Dashboard",
       "short_name": "Home",
-      "url": "/",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
-    },
-    {
-      "name": "Students",
-      "short_name": "Students",
-      "url": "/students"
+      "description": "Open the teacher dashboard",
+      "url": "/?source=shortcut",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
-      "url": "/attendance"
+      "description": "Mark today's attendance",
+      "url": "/attendance?source=shortcut",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Classes",
+      "short_name": "Classes",
+      "description": "View your classes",
+      "url": "/my-classes?source=shortcut",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Ranks",
+      "description": "Class & teacher leaderboards",
+      "url": "/leaderboard?source=shortcut",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]
 }

@@ -219,7 +219,7 @@ div[class*="shadow-sm"][class*="rounded-"]:hover,
 .ds-card:hover,
 .stat-card:hover,
 .content-card:hover {
-  transform: translateY(-4px) scale(1.008) !important;
+  transform: translateY(-4px) !important;
   box-shadow: 0 20px 40px rgba(30, 50, 114, 0.08),
               0 8px 16px rgba(0, 0, 0, 0.04),
               0 0 0 1px rgba(30, 50, 114, 0.1) !important;
@@ -297,15 +297,9 @@ main > div,
   animation: tdFadeSlideIn 0.4s ease-out;
 }
 
-/* ── Stat number scale on card hover ── */
-.stat-card:hover [class*="text-2xl"],
-.stat-card:hover [class*="text-3xl"],
-.stat-card:hover [class*="text-4xl"],
-.ds-card:hover [class*="text-2xl"],
-.ds-card:hover [class*="text-3xl"] {
-  transform: scale(1.05);
-  transition: transform 0.25s ease;
-}
+/* ── Stat number — keep text crisp on hover (no scale) ── */
+/* Scaling text on hover re-rasterises the layer and blurs glyphs.
+   Lift comes from the parent card transform; numbers stay sharp. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UNIVERSAL CARD — hover lift, tilt, and box-shadow applied everywhere
@@ -367,7 +361,7 @@ a[class*="rounded-xl"][class*="border"] {
   a[class*="rounded-2xl"]:hover,
   a[class*="rounded-3xl"]:hover,
   a[class*="rounded-xl"][class*="border"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    transform: translate3d(0, -5px, 0) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
@@ -406,7 +400,7 @@ a[class*="rounded-3xl"]:active {
   [class*="-card3d"][style*="linear-gradient(135deg, #FF"]:hover,
   div[style*="linear-gradient(135deg,#FF3355"]:hover,
   div[style*="linear-gradient(135deg, #FF3355"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    transform: translate3d(0, -5px, 0) !important;
     box-shadow:
       0 22px 52px rgba(255, 51, 85, 0.5),
       0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
@@ -417,7 +411,7 @@ a[class*="rounded-3xl"]:active {
   [class*="-card3d"][style*="linear-gradient(135deg,#000"]:hover,
   [class*="-card3d"][style*="linear-gradient(135deg, #001"]:hover,
   [class*="-card3d"][style*="linear-gradient(135deg, #000"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    transform: translate3d(0, -5px, 0) !important;
     box-shadow:
       0 22px 52px rgba(0, 8, 60, 0.48),
       0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
@@ -430,7 +424,7 @@ a[class*="rounded-3xl"]:active {
   div[style*="linear-gradient(140deg, #000"]:hover,
   div[style*="linear-gradient(135deg, #1A"]:hover,
   div[style*="linear-gradient(140deg, #1A"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.02);
+    transform: translate3d(0, -5px, 0);
     box-shadow:
       0 2px 4px rgba(0, 8, 60, 0.22),
       0 26px 52px rgba(0, 8, 60, 0.34),
@@ -451,7 +445,7 @@ a[class*="rounded-3xl"]:active {
   [class*="bg-slate-50"][class*="rounded-"]:hover,
   [class*="bg-sky-50"][class*="rounded-"]:hover,
   [class*="bg-teal-50"][class*="rounded-"]:hover {
-    transform: translate3d(0, -5px, 0) scale(1.015) !important;
+    transform: translate3d(0, -5px, 0) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
@@ -477,7 +471,7 @@ button[class*="rounded-xl"][class*="border"] {
   button[class*="rounded-2xl"]:not([disabled]):hover,
   button[class*="rounded-3xl"]:not([disabled]):hover,
   button[class*="rounded-xl"][class*="border"]:not([disabled]):hover {
-    transform: translate3d(0, -4px, 0) scale(1.015) !important;
+    transform: translate3d(0, -4px, 0) !important;
     box-shadow:
       0 0 0 0.5px rgba(0, 85, 255, 0.14),
       0 8px 24px rgba(0, 85, 255, 0.16),
@@ -485,11 +479,6 @@ button[class*="rounded-xl"][class*="border"] {
   }
 }
 
-/* Sidebar nav items (desktop) — subtle lift on hover */
-@media (hover: hover) and (pointer: fine) {
-  nav a[class*="rounded-"]:hover,
-  aside a[class*="rounded-"]:hover {
-    transform: translateX(3px) !important;
-    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
-  }
-}
+/* Sidebar nav items — no transform on hover.
+   Sub-pixel translation animations re-rasterise the layer and blur
+   icon + label mid-tween. Background-only feedback keeps text crisp. */

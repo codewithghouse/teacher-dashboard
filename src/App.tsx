@@ -10,6 +10,8 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import { GraduationCap, Loader2 } from "lucide-react";
 import TeacherLayout from "./components/TeacherLayout";
 import { SplashScreen } from "./components/SplashScreen";
+import { InstallBanner } from "./components/InstallBanner";
+import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
 // Reload once on chunk-load failure (stale deployed HTML referencing a
 // hashed chunk that no longer exists). Prevents white-screens after deploys.
@@ -163,6 +165,10 @@ const App = () => (
           <ErrorBoundary>
             <OfflineBanner />
             <AppRoutes />
+            {/* PWA: Android/desktop install banner + iOS Add-to-Home-Screen hint */}
+            <InstallBanner />
+            {/* PWA: SW update notification (production only) */}
+            <PWAUpdatePrompt />
             {/* Mobile-only brand splash — shows once per session, above everything */}
             <SplashScreen />
           </ErrorBoundary>

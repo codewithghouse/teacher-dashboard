@@ -1015,14 +1015,16 @@ const ConceptMastery = () => {
             </div>
           </div>
 
-          {/* ═══ Bright KPI Row (4 gradient tiles) ═══ */}
+          {/* ═══ Matte KPI Row (4 pastel tiles) ═══ */}
           {!loading && dynamicHeaders.length > 0 && (() => {
             const weakConceptCount = classAverages.filter(a => a > 0 && a < 50).length;
             const totalStudents = filtered.length;
             const kpis = [
               {
                 label: 'Total Students', value: totalStudents.toString(), sub: `in ${selectedClass?.name || '—'}`,
-                grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
+                color: '#0055FF',
+                tintBg: 'linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)',
+                tintBorder: 'rgba(0,85,255,0.10)',
                 iconStroke: (
                   <>
                     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
@@ -1032,7 +1034,9 @@ const ConceptMastery = () => {
               },
               {
                 label: 'Mastered', value: masteredConceptCount.toString(), sub: `${masteredConceptCount} concept${masteredConceptCount!==1?'s':''} ≥ 80%`,
-                grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
+                color: '#00C853',
+                tintBg: 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+                tintBorder: 'rgba(0,200,83,0.16)',
                 iconStroke: (
                   <>
                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
@@ -1042,7 +1046,9 @@ const ConceptMastery = () => {
               },
               {
                 label: 'Developing', value: developingConceptCount.toString(), sub: `${developingConceptCount} concept${developingConceptCount!==1?'s':''} 50-79%`,
-                grad: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)',
+                color: '#FFAA00',
+                tintBg: 'linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)',
+                tintBorder: 'rgba(255,170,0,0.16)',
                 iconStroke: (
                   <>
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -1051,7 +1057,11 @@ const ConceptMastery = () => {
               },
               {
                 label: 'Weak Concepts', value: weakConceptCount.toString(), sub: `${weakConceptCount > 0 ? 'Needs urgent focus' : 'All strong'}`,
-                grad: weakConceptCount > 0 ? 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)' : 'linear-gradient(135deg,#5070B0 0%,#99AACC 100%)',
+                color: weakConceptCount > 0 ? '#FF3355' : '#7B3FF4',
+                tintBg: weakConceptCount > 0
+                  ? 'linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)'
+                  : 'linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)',
+                tintBorder: weakConceptCount > 0 ? 'rgba(255,51,85,0.14)' : 'rgba(123,63,244,0.12)',
                 iconStroke: (
                   <>
                     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -1074,22 +1084,25 @@ const ConceptMastery = () => {
                     onClick={() => navigate(dest)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(dest); } }}
                     style={{
-                      background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                      background: k.tintBg, borderRadius: 22, padding: '22px 24px',
                       position: 'relative', overflow: 'hidden',
-                      boxShadow: '0 0 0 .5px rgba(255,255,255,.15), 0 14px 38px rgba(0,85,255,.26), 0 4px 12px rgba(0,85,255,.18)',
+                      border: `0.5px solid ${k.tintBorder}`,
+                      boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
                     }}
                   >
-                    <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                          {k.iconStroke}
-                        </svg>
-                      </div>
+                    <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
+                      <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        {k.iconStroke}
+                      </svg>
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.75)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                    <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        {k.iconStroke}
+                      </svg>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                   </div>
                   );
                 })}

@@ -65,8 +65,9 @@ const T = {
   alBg:    "#FFF9DB",
   tea:     "#0C8599",
   tlBg:    "#E3FAFC",
-  chatBg:  "#F0F2F8",
-  chatOut: "#3B5BDB",
+  chatBg:  "#EFEAE2",
+  chatOut: "#D9FDD3",
+  chatPattern: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23D4CFC4' fill-opacity='0.18'%3E%3Ccircle cx='10' cy='10' r='1.5'/%3E%3Ccircle cx='50' cy='30' r='1.5'/%3E%3Ccircle cx='30' cy='60' r='1.5'/%3E%3Ccircle cx='70' cy='70' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
 };
 
 // ── Avatar helpers ────────────────────────────────────────────────────────────
@@ -796,20 +797,38 @@ const ParentNotes = () => {
               );
             })()}
 
-            {/* ═══ Bright 4-col KPI tiles ═══ */}
+            {/* ═══ Matte 4-col KPI tiles ═══ */}
             <div className="grid grid-cols-4 gap-4 mb-6">
               {[
-                { label: 'Total Messages', value: stats.total.toString(), sub: 'Across all parents', grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)', onClick: () => searchRef.current?.focus(),
-                  iconStroke: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
+                { label: 'Total Messages', value: stats.total.toString(), sub: 'Across all parents',
+                  color: '#0055FF',
+                  tintBg: 'linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)',
+                  tintBorder: 'rgba(0,85,255,0.10)',
+                  onClick: () => searchRef.current?.focus(),
+                  iconStroke: (<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
                 },
-                { label: 'Pending Replies', value: noReplyCount.toString(), sub: noReplyCount > 0 ? 'Follow up soon' : 'All caught up', grad: noReplyCount > 0 ? 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' : 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => searchRef.current?.focus(),
-                  iconStroke: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+                { label: 'Pending Replies', value: noReplyCount.toString(), sub: noReplyCount > 0 ? 'Follow up soon' : 'All caught up',
+                  color: noReplyCount > 0 ? '#FFAA00' : '#00C853',
+                  tintBg: noReplyCount > 0
+                    ? 'linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)'
+                    : 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+                  tintBorder: noReplyCount > 0 ? 'rgba(255,170,0,0.16)' : 'rgba(0,200,83,0.16)',
+                  onClick: () => searchRef.current?.focus(),
+                  iconStroke: (<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>),
                 },
-                { label: 'Parent Replies', value: stats.parentReplies.toString(), sub: stats.parentReplies > 0 ? 'Active dialogue' : 'Awaiting first reply', grad: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', onClick: () => searchRef.current?.focus(),
-                  iconStroke: <><polyline points="20 6 9 17 4 12"/></>,
+                { label: 'Parent Replies', value: stats.parentReplies.toString(), sub: stats.parentReplies > 0 ? 'Active dialogue' : 'Awaiting first reply',
+                  color: '#00C853',
+                  tintBg: 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+                  tintBorder: 'rgba(0,200,83,0.16)',
+                  onClick: () => searchRef.current?.focus(),
+                  iconStroke: (<><polyline points="20 6 9 17 4 12"/></>),
                 },
-                { label: 'Parents', value: stats.students.toString(), sub: `${stats.students === 1 ? 'family' : 'families'} in loop`, grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', onClick: () => navigate('/students'),
-                  iconStroke: <><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+                { label: 'Parents', value: stats.students.toString(), sub: `${stats.students === 1 ? 'family' : 'families'} in loop`,
+                  color: '#7B3FF4',
+                  tintBg: 'linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)',
+                  tintBorder: 'rgba(123,63,244,0.12)',
+                  onClick: () => navigate('/students'),
+                  iconStroke: (<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
                 },
               ].map(k => (
                 <div
@@ -819,24 +838,27 @@ const ParentNotes = () => {
                   tabIndex={0}
                   {...tilt3D}
                   style={{
-                    background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                    background: k.tintBg, borderRadius: 22, padding: '22px 24px',
                     position: 'relative', overflow: 'hidden',
-                    boxShadow: '0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.26), 0 18px 44px rgba(0,85,255,0.20)',
+                    border: `0.5px solid ${k.tintBorder}`,
+                    boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
                     cursor: 'pointer',
                     ...tilt3DStyle,
                   }}
                 >
-                  <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                        {k.iconStroke}
-                      </svg>
-                    </div>
+                  <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
+                    <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      {k.iconStroke}
+                    </svg>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                  <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      {k.iconStroke}
+                    </svg>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                  <div style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.4px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                 </div>
               ))}
             </div>
@@ -1204,8 +1226,12 @@ const ParentNotes = () => {
           </div>
         </div>
 
-        {/* ── Messages ─────────────────────────────────────────────────────── */}
-        <div style={{ flex: 1, padding: "14px 12px", overflowY: "auto" }}>
+        {/* ── Messages — WhatsApp beige bg ─────────────────────────────────── */}
+        <div style={{
+          flex: 1, padding: "14px 12px", overflowY: "auto",
+          background: T.chatBg,
+          backgroundImage: T.chatPattern,
+        }}>
           {groupedMessages.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
               <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(142,148,164,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1219,12 +1245,14 @@ const ParentNotes = () => {
           ) : (
             groupedMessages.map(group => (
               <div key={group.date}>
-                {/* Date chip */}
-                <div style={{ textAlign: "center", margin: "10px 0" }}>
+                {/* Date chip — WhatsApp pill */}
+                <div style={{ textAlign: "center", margin: "10px 0 12px" }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 500, color: T.ink3,
-                    background: "rgba(142,148,164,0.12)",
-                    padding: "4px 10px", borderRadius: 20,
+                    fontSize: 11, fontWeight: 500, color: "#54656F",
+                    background: "#FFFFFFE6",
+                    padding: "5px 12px", borderRadius: 8,
+                    boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
+                    letterSpacing: "0.2px", textTransform: "uppercase",
                   }}>
                     {group.date}
                   </span>
@@ -1236,44 +1264,44 @@ const ParentNotes = () => {
                     <div
                       key={n.id}
                       style={{
-                        display: "flex", flexDirection: "column", gap: 4,
-                        marginBottom: 14,
-                        alignItems: isTeacher ? "flex-end" : "flex-start",
+                        display: "flex",
+                        marginBottom: 6,
+                        justifyContent: isTeacher ? "flex-end" : "flex-start",
                       }}
                     >
-                      {/* Sender label for parent messages */}
-                      {!isTeacher && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                          <div style={{
-                            width: 24, height: 24, borderRadius: 8,
-                            background: T.s2, display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 10c0 0 1.5-2 5-2s5 2 5 2" /><circle cx="6" cy="5" r="2.5" />
-                            </svg>
-                          </div>
-                          <span style={{ fontSize: 10, fontWeight: 500, color: T.ink3 }}>Parent</span>
-                        </div>
-                      )}
-
-                      {/* Bubble */}
+                      {/* WhatsApp bubble */}
                       <div style={{
-                        padding: "9px 12px", borderRadius: 16, maxWidth: "78%",
-                        background: isTeacher ? T.chatOut : T.white,
-                        border: isTeacher ? "none" : `1px solid ${T.bdr}`,
-                        borderBottomRightRadius: isTeacher ? 4 : 16,
-                        borderBottomLeftRadius: isTeacher ? 16 : 4,
+                        padding: "6px 10px 8px",
+                        background: isTeacher ? T.chatOut : "#FFFFFF",
+                        borderRadius: 8,
+                        borderTopLeftRadius: isTeacher ? 8 : 0,
+                        borderTopRightRadius: isTeacher ? 0 : 8,
+                        boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
+                        maxWidth: "75%",
+                        position: "relative",
+                        minWidth: 70,
                       }}>
-                        <p style={{ fontSize: 13, lineHeight: 1.45, color: isTeacher ? "#fff" : T.ink1, margin: 0, whiteSpace: "pre-wrap" }}>
+                        <p style={{
+                          fontSize: 14, lineHeight: 1.4,
+                          color: "#111B21",
+                          fontWeight: 400,
+                          margin: 0,
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                          paddingRight: isTeacher ? 56 : 44,
+                        }}>
                           {n.content}
                         </p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, justifyContent: "flex-end" }}>
-                          <span style={{ fontSize: 9, color: isTeacher ? "rgba(255,255,255,0.6)" : T.ink3 }}>
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 3,
+                          position: "absolute", right: 8, bottom: 4,
+                        }}>
+                          <span style={{ fontSize: 11, fontWeight: 400, color: "#667781" }}>
                             {fmtTime(n.createdAt)}
                           </span>
                           {isTeacher && (
-                            <svg width="12" height="9" viewBox="0 0 14 9" fill="none" stroke="#4CC9A4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="1,5 4,8 8,2" /><polyline points="5,5 8,8 13,2" />
+                            <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#53BDEB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="1,6 4,9 8,3" /><polyline points="6,6 9,9 15,2" />
                             </svg>
                           )}
                         </div>
@@ -1287,57 +1315,67 @@ const ParentNotes = () => {
           <div ref={chatEndRef} />
         </div>
 
-        {/* ── Chat input ───────────────────────────────────────────────────── */}
+        {/* ── Chat input — WhatsApp style ──────────────────────────────────── */}
         <div style={{
-          background: T.white, borderTop: `1px solid ${T.bdr}`,
-          padding: "10px 12px", display: "flex", alignItems: "center", gap: 8,
+          background: "#F0F2F5",
+          padding: "8px 12px", display: "flex", alignItems: "center", gap: 8,
           flexShrink: 0, marginBottom: 0,
         }}
         >
           {/* Emoji button */}
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: T.s1, border: `1px solid ${T.bdr}`,
+          <button type="button" aria-label="Emoji" style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "transparent",
             display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, cursor: "pointer",
+            flexShrink: 0, cursor: "pointer", border: "none",
           }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="7" cy="7" r="5.5" />
-              <circle cx="4.5" cy="5.5" r=".7" fill={T.ink3} stroke="none" />
-              <circle cx="9.5" cy="5.5" r=".7" fill={T.ink3} stroke="none" />
-              <path d="M4.5,8.5 C4.5,10 9.5,10 9.5,8.5" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#54656F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
             </svg>
-          </div>
+          </button>
+
+          {/* Attach button */}
+          <button type="button" aria-label="Attach" style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, cursor: "pointer", border: "none",
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#54656F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
 
           {/* Text input */}
           <input
             value={messageContent}
             onChange={e => setMessageContent(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }}
-            placeholder="Message parent..."
+            placeholder="Type a message"
             style={{
-              flex: 1, padding: "9px 12px", borderRadius: 20,
-              border: `1px solid ${T.bdr}`, background: T.s1,
-              fontSize: 12, color: T.ink1, fontFamily: "inherit", outline: "none",
+              flex: 1, padding: "10px 16px", borderRadius: 24,
+              border: "none", background: "#fff",
+              fontSize: 14, color: "#111B21", fontFamily: "inherit", outline: "none",
             }}
           />
 
-          {/* Send button */}
+          {/* Send button — WhatsApp green */}
           <button
             type="button"
             aria-label="Send message"
             onClick={handleSend}
             disabled={!messageContent.trim()}
             style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: messageContent.trim() ? T.blue : T.s2,
+              width: 42, height: 42, borderRadius: "50%",
+              background: messageContent.trim() ? "#25D366" : "#54656F",
               border: "none", display: "flex", alignItems: "center", justifyContent: "center",
               cursor: messageContent.trim() ? "pointer" : "default",
-              flexShrink: 0, transition: "background 0.15s",
+              flexShrink: 0,
+              boxShadow: messageContent.trim() ? "0 1px 3px rgba(37,211,102,0.4)" : "none",
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={messageContent.trim() ? "#fff" : T.ink3} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="2" y1="6.5" x2="11" y2="6.5" /><polyline points="8,3.5 11,6.5 8,9.5" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
           </button>
         </div>
@@ -1604,21 +1642,25 @@ const MobileParentNotesList = ({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           {[
             { key: "total",    label: "Total Messages",  value: stats.total,         color: "#0055FF",
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+              tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)", tintBorder: "rgba(0,85,255,0.10)",
+              iconStroke: (<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
               sub: <span style={{ color: "#0055FF", fontWeight: 700 }}>● Sent by you</span>,
               onClick: () => setActiveFilter("all") },
             { key: "pending",  label: "Pending Replies", value: countPending,        color: "#FF8800",
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
+              iconStroke: (<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>),
               sub: countPending > 0
                 ? <span style={{ color: "#FF8800", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><span className="pnl-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF8800" }} />Needs follow-up</span>
                 : <span style={{ color: "#5070B0", fontWeight: 600 }}>All clear</span>,
               onClick: () => setActiveFilter("pending") },
             { key: "resolved", label: "Resolved",        value: countResolved,       color: "#00C853",
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+              tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", tintBorder: "rgba(0,200,83,0.16)",
+              iconStroke: (<><polyline points="20 6 9 17 4 12"/></>),
               sub: <span style={{ color: "#00C853", fontWeight: 700 }}>✓ Closed loops</span>,
               onClick: () => setActiveFilter("resolved") },
             { key: "parents",  label: "Parents",         value: roster.length,       color: "#7B3FF4",
-              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+              tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)", tintBorder: "rgba(123,63,244,0.12)",
+              iconStroke: (<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></>),
               sub: <span style={{ color: "#7B3FF4", fontWeight: 700 }}>Total contacts</span>,
               onClick: () => setActiveFilter("all") },
           ].map(s => (
@@ -1628,18 +1670,27 @@ const MobileParentNotesList = ({
               onClick={s.onClick}
               className="pnl-card3d"
               style={{
-                background: "#fff", borderRadius: 20, padding: 16,
+                background: s.tintBg, borderRadius: 20, padding: 14,
                 display: "flex", flexDirection: "column",
-                boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
-                textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit",
+                position: "relative", overflow: "hidden",
+                border: `0.5px solid ${s.tintBorder}`,
+                boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)",
+                textAlign: "left", cursor: "pointer", fontFamily: "inherit",
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 18, minHeight: 40 }}>
-                <div style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.0px", textTransform: "uppercase", lineHeight: 1.4, paddingTop: 3 }}>{s.label}</div>
-                <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: s.color }}>{s.icon}</div>
+              <div style={{ position: "absolute", right: 10, bottom: 8, color: s.color, opacity: 0.22, pointerEvents: "none" }}>
+                <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  {s.iconStroke}
+                </svg>
               </div>
-              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1.3px", lineHeight: 1, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, marginTop: 7, letterSpacing: "-0.15px" }}>{s.sub}</div>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: `${s.color}1F`, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, position: "relative", zIndex: 1 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  {s.iconStroke}
+                </svg>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, marginTop: 6, letterSpacing: "-0.15px", position: "relative", zIndex: 1 }}>{s.sub}</div>
             </button>
           ))}
         </div>

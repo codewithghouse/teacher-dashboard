@@ -505,17 +505,26 @@ const Dashboard = () => {
           {
             label: "Attendance Rate",
             val: stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—",
-            color: B1, iconBg: B1,
+            color: B1,
+            tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)",
+            tintBorder: "rgba(0,85,255,0.10)",
             sub: stats.avgAttendance >= 85
               ? <><span className="font-bold" style={{ color: GREEN }}>↑ Strong</span> · last 30d</>
               : stats.avgAttendance > 0
                 ? <><span className="font-bold" style={{ color: ORANGE }}>● Watch</span> · last 30d</>
                 : <span>Awaiting data</span>,
             icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="12" width="4" height="9" rx="1"/>
                 <rect x="10" y="8" width="4" height="13" rx="1"/>
                 <rect x="17" y="4" width="4" height="17" rx="1"/>
+              </svg>
+            ),
+            decor: (
+              <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="13" width="4" height="8" rx="1"/>
+                <rect x="10" y="9" width="4" height="12" rx="1"/>
+                <rect x="17" y="5" width="4" height="16" rx="1"/>
               </svg>
             ),
             path: "/attendance",
@@ -523,15 +532,24 @@ const Dashboard = () => {
           {
             label: "Pending Grading",
             val: `${stats.pendingGrading}`,
-            color: ORANGE, iconBg: ORANGE,
+            color: ORANGE,
+            tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)",
+            tintBorder: "rgba(255,136,0,0.14)",
             sub: stats.pendingGrading === 0
               ? <span className="font-bold" style={{ color: GREEN }}>✓ All caught up</span>
               : <><span className="font-bold" style={{ color: ORANGE }}>● {stats.pendingGrading} to grade</span></>,
             icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="4" y="3" width="16" height="18" rx="2"/>
                 <path d="M9 3v4h6V3"/>
                 <path d="M9 13l2 2 4-4"/>
+              </svg>
+            ),
+            decor: (
+              <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2"/>
+                <path d="M9 3v4h6V3"/>
+                <path d="M8 12h8M8 16h6"/>
               </svg>
             ),
             path: "/gradebook",
@@ -539,15 +557,24 @@ const Dashboard = () => {
           {
             label: "At-Risk Students",
             val: `${stats.atRiskCount}`,
-            color: RED, iconBg: RED,
+            color: RED,
+            tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)",
+            tintBorder: "rgba(255,51,85,0.14)",
             sub: stats.atRiskCount === 0
               ? <span className="font-bold" style={{ color: GREEN }}>✓ On track</span>
               : <span className="font-bold" style={{ color: RED }}>● Need outreach</span>,
             icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 21h20L12 2z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12" y2="17"/>
+              </svg>
+            ),
+            decor: (
+              <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3L3 20h18L12 3z"/>
+                <line x1="12" y1="10" x2="12" y2="14"/>
+                <circle cx="12" cy="17" r="0.6" fill="currentColor"/>
               </svg>
             ),
             path: "/risks-alerts",
@@ -555,14 +582,23 @@ const Dashboard = () => {
           {
             label: "Classes Today",
             val: `${stats.activeClasses}`,
-            color: VIOLET, iconBg: VIOLET,
+            color: VIOLET,
+            tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+            tintBorder: "rgba(107,33,232,0.12)",
             sub: todayClasses.some(c => c.isNow)
               ? <span className="font-bold" style={{ color: VIOLET }}>● 1 in progress</span>
               : stats.activeClasses > 0
                 ? <span className="font-bold" style={{ color: VIOLET }}>● Scheduled</span>
                 : <span>None today</span>,
             icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 11l9-8 9 8"/>
+                <path d="M5 10v10h14V10"/>
+                <path d="M10 20v-6h4v6"/>
+              </svg>
+            ),
+            decor: (
+              <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 11l9-8 9 8"/>
                 <path d="M5 10v10h14V10"/>
                 <path d="M10 20v-6h4v6"/>
@@ -570,23 +606,26 @@ const Dashboard = () => {
             ),
             path: "/my-classes",
           },
-        ].map(({ label, val, color, iconBg, sub, icon, path }) => (
+        ].map(({ label, val, color, tintBg, tintBorder, sub, icon, decor, path }) => (
           <button type="button" key={label}
             onClick={() => navigate(path)}
             {...tilt3D}
-            className="bg-white rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform"
-            style={{ boxShadow: SH_LG_D, border: `0.5px solid ${SEP_D}`, ...tilt3DStyle }}>
-            <div className="flex items-start gap-[10px] mb-[18px]" style={{ minHeight: 40 }}>
-              <div className="flex-1 min-w-0 text-[10px] font-bold uppercase leading-[1.4] pt-[3px]" style={{ color: TT3, letterSpacing: "1px" }}>
-                {label}
-              </div>
-              <div className="flex-shrink-0 w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white"
-                style={{ background: iconBg }}>
-                {icon}
-              </div>
+            className="rounded-[20px] p-4 relative flex flex-col text-left active:scale-[0.96] transition-transform overflow-hidden"
+            style={{ background: tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${tintBorder}`, ...tilt3DStyle }}>
+            {/* decorative icon (bottom-right) */}
+            <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color, opacity: 0.22 }}>
+              {decor}
             </div>
-            <div className="text-[30px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.3px" }}>{val}</div>
-            <div className="text-[11px] font-semibold mt-[7px] flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
+            {/* top-left icon chip */}
+            <div className="flex-shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center mb-[10px]"
+              style={{ background: `${color}1F`, color }}>
+              {icon}
+            </div>
+            <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color, letterSpacing: "1px" }}>
+              {label}
+            </div>
+            <div className="text-[28px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
+            <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
               {sub}
             </div>
           </button>
@@ -1074,17 +1113,26 @@ const Dashboard = () => {
               {
                 label: "Attendance Rate",
                 val: stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—",
-                color: B1, iconBg: B1,
+                color: B1,
+                tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)",
+                tintBorder: "rgba(0,85,255,0.10)",
                 sub: stats.avgAttendance >= 85
                   ? <><span className="font-bold" style={{ color: GREEN }}>↑ Strong</span> · last 30d</>
                   : stats.avgAttendance > 0
                     ? <><span className="font-bold" style={{ color: ORANGE }}>● Watch</span> · last 30d</>
                     : <span>Awaiting data</span>,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="12" width="4" height="9" rx="1"/>
                     <rect x="10" y="8" width="4" height="13" rx="1"/>
                     <rect x="17" y="4" width="4" height="17" rx="1"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="13" width="4" height="8" rx="1"/>
+                    <rect x="10" y="9" width="4" height="12" rx="1"/>
+                    <rect x="17" y="5" width="4" height="16" rx="1"/>
                   </svg>
                 ),
                 path: "/attendance",
@@ -1092,15 +1140,24 @@ const Dashboard = () => {
               {
                 label: "Pending Grading",
                 val: `${stats.pendingGrading}`,
-                color: ORANGE, iconBg: ORANGE,
+                color: ORANGE,
+                tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)",
+                tintBorder: "rgba(255,136,0,0.14)",
                 sub: stats.pendingGrading === 0
                   ? <span className="font-bold" style={{ color: GREEN }}>✓ All caught up</span>
                   : <><span className="font-bold" style={{ color: ORANGE }}>● {stats.pendingGrading} to grade</span></>,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="4" y="3" width="16" height="18" rx="2"/>
                     <path d="M9 3v4h6V3"/>
                     <path d="M9 13l2 2 4-4"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="3" width="16" height="18" rx="2"/>
+                    <path d="M9 3v4h6V3"/>
+                    <path d="M8 12h8M8 16h6"/>
                   </svg>
                 ),
                 path: "/gradebook",
@@ -1108,15 +1165,24 @@ const Dashboard = () => {
               {
                 label: "At-Risk Students",
                 val: `${stats.atRiskCount}`,
-                color: RED, iconBg: RED,
+                color: RED,
+                tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)",
+                tintBorder: "rgba(255,51,85,0.14)",
                 sub: stats.atRiskCount === 0
                   ? <span className="font-bold" style={{ color: GREEN }}>✓ On track</span>
                   : <span className="font-bold" style={{ color: RED }}>● Need outreach</span>,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2L2 21h20L12 2z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/>
                     <line x1="12" y1="17" x2="12" y2="17"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3L3 20h18L12 3z"/>
+                    <line x1="12" y1="10" x2="12" y2="14"/>
+                    <circle cx="12" cy="17" r="0.6" fill="currentColor"/>
                   </svg>
                 ),
                 path: "/risks-alerts",
@@ -1124,14 +1190,23 @@ const Dashboard = () => {
               {
                 label: "Classes Today",
                 val: `${stats.activeClasses}`,
-                color: VIOLET, iconBg: VIOLET,
+                color: VIOLET,
+                tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+                tintBorder: "rgba(107,33,232,0.12)",
                 sub: todayClasses.some(c => c.isNow)
                   ? <span className="font-bold" style={{ color: VIOLET }}>● 1 in progress</span>
                   : stats.activeClasses > 0
                     ? <span className="font-bold" style={{ color: VIOLET }}>● Scheduled</span>
                     : <span>None today</span>,
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 11l9-8 9 8"/>
+                    <path d="M5 10v10h14V10"/>
+                    <path d="M10 20v-6h4v6"/>
+                  </svg>
+                ),
+                decor: (
+                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 11l9-8 9 8"/>
                     <path d="M5 10v10h14V10"/>
                     <path d="M10 20v-6h4v6"/>
@@ -1139,31 +1214,31 @@ const Dashboard = () => {
                 ),
                 path: "/my-classes",
               },
-            ].map(({ label, val, color, iconBg, sub, icon, path }) => (
+            ].map(({ label, val, color, tintBg, tintBorder, sub, icon, decor, path }) => (
               <button type="button" key={label}
                 onClick={() => navigate(path)}
                 {...tilt3D}
-                className="bg-white rounded-[22px] p-5 relative flex flex-col text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]/40"
+                className="rounded-[22px] p-5 relative flex flex-col text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]/40 overflow-hidden"
                 style={{
-                  boxShadow: SH_LG_D,
-                  border: `0.5px solid ${SEP_D}`,
+                  background: tintBg,
+                  boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)",
+                  border: `0.5px solid ${tintBorder}`,
                   ...tilt3DStyle,
                 }}>
-                <div className="flex items-start gap-[10px] mb-5 relative" style={{ minHeight: 44 }}>
-                  <div className="flex-1 min-w-0 text-[11px] font-bold uppercase leading-[1.4] pt-[4px]" style={{ color: TT3, letterSpacing: "1px" }}>
-                    {label}
-                  </div>
-                  <div className="flex-shrink-0 w-[44px] h-[44px] rounded-[13px] flex items-center justify-center text-white"
-                    style={{
-                      background: `linear-gradient(135deg, ${iconBg}, ${iconBg}DD)`,
-                      boxShadow: `0 4px 14px ${iconBg}44`,
-                      transform: "translateZ(18px)",
-                    }}>
-                    {icon}
-                  </div>
+                {/* decorative icon (bottom-right) */}
+                <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color, opacity: 0.22, transform: "translateZ(4px)" }}>
+                  {decor}
                 </div>
-                <div className="text-[38px] font-extrabold leading-none" style={{ color, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
-                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px]" style={{ color: TT4, letterSpacing: "-0.15px" }}>
+                {/* top-left icon chip */}
+                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]"
+                  style={{ background: `${color}1F`, color, transform: "translateZ(18px)" }}>
+                  {icon}
+                </div>
+                <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color, letterSpacing: "1px", transform: "translateZ(10px)" }}>
+                  {label}
+                </div>
+                <div className="text-[36px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
+                <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                   {sub}
                 </div>
               </button>

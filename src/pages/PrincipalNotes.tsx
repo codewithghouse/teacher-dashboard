@@ -430,25 +430,33 @@ const PrincipalNotes = () => {
           </div>
         </div>
 
-        {/* ═══ Bright 2-col KPI tiles ═══ */}
+        {/* ═══ Matte 3-col KPI tiles ═══ */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {([
             {
               label: 'Total Messages', value: stats.total.toString(), sub: 'Sent & received · click to view chat',
-              grad: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)',
-              iconStroke: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>,
+              color: '#0055FF',
+              tintBg: 'linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)',
+              tintBorder: 'rgba(0,85,255,0.10)',
+              iconStroke: (<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
               action: scrollChatToBottom,
             },
             {
               label: 'Unread Messages', value: stats.unread.toString(), sub: stats.unread > 0 ? 'Click to jump to first unread' : 'All caught up — click to refresh',
-              grad: stats.unread > 0 ? 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)' : 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)',
-              iconStroke: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+              color: stats.unread > 0 ? '#FFAA00' : '#00C853',
+              tintBg: stats.unread > 0
+                ? 'linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)'
+                : 'linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)',
+              tintBorder: stats.unread > 0 ? 'rgba(255,170,0,0.16)' : 'rgba(0,200,83,0.16)',
+              iconStroke: (<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>),
               action: stats.unread > 0 ? scrollToFirstUnread : markAllAsRead,
             },
             {
               label: 'Secure Channel', value: 'Active', sub: 'End-to-end encrypted · click for details',
-              grad: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
-              iconStroke: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
+              color: '#7B3FF4',
+              tintBg: 'linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)',
+              tintBorder: 'rgba(123,63,244,0.12)',
+              iconStroke: (<><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>),
               action: showChannelInfo,
             },
           ] as const).map(k => (
@@ -459,25 +467,28 @@ const PrincipalNotes = () => {
               {...tilt3D}
               aria-label={`${k.label}: ${k.value} — ${k.sub}`}
               style={{
-                background: k.grad, borderRadius: 22, padding: '22px 24px', color: '#fff',
+                background: k.tintBg, borderRadius: 22, padding: '22px 24px',
                 position: 'relative', overflow: 'hidden',
-                boxShadow: '0 0 0 0.5px rgba(255,255,255,0.15), 0 4px 16px rgba(0,85,255,0.26), 0 18px 44px rgba(0,85,255,0.20)',
+                border: `0.5px solid ${k.tintBorder}`,
+                boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
                 cursor: 'pointer',
-                border: 'none', textAlign: 'left', fontFamily: 'inherit', width: '100%',
+                textAlign: 'left', fontFamily: 'inherit', width: '100%',
                 ...tilt3DStyle,
               }}
             >
-              <div style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,.22) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}/>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.22)', border: '0.5px solid rgba(255,255,255,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                    {k.iconStroke}
-                  </svg>
-                </div>
+              <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
+                <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {k.iconStroke}
+                </svg>
               </div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.78)', letterSpacing: '.10em', textTransform: 'uppercase', margin: '0 0 6px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.78)', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  {k.iconStroke}
+                </svg>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
             </button>
           ))}
         </div>
@@ -530,18 +541,18 @@ const PrincipalNotes = () => {
           </div>
         </button>
 
-        {/* ═══ Chat Container (blue halo card) ═══ */}
+        {/* ═══ WhatsApp-style Chat Container ═══ */}
         <div
           style={{
             background: '#fff', borderRadius: 22,
             border: '0.5px solid rgba(0,85,255,0.07)',
-            boxShadow: '0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)',
+            boxShadow: '0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)',
             overflow: 'hidden',
             marginBottom: 22,
           }}
         >
-          {/* Chat header */}
-          <div style={{ padding: '14px 22px', borderBottom: '0.5px solid rgba(0,85,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          {/* Chat header — WhatsApp style */}
+          <div style={{ padding: '12px 18px', background: '#F0F2F5', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <button
               type="button"
               onClick={showPrincipalInfo}
@@ -549,28 +560,38 @@ const PrincipalNotes = () => {
               aria-label={`Show info for ${principalName}`}
               style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}>
               <div style={{
-                width: 42, height: 42, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
+                width: 40, height: 40, borderRadius: '50%',
+                background: '#7B3FF4',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 6px 14px rgba(123,63,244,.28)',
+                flexShrink: 0, position: 'relative',
               }}>
                 <SchoolIco size={20} color="#fff" />
+                {lastPrincipalMsg && (
+                  <span style={{
+                    position: 'absolute', bottom: -1, right: -1,
+                    width: 12, height: 12, borderRadius: '50%',
+                    background: '#25D366', border: '2px solid #F0F2F5',
+                  }}/>
+                )}
               </div>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{principalName}</p>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-                  {allMessages.length} message{allMessages.length === 1 ? '' : 's'} · conversation
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#111B21', letterSpacing: '-0.1px', margin: 0 }}>{principalName}</p>
+                <p style={{ fontSize: 12, fontWeight: 400, color: '#667781', marginTop: 2 }}>
+                  {lastPrincipalMsg ? 'online' : `last seen ${lastSeenStr.replace(/^.*Last seen /, '') || 'recently'}`}
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Chat area */}
+          {/* Chat area — WhatsApp beige bg */}
           <div
             ref={chatScrollRef}
             onScroll={handleChatScroll}
-            style={{ background: '#F5F9FF', padding: '20px 22px 12px', minHeight: 380, maxHeight: 560, overflowY: 'auto', overscrollBehavior: 'contain' }}
+            style={{
+              background: '#EFEAE2',
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23D4CFC4' fill-opacity='0.18'%3E%3Ccircle cx='10' cy='10' r='1.5'/%3E%3Ccircle cx='50' cy='30' r='1.5'/%3E%3Ccircle cx='30' cy='60' r='1.5'/%3E%3Ccircle cx='70' cy='70' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
+              padding: '16px 22px 12px', minHeight: 380, maxHeight: 560, overflowY: 'auto', overscrollBehavior: 'contain',
+            }}
           >
             {loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
@@ -596,15 +617,14 @@ const PrincipalNotes = () => {
             ) : (
               groupedMessages.map(group => (
                 <div key={group.date}>
-                  {/* Date divider */}
-                  <div style={{ textAlign: 'center', margin: '6px 0 16px' }}>
+                  {/* Date divider — WhatsApp pill */}
+                  <div style={{ textAlign: 'center', margin: '8px 0 14px' }}>
                     <span style={{
-                      fontSize: 10, fontWeight: 800, color: '#5070B0',
-                      background: '#fff',
-                      border: '0.5px solid rgba(0,85,255,.1)',
-                      padding: '4px 12px', borderRadius: 20,
-                      boxShadow: '0 1px 2px rgba(0,85,255,.06)',
-                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                      fontSize: 11, fontWeight: 500, color: '#54656F',
+                      background: '#FFFFFFE6',
+                      padding: '5px 12px', borderRadius: 8,
+                      boxShadow: '0 1px 0.5px rgba(11,20,26,0.13)',
+                      letterSpacing: '0.2px', textTransform: 'uppercase',
                     }}>
                       {group.date}
                     </span>
@@ -618,63 +638,47 @@ const PrincipalNotes = () => {
                         key={n.id}
                         data-unread={isUnread ? 'true' : 'false'}
                         style={{
-                          display: 'flex', flexDirection: 'column', gap: 4,
-                          marginBottom: 14,
-                          alignItems: isTeacher ? 'flex-end' : 'flex-start',
+                          display: 'flex',
+                          marginBottom: 6,
+                          justifyContent: isTeacher ? 'flex-end' : 'flex-start',
                         }}
                       >
-                        {!isTeacher && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div style={{
-                              width: 30, height: 30, borderRadius: 10,
-                              background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)',
-                              border: '0.5px solid rgba(255,255,255,.4)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 4px 10px rgba(123,63,244,.22)',
-                            }}>
-                              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1.5 10V6.5L6 4l4.5 2.5V10" /><circle cx="6" cy="5.5" r="1.5" />
-                              </svg>
-                            </div>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '0.04em' }}>
-                              {principalName} · Principal
-                            </span>
-                          </div>
-                        )}
                         <div
                           className="pnot-bubble"
                           style={{
-                            maxWidth: '75%', padding: '12px 16px', borderRadius: 20,
-                            background: isTeacher
-                              ? 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)'
-                              : '#fff',
-                            border: isTeacher ? 'none' : '0.5px solid rgba(0,85,255,.08)',
-                            borderBottomRightRadius: isTeacher ? 6 : 20,
-                            borderBottomLeftRadius: isTeacher ? 20 : 6,
-                            boxShadow: isTeacher
-                              ? '0 4px 14px rgba(0,85,255,.28), 0 1px 3px rgba(0,85,255,.18)'
-                              : '0 0 0 0.5px rgba(0,85,255,.06), 0 2px 10px rgba(0,85,255,.08)',
+                            maxWidth: '70%', padding: '6px 10px 8px',
+                            background: isTeacher ? '#D9FDD3' : '#FFFFFF',
+                            borderRadius: 8,
+                            borderTopLeftRadius: isTeacher ? 8 : 0,
+                            borderTopRightRadius: isTeacher ? 0 : 8,
+                            boxShadow: '0 1px 0.5px rgba(11,20,26,0.13)',
+                            position: 'relative',
+                            minWidth: 80,
                           }}
                         >
                           <p style={{
-                            fontSize: 13, lineHeight: 1.55, margin: 0,
-                            color: isTeacher ? '#fff' : '#001040',
-                            fontWeight: 500,
+                            fontSize: 14, lineHeight: 1.4, margin: 0,
+                            color: '#111B21',
+                            fontWeight: 400,
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
+                            paddingRight: isTeacher ? 56 : 44,
                           }}>
                             {n.message}
                           </p>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 6 }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: isTeacher ? 'rgba(255,255,255,.72)' : '#99AACC' }}>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            position: 'absolute', right: 8, bottom: 4,
+                          }}>
+                            <span style={{ fontSize: 11, fontWeight: 400, color: '#667781' }}>
                               {fmtTime(n.timestamp)}
                             </span>
                             {isTeacher && (
-                              <svg width="14" height="10" viewBox="0 0 14 9" fill="none"
-                                stroke={n.read ? '#4CC9A4' : 'rgba(255,255,255,.55)'}
-                                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                              <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                                stroke={n.read ? '#53BDEB' : '#8696A0'}
+                                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                               >
-                                <polyline points="1,5 4,8 8,2" /><polyline points="5,5 8,8 13,2" />
+                                <polyline points="1,6 4,9 8,3" /><polyline points="6,6 9,9 15,2" />
                               </svg>
                             )}
                           </div>
@@ -688,13 +692,13 @@ const PrincipalNotes = () => {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Quick reply chips */}
+          {/* Quick reply chips — WhatsApp style */}
           <div style={{
-            background: '#fff',
-            padding: '12px 22px 0',
+            background: '#F0F2F5',
+            padding: '10px 16px 0',
             display: 'flex', gap: 8,
             overflowX: 'auto',
-            borderTop: '0.5px solid rgba(0,85,255,.06)',
+            borderTop: '1px solid rgba(0,0,0,0.05)',
           }}>
             {QUICK_REPLIES.map(qr => (
               <button
@@ -703,13 +707,12 @@ const PrincipalNotes = () => {
                 onClick={() => setMessageContent(qr)}
                 className="pnot-chip"
                 style={{
-                  padding: '7px 14px', borderRadius: 999,
-                  border: '0.5px solid rgba(0,85,255,.12)',
-                  background: '#F5F9FF', color: '#0055FF',
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+                  padding: '6px 12px', borderRadius: 999,
+                  border: '1px solid #25D36633',
+                  background: '#fff', color: '#075E54',
+                  fontSize: 12, fontWeight: 500, letterSpacing: '0',
                   whiteSpace: 'nowrap', cursor: 'pointer',
                   flexShrink: 0, fontFamily: 'inherit',
-                  boxShadow: '0 1px 2px rgba(0,85,255,.06)',
                 }}
               >
                 {qr}
@@ -717,26 +720,44 @@ const PrincipalNotes = () => {
             ))}
           </div>
 
-          {/* Input bar */}
+          {/* Input bar — WhatsApp style */}
           <div style={{
-            background: '#fff',
-            borderTop: '0.5px solid rgba(0,85,255,.08)',
-            padding: '14px 22px',
-            display: 'flex', alignItems: 'center', gap: 10,
+            background: '#F0F2F5',
+            padding: '10px 16px 12px',
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
+            <button type="button" aria-label="Emoji" className="pnot-btn-press" style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'transparent', color: '#54656F',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: 'pointer', flexShrink: 0,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </button>
+            <button type="button" aria-label="Attach" className="pnot-btn-press" style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'transparent', color: '#54656F',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: 'pointer', flexShrink: 0,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
             <input
               ref={replyInputRef}
               value={messageContent}
               onChange={e => setMessageContent(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
-              placeholder="Reply to principal..."
+              placeholder="Type a message"
               style={{
-                flex: 1, padding: '12px 18px', borderRadius: 14,
-                border: '0.5px solid rgba(0,85,255,.12)',
-                background: '#F5F9FF',
-                fontSize: 13, color: '#001040', fontWeight: 500,
+                flex: 1, padding: '10px 16px', borderRadius: 24,
+                border: 'none',
+                background: '#fff',
+                fontSize: 14, color: '#111B21', fontWeight: 400,
                 fontFamily: 'inherit', outline: 'none',
-                boxShadow: '0 1px 2px rgba(0,85,255,.04)',
               }}
             />
             <button
@@ -744,28 +765,21 @@ const PrincipalNotes = () => {
               onClick={handleSend}
               disabled={!messageContent.trim()}
               className="pnot-btn-press"
+              aria-label="Send"
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                height: 44, padding: '0 20px', borderRadius: 14,
-                background: messageContent.trim()
-                  ? 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)'
-                  : '#F5F6F9',
-                color: messageContent.trim() ? '#fff' : '#99AACC',
-                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                width: 42, height: 42, borderRadius: '50%',
+                background: messageContent.trim() ? '#25D366' : '#54656F',
+                color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: 'none',
                 cursor: messageContent.trim() ? 'pointer' : 'not-allowed',
-                fontFamily: 'inherit', flexShrink: 0,
-                boxShadow: messageContent.trim()
-                  ? '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)'
-                  : 'none',
+                flexShrink: 0,
+                boxShadow: messageContent.trim() ? '0 1px 3px rgba(37,211,102,0.4)' : 'none',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
-                strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
-              >
-                <line x1="2" y1="6.5" x2="11" y2="6.5" /><polyline points="8,3.5 11,6.5 8,9.5" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
               </svg>
-              Send
             </button>
           </div>
         </div>
@@ -984,7 +998,7 @@ const MobilePrincipalChat = ({
         </div>
       </div>
 
-      {/* Messages scroll area */}
+      {/* Messages scroll area — WhatsApp beige */}
       <div
         ref={scrollRef}
         className="pn-scroll"
@@ -993,6 +1007,8 @@ const MobilePrincipalChat = ({
           padding: "12px 14px 16px",
           scrollBehavior: "smooth",
           minHeight: 0,
+          background: "#EFEAE2",
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23D4CFC4' fill-opacity='0.18'%3E%3Ccircle cx='10' cy='10' r='1.5'/%3E%3Ccircle cx='50' cy='30' r='1.5'/%3E%3Ccircle cx='30' cy='60' r='1.5'/%3E%3Ccircle cx='70' cy='70' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
         }}
       >
         {/* Encrypted banner */}
@@ -1042,19 +1058,18 @@ const MobilePrincipalChat = ({
         ) : (
           groupedMessages.map(group => (
             <div key={group.date}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "18px 0 14px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "12px 0 10px" }}>
                 <div style={{
-                  background: "rgba(9,87,247,.1)", color: "#5070B0",
-                  fontSize: 10, fontWeight: 800, padding: "5px 12px", borderRadius: 100,
-                  letterSpacing: "0.3px", textTransform: "uppercase",
+                  background: "#FFFFFFE6", color: "#54656F",
+                  fontSize: 11, fontWeight: 500, padding: "5px 12px", borderRadius: 8,
+                  letterSpacing: "0.2px", textTransform: "uppercase",
+                  boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
                 }}>
                   {group.date}
                 </div>
               </div>
-              {group.messages.map((m, idx) => {
+              {group.messages.map((m) => {
                 const isTeacher = m.from === "teacher";
-                const prevMsg = idx > 0 ? group.messages[idx - 1] : null;
-                const showSender = !isTeacher && (!prevMsg || prevMsg.from !== m.from);
                 return (
                   <div
                     key={m.id}
@@ -1062,46 +1077,44 @@ const MobilePrincipalChat = ({
                     style={{
                       display: "flex",
                       justifyContent: isTeacher ? "flex-end" : "flex-start",
-                      marginBottom: 4,
+                      marginBottom: 6,
                     }}
                   >
-                    <div style={{ maxWidth: "74%", display: "flex", flexDirection: "column" }}>
-                      {showSender && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", padding: "0 4px", marginBottom: 4, letterSpacing: "-0.1px" }}>
-                          {m.principalName || principalName}
-                        </div>
-                      )}
-                      <div style={{
-                        background: isTeacher ? "linear-gradient(135deg, #4A85FF 0%, #0055FF 100%)" : "#fff",
-                        color: isTeacher ? "#fff" : "#001040",
-                        padding: "10px 14px",
-                        borderRadius: isTeacher ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                        fontSize: 14, fontWeight: 500, lineHeight: 1.4, letterSpacing: "-0.15px",
-                        boxShadow: isTeacher
-                          ? "0 0.5px 1px rgba(9,87,247,.2), 0 3px 10px rgba(9,87,247,.28)"
-                          : "0 0.5px 1px rgba(9,87,247,.04), 0 2px 6px rgba(9,87,247,.06)",
-                        wordWrap: "break-word",
+                    <div style={{
+                      maxWidth: "78%",
+                      background: isTeacher ? "#D9FDD3" : "#FFFFFF",
+                      padding: "6px 10px 8px",
+                      borderRadius: 8,
+                      borderTopLeftRadius: isTeacher ? 8 : 0,
+                      borderTopRightRadius: isTeacher ? 0 : 8,
+                      boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
+                      position: "relative",
+                      minWidth: 80,
+                    }}>
+                      <p style={{
+                        fontSize: 14, fontWeight: 400, lineHeight: 1.4,
+                        color: "#111B21",
+                        margin: 0,
                         whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        paddingRight: isTeacher ? 56 : 44,
                       }}>
                         {m.message}
-                      </div>
+                      </p>
                       <div style={{
-                        display: "flex", alignItems: "center", gap: 4,
-                        padding: "4px 4px 0",
-                        fontSize: 9.5, fontWeight: 600, color: "#99AACC",
-                        justifyContent: isTeacher ? "flex-end" : "flex-start",
-                        letterSpacing: "0.1px",
+                        display: "flex", alignItems: "center", gap: 3,
+                        position: "absolute", right: 8, bottom: 4,
                       }}>
-                        <span>{fmtTime(m.timestamp)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 400, color: "#667781" }}>
+                          {fmtTime(m.timestamp)}
+                        </span>
                         {isTeacher && (
-                          <span style={{ display: "flex", alignItems: "center", color: m.read ? "#0055FF" : "#99AACC" }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -5 }}>
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          </span>
+                          <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                            stroke={m.read ? "#53BDEB" : "#8696A0"}
+                            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <polyline points="1,6 4,9 8,3" /><polyline points="6,6 9,9 15,2" />
+                          </svg>
                         )}
                       </div>
                     </div>
@@ -1222,17 +1235,17 @@ const MobilePrincipalChat = ({
           aria-label="Send"
           className="pn-press"
           style={{
-            width: 38, height: 38, borderRadius: "50%",
-            background: messageContent.trim() ? "linear-gradient(135deg, #4A85FF 0%, #0055FF 100%)" : "#EAF0FB",
-            color: messageContent.trim() ? "#fff" : "#99AACC",
+            width: 40, height: 40, borderRadius: "50%",
+            background: messageContent.trim() ? "#25D366" : "#54656F",
+            color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0, cursor: messageContent.trim() ? "pointer" : "not-allowed",
             border: "none",
-            boxShadow: messageContent.trim() ? "0 1px 2px rgba(9,87,247,.2), 0 4px 12px rgba(9,87,247,.3)" : "none",
+            boxShadow: messageContent.trim() ? "0 1px 3px rgba(37,211,102,0.4)" : "none",
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -1, marginTop: -1 }}>
-            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
           </svg>
         </button>
       </div>
