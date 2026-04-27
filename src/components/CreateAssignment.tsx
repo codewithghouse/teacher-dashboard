@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
 import {
@@ -183,7 +183,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
   // Bright-blue Apple tokens (shared mobile + desktop)
   const MA = {
-    FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+    FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
     BG: "#EEF4FF",
     CARD: "#FFFFFF",
     SURFACE: "#F4F7FE",
@@ -235,17 +235,17 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               style={{ color: "#6FB0FF", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", fontFamily: MA.FONT, background: "none", border: "none", cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.55 : 1 }}>
               Cancel
             </button>
-            <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
+            <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
               New Assignment
             </div>
             <div style={{ width: 48 }} />
           </div>
           {/* Date block */}
           <div className="pt-[2px] px-[2px]">
-            <div className="text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+            <div className="text-[9px] font-bold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
               Step 1 of 1
             </div>
-            <div className="text-[26px] font-extrabold leading-[1.1] mb-[5px]" style={{ color: "#fff", letterSpacing: "-1px" }}>
+            <div className="text-[26px] font-bold leading-[1.1] mb-[5px]" style={{ color: "#fff", letterSpacing: "-1px" }}>
               Create assignment
             </div>
             <div className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "-0.1px" }}>
@@ -259,8 +259,8 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
         {/* Select Class */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[10px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Select Class <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <div className="text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Select Class <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </div>
           {classes.length === 0 ? (
             <div className="text-[12px] font-medium py-[10px]" style={{ color: MA.T3 }}>
@@ -292,8 +292,8 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
         {/* Title */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[10px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="assignment-title-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Assignment Title <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <label htmlFor="assignment-title-mobile" className="block text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Assignment Title <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </label>
           <input id="assignment-title-mobile"
             type="text"
@@ -320,8 +320,8 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
         {/* Due Date */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[10px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="assignment-duedate-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Due Date <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <label htmlFor="assignment-duedate-mobile" className="block text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Due Date <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </label>
           <div className="relative flex items-center gap-[12px] px-[14px] py-[12px] rounded-[12px] active:bg-[#EAF0FB] transition-colors"
             style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)", cursor: "pointer" }}>
@@ -333,7 +333,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               <div className="text-[11px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>11:59 PM · Local time</div>
             </div>
             {daysLeft && (
-              <div className="px-[10px] py-[4px] rounded-full text-[11px] font-extrabold flex-shrink-0"
+              <div className="px-[10px] py-[4px] rounded-full text-[11px] font-bold flex-shrink-0"
                 style={{ background: "rgba(255,136,0,0.12)", color: daysLeft.tone, letterSpacing: "-0.1px" }}>
                 {daysLeft.text}
               </div>
@@ -352,7 +352,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
         {/* Instructions */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[10px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="assignment-instructions-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <label htmlFor="assignment-instructions-mobile" className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Instructions
           </label>
           <textarea id="assignment-instructions-mobile"
@@ -379,7 +379,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
 
         {/* Attachment */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[10px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <div className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Attachment <span className="font-semibold" style={{ color: MA.T4, letterSpacing: 0 }}>(Optional)</span>
           </div>
           <div
@@ -422,7 +422,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                 <div className="text-[13px] font-bold mb-[4px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Tap to upload file</div>
                 <div className="flex gap-[6px] justify-center mt-[10px]">
                   {["PDF", "DOC", "IMG"].map(t => (
-                    <span key={t} className="px-[9px] py-[3px] rounded-full text-[9px] font-extrabold bg-white"
+                    <span key={t} className="px-[9px] py-[3px] rounded-full text-[9px] font-bold bg-white"
                       style={{ color: MA.T3, letterSpacing: "0.6px", boxShadow: "0 1px 3px rgba(9,87,247,0.08)" }}>
                       {t}
                     </span>
@@ -442,17 +442,17 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
         <div className="rounded-[18px] p-[14px] relative overflow-hidden" style={{ background: MA.CARD, boxShadow: MA.SH }}>
           <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-[3px]" style={{ background: MA.GOLD }} />
           <div className="flex items-center gap-[7px] mb-[10px]">
-            <div className="text-[9px] font-black uppercase flex items-center gap-[5px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
+            <div className="text-[9px] font-bold uppercase flex items-center gap-[5px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
               <span className="w-[6px] h-[6px] rounded-full" style={{ background: MA.GOLD, boxShadow: `0 0 6px ${MA.GOLD}` }} />
               Live Preview
             </div>
           </div>
           <div className="rounded-[12px] p-[12px]" style={{ background: MA.SURFACE }}>
-            <div className="text-[14px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+            <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
               {formData.title || "Assignment title"}
             </div>
             <div className="text-[11px] font-medium mt-[4px] flex items-center gap-[6px] flex-wrap" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-              <span className="px-[7px] py-[2px] rounded-[6px] text-[10px] font-extrabold"
+              <span className="px-[7px] py-[2px] rounded-[6px] text-[10px] font-bold"
                 style={{ background: "rgba(9,87,247,0.08)", color: MA.P }}>
                 {selClass?.name || "Select a class"}
               </span>
@@ -489,7 +489,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
           className="flex-1 h-[46px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.97] transition-transform"
           style={{
             background: MA.GREEN, color: "#fff",
-            fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+            fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
             boxShadow: "0 1px 2px rgba(0,200,83,0.2), 0 6px 14px rgba(0,200,83,0.35)",
             fontFamily: MA.FONT, border: "none",
             cursor: isSaving ? "not-allowed" : "pointer",
@@ -528,11 +528,11 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
         {/* Header eyebrow + title */}
         <div className="mb-6 flex items-end justify-between gap-6 flex-wrap">
           <div>
-            <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · New Assignment
             </div>
-            <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>
+            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>
               Create assignment
             </h1>
             <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -556,7 +556,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               className="ca-press h-[44px] px-6 rounded-[12px] flex items-center gap-[8px]"
               style={{
                 background: MA.GREEN, color: "#fff",
-                fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+                fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
                 boxShadow: "0 1px 2px rgba(0,200,83,0.2), 0 6px 16px rgba(0,200,83,0.35)",
                 fontFamily: MA.FONT, border: "none",
                 cursor: isSaving ? "not-allowed" : "pointer",
@@ -592,13 +592,13 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-[4px]">
-                  <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Step 1 of 1</div>
-                  <div className="px-[10px] py-[3px] rounded-full text-[9px] font-extrabold"
+                  <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Step 1 of 1</div>
+                  <div className="px-[10px] py-[3px] rounded-full text-[9px] font-bold"
                     style={{ background: "rgba(9,87,247,0.3)", border: "0.5px solid rgba(74,133,255,0.55)", color: "#B5CEFF", letterSpacing: "0.5px" }}>
                     NEW
                   </div>
                 </div>
-                <div className="text-[22px] font-extrabold text-white leading-[1.15]" style={{ letterSpacing: "-0.6px" }}>
+                <div className="text-[22px] font-bold text-white leading-[1.15]" style={{ letterSpacing: "-0.6px" }}>
                   Build a new assignment
                 </div>
                 <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.62)", letterSpacing: "-0.1px" }}>
@@ -609,19 +609,19 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
             {/* Mini status grid */}
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[420px]" style={{ background: "rgba(255,255,255,0.1)" }}>
               <div className="py-[14px] px-4 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold" style={{ color: selectedClassId ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
+                <div className="text-[18px] font-bold" style={{ color: selectedClassId ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
                   {selectedClassId ? (selClass?.name || "—") : "—"}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Class</div>
               </div>
               <div className="py-[14px] px-4 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold" style={{ color: daysLeft ? daysLeft.tone === MA.RED ? "#FF9AA9" : "#FFD060" : "#fff", letterSpacing: "-0.4px" }}>
+                <div className="text-[18px] font-bold" style={{ color: daysLeft ? daysLeft.tone === MA.RED ? "#FF9AA9" : "#FFD060" : "#fff", letterSpacing: "-0.4px" }}>
                   {daysLeft?.text || "—"}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Due</div>
               </div>
               <div className="py-[14px] px-4 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold" style={{ color: selectedFile ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
+                <div className="text-[18px] font-bold" style={{ color: selectedFile ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
                   {selectedFile ? "Yes" : "—"}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>File</div>
@@ -646,14 +646,14 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Select Class <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Select Class <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </div>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Where will this assignment go?</div>
                   </div>
                 </div>
                 {selectedClassId && (
-                  <div className="px-[12px] py-[5px] rounded-full text-[11px] font-extrabold flex items-center gap-[5px]"
+                  <div className="px-[12px] py-[5px] rounded-full text-[11px] font-bold flex items-center gap-[5px]"
                     style={{ background: "rgba(0,200,83,0.1)", color: MA.GREEN, letterSpacing: "0.3px" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Selected
@@ -700,13 +700,13 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
                   </div>
                   <div>
-                    <label htmlFor="ca-title-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Assignment Title <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <label htmlFor="ca-title-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Assignment Title <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </label>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Give it a clear, descriptive name</div>
                   </div>
                 </div>
-                <span className="text-[11px] font-extrabold" style={{ color: formData.title.length > 180 ? MA.ORANGE : MA.T3 }}>
+                <span className="text-[11px] font-bold" style={{ color: formData.title.length > 180 ? MA.ORANGE : MA.T3 }}>
                   {formData.title.length} / 200
                 </span>
               </div>
@@ -738,8 +738,8 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
                 <div>
-                  <label htmlFor="ca-duedate-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                    Due Date <span className="font-black" style={{ color: MA.RED }}>*</span>
+                  <label htmlFor="ca-duedate-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                    Due Date <span className="font-bold" style={{ color: MA.RED }}>*</span>
                   </label>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>When should students submit by?</div>
                 </div>
@@ -747,11 +747,11 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
               <div className="relative flex items-center gap-4 px-5 py-[14px] rounded-[14px] hover:bg-[#EAF0FB] transition-colors"
                 style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)", cursor: "pointer" }}>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[16px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{prettyDate}</div>
+                  <div className="text-[16px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{prettyDate}</div>
                   <div className="text-[12px] font-semibold mt-[3px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>11:59 PM · Local time</div>
                 </div>
                 {daysLeft && (
-                  <div className="px-[14px] py-[6px] rounded-full text-[12px] font-extrabold flex-shrink-0"
+                  <div className="px-[14px] py-[6px] rounded-full text-[12px] font-bold flex-shrink-0"
                     style={{ background: daysLeft.tone === MA.RED ? "rgba(255,51,85,0.1)" : "rgba(255,136,0,0.12)", color: daysLeft.tone, letterSpacing: "-0.1px" }}>
                     {daysLeft.text}
                   </div>
@@ -778,13 +778,13 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
                   </div>
                   <div>
-                    <label htmlFor="ca-instructions-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                    <label htmlFor="ca-instructions-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
                       Instructions <span className="font-semibold" style={{ color: MA.T4 }}>(Optional)</span>
                     </label>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Describe what students need to submit</div>
                   </div>
                 </div>
-                <span className="text-[11px] font-extrabold" style={{ color: formData.description.length > 3500 ? MA.ORANGE : MA.T3 }}>
+                <span className="text-[11px] font-bold" style={{ color: formData.description.length > 3500 ? MA.ORANGE : MA.T3 }}>
                   {formData.description.length} / 4000
                 </span>
               </div>
@@ -815,7 +815,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
                 </div>
                 <div className="flex-1">
-                  <div className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                  <div className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
                     Attachment <span className="font-semibold" style={{ color: MA.T4 }}>(Optional)</span>
                   </div>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Reference PDF, doc, or image — max 10 MB</div>
@@ -840,7 +840,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                       <FileText size={20} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-[14px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{selectedFile.name}</div>
+                      <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{selectedFile.name}</div>
                       <div className="text-[11px] font-semibold mt-[2px]" style={{ color: MA.T3 }}>
                         {selectedFile.size >= 1024 * 1024
                           ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`
@@ -862,11 +862,11 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                       style={{ background: "rgba(9,87,247,0.1)", color: MA.P }}>
                       <UploadCloud size={26} strokeWidth={2.2} aria-hidden="true" />
                     </div>
-                    <div className="text-[15px] font-extrabold mb-[5px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Click to upload file</div>
+                    <div className="text-[15px] font-bold mb-[5px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Click to upload file</div>
                     <div className="text-[12px] font-medium mb-[14px]" style={{ color: MA.T3 }}>Drag-drop coming soon · Click anywhere on this card</div>
                     <div className="flex gap-[7px] justify-center">
                       {["PDF", "DOC", "DOCX", "PNG", "JPG"].map(t => (
-                        <span key={t} className="px-[11px] py-[4px] rounded-full text-[10px] font-extrabold bg-white"
+                        <span key={t} className="px-[11px] py-[4px] rounded-full text-[10px] font-bold bg-white"
                           style={{ color: MA.T3, letterSpacing: "0.6px", boxShadow: "0 1px 3px rgba(9,87,247,0.08)", border: "0.5px solid rgba(9,87,247,0.08)" }}>
                           {t}
                         </span>
@@ -894,17 +894,17 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                 style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
                 <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-[4px]" style={{ background: MA.GOLD }} />
                 <div className="flex items-center gap-[8px] mb-4">
-                  <div className="text-[10px] font-black uppercase flex items-center gap-[6px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
+                  <div className="text-[10px] font-bold uppercase flex items-center gap-[6px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
                     <span className="w-[7px] h-[7px] rounded-full" style={{ background: MA.GOLD, boxShadow: `0 0 8px ${MA.GOLD}` }} />
                     Live Preview
                   </div>
                 </div>
                 <div className="rounded-[16px] p-4 mb-3" style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)" }}>
-                  <div className="text-[16px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.3px", wordBreak: "break-word" }}>
+                  <div className="text-[16px] font-bold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.3px", wordBreak: "break-word" }}>
                     {formData.title || "Assignment title"}
                   </div>
                   <div className="flex items-center gap-[8px] flex-wrap mb-[8px]">
-                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-extrabold"
+                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-bold"
                       style={{ background: "rgba(9,87,247,0.08)", color: MA.P }}>
                       {selClass?.name || "Select a class"}
                     </span>
@@ -938,10 +938,10 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                 }}>
                 <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
                 <div className="relative z-[2]">
-                  <div className="text-[10px] font-black uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+                  <div className="text-[10px] font-bold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
                     Ready to publish?
                   </div>
-                  <div className="text-[20px] font-extrabold text-white mb-[14px]" style={{ letterSpacing: "-0.6px", lineHeight: 1.2 }}>
+                  <div className="text-[20px] font-bold text-white mb-[14px]" style={{ letterSpacing: "-0.6px", lineHeight: 1.2 }}>
                     {(!formData.title.trim() || !selectedClassId)
                       ? "Fill required fields first"
                       : "Looks good — let's go!"}
@@ -979,7 +979,7 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                     className="ca-press w-full h-[52px] rounded-[14px] flex items-center justify-center gap-[8px]"
                     style={{
                       background: MA.GREEN, color: "#fff",
-                      fontSize: 15, fontWeight: 800, letterSpacing: "-0.2px",
+                      fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px",
                       boxShadow: "0 1px 2px rgba(0,200,83,0.2), 0 8px 20px rgba(0,200,83,0.4)",
                       fontFamily: MA.FONT, border: "none",
                       cursor: isSaving ? "not-allowed" : "pointer",
@@ -1013,9 +1013,9 @@ const CreateAssignment = ({ onCancel, onCreate }: { onCancel: () => void, onCrea
                 <div className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0 text-[18px]"
                   style={{ background: "rgba(255,170,0,0.12)", color: MA.GOLD }}>💡</div>
                 <div>
-                  <div className="text-[11px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Pro tip</div>
+                  <div className="text-[11px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Pro tip</div>
                   <div className="text-[11px] font-medium mt-[3px] leading-[1.5]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                    Press <kbd className="px-[5px] py-[1px] rounded-[5px] text-[10px] font-extrabold" style={{ background: MA.SURFACE, color: MA.T1, border: "0.5px solid rgba(9,87,247,0.1)" }}>Enter</kbd> in the title field to publish instantly.
+                    Press <kbd className="px-[5px] py-[1px] rounded-[5px] text-[10px] font-bold" style={{ background: MA.SURFACE, color: MA.T1, border: "0.5px solid rgba(9,87,247,0.1)" }}>Enter</kbd> in the title field to publish instantly.
                   </div>
                 </div>
               </div>

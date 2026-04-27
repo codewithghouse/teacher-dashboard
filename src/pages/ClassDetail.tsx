@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
@@ -409,7 +409,7 @@ const ClassDetail = () => {
     BG: "#EEF4FF", CARD: "#FFFFFF", SURFACE: "#F4F7FE", SURFACE2: "#EAF0FB",
     B1: "#0055FF", T1: "#001040", T2: "#002080", T3: "#5070B0", T4: "#99AACC",
     GREEN: "#00C853", RED: "#FF3355", ORANGE: "#FF8800", GOLD: "#FFAA00", VIOLET: "#7B3FF4",
-    FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+    FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
     SH: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
     SH_SM: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10), 0 10px 26px rgba(0,85,255,0.12)",
     BDR: "0.5px solid rgba(0,85,255,0.07)",
@@ -516,16 +516,16 @@ const ClassDetail = () => {
                 <GraduationCap className="w-5 h-5" strokeWidth={2.2} />
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Overview</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Overview</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>{semesterStr}</div>
               </div>
-              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                 style={{ background: heroBadge.bg, border: `0.5px solid ${heroBadge.bdr}`, color: heroBadge.color, letterSpacing: "0.3px" }}>
                 <span className="w-[6px] h-[6px] rounded-full" style={{ background: heroBadge.dot, boxShadow: `0 0 8px ${heroBadge.dot}` }} />
                 {heroBadge.text}
               </div>
             </div>
-            <div className="text-[46px] font-extrabold text-white leading-none mb-[6px]" style={{ letterSpacing: "-2.2px" }}>
+            <div className="text-[46px] font-bold text-white leading-none mb-[6px]" style={{ letterSpacing: "-2.2px" }}>
               {classNameStr}
             </div>
             {/* Subject + students count — subject inline editable */}
@@ -581,8 +581,8 @@ const ClassDetail = () => {
                   disabled={!path}
                   className="py-[12px] px-1 text-center active:brightness-110 transition disabled:cursor-default"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
-                  <div className="text-[16px] font-extrabold" style={{ color, letterSpacing: "-0.5px" }}>{v}</div>
-                  <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1px" }}>{l}</div>
+                  <div className="text-[16px] font-bold" style={{ color, letterSpacing: "-0.5px" }}>{v}</div>
+                  <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1px" }}>{l}</div>
                 </button>
               ))}
             </div>
@@ -628,7 +628,7 @@ const ClassDetail = () => {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Student List</div>
+                  <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Student List</div>
                   <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                     {filtered.length} {filtered.length === 1 ? "student" : "students"}
                   </div>
@@ -674,7 +674,7 @@ const ClassDetail = () => {
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || s.id}`); }}
                     className="flex items-center gap-[11px] py-[10px] relative cursor-pointer active:opacity-80 transition"
                     style={idx > 0 ? { borderTop: "0.5px solid rgba(9,87,247,0.08)" } : undefined}>
-                    <div className="w-9 h-9 rounded-[11px] flex items-center justify-center text-white text-[11px] font-extrabold flex-shrink-0"
+                    <div className="w-9 h-9 rounded-[11px] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
                       style={{ background: bg, letterSpacing: "0.3px" }}>
                       {s.initials}
                     </div>
@@ -693,7 +693,7 @@ const ClassDetail = () => {
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStatus(s.id, s.status); }}
                       aria-label={`Cycle status · currently ${s.status}`}
-                      className="px-[9px] py-[4px] rounded-full text-[9px] font-extrabold flex items-center gap-[4px] flex-shrink-0 active:scale-[0.94] transition-transform"
+                      className="px-[9px] py-[4px] rounded-full text-[9px] font-bold flex items-center gap-[4px] flex-shrink-0 active:scale-[0.94] transition-transform"
                       style={isRisk
                         ? { background: "rgba(255,51,85,0.1)", color: M.RED, letterSpacing: "0.3px" }
                         : s.status === "Needs Attention"
@@ -755,7 +755,7 @@ const ClassDetail = () => {
                   <Calendar className="w-4 h-4" strokeWidth={2.4} />
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Attendance Log</div>
+                  <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Attendance Log</div>
                   <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                     {attendanceByDate.length === 0 ? "No records" : `Last ${Math.min(attendanceByDate.length, 10)} days`}
                   </div>
@@ -792,7 +792,7 @@ const ClassDetail = () => {
                       borderTop: i > 0 ? "0.5px solid rgba(9,87,247,0.07)" : undefined,
                     }}>
                     <div>
-                      <div className="text-[13px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{fmtShortDate(row.dateObj)}</div>
+                      <div className="text-[13px] font-bold" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{fmtShortDate(row.dateObj)}</div>
                       <div className="text-[9px] font-bold uppercase mt-[1px]" style={{ color: M.T3, letterSpacing: "1px" }}>
                         {row.dateObj.toLocaleDateString("en-IN", { weekday: "short" })}
                       </div>
@@ -808,7 +808,7 @@ const ClassDetail = () => {
                         <Clock size={11} /> {row.late}
                       </span>
                     </div>
-                    <div className="text-[13px] font-extrabold text-right" style={{ color: rateColor, letterSpacing: "-0.3px" }}>
+                    <div className="text-[13px] font-bold text-right" style={{ color: rateColor, letterSpacing: "-0.3px" }}>
                       {rate.toFixed(0)}%
                     </div>
                   </div>
@@ -827,7 +827,7 @@ const ClassDetail = () => {
                   <FileText className="w-4 h-4" strokeWidth={2.4} />
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Assignments</div>
+                  <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Assignments</div>
                   <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                     {assignmentsView.length} {assignmentsView.length === 1 ? "item" : "items"}
                   </div>
@@ -849,7 +849,7 @@ const ClassDetail = () => {
                   style={{ background: "linear-gradient(135deg, rgba(9,87,247,0.1), rgba(123,63,244,0.1))", color: M.B1 }}>
                   <FileText className="w-8 h-8" strokeWidth={2} />
                 </div>
-                <div className="text-[15px] font-extrabold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No assignments yet</div>
+                <div className="text-[15px] font-bold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No assignments yet</div>
                 <div className="text-[12px] font-medium mb-4" style={{ color: M.T3, letterSpacing: "-0.1px" }}>Create your first assignment<br/>to get students started.</div>
                 <button type="button"
                   onClick={() => navigate('/assignments')}
@@ -885,13 +885,13 @@ const ClassDetail = () => {
                         <FileText className="w-4 h-4" strokeWidth={2.4} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-extrabold truncate" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{a.title}</div>
+                        <div className="text-[14px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{a.title}</div>
                         <div className="text-[11px] font-medium mt-[2px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                           <span className="font-bold" style={{ color: stale ? M.RED : M.ORANGE }}>Due {a.dueLabel}</span>
                           {a.rosterSize > 0 && <> · {a.rosterSize} {a.rosterSize === 1 ? "student" : "students"}</>}
                         </div>
                       </div>
-                      <div className="px-[10px] py-[5px] rounded-full text-[10px] font-extrabold flex-shrink-0" style={{ background: pillStyle.bg, color: pillStyle.color, letterSpacing: "0.3px" }}>
+                      <div className="px-[10px] py-[5px] rounded-full text-[10px] font-bold flex-shrink-0" style={{ background: pillStyle.bg, color: pillStyle.color, letterSpacing: "0.3px" }}>
                         {stale ? "Overdue" : a.status}
                       </div>
                     </div>
@@ -921,7 +921,7 @@ const ClassDetail = () => {
                   <GraduationCap className="w-4 h-4" strokeWidth={2.4} />
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Tests</div>
+                  <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Tests</div>
                   <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                     {testsView.length} {testsView.length === 1 ? "scheduled" : "scheduled"}
                   </div>
@@ -943,7 +943,7 @@ const ClassDetail = () => {
                   style={{ background: "linear-gradient(135deg, rgba(9,87,247,0.1), rgba(123,63,244,0.1))", color: M.B1 }}>
                   <GraduationCap className="w-8 h-8" strokeWidth={2} />
                 </div>
-                <div className="text-[15px] font-extrabold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No tests yet</div>
+                <div className="text-[15px] font-bold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No tests yet</div>
                 <div className="text-[12px] font-medium mb-4" style={{ color: M.T3, letterSpacing: "-0.1px" }}>Schedule your first test<br/>to track student performance.</div>
                 <button type="button"
                   onClick={() => navigate('/tests')}
@@ -969,7 +969,7 @@ const ClassDetail = () => {
                     <GraduationCap className="w-4 h-4" strokeWidth={2.4} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-extrabold truncate" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{t.title}</div>
+                    <div className="text-[14px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{t.title}</div>
                     <div className="text-[11px] font-medium mt-[2px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                       {t.subject && <>{t.subject} · </>}
                       {t.dateLabel}
@@ -977,7 +977,7 @@ const ClassDetail = () => {
                       {t.marks !== undefined && <> · {t.marks} marks</>}
                     </div>
                   </div>
-                  <div className="px-[10px] py-[5px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                  <div className="px-[10px] py-[5px] rounded-full text-[10px] font-bold flex-shrink-0"
                     style={t.status === "Completed"
                       ? { background: "rgba(0,200,83,0.1)", color: M.GREEN, letterSpacing: "0.3px" }
                       : t.status === "Upcoming"
@@ -1002,7 +1002,7 @@ const ClassDetail = () => {
                 <TrendingUp className="w-[22px] h-[22px]" strokeWidth={2.4} />
               </div>
               <div>
-                <div className="text-[26px] font-extrabold leading-none" style={{ color: M.B1, letterSpacing: "-1.1px" }}>
+                <div className="text-[26px] font-bold leading-none" style={{ color: M.B1, letterSpacing: "-1.1px" }}>
                   {performanceView.count > 0 ? `${performanceView.avg.toFixed(1)}%` : "—"}
                 </div>
                 <div className="text-[11px] font-medium mt-1" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
@@ -1018,7 +1018,7 @@ const ClassDetail = () => {
                     style={{ background: "linear-gradient(135deg, rgba(9,87,247,0.1), rgba(123,63,244,0.1))", color: M.B1 }}>
                     <TrendingUp className="w-8 h-8" strokeWidth={2} />
                   </div>
-                  <div className="text-[15px] font-extrabold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No scores yet</div>
+                  <div className="text-[15px] font-bold mb-1" style={{ color: M.T1, letterSpacing: "-0.3px" }}>No scores yet</div>
                   <div className="text-[12px] font-medium mb-4" style={{ color: M.T3, letterSpacing: "-0.1px" }}>Grade a test or assignment<br/>to see performance breakdown.</div>
                   <button type="button"
                     onClick={() => navigate('/gradebook')}
@@ -1041,7 +1041,7 @@ const ClassDetail = () => {
                       </svg>
                     </div>
                     <div>
-                      <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Grade Distribution</div>
+                      <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Grade Distribution</div>
                       <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                         {performanceView.count} graded
                       </div>
@@ -1058,12 +1058,12 @@ const ClassDetail = () => {
                     return (
                       <div key={r.g} className="grid items-center gap-[10px] py-2"
                         style={{ gridTemplateColumns: "20px 52px 1fr 24px" }}>
-                        <div className="text-[13px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{r.g}</div>
+                        <div className="text-[13px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>{r.g}</div>
                         <div className="text-[10px] font-semibold" style={{ color: M.T3, letterSpacing: "-0.1px" }}>{r.range}</div>
                         <div className="h-[7px] rounded-full overflow-hidden" style={{ background: M.SURFACE }}>
                           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: r.fill }} />
                         </div>
-                        <div className="text-[12px] font-extrabold text-right" style={{ color: M.T1 }}>{r.count}</div>
+                        <div className="text-[12px] font-bold text-right" style={{ color: M.T1 }}>{r.count}</div>
                       </div>
                     );
                   })}
@@ -1084,7 +1084,7 @@ const ClassDetail = () => {
                         </svg>
                       </div>
                       <div>
-                        <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Top Performers</div>
+                        <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Top Performers</div>
                         <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                           {performanceView.top.length} student{performanceView.top.length === 1 ? "" : "s"}
                         </div>
@@ -1098,12 +1098,12 @@ const ClassDetail = () => {
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || s.id}`); }}
                         className="flex items-center gap-[10px] py-[10px] cursor-pointer active:opacity-70 transition"
                         style={i > 0 ? { borderTop: "0.5px solid rgba(9,87,247,0.07)" } : undefined}>
-                        <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-extrabold flex items-center justify-center flex-shrink-0"
+                        <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-bold flex items-center justify-center flex-shrink-0"
                           style={i === 0 ? { background: M.GOLD, color: "#fff" } : { background: M.SURFACE, color: M.T2 }}>
                           {i + 1}
                         </div>
                         <div className="flex-1 text-[13px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{s.studentName}</div>
-                        <div className="text-[13px] font-extrabold" style={{ color: s.scoreRaw >= 60 ? M.GREEN : M.RED, letterSpacing: "-0.3px" }}>{s.avg}</div>
+                        <div className="text-[13px] font-bold" style={{ color: s.scoreRaw >= 60 ? M.GREEN : M.RED, letterSpacing: "-0.3px" }}>{s.avg}</div>
                       </div>
                     ))}
                   </div>
@@ -1121,7 +1121,7 @@ const ClassDetail = () => {
                         </svg>
                       </div>
                       <div>
-                        <div className="text-[14px] font-extrabold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Needs Attention</div>
+                        <div className="text-[14px] font-bold" style={{ color: M.T1, letterSpacing: "-0.3px" }}>Needs Attention</div>
                         <div className="text-[11px] font-semibold mt-[1px]" style={{ color: M.T3, letterSpacing: "-0.1px" }}>
                           Lowest scores
                         </div>
@@ -1135,10 +1135,10 @@ const ClassDetail = () => {
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || s.id}`); }}
                         className="flex items-center gap-[10px] py-[10px] cursor-pointer active:opacity-70 transition"
                         style={i > 0 ? { borderTop: "0.5px solid rgba(9,87,247,0.07)" } : undefined}>
-                        <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-extrabold flex items-center justify-center flex-shrink-0"
+                        <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-bold flex items-center justify-center flex-shrink-0"
                           style={{ background: "rgba(255,51,85,0.12)", color: M.RED }}>!</div>
                         <div className="flex-1 text-[13px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{s.studentName}</div>
-                        <div className="text-[13px] font-extrabold" style={{ color: s.scoreRaw >= 60 ? M.GREEN : M.RED, letterSpacing: "-0.3px" }}>{s.avg}</div>
+                        <div className="text-[13px] font-bold" style={{ color: s.scoreRaw >= 60 ? M.GREEN : M.RED, letterSpacing: "-0.3px" }}>{s.avg}</div>
                       </div>
                     ))}
                   </div>
@@ -1163,8 +1163,8 @@ const ClassDetail = () => {
                           border: "0.5px solid rgba(255,255,255,0.22)",
                           color: "#FFDD55",
                         }}>⚡</div>
-                      <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>AI Class Intelligence</div>
-                      <div className="ml-auto px-[9px] py-[4px] rounded-full text-[9px] font-extrabold"
+                      <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>AI Class Intelligence</div>
+                      <div className="ml-auto px-[9px] py-[4px] rounded-full text-[9px] font-bold"
                         style={{
                           background: "rgba(123,63,244,0.3)",
                           border: "0.5px solid rgba(155,95,255,0.5)",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 // ── Edullent v2 design tokens (shared mobile + desktop) ──────────────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -249,14 +249,14 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               Back
             </button>
-            <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
+            <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
               Mark Attendance
             </div>
             <button type="button" onClick={handleSave} disabled={saving || loading}
               aria-label={saving ? "Saving attendance" : "Save attendance"}
               className="h-[34px] px-[14px] rounded-[11px] flex items-center gap-[5px] active:scale-[0.95] transition-transform"
               style={{
-                background: MA.GREEN, color: "#fff", fontSize: 12, fontWeight: 800, letterSpacing: "-0.1px",
+                background: MA.GREEN, color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "-0.1px",
                 boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 4px 12px rgba(0,200,83,0.4)",
                 opacity: saving || loading ? 0.65 : 1,
                 cursor: saving ? "not-allowed" : "pointer",
@@ -272,10 +272,10 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
 
           {/* Date block */}
           <div className="pt-[4px] px-[2px] pb-[2px]">
-            <div className="text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+            <div className="text-[9px] font-bold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
               {selClass?.name || "Class"}{selClass?.subject ? ` · ${selClass.subject}` : ""}
             </div>
-            <div className="text-[26px] font-extrabold leading-[1.1]" style={{ color: "#fff", letterSpacing: "-1px" }}>
+            <div className="text-[26px] font-bold leading-[1.1]" style={{ color: "#fff", letterSpacing: "-1px" }}>
               {dateLabel}
             </div>
             <div className="text-[11px] font-semibold mt-[5px] uppercase" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "0.4px" }}>
@@ -320,7 +320,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white" style={{ background: MA.GREEN }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <div className="text-[12px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Mark all present</div>
+            <div className="text-[12px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Mark all present</div>
             <div className="text-[10px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>One tap</div>
           </button>
           <button type="button" onClick={copyFromYesterday} disabled={loading || !students.length}
@@ -329,7 +329,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white" style={{ background: MA.P }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             </div>
-            <div className="text-[12px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Copy yesterday</div>
+            <div className="text-[12px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Copy yesterday</div>
             <div className="text-[10px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>Previous session</div>
           </button>
         </div>
@@ -345,7 +345,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div key={p.key} className="flex-1 flex items-center gap-[6px] px-[10px] py-[6px] rounded-[10px]" style={{ background: p.bg }}>
               <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: p.color }} />
               <span className="text-[11px] font-semibold" style={{ color: MA.T3 }}>{p.label}</span>
-              <span className="ml-auto text-[14px] font-extrabold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
+              <span className="ml-auto text-[14px] font-bold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
             </div>
           ))}
         </div>
@@ -353,7 +353,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
         {/* Students header */}
         <div className="flex items-end justify-between px-[2px] pb-[8px] mb-[2px]">
           <div>
-            <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Students</div>
+            <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Students</div>
             <div className="text-[11px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
               {students.length} student{students.length === 1 ? "" : "s"} · Tap to change status
             </div>
@@ -389,17 +389,17 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 <div key={student.id} className="bg-white rounded-[18px] p-[14px]" style={{ boxShadow: MA.SH }}>
                   {/* Student head */}
                   <div className="flex items-center gap-[11px] mb-[12px]">
-                    <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center flex-shrink-0 text-white text-[11px] font-extrabold"
+                    <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center flex-shrink-0 text-white text-[11px] font-bold"
                       style={{ background: student.av.color, letterSpacing: "0.3px" }}>
                       {student.initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{student.name}</div>
+                      <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{student.name}</div>
                       <div className="text-[11px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                         Roll: {student.rollNo}
                       </div>
                     </div>
-                    <span className="px-[11px] py-[5px] rounded-full text-[10px] font-extrabold flex items-center gap-[5px] flex-shrink-0"
+                    <span className="px-[11px] py-[5px] rounded-full text-[10px] font-bold flex items-center gap-[5px] flex-shrink-0"
                       style={{ background: currentPill.bg, color: currentPill.color, letterSpacing: "0.2px" }}>
                       <span className="w-[5px] h-[5px] rounded-full" style={{ background: currentPill.color }} />
                       {currentPill.label}
@@ -476,7 +476,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 style={{ background: MA.SURFACE, opacity: currentPage === 1 ? 0.4 : 1 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MA.T1} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <div className="min-w-[32px] h-8 px-[10px] rounded-[10px] flex items-center justify-center text-white text-[12px] font-extrabold"
+              <div className="min-w-[32px] h-8 px-[10px] rounded-[10px] flex items-center justify-center text-white text-[12px] font-bold"
                 style={{ background: MA.P, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 3px 8px rgba(9,87,247,0.25)" }}>
                 {currentPage} / {totalPages}
               </div>
@@ -519,14 +519,14 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               Back
             </button>
-            <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.8px" }}>
+            <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.8px" }}>
               Mark Attendance
             </div>
             <button type="button" onClick={handleSave} disabled={saving || loading}
               aria-label={saving ? "Saving attendance" : "Save attendance"}
               className="h-10 px-5 rounded-[12px] flex items-center gap-2 active:scale-[0.97] transition-transform"
               style={{
-                background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.15px",
+                background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.15px",
                 boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.42)",
                 opacity: saving || loading ? 0.65 : 1, cursor: saving ? "not-allowed" : "pointer", border: "none",
               }}>
@@ -538,10 +538,10 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
           </div>
 
           {/* Date block */}
-          <div className="text-[11px] font-extrabold uppercase mb-2" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+          <div className="text-[11px] font-bold uppercase mb-2" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
             {selClass?.name || "Class"}{selClass?.subject ? ` · ${selClass.subject}` : ""}
           </div>
-          <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: "#fff", letterSpacing: "-1.6px" }}>
+          <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: "#fff", letterSpacing: "-1.6px" }}>
             {dateLabel}
           </h1>
           <p className="text-[13px] font-semibold mt-2 uppercase" style={{ color: "rgba(255,255,255,0.62)", letterSpacing: "0.4px" }}>
@@ -585,7 +585,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Mark all present</div>
+              <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Mark all present</div>
               <div className="text-[11px] font-semibold mt-0.5" style={{ color: MA.T3 }}>One-tap shortcut</div>
             </div>
           </button>
@@ -598,7 +598,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Copy yesterday</div>
+              <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Copy yesterday</div>
               <div className="text-[11px] font-semibold mt-0.5" style={{ color: MA.T3 }}>Reuse last session</div>
             </div>
           </button>
@@ -614,7 +614,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <div key={p.key} className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[10px]" style={{ background: p.bg }}>
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
                 <span className="text-[11px] font-semibold" style={{ color: MA.T3 }}>{p.label}</span>
-                <span className="ml-auto text-[16px] font-extrabold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
+                <span className="ml-auto text-[16px] font-bold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
               </div>
             ))}
           </div>
@@ -623,7 +623,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
         {/* Students header */}
         <div className="flex items-end justify-between px-1 mb-3">
           <div>
-            <h2 className="text-[18px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Students</h2>
+            <h2 className="text-[18px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Students</h2>
             <p className="text-[12px] font-semibold mt-1" style={{ color: MA.T3 }}>
               {students.length} student{students.length === 1 ? "" : "s"} · Click to change status
             </p>
@@ -659,15 +659,15 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 <div key={student.id} className="bg-white rounded-[18px] p-5" style={{ boxShadow: MA.SH }}>
                   {/* Student head */}
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-[13px] flex items-center justify-center shrink-0 text-white text-[13px] font-extrabold"
+                    <div className="w-11 h-11 rounded-[13px] flex items-center justify-center shrink-0 text-white text-[13px] font-bold"
                       style={{ background: student.av.color, letterSpacing: "0.3px" }}>
                       {student.initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{student.name}</div>
+                      <div className="text-[15px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{student.name}</div>
                       <div className="text-[12px] font-semibold mt-0.5" style={{ color: MA.T3 }}>Roll: {student.rollNo}</div>
                     </div>
-                    <span className="px-3 py-1.5 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 shrink-0"
+                    <span className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0"
                       style={{ background: currentPill.bg, color: currentPill.color, letterSpacing: "0.2px" }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: currentPill.color }} />
                       {currentPill.label}
@@ -739,7 +739,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 style={{ background: MA.SURFACE, opacity: currentPage === 1 ? 0.4 : 1, border: "none", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MA.T1} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <div className="min-w-[44px] h-9 px-3 rounded-[11px] flex items-center justify-center text-white text-[13px] font-extrabold"
+              <div className="min-w-[44px] h-9 px-3 rounded-[11px] flex items-center justify-center text-white text-[13px] font-bold"
                 style={{ background: MA.P, letterSpacing: "-0.2px", boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.3)" }}>
                 {currentPage} / {totalPages}
               </div>

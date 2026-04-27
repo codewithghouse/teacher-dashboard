@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { Loader2, X, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
@@ -636,7 +636,7 @@ const ParentNotes = () => {
           style={{
             background: '#EEF4FF',
             minHeight: '100vh',
-            fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+            fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -670,7 +670,7 @@ const ParentNotes = () => {
             {/* ═══ Page Head ═══ */}
             <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     className={noReplyCount > 0 ? 'pn-pulse' : ''}
                     style={{
@@ -682,7 +682,7 @@ const ParentNotes = () => {
                   />
                   Teacher Dashboard · Communication
                 </div>
-                <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+                <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
                   Parent <span style={{ color: '#0055FF' }}>Notes</span>
                 </h1>
                 <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -697,7 +697,7 @@ const ParentNotes = () => {
                       display: 'inline-flex', alignItems: 'center', gap: 7,
                       padding: '10px 16px', borderRadius: 14,
                       background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
-                      fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                       boxShadow: '0 6px 20px rgba(255,170,0,.36), 0 2px 5px rgba(255,170,0,.2)',
                     }}
                   >
@@ -714,7 +714,7 @@ const ParentNotes = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 7,
                     height: 44, padding: '0 20px', borderRadius: 14,
                     background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', color: '#fff',
-                    fontSize: 13, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                     border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     boxShadow: '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)',
                   }}
@@ -763,10 +763,10 @@ const ParentNotes = () => {
                         </svg>
                       </div>
                       <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
                           {statusLabel}
                         </div>
-                        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
+                        <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
                           {stats.total}
                         </h2>
                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '8px 0 0 0', lineHeight: 1.55 }}>
@@ -787,8 +787,8 @@ const ParentNotes = () => {
                         { label: 'Response',  value: `${responsePct}%`, color: '#C8A4FF' },
                       ].map(s => (
                         <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '12px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
                         </div>
                       ))}
                     </div>
@@ -847,7 +847,7 @@ const ParentNotes = () => {
                   }}
                 >
                   <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
-                    <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       {k.iconStroke}
                     </svg>
                   </div>
@@ -856,8 +856,8 @@ const ParentNotes = () => {
                       {k.iconStroke}
                     </svg>
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                  <div style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.4px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                  <div style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.4px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                 </div>
               ))}
@@ -884,7 +884,7 @@ const ParentNotes = () => {
                     </svg>
                   </div>
                   <div>
-                    <h2 style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>Quick Templates</h2>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>Quick Templates</h2>
                     <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>Tap to apply</p>
                   </div>
                 </div>
@@ -922,7 +922,7 @@ const ParentNotes = () => {
                           </svg>
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{tpl.title}</p>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{tpl.title}</p>
                           <p style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', margin: '3px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tpl.desc}</p>
                         </div>
                       </button>
@@ -948,7 +948,7 @@ const ParentNotes = () => {
                       </svg>
                     </div>
                     <div>
-                      <h2 style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>All Conversations</h2>
+                      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>All Conversations</h2>
                       <p style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{filteredRoster.length} {filteredRoster.length === 1 ? 'parent' : 'parents'} · click to chat</p>
                     </div>
                   </div>
@@ -984,7 +984,7 @@ const ParentNotes = () => {
                         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                       </svg>
                     </div>
-                    <p style={{ fontSize: 13, fontWeight: 800, color: '#5070B0', margin: 0 }}>No parents match your search</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#5070B0', margin: 0 }}>No parents match your search</p>
                     <p style={{ fontSize: 11, fontWeight: 500, color: '#99AACC', margin: 0 }}>Try a different name or class.</p>
                   </div>
                 ) : (
@@ -1013,7 +1013,7 @@ const ParentNotes = () => {
                               width: 44, height: 44, borderRadius: '50%',
                               background: av.color, color: '#fff',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 13, fontWeight: 800, flexShrink: 0,
+                              fontSize: 13, fontWeight: 700, flexShrink: 0,
                               boxShadow: `0 4px 12px ${av.color}55`,
                             }}
                           >
@@ -1021,13 +1021,13 @@ const ParentNotes = () => {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                              <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <p style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {s.studentName}'s Parents
                               </p>
                               {unread > 0 && (
                                 <span style={{
                                   flexShrink: 0,
-                                  fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 999,
+                                  fontSize: 9, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
                                   background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
                                   letterSpacing: '0.1em', textTransform: 'uppercase',
                                   boxShadow: '0 3px 8px rgba(255,170,0,.32)',
@@ -1101,10 +1101,10 @@ const ParentNotes = () => {
                       </svg>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
                         AI Communication Intelligence
                       </div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
                         Engagement Summary
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -1119,8 +1119,8 @@ const ParentNotes = () => {
                       { label: 'Reach', value: `${stats.students}`, sub: `parent${stats.students !== 1 ? 's' : ''} in loop`, color: '#C8A4FF' },
                     ].map(s => (
                       <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
                       </div>
                     ))}
@@ -1540,11 +1540,11 @@ const MobileParentNotesList = ({
         {/* Page header with + pill */}
         <div style={{ padding: "8px 2px 14px", display: "flex", alignItems: "flex-end", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
               Teacher Dashboard · Parents
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Parent Notes</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Parent Notes</h1>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
               Communicate with parents and track conversations.
             </div>
@@ -1594,7 +1594,7 @@ const MobileParentNotesList = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.72)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Parent Messages</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.72)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Parent Messages</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>
                   Across {stats.students} parent{stats.students === 1 ? "" : "s"}
                 </div>
@@ -1604,14 +1604,14 @@ const MobileParentNotesList = ({
                 background: countPending > 0 ? "rgba(255,170,0,.22)" : "rgba(0,232,102,.22)",
                 border: `0.5px solid ${countPending > 0 ? "rgba(255,170,0,.55)" : "rgba(0,232,102,.55)"}`,
                 color: countPending > 0 ? "#FFD060" : "#6FFFAA",
-                padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
+                padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
               }}>
                 <span className="pnl-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: countPending > 0 ? "#FFD060" : "#6FFFAA", boxShadow: `0 0 8px ${countPending > 0 ? "#FFD060" : "#6FFFAA"}` }} />
                 {countPending > 0 ? `${countPending} Pending` : "All clear"}
               </div>
             </div>
-            <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <div style={{ fontSize: 56, fontWeight: 700, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
               {stats.total}
               <span style={{ fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.65)", letterSpacing: "-0.4px" }}>
                 message{stats.total === 1 ? "" : "s"}
@@ -1623,15 +1623,15 @@ const MobileParentNotesList = ({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.1)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.5px" }}>{countPending}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFD060", letterSpacing: "-0.5px" }}>{countPending}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Pending</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{countResolved}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{countResolved}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Resolved</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{roster.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{roster.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Parents</div>
               </div>
             </div>
@@ -1688,8 +1688,8 @@ const MobileParentNotesList = ({
                   {s.iconStroke}
                 </svg>
               </div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.value}</div>
               <div style={{ fontSize: 11, fontWeight: 600, marginTop: 6, letterSpacing: "-0.15px", position: "relative", zIndex: 1 }}>{s.sub}</div>
             </button>
           ))}
@@ -1698,7 +1698,7 @@ const MobileParentNotesList = ({
         {/* Quick Templates section */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 10px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>Quick Templates</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Quick Templates</span>
             <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>Tap to compose</span>
           </div>
         </div>
@@ -1717,7 +1717,7 @@ const MobileParentNotesList = ({
               }}
             >
               <div style={{ width: 32, height: 32, borderRadius: 11, background: tpl.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>{tpl.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.2, marginBottom: 4 }}>{tpl.title}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", lineHeight: 1.2, marginBottom: 4 }}>{tpl.title}</div>
               <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.4 }}>{tpl.desc}</div>
             </button>
           ))}
@@ -1771,7 +1771,7 @@ const MobileParentNotesList = ({
                 <span style={{
                   background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                   color: active ? "#fff" : "#5070B0",
-                  fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                 }}>{ch.count}</span>
               </button>
             );
@@ -1781,7 +1781,7 @@ const MobileParentNotesList = ({
         {/* Inbox section */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 10px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>
               {activeFilter === "all" ? "All Messages" : activeFilter === "pending" ? "Pending" : activeFilter === "resolved" ? "Resolved" : activeFilter}
             </span>
             <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
@@ -1797,7 +1797,7 @@ const MobileParentNotesList = ({
           </div>
         ) : visibleRoster.length === 0 ? (
           <div className="pnl-card3d" style={{ background: "#fff", borderRadius: 20, padding: "32px 20px", textAlign: "center", boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)", marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>
               {searchQuery ? "No matches" : activeFilter === "pending" ? "Nothing pending" : activeFilter === "resolved" ? "Nothing resolved yet" : "No parents yet"}
             </div>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
@@ -1843,7 +1843,7 @@ const MobileParentNotesList = ({
                     width: 42, height: 42, borderRadius: 14,
                     background: avC, color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 12, fontWeight: 800, letterSpacing: "0.3px", flexShrink: 0,
+                    fontSize: 12, fontWeight: 700, letterSpacing: "0.3px", flexShrink: 0,
                     position: "relative",
                   }}>
                     {getInitials(s.studentName || "S")}
@@ -1858,7 +1858,7 @@ const MobileParentNotesList = ({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>
                         {s.studentName}'s Parents
                       </div>
                       <div style={{ fontSize: 10, fontWeight: unread > 0 ? 800 : 700, color: unread > 0 ? "#0055FF" : "#99AACC", letterSpacing: "-0.1px", flexShrink: 0 }}>
@@ -1870,7 +1870,7 @@ const MobileParentNotesList = ({
                         <span style={{
                           background: chip.bg, color: chip.color,
                           padding: "2px 7px", borderRadius: 6,
-                          fontSize: 9, fontWeight: 800, letterSpacing: "-0.1px", flexShrink: 0,
+                          fontSize: 9, fontWeight: 700, letterSpacing: "-0.1px", flexShrink: 0,
                         }}>
                           {clsName}
                         </span>
@@ -1891,7 +1891,7 @@ const MobileParentNotesList = ({
                       <div style={{
                         minWidth: 18, height: 18, padding: "0 5px",
                         background: "#FF8800", color: "#fff", borderRadius: 100,
-                        fontSize: 10, fontWeight: 800,
+                        fontSize: 10, fontWeight: 700,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         boxShadow: "0 1px 2px rgba(255,136,0,.2), 0 2px 6px rgba(255,136,0,.25)",
                       }}>!</div>
@@ -1939,8 +1939,8 @@ const MobileParentNotesList = ({
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12, position: "relative", zIndex: 2 }}>
               <div style={{ width: 40, height: 40, borderRadius: 13, background: "rgba(255,255,255,.14)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFDD55", fontSize: 19 }}>⚡</div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Parent Intelligence</div>
-              <div style={{ marginLeft: "auto", background: "rgba(123,63,244,.3)", border: "0.5px solid rgba(155,95,255,.5)", color: "#DCC8FF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: "0.5px" }}>Tip</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Parent Intelligence</div>
+              <div style={{ marginLeft: "auto", background: "rgba(123,63,244,.3)", border: "0.5px solid rgba(155,95,255,.5)", color: "#DCC8FF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: "0.5px" }}>Tip</div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,.85)", letterSpacing: "-0.15px", marginBottom: 14, position: "relative", zIndex: 2 }}>
               {countPending > 0 ? (
@@ -1955,15 +1955,15 @@ const MobileParentNotesList = ({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "rgba(255,255,255,.1)", borderRadius: 12, padding: 1, gap: 1, overflow: "hidden", position: "relative", zIndex: 2 }}>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.4px" }}>{countPending}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#FFD060", letterSpacing: "-0.4px" }}>{countPending}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Pending</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.4px" }}>{countResolved}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.4px" }}>{countResolved}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Resolved</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{roster.length}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>{roster.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Parents</div>
               </div>
             </div>
@@ -2051,7 +2051,7 @@ const MobileComposeSheet = ({
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>New message to parent</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>New message to parent</div>
             <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, marginTop: 2, letterSpacing: "-0.1px" }}>Pick a parent, tap a template or type your own</div>
           </div>
           <button
@@ -2093,9 +2093,9 @@ const MobileComposeSheet = ({
             />
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
             Select Parent
-            <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+            <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
           </div>
 
           <div className="pnc-scroll" style={{
@@ -2130,7 +2130,7 @@ const MobileComposeSheet = ({
                     width: 32, height: 32, borderRadius: 11,
                     background: avC, color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 800, flexShrink: 0, letterSpacing: "0.3px",
+                    fontSize: 10, fontWeight: 700, flexShrink: 0, letterSpacing: "0.3px",
                   }}>
                     {getInitials(s.studentName || "S")}
                   </div>
@@ -2158,7 +2158,7 @@ const MobileComposeSheet = ({
           </div>
 
           {/* Template chips */}
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Quick Templates</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Quick Templates</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
             {tplChips.map(ch => {
               const active = activeTpl === ch.key;
@@ -2194,7 +2194,7 @@ const MobileComposeSheet = ({
           </div>
 
           {/* Message textarea */}
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Message</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Message</div>
           <textarea
             value={composeText}
             onChange={e => setComposeText(e.target.value)}
@@ -2221,7 +2221,7 @@ const MobileComposeSheet = ({
           />
           <div style={{ fontSize: 11, color: "#99AACC", marginTop: 8, fontWeight: 500, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ color: "#002080", fontWeight: 600 }}>
-              {selected ? <>Sending to <b style={{ color: "#001040", fontWeight: 800 }}>{selected.studentName}'s</b> parent</> : "No recipient selected"}
+              {selected ? <>Sending to <b style={{ color: "#001040", fontWeight: 700 }}>{selected.studentName}'s</b> parent</> : "No recipient selected"}
             </span>
             <span style={{ color: "#5070B0", fontWeight: 600 }}>{composeText.length} / 500</span>
           </div>
@@ -2252,7 +2252,7 @@ const MobileComposeSheet = ({
               flex: 1, height: 46, borderRadius: 14,
               background: "linear-gradient(135deg, #4A85FF 0%, #0055FF 100%)",
               color: "#fff",
-              fontSize: 14, fontWeight: 800, border: "none",
+              fontSize: 14, fontWeight: 700, border: "none",
               letterSpacing: "-0.2px",
               cursor: (composeSending || !composeText.trim() || !composeStudentKey) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,

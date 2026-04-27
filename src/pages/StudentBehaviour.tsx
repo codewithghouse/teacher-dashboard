@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import {
   collection, query, where, onSnapshot, doc, serverTimestamp,
   type QueryConstraint,
@@ -16,7 +16,7 @@ import {
 
 // ── Apple Bright-Blue tokens (matches all other teacher pages) ───────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -296,11 +296,11 @@ export default function StudentBehaviour() {
       <div className={isMobile ? "px-3 pt-3 pb-24" : "max-w-[1400px] mx-auto px-8 pt-6 pb-12"}>
 
         <div style={{ marginBottom: isMobile ? 14 : 22 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: 2, background: MA.P }} />
             Teacher Dashboard · Behaviour & Growth
           </div>
-          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 800, color: MA.T1, letterSpacing: "-1.2px", lineHeight: 1.05, margin: 0 }}>
+          <h1 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 700, color: MA.T1, letterSpacing: "-1.2px", lineHeight: 1.05, margin: 0 }}>
             Student <span style={{ color: MA.P }}>behaviour</span>
           </h1>
           <div style={{ fontSize: 13, color: MA.T3, fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
@@ -317,7 +317,7 @@ export default function StudentBehaviour() {
             <div style={{ width: 60, height: 60, borderRadius: 18, background: "rgba(0,85,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
               <Users className="w-7 h-7" style={{ color: MA.P }} />
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: MA.T1, marginBottom: 6 }}>No students assigned yet</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: MA.T1, marginBottom: 6 }}>No students assigned yet</div>
             <div style={{ fontSize: 12, color: MA.T3 }}>Once your principal enrolls students under your classes, they will appear here.</div>
           </div>
         ) : (
@@ -363,7 +363,7 @@ export default function StudentBehaviour() {
                         fontFamily: MA.FONT, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
                       }}
                     >
-                      <span style={{ width: 22, height: 22, borderRadius: "50%", background: active ? "rgba(255,255,255,0.2)" : "rgba(0,85,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: active ? "#fff" : MA.P }}>
+                      <span style={{ width: 22, height: 22, borderRadius: "50%", background: active ? "rgba(255,255,255,0.2)" : "rgba(0,85,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: active ? "#fff" : MA.P }}>
                         {initials(s.name)}
                       </span>
                       {s.name}
@@ -393,16 +393,16 @@ export default function StudentBehaviour() {
                       border: "0.5px solid rgba(255,255,255,0.26)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       flexShrink: 0,
-                      fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px",
+                      fontSize: isMobile ? 18 : 24, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px",
                     }}>
                       {initials(selected.name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.22)", fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.22)", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 }}>
                         <Sparkles className="w-3 h-3" />
                         Behaviour profile
                       </div>
-                      <h2 style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, letterSpacing: "-0.6px", margin: 0, color: "#fff", lineHeight: 1.1 }}>
+                      <h2 style={{ fontSize: isMobile ? 20 : 26, fontWeight: 700, letterSpacing: "-0.6px", margin: 0, color: "#fff", lineHeight: 1.1 }}>
                         {selected.name}
                       </h2>
                       <p style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", fontWeight: 500, margin: "5px 0 0 0" }}>
@@ -422,7 +422,7 @@ export default function StudentBehaviour() {
                           />
                         ))}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.65)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.65)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         {ratings.length === 0 ? "Not rated" : `${avgRating.toFixed(1)} avg · ${ratings.length}`}
                       </div>
                     </div>
@@ -439,7 +439,7 @@ export default function StudentBehaviour() {
                       tintBg: "linear-gradient(135deg, #FFF6E0 0%, #FFEDC4 100%)",
                       tintBorder: "rgba(255,170,0,0.16)",
                       icon: <Star className="w-[18px] h-[18px]" />,
-                      decor: <Star className="w-[86px] h-[86px]" strokeWidth={1.5} />,
+                      decor: <Star className="w-[60px] h-[60px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-quick-rate")?.scrollIntoView({ behavior: "smooth", block: "center" }),
                     },
                     {
@@ -454,7 +454,7 @@ export default function StudentBehaviour() {
                           : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
                       tintBorder: incidents.length === 0 ? "rgba(0,85,255,0.10)" : concernCount > positiveCount ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
                       icon: <AlertTriangle className="w-[18px] h-[18px]" />,
-                      decor: <AlertTriangle className="w-[86px] h-[86px]" strokeWidth={1.5} />,
+                      decor: <AlertTriangle className="w-[60px] h-[60px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-behaviour-log")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                     },
                     {
@@ -465,7 +465,7 @@ export default function StudentBehaviour() {
                       tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
                       tintBorder: "rgba(123,63,244,0.12)",
                       icon: <TrendingUp className="w-[18px] h-[18px]" />,
-                      decor: <TrendingUp className="w-[86px] h-[86px]" strokeWidth={1.5} />,
+                      decor: <TrendingUp className="w-[60px] h-[60px]" strokeWidth={1.5} />,
                       onClick: () => document.getElementById("sb-improvements")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                     },
                   ] as const).map(k => (
@@ -491,8 +491,8 @@ export default function StudentBehaviour() {
                       <div style={{ width: 38, height: 38, borderRadius: 12, background: `${k.color}1F`, color: k.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, position: "relative", zIndex: 1 }}>
                         {k.icon}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: k.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{k.label}</div>
-                      <div style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: "#001040", letterSpacing: "-1.2px", lineHeight: 1.05, position: "relative", zIndex: 1 }}>{k.value}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: k.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{k.label}</div>
+                      <div style={{ fontSize: isMobile ? 26 : 32, fontWeight: 700, color: "#001040", letterSpacing: "-1.2px", lineHeight: 1.05, position: "relative", zIndex: 1 }}>{k.value}</div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: "#5070B0", marginTop: 8, position: "relative", zIndex: 1 }}>{k.sub}</div>
                     </button>
                   ))}
@@ -511,7 +511,7 @@ export default function StudentBehaviour() {
                       <Star className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: MA.T1, letterSpacing: "-0.2px" }}>Quick rate</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: MA.T1, letterSpacing: "-0.2px" }}>Quick rate</div>
                       <div style={{ fontSize: 11, color: MA.T3, fontWeight: 500 }}>Snapshot rating that flows to parent dashboard.</div>
                     </div>
                   </div>
@@ -557,7 +557,7 @@ export default function StudentBehaviour() {
                       width: "100%", height: 46, borderRadius: 14,
                       background: quickRating === 0 ? MA.SURFACE : MA.P,
                       color: quickRating === 0 ? MA.T4 : "#fff",
-                      fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
+                      fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
                       border: "none", fontFamily: MA.FONT,
                       cursor: quickRating === 0 || savingRating ? "not-allowed" : "pointer",
                       boxShadow: quickRating === 0 ? "none" : "0 6px 18px rgba(0,85,255,0.32)",
@@ -583,7 +583,7 @@ export default function StudentBehaviour() {
                         <AlertTriangle className="w-4 h-4" style={{ color: MA.P }} />
                       </div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: MA.T1, letterSpacing: "-0.2px" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: MA.T1, letterSpacing: "-0.2px" }}>
                           Behaviour Log
                         </div>
                         <div style={{ fontSize: 11, color: MA.T3, fontWeight: 500 }}>
@@ -630,7 +630,7 @@ export default function StudentBehaviour() {
                               <div style={{ width: 8, height: 8, borderRadius: "50%", background: tone.color, marginTop: 8, flexShrink: 0 }} />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                                  <span style={{ padding: "2px 9px", borderRadius: 6, background: tone.bg, color: tone.color, fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                                  <span style={{ padding: "2px 9px", borderRadius: 6, background: tone.bg, color: tone.color, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                                     {tone.label}
                                   </span>
                                   <span style={{ fontSize: 11, color: MA.T4 }}>{timeAgo(inc.createdAt || inc.date)}</span>
@@ -674,7 +674,7 @@ export default function StudentBehaviour() {
                         <TrendingUp className="w-4 h-4" style={{ color: MA.VIOLET }} />
                       </div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: MA.T1, letterSpacing: "-0.2px" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: MA.T1, letterSpacing: "-0.2px" }}>
                           Areas of Improvement
                         </div>
                         <div style={{ fontSize: 11, color: MA.T3, fontWeight: 500 }}>
@@ -738,10 +738,10 @@ export default function StudentBehaviour() {
                               </button>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                                  <span style={{ fontSize: 13, fontWeight: 800, color: MA.T1, letterSpacing: "-0.2px", textDecoration: resolved ? "line-through" : "none" }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: MA.T1, letterSpacing: "-0.2px", textDecoration: resolved ? "line-through" : "none" }}>
                                     {imp.title || "Untitled"}
                                   </span>
-                                  <span style={{ padding: "2px 8px", borderRadius: 6, background: ptone.bg, color: ptone.color, fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                  <span style={{ padding: "2px 8px", borderRadius: 6, background: ptone.bg, color: ptone.color, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                                     {ptone.label}
                                   </span>
                                   <span style={{ fontSize: 11, color: MA.T4 }}>{timeAgo(imp.createdAt)}</span>
@@ -787,7 +787,7 @@ export default function StudentBehaviour() {
                           <Star className="w-4 h-4" style={{ color: MA.GOLD }} />
                         </div>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: MA.T1, letterSpacing: "-0.2px" }}>Rating History</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: MA.T1, letterSpacing: "-0.2px" }}>Rating History</div>
                           <div style={{ fontSize: 11, color: MA.T3, fontWeight: 500 }}>Last {Math.min(sortedRatings.length, 6)} ratings</div>
                         </div>
                       </div>
@@ -832,10 +832,10 @@ export default function StudentBehaviour() {
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.22)", fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.22)", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8 }}>
                         AI Behaviour Intelligence
                       </div>
-                      <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px", marginBottom: 6 }}>
+                      <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px", marginBottom: 6 }}>
                         Growth Summary
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.82)", lineHeight: 1.6 }}>
@@ -858,8 +858,8 @@ export default function StudentBehaviour() {
                       { label: "Concerns", value: concernCount.toString(), color: concernCount > 0 ? "#FF9AA9" : "rgba(255,255,255,0.6)" },
                     ].map(s => (
                       <div key={s.label} style={{ background: "rgba(255,255,255,0.10)", borderRadius: 12, padding: "10px 12px", border: "0.5px solid rgba(255,255,255,0.14)" }}>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.65)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: "-0.4px" }}>{s.value}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.65)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: s.color, letterSpacing: "-0.4px" }}>{s.value}</div>
                       </div>
                     ))}
                   </div>
@@ -941,7 +941,7 @@ function BehaviourModal({ edit, student, teacherData, onClose }: ModalProps<Inci
       <div onClick={e => e.stopPropagation()} style={{ background: MA.CARD, borderRadius: 22, width: 440, maxWidth: "100%", padding: 22, boxShadow: "0 20px 60px rgba(0,8,40,0.3)", fontFamily: MA.FONT }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: MA.T1, letterSpacing: "-0.3px" }}>{edit ? "Edit" : "Add"} behaviour entry</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: MA.T1, letterSpacing: "-0.3px" }}>{edit ? "Edit" : "Add"} behaviour entry</div>
             <div style={{ fontSize: 11, color: MA.T3, marginTop: 2 }}>For {student.name}</div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, borderRadius: 10, background: MA.SURFACE, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -949,7 +949,7 @@ function BehaviourModal({ edit, student, teacherData, onClose }: ModalProps<Inci
           </button>
         </div>
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Type</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Type</div>
           <div style={{ display: "flex", gap: 6 }}>
             {(["POSITIVE", "CONCERN", "INCIDENT"] as const).map(t => {
               const active = type === t;
@@ -960,7 +960,7 @@ function BehaviourModal({ edit, student, teacherData, onClose }: ModalProps<Inci
                     flex: 1, padding: "9px 10px", borderRadius: 10,
                     background: active ? c : MA.SURFACE,
                     color: active ? "#fff" : MA.T3,
-                    fontSize: 11, fontWeight: 800, letterSpacing: "-0.15px",
+                    fontSize: 11, fontWeight: 700, letterSpacing: "-0.15px",
                     border: "none", cursor: "pointer", fontFamily: MA.FONT,
                     textTransform: "capitalize",
                   }}>
@@ -971,7 +971,7 @@ function BehaviourModal({ edit, student, teacherData, onClose }: ModalProps<Inci
           </div>
         </div>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>
             Description <span style={{ color: MA.RED }}>*</span>
           </div>
           <textarea
@@ -999,7 +999,7 @@ function BehaviourModal({ edit, student, teacherData, onClose }: ModalProps<Inci
               flex: 1, height: 44, borderRadius: 12,
               background: !description.trim() ? MA.SURFACE : MA.P,
               color: !description.trim() ? MA.T4 : "#fff",
-              fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
+              fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
               border: "none", cursor: saving || !description.trim() ? "not-allowed" : "pointer",
               fontFamily: MA.FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               boxShadow: !description.trim() ? "none" : "0 6px 18px rgba(0,85,255,0.32)",
@@ -1059,7 +1059,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
       <div onClick={e => e.stopPropagation()} style={{ background: MA.CARD, borderRadius: 22, width: 440, maxWidth: "100%", padding: 22, boxShadow: "0 20px 60px rgba(0,8,40,0.3)", fontFamily: MA.FONT }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: MA.T1, letterSpacing: "-0.3px" }}>{edit ? "Edit" : "Add"} improvement area</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: MA.T1, letterSpacing: "-0.3px" }}>{edit ? "Edit" : "Add"} improvement area</div>
             <div style={{ fontSize: 11, color: MA.T3, marginTop: 2 }}>For {student.name}</div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, borderRadius: 10, background: MA.SURFACE, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1067,7 +1067,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
           </button>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>
             Title <span style={{ color: MA.RED }}>*</span>
           </div>
           <input
@@ -1083,7 +1083,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
           />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Description</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Description</div>
           <textarea
             value={description} onChange={e => setDescription(e.target.value)}
             placeholder="What does growth in this area look like?"
@@ -1097,7 +1097,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
           />
         </div>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Priority</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MA.T3, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Priority</div>
           <div style={{ display: "flex", gap: 6 }}>
             {(["low", "medium", "high"] as const).map(p => {
               const active = priority === p;
@@ -1108,7 +1108,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
                     flex: 1, padding: "9px 10px", borderRadius: 10,
                     background: active ? c : MA.SURFACE,
                     color: active ? "#fff" : MA.T3,
-                    fontSize: 11, fontWeight: 800, letterSpacing: "-0.15px",
+                    fontSize: 11, fontWeight: 700, letterSpacing: "-0.15px",
                     border: "none", cursor: "pointer", fontFamily: MA.FONT,
                     textTransform: "capitalize",
                   }}>
@@ -1128,7 +1128,7 @@ function ImprovementModal({ edit, student, teacherData, onClose }: ModalProps<Im
               flex: 1, height: 44, borderRadius: 12,
               background: !title.trim() ? MA.SURFACE : MA.VIOLET,
               color: !title.trim() ? MA.T4 : "#fff",
-              fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
+              fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
               border: "none", cursor: saving || !title.trim() ? "not-allowed" : "pointer",
               fontFamily: MA.FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               boxShadow: !title.trim() ? "none" : "0 6px 18px rgba(123,63,244,0.32)",

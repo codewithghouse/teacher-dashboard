@@ -90,8 +90,14 @@ button, a, [role="button"] {
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
+  }
+
+  /* Form elements default to system font in every browser — force inherit
+     so the global Montserrat applies edge-to-edge. */
+  button, input, textarea, select, optgroup {
+    font-family: inherit;
   }
 }
 

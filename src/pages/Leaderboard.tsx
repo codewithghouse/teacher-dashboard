@@ -15,10 +15,12 @@ import {
   useClassLeaderboard,
   useStudentDetail,
   useTeacherSelfMetrics,
+  useBranchTeacherLeaderboard,
   useClassAIPlan,
   useStudentAIPlan,
   useTeacherSelfAIPlan,
   type LeaderboardStudent,
+  type BranchTeacherEntry,
   type AIPlan,
   type AIAction,
   type AIDiagnosis,
@@ -76,13 +78,13 @@ const T = {
 // PRIMITIVES
 // ============================================================
 const Eyebrow = ({ children, color = T.T4 }: { children: React.ReactNode; color?: string }) => (
-  <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.6px", color, margin: 0, textTransform: "uppercase" }}>{children}</p>
+  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.6px", color, margin: 0, textTransform: "uppercase" }}>{children}</p>
 );
 
 const SectionHead = ({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) => (
   <div style={{ marginBottom: 14 }}>
     <Eyebrow>{eyebrow}</Eyebrow>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.9px", color: T.T1, margin: "4px 0 4px", lineHeight: 1.1 }}>{title}</h2>
+    <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.9px", color: T.T1, margin: "4px 0 4px", lineHeight: 1.1 }}>{title}</h2>
     {subtitle && <p style={{ fontSize: 13, fontWeight: 500, color: T.T3, margin: 0 }}>{subtitle}</p>}
   </div>
 );
@@ -102,7 +104,7 @@ const Avatar = ({ initials, bg, color, size = 38 }: { initials: string; bg: stri
   <div style={{
     width: size, height: size, borderRadius: "50%", background: bg, color,
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontWeight: 800, fontSize: size > 36 ? 13 : 12, flexShrink: 0, letterSpacing: "-0.2px",
+    fontWeight: 700, fontSize: size > 36 ? 13 : 12, flexShrink: 0, letterSpacing: "-0.2px",
     fontFamily: FONT,
   }}>{initials}</div>
 );
@@ -125,7 +127,7 @@ const RankBadge = ({ rank, variant = "default", size = 38 }: { rank: number | st
     <div style={{
       width: size, height: size, borderRadius: 14, background: s.bg, color: s.color,
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontWeight: 800, fontSize, letterSpacing: "-0.4px", boxShadow: s.shadow, flexShrink: 0,
+      fontWeight: 700, fontSize, letterSpacing: "-0.4px", boxShadow: s.shadow, flexShrink: 0,
       fontFamily: FONT,
     }}>{rank}</div>
   );
@@ -133,8 +135,8 @@ const RankBadge = ({ rank, variant = "default", size = 38 }: { rank: number | st
 
 const StatItem = ({ label, value, suffix, color = "#FFF", valueColor }: { label: string; value: React.ReactNode; suffix?: string; color?: string; valueColor?: string }) => (
   <div style={{ flex: 1, textAlign: "center" }}>
-    <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.4px", color: "rgba(255,255,255,0.5)", margin: "0 0 4px", textTransform: "uppercase" }}>{label}</p>
-    <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.6px", color: valueColor || color, margin: 0 }}>
+    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", color: "rgba(255,255,255,0.5)", margin: "0 0 4px", textTransform: "uppercase" }}>{label}</p>
+    <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.6px", color: valueColor || color, margin: 0 }}>
       {value}{suffix && <span style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}>{suffix}</span>}
     </p>
   </div>
@@ -164,8 +166,8 @@ const MetricCard = ({ label, value, suffix, vs, severity = "okay" }: { label: st
       background: T.cardBg, border: `0.5px solid ${borderColor}`, borderRadius: 18, padding: 16,
       boxShadow: shadow,
     }}>
-      <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.4px", color: T.T4, margin: "0 0 8px", textTransform: "uppercase" }}>{label}</p>
-      <p style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: c.value, margin: 0, lineHeight: 1 }}>
+      <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", color: T.T4, margin: "0 0 8px", textTransform: "uppercase" }}>{label}</p>
+      <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-1px", color: c.value, margin: 0, lineHeight: 1 }}>
         {value.toFixed(value % 1 === 0 ? 0 : 1)}{suffix && <span style={{ fontSize: 18, color: T.T3 }}>{suffix}</span>}
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
@@ -177,6 +179,39 @@ const MetricCard = ({ label, value, suffix, vs, severity = "okay" }: { label: st
     </div>
   );
 };
+
+// ── Hero card mini stat (white-on-dark glass tile) ──────────────────────────
+const HeroMiniStat = ({ label, value, valueColor = "#FFF" }: { label: string; value: string; valueColor?: string }) => (
+  <div style={{
+    background: "rgba(255,255,255,0.10)",
+    border: "0.5px solid rgba(255,255,255,0.18)",
+    borderRadius: 12, padding: "10px 12px",
+    display: "flex", flexDirection: "column", gap: 4,
+    minWidth: 0,
+  }}>
+    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.2px", color: "rgba(255,255,255,0.6)", margin: 0, textTransform: "uppercase" }}>{label}</p>
+    <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", color: valueColor, margin: 0, lineHeight: 1 }}>{value}</p>
+  </div>
+);
+
+// ── Hero card chip (dark hero footer pill) ──────────────────────────────────
+const HeroChip = ({ label, primary, secondary, accent }: { label: string; primary: string; secondary: string; accent: string }) => (
+  <div style={{
+    display: "inline-flex", alignItems: "center", gap: 9,
+    padding: "7px 12px", borderRadius: 12,
+    background: "rgba(255,255,255,0.08)",
+    border: "0.5px solid rgba(255,255,255,0.14)",
+  }}>
+    <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent, boxShadow: `0 0 6px ${accent}` }} />
+    <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+      <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: "1px", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#FFF", letterSpacing: "-0.1px" }}>
+        {primary}{" "}
+        <span style={{ color: "rgba(255,255,255,0.65)", fontWeight: 500 }}>· {secondary}</span>
+      </span>
+    </div>
+  </div>
+);
 
 // ============================================================
 // AI RENDER PRIMITIVES — used to render Cloud Function output
@@ -219,9 +254,9 @@ const ActionCard = ({ action }: { action: AIAction }) => {
   return (
     <div style={{ background: T.cardBg, border: T.BORDER, borderRadius: 20, padding: 18, boxShadow: T.SH_LG }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
-        <span style={{ flexShrink: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-1.2px", color: T.B1, lineHeight: 1, minWidth: 36 }}>{action.num}</span>
+        <span style={{ flexShrink: 0, fontSize: 30, fontWeight: 700, letterSpacing: "-1.2px", color: T.B1, lineHeight: 1, minWidth: 36 }}>{action.num}</span>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 15, fontWeight: 800, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>{action.title}</p>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>{action.title}</p>
           <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.5 }}>{action.reason}</p>
         </div>
       </div>
@@ -233,11 +268,11 @@ const ActionCard = ({ action }: { action: AIAction }) => {
       }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
           <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: isManual ? T.VIOLET : T.B1 }} />
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.2px", color: isManual ? T.VIOLET : T.B1, textTransform: "uppercase" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", color: isManual ? T.VIOLET : T.B1, textTransform: "uppercase" }}>
             {isManual ? "Self-tracked" : "Auto-tracked"}
           </span>
         </span>
-        <span style={{ fontSize: 11, fontWeight: 800, color: isManual ? T.VIOLET : T.B1 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: isManual ? T.VIOLET : T.B1 }}>
           {action.subStatus || (isManual ? "Manual log" : "Pending")}
         </span>
       </div>
@@ -252,7 +287,7 @@ const AIBadge = () => (
     background: "rgba(123,63,244,0.10)", border: "0.5px solid rgba(123,63,244,0.25)",
   }}>
     <Sparkles size={10} color={T.VIOLET} strokeWidth={2.4} />
-    <span style={{ fontSize: 9, fontWeight: 800, color: T.VIOLET, letterSpacing: "1.2px", textTransform: "uppercase" }}>Edullent AI</span>
+    <span style={{ fontSize: 9, fontWeight: 700, color: T.VIOLET, letterSpacing: "1.2px", textTransform: "uppercase" }}>Edullent AI</span>
   </span>
 );
 
@@ -263,7 +298,7 @@ const AISectionLoading = ({ label }: { label: string }) => (
   }}>
     <Loader2 size={18} color={T.VIOLET} style={{ animation: "spin 1s linear infinite" }} />
     <div>
-      <p style={{ fontSize: 13, fontWeight: 800, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{label}</p>
+      <p style={{ fontSize: 13, fontWeight: 700, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{label}</p>
       <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>~5–10 seconds</p>
     </div>
   </div>
@@ -274,7 +309,7 @@ const AISectionError = ({ message }: { message: string }) => (
     background: "rgba(255,69,58,0.04)", border: "0.5px solid rgba(255,69,58,0.20)", borderRadius: 22,
     padding: 18, marginBottom: 32,
   }}>
-    <p style={{ fontSize: 12, fontWeight: 800, color: T.RED, margin: "0 0 4px", letterSpacing: "-0.1px" }}>AI service unavailable</p>
+    <p style={{ fontSize: 12, fontWeight: 700, color: T.RED, margin: "0 0 4px", letterSpacing: "-0.1px" }}>AI service unavailable</p>
     <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: 0 }}>{message}</p>
   </div>
 );
@@ -298,7 +333,7 @@ const LockedSection = ({ eyebrow, title, message }: { eyebrow: string; title: st
         <Lock size={16} color={T.B1} strokeWidth={2.2} />
       </div>
       <div>
-        <p style={{ fontSize: 13, fontWeight: 800, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px" }}>Activates with weekly snapshots</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px" }}>Activates with weekly snapshots</p>
         <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.5 }}>{message}</p>
       </div>
     </div>
@@ -315,7 +350,7 @@ const ScreenLoader = ({ label }: { label?: string }) => (
 
 const ScreenEmpty = ({ title, message }: { title: string; message: string }) => (
   <div style={{ background: T.cardBg, border: T.BORDER, borderRadius: 22, padding: 32, boxShadow: T.SH_LG, textAlign: "center" }}>
-    <p style={{ fontSize: 16, fontWeight: 800, color: T.T1, margin: "0 0 6px", letterSpacing: "-0.3px" }}>{title}</p>
+    <p style={{ fontSize: 16, fontWeight: 700, color: T.T1, margin: "0 0 6px", letterSpacing: "-0.3px" }}>{title}</p>
     <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0 }}>{message}</p>
   </div>
 );
@@ -356,7 +391,7 @@ const StudentLeaderboardScreen = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <Eyebrow>Live · Teacher view</Eyebrow>
-          <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1.2px", color: T.T1, margin: "6px 0 0", lineHeight: 1 }}>Class Leaderboard</h1>
+          <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-1.2px", color: T.T1, margin: "6px 0 0", lineHeight: 1 }}>Class Leaderboard</h1>
         </div>
         <div style={{ position: "relative" }}>
           <button onClick={() => setDropdownOpen(!dropdownOpen)} style={{
@@ -364,8 +399,8 @@ const StudentLeaderboardScreen = () => {
             borderRadius: 14, background: T.cardBg, border: T.BORDER, cursor: "pointer",
             fontFamily: FONT, boxShadow: T.SH,
           }}>
-            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.4px", color: T.T4, textTransform: "uppercase" }}>Class</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: T.B1, letterSpacing: "-0.2px" }}>{activeClass?.name || "—"}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", color: T.T4, textTransform: "uppercase" }}>Class</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.B1, letterSpacing: "-0.2px" }}>{activeClass?.name || "—"}</span>
             <ChevronDown size={12} color={T.B1} strokeWidth={2.2} />
           </button>
           {dropdownOpen && (
@@ -391,7 +426,7 @@ const StudentLeaderboardScreen = () => {
 
       <div style={{ display: "flex", gap: 6, marginBottom: 18, padding: 4, borderRadius: 12, background: "rgba(0,85,255,0.06)", border: T.BORDER }}>
         <div style={{ flex: 1, padding: 10, textAlign: "center", borderRadius: 8, background: T.cardBg, boxShadow: "0 1px 3px rgba(0,85,255,0.10)" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: T.B1, margin: 0, letterSpacing: "-0.1px" }}>Students</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: T.B1, margin: 0, letterSpacing: "-0.1px" }}>Students</p>
         </div>
         <button onClick={() => navigate("/leaderboard/teachers")} style={{
           flex: 1, padding: 10, textAlign: "center", borderRadius: 8,
@@ -415,8 +450,8 @@ const StudentLeaderboardScreen = () => {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, position: "relative" }}>
               <div>
-                <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 4px", textTransform: "uppercase" }}>Class summary</p>
-                <p style={{ fontSize: 22, fontWeight: 800, color: "#FFF", margin: 0, letterSpacing: "-0.5px" }}>Class {cls.className} · {cls.subject}</p>
+                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 4px", textTransform: "uppercase" }}>Class summary</p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: "#FFF", margin: 0, letterSpacing: "-0.5px" }}>Class {cls.className} · {cls.subject}</p>
                 <p style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.6)", margin: "2px 0 0" }}>{cls.totalStudents} students · You're their teacher</p>
               </div>
             </div>
@@ -432,7 +467,7 @@ const StudentLeaderboardScreen = () => {
             <button onClick={() => navigate(`/leaderboard/class-plan/${cls.classId}`)} style={{
               width: "100%", padding: 14, background: "#FFF", border: "none", borderRadius: 14,
               fontSize: 13, color: T.B1, cursor: "pointer", fontFamily: FONT,
-              fontWeight: 800, letterSpacing: "-0.1px", boxShadow: T.SH_BTN,
+              fontWeight: 700, letterSpacing: "-0.1px", boxShadow: T.SH_BTN,
             }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                 View class breakdown
@@ -460,7 +495,7 @@ const StudentLeaderboardScreen = () => {
                   <div style={{ flex: 1, height: 0.5, background: "rgba(255,136,0,0.30)" }} />
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "rgba(255,136,0,0.10)", border: "0.5px solid rgba(255,136,0,0.25)" }}>
                     <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: T.ORANGE }} />
-                    <span style={{ fontSize: 9, fontWeight: 800, color: T.ORANGE_DEEP, letterSpacing: "1.2px", textTransform: "uppercase" }}>Need attention</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: T.ORANGE_DEEP, letterSpacing: "1.2px", textTransform: "uppercase" }}>Need attention</span>
                   </span>
                   <div style={{ flex: 1, height: 0.5, background: "rgba(255,136,0,0.30)" }} />
                 </div>
@@ -479,12 +514,12 @@ const StudentLeaderboardScreen = () => {
                       <RankBadge rank={s.rank} variant={isRed ? "red" : "amber"} size={36} />
                       <Avatar initials={s.initials} bg={isRed ? "rgba(255,69,58,0.12)" : "rgba(255,136,0,0.12)"} color={isRed ? T.RED_DEEP : T.ORANGE_DEEP} size={36} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 800, margin: 0, color: T.T1, letterSpacing: "-0.2px" }}>{s.name}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: "-0.2px" }}>{s.name}</p>
                         <p style={{ fontSize: 11, fontWeight: 700, color: isRed ? T.RED : T.ORANGE, margin: "1px 0 0" }}>
                           Marks {s.avgScorePct.toFixed(0)} · Att {s.attendancePct.toFixed(0)}%
                         </p>
                       </div>
-                      <span style={{ fontSize: 17, fontWeight: 800, color: isRed ? T.RED : T.ORANGE, letterSpacing: "-0.4px" }}>{s.composite.toFixed(1)}</span>
+                      <span style={{ fontSize: 17, fontWeight: 700, color: isRed ? T.RED : T.ORANGE, letterSpacing: "-0.4px" }}>{s.composite.toFixed(1)}</span>
                     </div>
                   );
                 })}
@@ -521,7 +556,7 @@ const StudentRow = ({ s, idx, onClick }: { s: LeaderboardStudent; idx: number; o
         Marks {s.avgScorePct.toFixed(0)} · Att {s.attendancePct.toFixed(0)}%
       </p>
     </div>
-    <span style={{ fontSize: s.rank <= 3 ? 19 : 17, fontWeight: 800, color: T.T1, letterSpacing: "-0.5px" }}>{s.composite.toFixed(1)}</span>
+    <span style={{ fontSize: s.rank <= 3 ? 19 : 17, fontWeight: 700, color: T.T1, letterSpacing: "-0.5px" }}>{s.composite.toFixed(1)}</span>
   </div>
 );
 
@@ -532,13 +567,18 @@ const TeacherLeaderboardScreen = () => {
   const navigate = useNavigate();
   const { teacherData } = useAuth();
   const { data: self, isLoading } = useTeacherSelfMetrics();
+  const {
+    data: branchBoard,
+    isLoading: branchLoading,
+    error: branchError,
+  } = useBranchTeacherLeaderboard();
 
   return (
     <div style={{ background: T.pageBg, padding: "28px 18px 32px", borderRadius: 28, fontFamily: FONT }}>
 
       <div style={{ textAlign: "center", marginBottom: 22 }}>
         <Eyebrow>Live · {teacherData?.branch || teacherData?.schoolName || "Your branch"}</Eyebrow>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-1.4px", color: T.T1, margin: "8px 0", lineHeight: 1 }}>Teacher Leaderboard</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-1.4px", color: T.T1, margin: "8px 0", lineHeight: 1 }}>Teacher Leaderboard</h1>
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 22, padding: 4, borderRadius: 12, background: "rgba(0,85,255,0.06)", border: T.BORDER }}>
@@ -549,7 +589,7 @@ const TeacherLeaderboardScreen = () => {
           <p style={{ fontSize: 11, fontWeight: 700, color: T.T3, margin: 0 }}>Students</p>
         </button>
         <div style={{ flex: 1, padding: 10, textAlign: "center", borderRadius: 8, background: T.cardBg, boxShadow: "0 1px 3px rgba(0,85,255,0.10)" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: T.B1, margin: 0, letterSpacing: "-0.1px" }}>Teachers</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: T.B1, margin: 0, letterSpacing: "-0.1px" }}>Teachers</p>
         </div>
       </div>
 
@@ -564,9 +604,9 @@ const TeacherLeaderboardScreen = () => {
             <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
 
             <div style={{ textAlign: "center", marginBottom: 22, position: "relative" }}>
-              <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "2px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Your composite</p>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Your composite</p>
               <div style={{
-                fontSize: 88, fontWeight: 800, letterSpacing: "-5px", color: "#FFF", lineHeight: 0.9,
+                fontSize: 88, fontWeight: 700, letterSpacing: "-5px", color: "#FFF", lineHeight: 0.9,
                 background: "linear-gradient(180deg, #FFF 0%, rgba(255,255,255,0.7) 100%)",
                 WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", margin: 0,
               }}>{self.composite.toFixed(1)}</div>
@@ -584,7 +624,7 @@ const TeacherLeaderboardScreen = () => {
             <button onClick={() => navigate("/leaderboard/teachers/insights")} style={{
               width: "100%", padding: 15, background: "#FFF", border: "none", borderRadius: 14,
               fontSize: 13, color: T.B1, cursor: "pointer", fontFamily: FONT,
-              fontWeight: 800, letterSpacing: "-0.1px", boxShadow: T.SH_BTN,
+              fontWeight: 700, letterSpacing: "-0.1px", boxShadow: T.SH_BTN,
             }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                 View detailed insights
@@ -593,13 +633,118 @@ const TeacherLeaderboardScreen = () => {
             </button>
           </div>
 
-          <LockedSection
-            eyebrow="Branch rankings"
-            title="Comparing teachers across the branch"
-            message="Branch-wide teacher rankings need a weekly aggregation cron job (Cloud Function). Aapka apna composite live calculate ho raha hai — others ke liye backend setup pending hai."
-          />
+          {branchLoading ? (
+            <ScreenLoader label="Calculating branch rankings" />
+          ) : branchError ? (
+            <LockedSection
+              eyebrow="Branch rankings"
+              title="Couldn't load branch teachers"
+              message="Branch-wide rankings ko abhi access nahi mil paya — Firestore rules cross-teacher reads block kar rahi ho sakti hain. Aapka apna composite upar live hai."
+            />
+          ) : !branchBoard || branchBoard.length === 0 ? (
+            <LockedSection
+              eyebrow="Branch rankings"
+              title="No other teachers yet"
+              message="Is branch mein abhi sirf aap ho ya doosre teachers ne attendance / scores enter nahi ki hain."
+            />
+          ) : (
+            <BranchTeacherList rows={branchBoard} />
+          )}
         </>
       )}
+    </div>
+  );
+};
+
+// ── Branch teacher leaderboard list ─────────────────────────────────────────
+const BranchTeacherList = ({ rows }: { rows: BranchTeacherEntry[] }) => {
+  const ranked = rows.filter(r => r.hasData);
+  const noData = rows.filter(r => !r.hasData);
+
+  return (
+    <div style={{
+      background: T.cardBg, border: T.BORDER, borderRadius: 24,
+      padding: "14px 12px 8px", boxShadow: T.SH_LG, marginBottom: 14,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px 14px", borderBottom: T.BORDER_SOFT }}>
+        <Eyebrow>Branch rankings</Eyebrow>
+        <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: 0 }}>{rows.length} teacher{rows.length === 1 ? "" : "s"} · live</p>
+      </div>
+
+      {ranked.length === 0 ? (
+        <div style={{ padding: "26px 12px", textAlign: "center" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: T.T3, margin: 0 }}>
+            Koi teacher abhi tak scores ya attendance enter nahi kiya — composite calculate karne ke liye data chahiye.
+          </p>
+        </div>
+      ) : (
+        ranked.map((t, i) => <BranchTeacherRow key={t.teacherId} t={t} idx={i} />)
+      )}
+
+      {noData.length > 0 && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", margin: "6px 0" }}>
+            <div style={{ flex: 1, height: 0.5, background: "rgba(0,85,255,0.18)" }} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: T.T4, letterSpacing: "1.2px", textTransform: "uppercase" }}>Awaiting data</span>
+            <div style={{ flex: 1, height: 0.5, background: "rgba(0,85,255,0.18)" }} />
+          </div>
+          {noData.map((t, i) => (
+            <div key={t.teacherId} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "12px 10px",
+              borderRadius: 14, borderTop: i > 0 ? T.BORDER_SOFT : "none", opacity: 0.6,
+            }}>
+              <RankBadge rank={t.rank} variant="default" size={32} />
+              <Avatar initials={t.initials} bg="rgba(0,85,255,0.08)" color={T.T3} size={32} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: "-0.2px" }}>
+                  {t.name}{t.isYou && <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 8, padding: "2px 6px", borderRadius: 999, background: "rgba(0,85,255,0.10)", color: T.B1, letterSpacing: "0.6px" }}>YOU</span>}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>
+                  {t.subject} · {t.classCount} class{t.classCount === 1 ? "" : "es"}
+                </p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.T4, letterSpacing: "0.2px" }}>—</span>
+            </div>
+          ))}
+        </>
+      )}
+
+      <div style={{ textAlign: "center", padding: "14px 0 4px" }}>
+        <p style={{ fontSize: 10, fontWeight: 500, color: T.T4, margin: 0, letterSpacing: "0.2px" }}>
+          Live · Composite = 60% marks + 40% attendance
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const BranchTeacherRow = ({ t, idx }: { t: BranchTeacherEntry; idx: number }) => {
+  const isPodium = t.rank <= 3;
+  const variant: RankVariant = isPodium ? (t.rank as 1 | 2 | 3) : t.isYou ? "user" : "default";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 14,
+      padding: isPodium ? "14px 10px" : "12px 10px",
+      borderRadius: isPodium ? 16 : 14,
+      borderTop: idx > 0 ? T.BORDER_SOFT : "none",
+      background: t.isYou ? "linear-gradient(90deg, rgba(0,85,255,0.06) 0%, rgba(0,85,255,0.02) 100%)" : "transparent",
+      border: t.isYou ? T.BORDER_USER : "none",
+      marginTop: t.isYou ? 6 : 0,
+    }}>
+      <RankBadge rank={t.rank} variant={variant} size={isPodium ? 38 : 34} />
+      <Avatar initials={t.initials} bg="rgba(0,85,255,0.10)" color={T.B1} size={isPodium ? 38 : 34} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: isPodium ? 15 : 14, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: isPodium ? "-0.3px" : "-0.2px" }}>
+          {t.name}
+          {t.isYou && (
+            <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 8, padding: "2px 6px", borderRadius: 999, background: "rgba(0,85,255,0.10)", color: T.B1, letterSpacing: "0.6px" }}>YOU</span>
+          )}
+        </p>
+        <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>
+          {t.subject} · {t.totalStudents} student{t.totalStudents === 1 ? "" : "s"} · Marks {t.classAvgScore.toFixed(0)} · Att {t.classAvgAttendance.toFixed(0)}%
+        </p>
+      </div>
+      <span style={{ fontSize: isPodium ? 19 : 17, fontWeight: 700, color: T.T1, letterSpacing: "-0.5px" }}>{t.composite.toFixed(1)}</span>
     </div>
   );
 };
@@ -637,29 +782,101 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 22 }}>
-        <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1.4px", color: T.T1, margin: "0 0 6px", lineHeight: 1 }}>Class {cls.className}</h1>
+        <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-1.4px", color: T.T1, margin: "0 0 6px", lineHeight: 1 }}>Class {cls.className}</h1>
         <p style={{ fontSize: 13, fontWeight: 500, color: T.T3, margin: 0 }}>{cls.subject} · {cls.totalStudents} students</p>
       </div>
 
-      <div style={{
-        background: T.HERO_GRADIENT, borderRadius: 22, padding: "18px 20px",
-        boxShadow: T.SH_HERO, marginBottom: 32, position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Class composite</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1.6px", color: "#FFF", margin: 0, lineHeight: 1 }}>{cls.classAverage.toFixed(1)}</p>
+      {(() => {
+        const composite = cls.classAverage;
+        const band = composite >= 75 ? "strong" : composite >= 60 ? "steady" : composite > 0 ? "weak" : "empty";
+        const bandLabel = band === "strong" ? "Strong" : band === "steady" ? "Steady" : band === "weak" ? "Needs lift" : "No data";
+        const bandFg = band === "strong" ? "#6FFFAA" : band === "steady" ? "#FFD088" : band === "weak" ? "#FF99AA" : "rgba(255,255,255,0.7)";
+        const bandDot = band === "strong" ? "#34C759" : band === "steady" ? "#FFAA00" : band === "weak" ? "#FF3355" : "rgba(255,255,255,0.5)";
+        const bandBg = band === "strong" ? "rgba(52,199,89,0.18)" : band === "steady" ? "rgba(255,170,0,0.18)" : band === "weak" ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.10)";
+        const bandBdr = band === "strong" ? "rgba(52,199,89,0.5)" : band === "steady" ? "rgba(255,170,0,0.5)" : band === "weak" ? "rgba(255,69,58,0.5)" : "rgba(255,255,255,0.20)";
+
+        const top = cls.allStudents[0];
+        const bottom = cls.allStudents[cls.allStudents.length - 1];
+        const spread = top && bottom && cls.allStudents.length >= 2 ? top.composite - bottom.composite : 0;
+
+        return (
+          <div style={{
+            background: T.HERO_GRADIENT, borderRadius: 22, padding: "20px 22px",
+            boxShadow: T.SH_HERO, marginBottom: 32, position: "relative", overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: "-50%", left: "-10%", width: "60%", height: "120%", background: "radial-gradient(circle, rgba(123,63,244,0.18) 0%, transparent 60%)", pointerEvents: "none" }} />
+
+            {/* Top row: status pill + class label */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, position: "relative", zIndex: 1 }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: 0, textTransform: "uppercase" }}>
+                Class summary
+              </p>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 11px", borderRadius: 999,
+                background: bandBg, border: `0.5px solid ${bandBdr}`,
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase",
+                color: bandFg,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: bandDot, boxShadow: `0 0 8px ${bandDot}` }} />
+                {bandLabel}
+              </span>
+            </div>
+
+            {/* Hero composite + secondary stats */}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 18, flexWrap: "wrap", position: "relative", zIndex: 1, marginBottom: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.6)", margin: "0 0 4px", textTransform: "uppercase" }}>Class composite</p>
+                <p style={{ fontSize: 56, fontWeight: 700, letterSpacing: "-2.4px", color: "#FFF", margin: 0, lineHeight: 0.95 }}>
+                  {composite.toFixed(1)}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.65)", margin: "5px 0 0", letterSpacing: "-0.1px" }}>
+                  60% marks · 40% attendance
+                </p>
+              </div>
+
+              {/* Right-side mini-stats grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(86px, 1fr))", gap: 8, flex: 1, minWidth: 360 }}>
+                <HeroMiniStat label="Avg Marks" value={`${cls.classAvgScore.toFixed(0)}%`} />
+                <HeroMiniStat label="Avg Att" value={`${cls.classAvgAttendance.toFixed(0)}%`} />
+                <HeroMiniStat label="Need Help" value={`${cls.needAttentionCount}/${cls.totalStudents}`} valueColor={cls.needAttentionCount > 0 ? T.GOLD : "#FFF"} />
+                <HeroMiniStat label="Spread" value={spread > 0 ? spread.toFixed(0) : "—"} />
+              </div>
+            </div>
+
+            {/* Footer line: top performer + bottom — when we have ≥2 students */}
+            {top && cls.totalStudents >= 1 && (
+              <div style={{
+                display: "flex", flexWrap: "wrap", gap: 10,
+                paddingTop: 14, borderTop: "0.5px solid rgba(255,255,255,0.12)",
+                position: "relative", zIndex: 1,
+              }}>
+                <HeroChip
+                  label="Top performer"
+                  primary={top.name.split(" ")[0]}
+                  secondary={`${top.composite.toFixed(1)} composite`}
+                  accent="#6FFFAA"
+                />
+                {bottom && bottom.studentId !== top.studentId && (
+                  <HeroChip
+                    label="Lowest composite"
+                    primary={bottom.name.split(" ")[0]}
+                    secondary={`${bottom.composite.toFixed(1)} · needs lift`}
+                    accent="#FFD088"
+                  />
+                )}
+                <HeroChip
+                  label="Class size"
+                  primary={`${cls.totalStudents}`}
+                  secondary={cls.totalStudents === 1 ? "student" : "students"}
+                  accent="#FFFFFF"
+                />
+              </div>
+            )}
           </div>
-          <div style={{ width: 0.5, alignSelf: "stretch", background: "rgba(255,255,255,0.15)" }} />
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Need help</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1.4px", color: cls.needAttentionCount > 0 ? T.GOLD : "#FFF", margin: 0, lineHeight: 1 }}>
-              {cls.needAttentionCount}<span style={{ fontSize: 18, color: "rgba(255,255,255,0.6)" }}>/{cls.totalStudents}</span>
-            </p>
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       <SectionHead eyebrow="01 · Class breakdown" title={`Where ${cls.className} stands`} subtitle="Real metrics from your class data" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 32 }}>
@@ -792,12 +1009,12 @@ const TierCard = ({ color, label, subtitle, count, range, avgScore, students, in
   return (
     <div style={{ background: tc.bg, border: tc.border, borderRadius: 18, padding: 16, boxShadow: color === "blue" ? T.SH : "none" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 10, background: tc.badge, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{count}</div>
+        <div style={{ width: 28, height: 28, borderRadius: 10, background: tc.badge, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{count}</div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 800, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{label} · {range}</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{label} · {range}</p>
           <p style={{ fontSize: 11, fontWeight: 500, color: color === "orange" ? T.ORANGE : T.T3, margin: "1px 0 0" }}>{subtitle}</p>
         </div>
-        <span style={{ fontSize: 18, fontWeight: 800, color: tc.score, letterSpacing: "-0.4px" }}>avg {avgScore.toFixed(1)}</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: tc.score, letterSpacing: "-0.4px" }}>avg {avgScore.toFixed(1)}</span>
       </div>
       <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.5 }}>
         {students && <>{students} — </>}{insight}
@@ -828,7 +1045,7 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, padding: "0 4px" }}>
         <BackButton label={`Class ${student.classLabel}`} onClick={() => navigate(`/leaderboard?c=${student.classId}`)} />
         {isAtRisk && (
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.6px", color: T.RED, margin: 0, textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.6px", color: T.RED, margin: 0, textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <AlertTriangle size={11} color={T.RED} strokeWidth={2.4} /> At-risk
           </p>
         )}
@@ -843,7 +1060,7 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
             size={56}
           />
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1.2px", color: T.T1, margin: "0 0 4px", lineHeight: 1 }}>{student.name}</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-1.2px", color: T.T1, margin: "0 0 4px", lineHeight: 1 }}>{student.name}</h1>
         <p style={{ fontSize: 13, fontWeight: 500, color: T.T3, margin: 0 }}>Class {student.classLabel} · Roll #{student.rollNo}</p>
       </div>
 
@@ -856,13 +1073,13 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
         <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: `radial-gradient(circle, rgba(${isAtRisk ? "255,69,58" : "255,255,255"},0.10) 0%, transparent 60%)`, pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Class rank</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1.6px", color: "#FFF", margin: 0, lineHeight: 1 }}>#{student.rank}<span style={{ fontSize: 18, color: "rgba(255,255,255,0.6)" }}>/{student.totalInClass}</span></p>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Class rank</p>
+            <p style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-1.6px", color: "#FFF", margin: 0, lineHeight: 1 }}>#{student.rank}<span style={{ fontSize: 18, color: "rgba(255,255,255,0.6)" }}>/{student.totalInClass}</span></p>
           </div>
           <div style={{ width: 0.5, alignSelf: "stretch", background: "rgba(255,255,255,0.15)" }} />
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Composite</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", color: "#FFF", margin: 0, lineHeight: 1 }}>{student.composite.toFixed(1)}</p>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Composite</p>
+            <p style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-1px", color: "#FFF", margin: 0, lineHeight: 1 }}>{student.composite.toFixed(1)}</p>
           </div>
         </div>
       </div>
@@ -911,7 +1128,7 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: T.T1, letterSpacing: "-0.2px" }}>{subj.subject}{subj.isYourSubject && " ⚠"}</span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: subj.status === "critical" ? T.RED : subj.status === "weak" ? T.ORANGE : T.T1, letterSpacing: "-0.4px" }}>{subj.score.toFixed(1)}</span>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: subj.status === "critical" ? T.RED : subj.status === "weak" ? T.ORANGE : T.T1, letterSpacing: "-0.4px" }}>{subj.score.toFixed(1)}</span>
                 </div>
                 <div style={{ position: "relative", height: 6, background: "rgba(0,85,255,0.06)", borderRadius: 999, overflow: "hidden" }}>
                   <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${subj.score}%`, background: subj.status === "critical" ? `linear-gradient(90deg, ${T.ORANGE} 0%, ${T.RED} 100%)` : subj.status === "weak" ? T.ORANGE : T.B1, borderRadius: 999 }} />
@@ -998,27 +1215,109 @@ const TeacherSelfInsightsScreen = () => {
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 22 }}>
-        <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1.4px", color: T.T1, margin: "0 0 6px", lineHeight: 1 }}>Your deep dive</h1>
+        <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-1.4px", color: T.T1, margin: "0 0 6px", lineHeight: 1 }}>Your deep dive</h1>
         <p style={{ fontSize: 13, fontWeight: 500, color: T.T3, margin: 0 }}>{self.name} · {self.subject} · {self.totalStudents} students</p>
       </div>
 
-      <div style={{
-        background: T.HERO_GRADIENT, borderRadius: 22, padding: "18px 20px",
-        boxShadow: T.SH_HERO, marginBottom: 32, position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Composite</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1.6px", color: "#FFF", margin: 0, lineHeight: 1 }}>{self.composite.toFixed(1)}</p>
+      {(() => {
+        const composite = self.composite;
+        const band = composite >= 75 ? "strong" : composite >= 60 ? "steady" : composite > 0 ? "weak" : "empty";
+        const bandLabel = band === "strong" ? "Strong" : band === "steady" ? "Steady" : band === "weak" ? "Needs lift" : "No data";
+        const bandFg = band === "strong" ? "#6FFFAA" : band === "steady" ? "#FFD088" : band === "weak" ? "#FF99AA" : "rgba(255,255,255,0.7)";
+        const bandDot = band === "strong" ? "#34C759" : band === "steady" ? "#FFAA00" : band === "weak" ? "#FF3355" : "rgba(255,255,255,0.5)";
+        const bandBg = band === "strong" ? "rgba(52,199,89,0.18)" : band === "steady" ? "rgba(255,170,0,0.18)" : band === "weak" ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.10)";
+        const bandBdr = band === "strong" ? "rgba(52,199,89,0.5)" : band === "steady" ? "rgba(255,170,0,0.5)" : band === "weak" ? "rgba(255,69,58,0.5)" : "rgba(255,255,255,0.20)";
+
+        const sortedClasses = [...self.classes].sort((a, b) => b.classAverage - a.classAverage);
+        const bestClass = sortedClasses[0];
+        const weakClass = sortedClasses.length > 1 ? sortedClasses[sortedClasses.length - 1] : null;
+        const weakClassCount = self.classes.filter(c => c.classAverage > 0 && c.classAverage < 60).length;
+
+        return (
+          <div style={{
+            background: T.HERO_GRADIENT, borderRadius: 22, padding: "20px 22px",
+            boxShadow: T.SH_HERO, marginBottom: 32, position: "relative", overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", top: "-40%", right: "-20%", width: "80%", height: "140%", background: "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: "-50%", left: "-10%", width: "60%", height: "120%", background: "radial-gradient(circle, rgba(123,63,244,0.18) 0%, transparent 60%)", pointerEvents: "none" }} />
+
+            {/* Top row: eyebrow + status pill */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, position: "relative", zIndex: 1 }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: 0, textTransform: "uppercase" }}>
+                Self snapshot
+              </p>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 11px", borderRadius: 999,
+                background: bandBg, border: `0.5px solid ${bandBdr}`,
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase",
+                color: bandFg,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: bandDot, boxShadow: `0 0 8px ${bandDot}` }} />
+                {bandLabel}
+              </span>
+            </div>
+
+            {/* Hero composite + secondary stats */}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 18, flexWrap: "wrap", position: "relative", zIndex: 1, marginBottom: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.6px", color: "rgba(255,255,255,0.6)", margin: "0 0 4px", textTransform: "uppercase" }}>Composite</p>
+                <p style={{ fontSize: 56, fontWeight: 700, letterSpacing: "-2.4px", color: "#FFF", margin: 0, lineHeight: 0.95 }}>
+                  {composite.toFixed(1)}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.65)", margin: "5px 0 0", letterSpacing: "-0.1px" }}>
+                  60% marks · 40% attendance
+                </p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(86px, 1fr))", gap: 8, flex: 1, minWidth: 360 }}>
+                <HeroMiniStat label="Avg Marks" value={`${self.classAvgScore.toFixed(0)}%`} />
+                <HeroMiniStat label="Avg Att" value={`${self.classAvgAttendance.toFixed(0)}%`} />
+                <HeroMiniStat label="Classes" value={`${self.classes.length}`} />
+                <HeroMiniStat label="Students" value={`${self.totalStudents}`} />
+              </div>
+            </div>
+
+            {/* Footer chips */}
+            <div style={{
+              display: "flex", flexWrap: "wrap", gap: 10,
+              paddingTop: 14, borderTop: "0.5px solid rgba(255,255,255,0.12)",
+              position: "relative", zIndex: 1,
+            }}>
+              {bestClass && (
+                <HeroChip
+                  label="Best class"
+                  primary={(bestClass.label.split(" · ")[0]) || bestClass.label}
+                  secondary={`${bestClass.classAverage.toFixed(1)} composite`}
+                  accent="#6FFFAA"
+                />
+              )}
+              {weakClass && weakClass.classId !== bestClass?.classId && (
+                <HeroChip
+                  label="Needs focus"
+                  primary={(weakClass.label.split(" · ")[0]) || weakClass.label}
+                  secondary={`${weakClass.classAverage.toFixed(1)} · lift target`}
+                  accent="#FFD088"
+                />
+              )}
+              <HeroChip
+                label="At-risk classes"
+                primary={`${weakClassCount}`}
+                secondary={weakClassCount === 1 ? "below 60" : "below 60"}
+                accent={weakClassCount > 0 ? "#FF99AA" : "#FFFFFF"}
+              />
+              {self.branch && (
+                <HeroChip
+                  label="Branch"
+                  primary={self.branch}
+                  secondary={self.subject || "—"}
+                  accent="#C8A4FF"
+                />
+              )}
+            </div>
           </div>
-          <div style={{ width: 0.5, alignSelf: "stretch", background: "rgba(255,255,255,0.15)" }} />
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.6px", color: "rgba(255,255,255,0.55)", margin: "0 0 2px", textTransform: "uppercase" }}>Classes</p>
-            <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", color: "#FFF", margin: 0, lineHeight: 1 }}>{self.classes.length}</p>
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       <SectionHead eyebrow="01 · Composite breakdown" title={`How ${self.composite.toFixed(1)} builds up`} subtitle="Live calculation across your classes" />
       <div style={{ background: T.cardBg, border: T.BORDER, borderRadius: 22, padding: 22, boxShadow: T.SH_LG, marginBottom: 32 }}>
@@ -1030,10 +1329,10 @@ const TeacherSelfInsightsScreen = () => {
           <div key={row.label} style={{ marginBottom: i < arr.length - 1 ? 18 : 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 800, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{row.label}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>{row.label}</p>
                 <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>{row.sub}</p>
               </div>
-              <p style={{ fontSize: 22, fontWeight: 800, color: T.T1, margin: 0, letterSpacing: "-0.5px", lineHeight: 1 }}>{row.value.toFixed(1)}</p>
+              <p style={{ fontSize: 22, fontWeight: 700, color: T.T1, margin: 0, letterSpacing: "-0.5px", lineHeight: 1 }}>{row.value.toFixed(1)}</p>
             </div>
             <div style={{ height: 6, background: "rgba(0,85,255,0.06)", borderRadius: 999, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min(row.value, 100)}%`, background: T.B1, borderRadius: 999 }} />
@@ -1054,12 +1353,12 @@ const TeacherSelfInsightsScreen = () => {
             }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>Class {c.label}{isWeak && " ⚠"}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.T1, margin: 0, letterSpacing: "-0.2px" }}>Class {c.label}{isWeak && " ⚠"}</p>
                   <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>
                     {c.studentCount} students · marks {c.classAvgScore.toFixed(1)}% · att {c.classAvgAttendance.toFixed(1)}%
                   </p>
                 </div>
-                <p style={{ fontSize: 22, fontWeight: 800, color: isWeak ? T.ORANGE : T.T1, margin: 0, letterSpacing: "-0.5px" }}>{c.classAverage.toFixed(1)}</p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: isWeak ? T.ORANGE : T.T1, margin: 0, letterSpacing: "-0.5px" }}>{c.classAverage.toFixed(1)}</p>
               </div>
             </div>
           );
@@ -1137,7 +1436,7 @@ const Leaderboard = () => {
 
   return (
     <div style={{ minHeight: "100vh", background: T.pageBg, padding: "20px 0", fontFamily: FONT }}>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      <div>
         {screen}
       </div>
     </div>

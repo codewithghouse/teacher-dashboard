@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Professional Report HTML Template — matching Student Profile design
  * Used by all report generators across the dashboard.
  *
@@ -87,7 +87,7 @@ export interface ReportConfig {
 const CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
     background: ${C.bg}; color: ${C.ink}; padding: 32px; max-width: 900px; margin: 0 auto;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }

@@ -694,10 +694,10 @@ const MobileSummarizeLesson = ({
       body: <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {sections.map((sec: SectionBreak, i: number) => (
           <div key={i} style={{ padding: "10px 12px", background: "rgba(0,200,83,.06)", border: "0.5px solid rgba(0,200,83,.15)", borderRadius: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#001040", marginBottom: 6, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
             {(sec.points || []).map((pt: string, pi: number) => (
               <div key={pi} style={{ fontSize: 11, color: "#002080", lineHeight: 1.5, margin: "3px 0", display: "flex", alignItems: "flex-start", gap: 5, fontWeight: 500 }}>
-                <span style={{ color: "#00C853", fontWeight: 900, flexShrink: 0 }}>✓</span>
+                <span style={{ color: "#00C853", fontWeight: 700, flexShrink: 0 }}>✓</span>
                 {pt}
               </div>
             ))}
@@ -750,7 +750,7 @@ const MobileSummarizeLesson = ({
         <div style={{ padding: "8px 2px 14px" }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 9, fontWeight: 800, color: "#fff",
+            fontSize: 9, fontWeight: 700, color: "#fff",
             letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 12,
             background: "linear-gradient(135deg, #001A66 0%, #0055FF 50%, #1166FF 100%)",
             padding: "6px 12px 6px 8px", borderRadius: 100,
@@ -763,7 +763,7 @@ const MobileSummarizeLesson = ({
             }}>✦</span>
             {showResult ? "AI Summary Ready" : "AI Powered"}
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
             {showResult ? (
               <>
                 {summary?.title ? <>{summary.title}{" "}</> : "Chapter "}
@@ -821,7 +821,7 @@ const MobileSummarizeLesson = ({
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Smart extraction · Real-time</div>
                   </div>
                   <div style={{
@@ -830,14 +830,14 @@ const MobileSummarizeLesson = ({
                     border: "0.5px solid rgba(255,255,255,.32)",
                     color: "#fff",
                     padding: "5px 12px", borderRadius: 100,
-                    fontSize: 10, fontWeight: 800,
+                    fontSize: 10, fontWeight: 700,
                     display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
                   }}>
                     <span className="sl-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 8px #FFDD55" }} />
                     {file ? "Ready" : "Waiting"}
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-1.1px", lineHeight: 1.1, marginBottom: 8 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: "#fff", letterSpacing: "-1.1px", lineHeight: 1.1, marginBottom: 8 }}>
                   Any PDF → exam notes ✨
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,.82)", marginBottom: 20, fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
@@ -845,15 +845,15 @@ const MobileSummarizeLesson = ({
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
                   <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>7</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>7</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Sections</div>
                   </div>
                   <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.5px" }}>~12s</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>~12s</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Avg Time</div>
                   </div>
                   <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>20MB</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>20MB</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Max Size</div>
                   </div>
                 </div>
@@ -890,7 +890,7 @@ const MobileSummarizeLesson = ({
                 <div style={{
                   position: "absolute", top: 12, right: 12,
                   background: "#F4F7FE", color: "#5070B0",
-                  fontSize: 9, fontWeight: 800, padding: "4px 9px", borderRadius: 100,
+                  fontSize: 9, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
                   letterSpacing: "0.3px", border: "0.5px solid rgba(0,85,255,.07)",
                 }}>MAX 20 MB</div>
                 <div style={{
@@ -910,7 +910,7 @@ const MobileSummarizeLesson = ({
                     textShadow: "0 0 8px rgba(255,221,85,.8)", lineHeight: 1,
                   }}>✦</span>
                 </div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px", marginBottom: 5 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px", marginBottom: 5 }}>
                   {dragging ? "Release to upload" : "Drop PDF here"}
                 </div>
                 <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5, marginBottom: 14 }}>
@@ -922,7 +922,7 @@ const MobileSummarizeLesson = ({
                   padding: "9px 16px",
                   background: "linear-gradient(135deg, #0055FF, #1166FF)",
                   color: "#fff",
-                  fontSize: 12, fontWeight: 800, borderRadius: 100,
+                  fontSize: 12, fontWeight: 700, borderRadius: 100,
                   letterSpacing: "-0.15px",
                   boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 4px 12px rgba(0,85,255,.3)",
                 }}>
@@ -963,21 +963,21 @@ const MobileSummarizeLesson = ({
                     background: "linear-gradient(225deg, rgba(255,255,255,.35) 50%, transparent 50%)",
                     borderRadius: "0 7px 0 0",
                   }} />
-                  <span style={{ fontSize: 8, fontWeight: 900, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{file.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{file.name}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
                     {extracting ? (
                       <>
-                        <span style={{ background: "rgba(0,85,255,.1)", color: "#0055FF", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ background: "rgba(0,85,255,.1)", color: "#0055FF", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
                           <Loader2 style={{ width: 9, height: 9 }} className="animate-spin" />
                           Reading
                         </span>
                       </>
                     ) : (
                       <>
-                        <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
                           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                           Ready
                         </span>
@@ -1022,7 +1022,7 @@ const MobileSummarizeLesson = ({
               >
                 <div className="sl-spinner" />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px" }}>AI is summarizing…</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px" }}>AI is summarizing…</div>
                   <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, marginTop: 2, letterSpacing: "-0.1px" }}>This may take 15–30 seconds</div>
                 </div>
               </div>
@@ -1045,7 +1045,7 @@ const MobileSummarizeLesson = ({
             {/* What you'll get section */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px", display: "flex", alignItems: "center", gap: 6 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFAA00"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
                   What you'll get
                 </span>
@@ -1078,7 +1078,7 @@ const MobileSummarizeLesson = ({
                     boxShadow: "0 1px 2px rgba(0,85,255,.1), 0 2px 6px rgba(0,85,255,.14)",
                   }}>{b.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2 }}>{b.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2 }}>{b.title}</div>
                     <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 2 }}>{b.sub}</div>
                   </div>
                   <div style={{
@@ -1117,7 +1117,7 @@ const MobileSummarizeLesson = ({
                     ? "#F4F7FE"
                     : "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)",
                   color: (!file || extracting || loading) ? "#99AACC" : "#fff",
-                  fontSize: 15, fontWeight: 800, border: "none",
+                  fontSize: 15, fontWeight: 700, border: "none",
                   cursor: (!file || extracting || loading) ? "not-allowed" : "pointer",
                   letterSpacing: "-0.3px",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1162,12 +1162,12 @@ const MobileSummarizeLesson = ({
                 display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 6,
               }}>
                 <span style={{ position: "absolute", top: 0, right: 0, width: 12, height: 12, background: "linear-gradient(225deg, rgba(255,255,255,.35) 50%, transparent 50%)", borderRadius: "0 7px 0 0" }} />
-                <span style={{ fontSize: 8, fontWeight: 900, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
+                <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{file?.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{file?.name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
-                  <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "2px 7px", borderRadius: 6, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Analysed
                   </span>
@@ -1199,7 +1199,7 @@ const MobileSummarizeLesson = ({
             {/* AI Summary section */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px", display: "flex", alignItems: "center", gap: 6 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFAA00"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
                   AI Summary
                 </span>
@@ -1231,8 +1231,8 @@ const MobileSummarizeLesson = ({
                     background: colorStyles[card.color], color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   }}>{card.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", flex: 1 }}>{card.title}</div>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: "#FFAA00", letterSpacing: "1px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", flex: 1 }}>{card.title}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#FFAA00", letterSpacing: "1px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 3 }}>
                     ✦ AI
                   </div>
                 </div>
@@ -1259,7 +1259,7 @@ const MobileSummarizeLesson = ({
                   padding: "11px 12px", borderRadius: 12,
                   background: "linear-gradient(135deg, #0055FF, #1166FF)",
                   color: "#fff",
-                  fontSize: 12, fontWeight: 800, border: "none",
+                  fontSize: 12, fontWeight: 700, border: "none",
                   letterSpacing: "-0.2px", cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                   boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 4px 12px rgba(0,85,255,.28)",
@@ -1468,10 +1468,10 @@ const DesktopSummarizeLesson = ({
       body: <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {sections.map((sec: SectionBreak, i: number) => (
           <div key={i} style={{ padding: "12px 14px", background: "rgba(0,200,83,.06)", border: "0.5px solid rgba(0,200,83,.15)", borderRadius: 13 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", marginBottom: 7, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", marginBottom: 7, letterSpacing: "-0.2px" }}>{sec.section || sec.title}</div>
             {(sec.points || []).map((pt: string, pi: number) => (
               <div key={pi} style={{ fontSize: 12, color: "#002080", lineHeight: 1.55, margin: "4px 0", display: "flex", alignItems: "flex-start", gap: 6, fontWeight: 500 }}>
-                <span style={{ color: "#00C853", fontWeight: 900, flexShrink: 0 }}>✓</span>
+                <span style={{ color: "#00C853", fontWeight: 700, flexShrink: 0 }}>✓</span>
                 {pt}
               </div>
             ))}
@@ -1511,7 +1511,7 @@ const DesktopSummarizeLesson = ({
         <div style={{ marginBottom: 20 }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 7,
-            fontSize: 10, fontWeight: 800, color: "#fff",
+            fontSize: 10, fontWeight: 700, color: "#fff",
             letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 14,
             background: "linear-gradient(135deg, #001A66 0%, #0055FF 50%, #1166FF 100%)",
             padding: "7px 14px 7px 10px", borderRadius: 100,
@@ -1524,7 +1524,7 @@ const DesktopSummarizeLesson = ({
             }}>✦</span>
             {showResult ? "AI Summary Ready" : "AI Powered"}
           </div>
-          <h1 style={{ fontSize: 42, fontWeight: 800, color: "#001040", letterSpacing: "-1.6px", lineHeight: 1.05, margin: 0 }}>
+          <h1 style={{ fontSize: 42, fontWeight: 700, color: "#001040", letterSpacing: "-1.6px", lineHeight: 1.05, margin: 0 }}>
             {showResult ? (
               <>
                 {summary?.title ? <>{summary.title}{" "}</> : "Chapter "}
@@ -1582,7 +1582,7 @@ const DesktopSummarizeLesson = ({
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 3, fontWeight: 500, letterSpacing: "-0.1px" }}>Smart extraction · Real-time</div>
                   </div>
                   <div style={{
@@ -1591,7 +1591,7 @@ const DesktopSummarizeLesson = ({
                     border: "0.5px solid rgba(255,255,255,.32)",
                     color: "#fff",
                     padding: "7px 14px", borderRadius: 100,
-                    fontSize: 11, fontWeight: 800,
+                    fontSize: 11, fontWeight: 700,
                     display: "flex", alignItems: "center", gap: 7, letterSpacing: "0.3px",
                   }}>
                     <span className="sld-pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 8px #FFDD55" }} />
@@ -1600,7 +1600,7 @@ const DesktopSummarizeLesson = ({
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 32, flexWrap: "wrap" }}>
                   <div>
-                    <div style={{ fontSize: 42, fontWeight: 800, color: "#fff", letterSpacing: "-1.6px", lineHeight: 1.1, marginBottom: 10 }}>
+                    <div style={{ fontSize: 42, fontWeight: 700, color: "#fff", letterSpacing: "-1.6px", lineHeight: 1.1, marginBottom: 10 }}>
                       Any PDF → exam notes ✨
                     </div>
                     <div style={{ fontSize: 15, color: "rgba(255,255,255,.82)", fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
@@ -1609,15 +1609,15 @@ const DesktopSummarizeLesson = ({
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden", minWidth: 380 }}>
                     <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.7px" }}>7</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: "#fff", letterSpacing: "-0.7px" }}>7</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Sections</div>
                     </div>
                     <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.7px" }}>~12s</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.7px" }}>~12s</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Avg Time</div>
                     </div>
                     <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.7px" }}>20MB</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.7px" }}>20MB</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Max Size</div>
                     </div>
                   </div>
@@ -1660,7 +1660,7 @@ const DesktopSummarizeLesson = ({
                     <div style={{
                       position: "absolute", top: 16, right: 16,
                       background: "#F4F7FE", color: "#5070B0",
-                      fontSize: 10, fontWeight: 800, padding: "5px 11px", borderRadius: 100,
+                      fontSize: 10, fontWeight: 700, padding: "5px 11px", borderRadius: 100,
                       letterSpacing: "0.3px", border: "0.5px solid rgba(0,85,255,.07)",
                     }}>MAX 20 MB</div>
                     <div style={{
@@ -1680,7 +1680,7 @@ const DesktopSummarizeLesson = ({
                         textShadow: "0 0 8px rgba(255,221,85,.8)", lineHeight: 1,
                       }}>✦</span>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px", marginBottom: 6 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px", marginBottom: 6 }}>
                       {dragging ? "Release to upload" : "Drop PDF here"}
                     </div>
                     <div style={{ fontSize: 13, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5, marginBottom: 16 }}>
@@ -1692,7 +1692,7 @@ const DesktopSummarizeLesson = ({
                       padding: "11px 20px",
                       background: "linear-gradient(135deg, #0055FF, #1166FF)",
                       color: "#fff",
-                      fontSize: 13, fontWeight: 800, borderRadius: 100,
+                      fontSize: 13, fontWeight: 700, borderRadius: 100,
                       letterSpacing: "-0.15px",
                       boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 4px 12px rgba(0,85,255,.3)",
                     }}>
@@ -1734,19 +1734,19 @@ const DesktopSummarizeLesson = ({
                         background: "linear-gradient(225deg, rgba(255,255,255,.35) 50%, transparent 50%)",
                         borderRadius: "0 10px 0 0",
                       }} />
-                      <span style={{ fontSize: 11, fontWeight: 900, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>{file.name}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>{file.name}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px", flexWrap: "wrap" }}>
                         {extracting ? (
-                          <span style={{ background: "rgba(0,85,255,.1)", color: "#0055FF", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ background: "rgba(0,85,255,.1)", color: "#0055FF", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
                             <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" />
                             Reading
                           </span>
                         ) : (
                           <>
-                            <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 5 }}>
+                            <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                               Ready
                             </span>
@@ -1787,7 +1787,7 @@ const DesktopSummarizeLesson = ({
                 overflow: "hidden",
               }}>
                 <div style={{ padding: "6px 12px 10px", display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", display: "flex", alignItems: "center", gap: 6 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFAA00"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
                     What you'll get
                   </span>
@@ -1811,7 +1811,7 @@ const DesktopSummarizeLesson = ({
                       boxShadow: "0 1px 2px rgba(0,85,255,.1), 0 2px 6px rgba(0,85,255,.14)",
                     }}>{b.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.25 }}>{b.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.25 }}>{b.title}</div>
                       <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginTop: 3 }}>{b.sub}</div>
                     </div>
                     <div style={{
@@ -1843,7 +1843,7 @@ const DesktopSummarizeLesson = ({
               >
                 <div className="sld-spinner" />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>AI is summarizing…</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>AI is summarizing…</div>
                   <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 3, letterSpacing: "-0.1px" }}>This may take 15–30 seconds</div>
                 </div>
               </div>
@@ -1875,7 +1875,7 @@ const DesktopSummarizeLesson = ({
                   ? "#F4F7FE"
                   : "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)",
                 color: (!file || extracting || loading) ? "#99AACC" : "#fff",
-                fontSize: 17, fontWeight: 800, border: "none",
+                fontSize: 17, fontWeight: 700, border: "none",
                 cursor: (!file || extracting || loading) ? "not-allowed" : "pointer",
                 letterSpacing: "-0.3px",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -1919,12 +1919,12 @@ const DesktopSummarizeLesson = ({
                 display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 8,
               }}>
                 <span style={{ position: "absolute", top: 0, right: 0, width: 16, height: 16, background: "linear-gradient(225deg, rgba(255,255,255,.35) 50%, transparent 50%)", borderRadius: "0 9px 0 0" }} />
-                <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: "0.3px" }}>PDF</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>{file?.name}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>{file?.name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>
-                  <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ background: "rgba(0,200,83,.1)", color: "#00C853", padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Analysed
                   </span>
@@ -1956,7 +1956,7 @@ const DesktopSummarizeLesson = ({
             {/* AI Summary section head */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 14px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px", display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px", display: "flex", alignItems: "center", gap: 7 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFAA00"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
                   AI Summary
                 </span>
@@ -1989,8 +1989,8 @@ const DesktopSummarizeLesson = ({
                       background: colorStyles[card.color], color: "#fff",
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>{card.icon}</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", flex: 1 }}>{card.title}</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#FFAA00", letterSpacing: "1px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 3 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", flex: 1 }}>{card.title}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#FFAA00", letterSpacing: "1px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 3 }}>
                       ✦ AI
                     </div>
                   </div>
@@ -2018,7 +2018,7 @@ const DesktopSummarizeLesson = ({
                   padding: "14px 16px", borderRadius: 14,
                   background: "linear-gradient(135deg, #0055FF, #1166FF)",
                   color: "#fff",
-                  fontSize: 14, fontWeight: 800, border: "none",
+                  fontSize: 14, fontWeight: 700, border: "none",
                   letterSpacing: "-0.2px", cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                   boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 4px 12px rgba(0,85,255,.28)",

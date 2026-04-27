@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -38,7 +38,7 @@ const SEP_D = "rgba(0,85,255,0.07)";
 const SH_D = "0 0 0 0.5px rgba(0,85,255,0.08), 0 2px 8px rgba(0,85,255,0.09), 0 10px 28px rgba(0,85,255,0.11)";
 const SH_LG_D = "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.14)";
 const SH_BTN_D = "0 6px 22px rgba(0,85,255,0.42), 0 2px 6px rgba(0,85,255,0.22)";
-const FONT_D = "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif";
+const FONT_D = "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif";
 
 const CARD_GRADS = [
   { bg: `linear-gradient(135deg, ${B1}, ${B3})`, sh: "0 3px 10px rgba(0,85,255,0.28)", glow: "rgba(0,85,255,0.08)" },
@@ -218,11 +218,11 @@ const MyClasses = () => {
         {/* 1. Page title + search toggle + avatar */}
         <div className="flex items-start justify-between gap-3 px-4 pt-[10px] pb-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
               <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: GREEN, boxShadow: "0 0 8px rgba(0,200,83,0.5)" }} />
               Teacher Dashboard · My Classes
             </div>
-            <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.1px" }}>My Classes</h1>
+            <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.1px" }}>My Classes</h1>
             <div className="text-[12px] font-medium mt-[6px]" style={{ color: TT3, letterSpacing: "-0.15px" }}>
               {getSemesterLabel()} · {classes.length} assigned
             </div>
@@ -242,7 +242,7 @@ const MyClasses = () => {
             <button type="button"
               onClick={() => navigate('/settings')}
               aria-label="Profile"
-              className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[15px] font-extrabold active:scale-[0.92] transition-transform"
+              className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[15px] font-bold active:scale-[0.92] transition-transform"
               style={{ background: B1, letterSpacing: "-0.3px", boxShadow: "0 0.5px 1px rgba(9,87,247,0.2), 0 6px 14px rgba(9,87,247,0.3)" }}>
               {teacherInitial}
             </button>
@@ -290,10 +290,10 @@ const MyClasses = () => {
                 <BarChart2 className="w-5 h-5" strokeWidth={2.2} />
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Classroom Overview</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Classroom Overview</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>{getSemesterLabel()}</div>
               </div>
-              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                 style={{
                   background: avgAtnd >= 90 ? "rgba(0,232,102,0.18)" : avgAtnd >= 75 ? "rgba(255,170,0,0.22)" : avgAtnd >= 0 ? "rgba(255,51,85,0.18)" : "rgba(255,255,255,0.14)",
                   border: `0.5px solid ${avgAtnd >= 90 ? "rgba(0,232,102,0.5)" : avgAtnd >= 75 ? "rgba(255,170,0,0.5)" : avgAtnd >= 0 ? "rgba(255,51,85,0.5)" : "rgba(255,255,255,0.22)"}`,
@@ -307,7 +307,7 @@ const MyClasses = () => {
                 {avgAtnd >= 90 ? "Excellent" : avgAtnd >= 75 ? "Good" : avgAtnd >= 0 ? "Watch" : "No data"}
               </div>
             </div>
-            <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+            <div className="text-[56px] font-bold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
               {avgAtnd >= 0 ? avgAtnd.toFixed(1) : "—"}
               {avgAtnd >= 0 && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
             </div>
@@ -323,8 +323,8 @@ const MyClasses = () => {
                 <button key={l} type="button"
                   onClick={(e) => { e.stopPropagation(); navigate(to); }}
                   className="py-[13px] px-[6px] text-center active:brightness-110 transition" style={{ background: "rgba(0,20,80,0.55)" }}>
-                  <div className="text-[20px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
-                  <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
+                  <div className="text-[20px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
+                  <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
                 </button>
               ))}
             </div>
@@ -457,7 +457,7 @@ const MyClasses = () => {
                 <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color, letterSpacing: "1px" }}>
                   {label}
                 </div>
-                <div className="text-[28px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
+                <div className="text-[28px] font-bold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
                 <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                   {sub}
                 </div>
@@ -469,7 +469,7 @@ const MyClasses = () => {
         {/* 4. Section header */}
         <div className="flex items-center justify-between px-5 pb-[10px]">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-[18px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.5px" }}>Your Classes</h2>
+            <h2 className="text-[18px] font-bold" style={{ color: TT1, letterSpacing: "-0.5px" }}>Your Classes</h2>
             <span className="text-[12px] font-semibold" style={{ color: TT3, letterSpacing: "-0.1px" }}>
               {filter === "All"
                 ? `${classes.length} assigned`
@@ -503,7 +503,7 @@ const MyClasses = () => {
               style={{ background: B1, boxShadow: SH_BTN_D }}>
               <GraduationCap className="w-7 h-7 text-white" strokeWidth={2.2} />
             </div>
-            <div className="text-[17px] font-extrabold mb-1 relative z-10" style={{ color: TT1, letterSpacing: "-0.3px" }}>
+            <div className="text-[17px] font-bold mb-1 relative z-10" style={{ color: TT1, letterSpacing: "-0.3px" }}>
               {classes.length === 0 ? "No classes yet" : `No ${filter.toLowerCase()} classes`}
             </div>
             <div className="text-[12px] leading-[1.6] max-w-[240px] relative z-10" style={{ color: TT3 }}>
@@ -541,10 +541,10 @@ const MyClasses = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-[20px] font-extrabold leading-[1.1] truncate" style={{ color: TT1, letterSpacing: "-0.6px" }}>
+                        <div className="text-[20px] font-bold leading-[1.1] truncate" style={{ color: TT1, letterSpacing: "-0.6px" }}>
                           {cls.name || "Class"}
                         </div>
-                        <div className="flex items-center gap-[5px] px-[9px] py-[4px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                        <div className="flex items-center gap-[5px] px-[9px] py-[4px] rounded-full text-[10px] font-bold flex-shrink-0"
                           style={m.isAttention
                             ? { background: "rgba(255,136,0,0.12)", color: ORANGE, letterSpacing: "0.2px" }
                             : { background: "rgba(0,200,83,0.12)", color: GREEN, letterSpacing: "0.2px" }}>
@@ -609,7 +609,7 @@ const MyClasses = () => {
                           {row.icon}
                         </div>
                         <div className="flex-1 text-[12px] font-semibold" style={{ color: TT2, letterSpacing: "-0.15px" }}>{row.label}</div>
-                        <div className="text-[14px] font-extrabold"
+                        <div className="text-[14px] font-bold"
                           style={{ color: row.valColor, letterSpacing: "-0.35px", fontWeight: row.val === "—" ? 700 : 800 }}>
                           {row.val}
                         </div>
@@ -673,8 +673,8 @@ const MyClasses = () => {
                   color: "#FFDD55",
                   boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
                 }}>⚡</div>
-              <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Classes Intelligence</div>
-              <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+              <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Classes Intelligence</div>
+              <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-bold"
                 style={{
                   background: "rgba(123,63,244,0.3)",
                   border: "0.5px solid rgba(155,95,255,0.5)",
@@ -701,24 +701,24 @@ const MyClasses = () => {
               <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[19px] font-extrabold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
+                <div className="text-[19px] font-bold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
                   {avgAtndStr}
                 </div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
               </button>
               <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/gradebook'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[19px] font-extrabold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
+                <div className="text-[19px] font-bold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.5px" }}>
                   {avgPerfStr}
                 </div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
               </button>
               <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/students'); }}
                 className="py-[13px] px-[6px] text-center active:brightness-110 transition"
                 style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[19px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{totalStudents}</div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Students</div>
+                <div className="text-[19px] font-bold text-white" style={{ letterSpacing: "-0.5px" }}>{totalStudents}</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Students</div>
               </button>
             </div>
           </div>
@@ -735,11 +735,11 @@ const MyClasses = () => {
           {/* Header row */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
             <div>
-              <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
+              <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
                 <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: GREEN, boxShadow: "0 0 8px rgba(0,200,83,0.5)" }} />
                 Teacher Dashboard · My Classes
               </div>
-              <h1 className="text-[36px] font-extrabold leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.2px" }}>My Classes</h1>
+              <h1 className="text-[36px] font-bold leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.2px" }}>My Classes</h1>
               <div className="text-[14px] font-medium mt-[6px]" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                 {getSemesterLabel()} · {classes.length} assigned {classes.length === 1 ? "class" : "classes"}
               </div>
@@ -755,7 +755,7 @@ const MyClasses = () => {
               <button type="button"
                 onClick={() => navigate('/settings')}
                 aria-label="Profile"
-                className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[17px] font-extrabold hover:scale-[1.04] active:scale-[0.96] transition-transform"
+                className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[17px] font-bold hover:scale-[1.04] active:scale-[0.96] transition-transform"
                 style={{ background: B1, letterSpacing: "-0.3px", boxShadow: "0 0.5px 1px rgba(9,87,247,0.2), 0 6px 14px rgba(9,87,247,0.3)" }}>
                 {teacherInitial}
               </button>
@@ -789,10 +789,10 @@ const MyClasses = () => {
                   <BarChart2 className="w-6 h-6" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Classroom Overview</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Classroom Overview</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>{getSemesterLabel()}</div>
                 </div>
-                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                   style={{
                     background: avgAtnd >= 90 ? "rgba(0,232,102,0.18)" : avgAtnd >= 75 ? "rgba(255,170,0,0.22)" : avgAtnd >= 0 ? "rgba(255,51,85,0.18)" : "rgba(255,255,255,0.14)",
                     border: `0.5px solid ${avgAtnd >= 90 ? "rgba(0,232,102,0.5)" : avgAtnd >= 75 ? "rgba(255,170,0,0.5)" : avgAtnd >= 0 ? "rgba(255,51,85,0.5)" : "rgba(255,255,255,0.22)"}`,
@@ -808,7 +808,7 @@ const MyClasses = () => {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-extrabold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
+                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
                     {avgAtnd >= 0 ? avgAtnd.toFixed(1) : "—"}
                     {avgAtnd >= 0 && <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>}
                   </div>
@@ -825,8 +825,8 @@ const MyClasses = () => {
                     <button key={l} type="button"
                       onClick={(e) => { e.stopPropagation(); navigate(to); }}
                       className="py-4 px-5 text-center hover:brightness-110 transition" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{v}</div>
-                      <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
+                      <div className="text-[26px] font-bold text-white" style={{ letterSpacing: "-0.8px" }}>{v}</div>
+                      <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
                     </button>
                   ))}
                 </div>
@@ -852,7 +852,7 @@ const MyClasses = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="7" height="7" rx="1.5"/>
                     <rect x="14" y="3" width="7" height="7" rx="1.5"/>
                     <rect x="3" y="14" width="7" height="7" rx="1.5"/>
@@ -875,7 +875,7 @@ const MyClasses = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="8 12 11 15 16 9"/>
                   </svg>
@@ -897,7 +897,7 @@ const MyClasses = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <circle cx="12" cy="16" r="0.6" fill="currentColor"/>
@@ -921,7 +921,7 @@ const MyClasses = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 00-3-3.87"/>
@@ -960,7 +960,7 @@ const MyClasses = () => {
                   <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color, letterSpacing: "1px", transform: "translateZ(10px)" }}>
                     {label}
                   </div>
-                  <div className="text-[36px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
+                  <div className="text-[36px] font-bold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
                   <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                     {sub}
                   </div>
@@ -972,7 +972,7 @@ const MyClasses = () => {
           {/* Section header + sort */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-baseline gap-3">
-              <h2 className="text-[22px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.6px" }}>Your Classes</h2>
+              <h2 className="text-[22px] font-bold" style={{ color: TT1, letterSpacing: "-0.6px" }}>Your Classes</h2>
               <span className="text-[13px] font-semibold" style={{ color: TT3, letterSpacing: "-0.1px" }}>
                 {filter === "All"
                   ? `${classes.length} assigned`
@@ -1006,7 +1006,7 @@ const MyClasses = () => {
                 style={{ background: B1, boxShadow: SH_BTN_D }}>
                 <GraduationCap className="w-9 h-9 text-white" strokeWidth={2.2} />
               </div>
-              <div className="text-[22px] font-extrabold mb-2 relative z-10" style={{ color: TT1, letterSpacing: "-0.5px" }}>
+              <div className="text-[22px] font-bold mb-2 relative z-10" style={{ color: TT1, letterSpacing: "-0.5px" }}>
                 {classes.length === 0 ? "No classes yet" : `No ${filter.toLowerCase()} classes`}
               </div>
               <div className="text-[14px] leading-[1.6] max-w-[420px] relative z-10" style={{ color: TT3 }}>
@@ -1043,10 +1043,10 @@ const MyClasses = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-[22px] font-extrabold leading-[1.1] truncate" style={{ color: TT1, letterSpacing: "-0.6px" }}>
+                          <div className="text-[22px] font-bold leading-[1.1] truncate" style={{ color: TT1, letterSpacing: "-0.6px" }}>
                             {cls.name || "Class"}
                           </div>
-                          <div className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                          <div className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full text-[10px] font-bold flex-shrink-0"
                             style={m.isAttention
                               ? { background: "rgba(255,136,0,0.12)", color: ORANGE, letterSpacing: "0.2px" }
                               : { background: "rgba(0,200,83,0.12)", color: GREEN, letterSpacing: "0.2px" }}>
@@ -1111,7 +1111,7 @@ const MyClasses = () => {
                             {row.icon}
                           </div>
                           <div className="flex-1 text-[13px] font-semibold" style={{ color: TT2, letterSpacing: "-0.15px" }}>{row.label}</div>
-                          <div className="text-[15px] font-extrabold"
+                          <div className="text-[15px] font-bold"
                             style={{ color: row.valColor, letterSpacing: "-0.35px", fontWeight: row.val === "—" ? 700 : 800 }}>
                             {row.val}
                           </div>
@@ -1173,8 +1173,8 @@ const MyClasses = () => {
                     color: "#FFDD55",
                     boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
                   }}>⚡</div>
-                <div className="text-[11px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Classes Intelligence</div>
-                <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-extrabold"
+                <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Classes Intelligence</div>
+                <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-bold"
                   style={{
                     background: "rgba(123,63,244,0.3)",
                     border: "0.5px solid rgba(155,95,255,0.5)",
@@ -1201,24 +1201,24 @@ const MyClasses = () => {
                 <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
-                  <div className="text-[22px] font-extrabold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
+                  <div className="text-[22px] font-bold" style={{ color: avgAtnd >= 75 ? "#6FFFAA" : avgAtnd >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
                     {avgAtndStr}
                   </div>
-                  <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
+                  <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
                 </button>
                 <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/gradebook'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
-                  <div className="text-[22px] font-extrabold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
+                  <div className="text-[22px] font-bold" style={{ color: avgPerf >= 60 ? "#B5A0FF" : avgPerf >= 0 ? "#FF99AA" : "#fff", letterSpacing: "-0.6px" }}>
                     {avgPerfStr}
                   </div>
-                  <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
+                  <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Perform.</div>
                 </button>
                 <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/students'); }}
                   className="py-4 px-3 text-center hover:brightness-110 transition"
                   style={{ background: "rgba(0,20,80,0.55)" }}>
-                  <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{totalStudents}</div>
-                  <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Students</div>
+                  <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{totalStudents}</div>
+                  <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Students</div>
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ConceptMasteryDetail from "@/components/ConceptMasteryDetail";
 import { Loader2 } from "lucide-react";
@@ -402,11 +402,11 @@ const ConceptMastery = () => {
 
           {/* Page Header */}
           <div style={{ padding: '8px 2px 14px' }}>
-            <div style={{ fontSize: 9, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 5, height: 5, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
               Teacher Dashboard · Mastery
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: '#001040', letterSpacing: '-1.1px', lineHeight: 1.05, margin: 0 }}>Concept Mastery</h1>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001040', letterSpacing: '-1.1px', lineHeight: 1.05, margin: 0 }}>Concept Mastery</h1>
             <div style={{ fontSize: 12, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
               Track student understanding across assessed concepts.
             </div>
@@ -427,8 +427,8 @@ const ConceptMastery = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 8, fontWeight: 800, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                   </div>
                 </div>
@@ -533,7 +533,7 @@ const ConceptMastery = () => {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Mastery</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Mastery</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 2, fontWeight: 500, letterSpacing: '-0.1px' }}>
                     {dynamicHeaders.length > 0 ? `${dynamicHeaders.length} ${dynamicHeaders.length === 1 ? 'concept' : 'concepts'} · ${selectedClass?.name || ''}` : 'Not yet assessed'}
                   </div>
@@ -542,14 +542,14 @@ const ConceptMastery = () => {
                   const label = classMasteryPct === null ? 'N/A' : classMasteryPct >= 80 ? 'Mastered' : classMasteryPct >= 50 ? 'Developing' : 'Weak';
                   const color = classMasteryPct === null ? '#99AACC' : classMasteryPct >= 80 ? '#6FFFAA' : classMasteryPct >= 50 ? '#FFD060' : '#FF9AA9';
                   return (
-                    <div style={{ marginLeft: 'auto', background: `${color}33`, border: `0.5px solid ${color}88`, color, padding: '5px 12px', borderRadius: 100, fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '0.3px' }}>
+                    <div style={{ marginLeft: 'auto', background: `${color}33`, border: `0.5px solid ${color}88`, color, padding: '5px 12px', borderRadius: 100, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '0.3px' }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}` }} />
                       {label}
                     </div>
                   );
                 })()}
               </div>
-              <div style={{ fontSize: 56, fontWeight: 800, color: '#fff', letterSpacing: '-2.6px', lineHeight: 1, marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 2 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, color: '#fff', letterSpacing: '-2.6px', lineHeight: 1, marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 2 }}>
                 {classMasteryPct === null ? '—' : classMasteryPct}
                 <span style={{ fontSize: 28, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '-0.8px' }}>%</span>
               </div>
@@ -590,7 +590,7 @@ const ConceptMastery = () => {
           {/* Section head */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 10px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.35px' }}>Students</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px' }}>Students</span>
               <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px' }}>
                 {filtered.length} assessed · {dynamicHeaders.length} {dynamicHeaders.length === 1 ? 'concept' : 'concepts'}
               </span>
@@ -635,10 +635,10 @@ const ConceptMastery = () => {
                   <div style={{
                     width: 42, height: 42, borderRadius: 13, background: avatarColor, color: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 800, letterSpacing: '0.3px', flexShrink: 0,
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
                   }}>{getInitials(s.name || '')}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.35px', lineHeight: 1.2 }}>{s.name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px', lineHeight: 1.2 }}>{s.name}</div>
                     <div style={{ fontSize: 11, color: '#5070B0', marginTop: 3, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span>{selectedClass?.name || ''}</span>
                       <span style={{ color: '#99AACC' }}>·</span>
@@ -648,7 +648,7 @@ const ConceptMastery = () => {
                   <div style={{
                     padding: '4px 10px', borderRadius: 100,
                     background: `${bandColor}1F`, color: bandColor,
-                    fontSize: 10, fontWeight: 800, letterSpacing: '0.3px', flexShrink: 0,
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
                     display: 'flex', alignItems: 'center', gap: 5,
                   }}>
                     <span className={bandCls !== 'mastered' && masteryPct !== null ? 'cm-pulse-dot' : ''} style={{ width: 5, height: 5, borderRadius: '50%', background: bandColor }} />
@@ -673,8 +673,8 @@ const ConceptMastery = () => {
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <div style={{ fontSize: 12, fontWeight: 800, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h}</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color, letterSpacing: '-0.4px', lineHeight: 1, flexShrink: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color, letterSpacing: '-0.4px', lineHeight: 1, flexShrink: 0 }}>
                             {pct > 0 ? `${pct}%` : '—'}
                           </div>
                         </div>
@@ -712,12 +712,12 @@ const ConceptMastery = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Class Average</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Class Average</div>
                   <div style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, marginTop: 2, letterSpacing: '-0.1px' }}>
                     {dynamicHeaders.length} {dynamicHeaders.length === 1 ? 'concept' : 'concepts'} · {filtered.length} students
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: classMasteryPct === null ? '#99AACC' : classMasteryPct >= 80 ? '#00C853' : classMasteryPct >= 50 ? '#FF8800' : '#FF3355', letterSpacing: '-0.9px', lineHeight: 1 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: classMasteryPct === null ? '#99AACC' : classMasteryPct >= 80 ? '#00C853' : classMasteryPct >= 50 ? '#FF8800' : '#FF3355', letterSpacing: '-0.9px', lineHeight: 1 }}>
                   {classMasteryPct === null ? '—' : `${classMasteryPct}%`}
                 </div>
               </div>
@@ -734,8 +734,8 @@ const ConceptMastery = () => {
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h} overall</div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color, letterSpacing: '-0.3px', flexShrink: 0 }}>{avg > 0 ? `${avg}%` : '—'}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h} overall</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color, letterSpacing: '-0.3px', flexShrink: 0 }}>{avg > 0 ? `${avg}%` : '—'}</div>
                       </div>
                       <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
                         <div className="cm-unit-fill" style={{ height: '100%', borderRadius: 100, background: gradient, width: `${Math.max(0, Math.min(100, avg))}%` }} />
@@ -770,7 +770,7 @@ const ConceptMastery = () => {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Weak Concepts</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Weak Concepts</div>
                     <div style={{ fontSize: 11, color: '#FF3355', fontWeight: 700, marginTop: 2, letterSpacing: '-0.1px' }}>
                       {weak.length} {weak.length === 1 ? 'area' : 'areas'} requiring attention
                     </div>
@@ -787,16 +787,16 @@ const ConceptMastery = () => {
                       style={{
                         background: '#fff', color: '#FF3355',
                         padding: '7px 12px', borderRadius: 100,
-                        fontSize: 11, fontWeight: 800, letterSpacing: '-0.1px',
+                        fontSize: 11, fontWeight: 700, letterSpacing: '-0.1px',
                         display: 'flex', alignItems: 'center', gap: 5,
                         border: '0.5px solid rgba(255,51,85,.2)',
                         boxShadow: '0 1px 2px rgba(255,51,85,.06)',
                         cursor: 'pointer',
                       }}
                     >
-                      <span style={{ background: 'rgba(255,51,85,.12)', color: '#FF3355', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 900 }}>{c.name}</span>
+                      <span style={{ background: 'rgba(255,51,85,.12)', color: '#FF3355', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{c.name}</span>
                       <span>Class Avg</span>
-                      <span style={{ color: '#FF3355', fontWeight: 900 }}>{c.avg}%</span>
+                      <span style={{ color: '#FF3355', fontWeight: 700 }}>{c.avg}%</span>
                     </div>
                   ))}
                 </div>
@@ -826,8 +826,8 @@ const ConceptMastery = () => {
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)', pointerEvents: 'none' }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12, position: 'relative', zIndex: 2 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 13, background: 'rgba(255,255,255,.14)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '0.5px solid rgba(255,255,255,.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFDD55', fontSize: 19 }}>⚡</div>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,.95)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>AI Mastery Intelligence</div>
-                  <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.5px' }}>Insight</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.95)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>AI Mastery Intelligence</div>
+                  <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: '0.5px' }}>Insight</div>
                 </div>
                 <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(255,255,255,.85)', letterSpacing: '-0.15px', marginBottom: 14, position: 'relative', zIndex: 2 }}>
                   {masteredStu.length > 0 && weakStu.length > 0 ? (
@@ -842,15 +842,15 @@ const ConceptMastery = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: 1, gap: 1, overflow: 'hidden', position: 'relative', zIndex: 2 }}>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{masteredStu.length}</div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{masteredStu.length}</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Mastered</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: '#FFD060', letterSpacing: '-0.4px' }}>{classMasteryPct === null ? '—' : `${classMasteryPct}%`}</div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#FFD060', letterSpacing: '-0.4px' }}>{classMasteryPct === null ? '—' : `${classMasteryPct}%`}</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Class Avg</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{weakStu.length}</div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{weakStu.length}</div>
                     <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Weak</div>
                   </div>
                 </div>
@@ -873,7 +873,7 @@ const ConceptMastery = () => {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px' }}>No concepts tracked yet</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px' }}>No concepts tracked yet</div>
                 <div style={{ fontSize: 11, color: '#5070B0', marginTop: 2, lineHeight: 1.4, fontWeight: 500 }}>
                   Add concept scores from the Tests &amp; Exams section to see mastery data here.
                 </div>
@@ -890,7 +890,7 @@ const ConceptMastery = () => {
         style={{
           background: '#EEF4FF',
           minHeight: '100vh',
-          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -923,11 +923,11 @@ const ConceptMastery = () => {
           {/* ═══ Page Head ═══ */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
             <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="cmd-pulse-dot" style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
                 Teacher Dashboard · Mastery
               </div>
-              <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+              <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
                 Concept Mastery
               </h1>
               <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -950,8 +950,8 @@ const ConceptMastery = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                   </div>
                 </div>
@@ -1001,7 +1001,7 @@ const ConceptMastery = () => {
                   height: 42, padding: '0 18px', borderRadius: 14,
                   background: masteryData.length === 0 ? '#F5F6F9' : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
                   color: masteryData.length === 0 ? '#99AACC' : '#fff',
-                  fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                   border: 'none', cursor: masteryData.length === 0 ? 'not-allowed' : 'pointer',
                   boxShadow: masteryData.length === 0 ? 'none' : '0 6px 20px rgba(0,85,255,.35), 0 2px 5px rgba(0,85,255,.2)',
                   fontFamily: 'inherit',
@@ -1091,7 +1091,7 @@ const ConceptMastery = () => {
                     }}
                   >
                     <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
-                      <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         {k.iconStroke}
                       </svg>
                     </div>
@@ -1100,8 +1100,8 @@ const ConceptMastery = () => {
                         {k.iconStroke}
                       </svg>
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                    <div style={{ fontSize: 36, fontWeight: 700, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                   </div>
                   );
@@ -1130,10 +1130,10 @@ const ConceptMastery = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: '#99AACC', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4 }}>Class Mastery</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Overall Understanding</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4 }}>Class Mastery</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Overall Understanding</div>
                   </div>
-                  <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(0,85,255,.08)', border: '0.5px solid rgba(0,85,255,.12)', fontSize: 10, fontWeight: 800, color: '#0055FF', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                  <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(0,85,255,.08)', border: '0.5px solid rgba(0,85,255,.12)', fontSize: 10, fontWeight: 700, color: '#0055FF', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                     {heroStatus}
                   </div>
                 </div>
@@ -1147,7 +1147,7 @@ const ConceptMastery = () => {
                         style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(.2,.9,.3,1)' }} />
                     </svg>
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#001040', letterSpacing: '-1px', lineHeight: 1 }}>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: '#001040', letterSpacing: '-1px', lineHeight: 1 }}>
                         {classMasteryPct === null ? '—' : `${classMasteryPct}%`}
                       </div>
                       <div style={{ fontSize: 9, fontWeight: 700, color: '#99AACC', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 4 }}>Avg</div>
@@ -1159,12 +1159,12 @@ const ConceptMastery = () => {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div style={{ padding: '8px 10px', borderRadius: 10, background: 'rgba(0,200,83,.08)', border: '0.5px solid rgba(0,200,83,.18)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: '#087F5B', letterSpacing: '.1em', textTransform: 'uppercase' }}>Mastered</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#087F5B', marginTop: 2 }}>{masteredConceptCount}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#087F5B', letterSpacing: '.1em', textTransform: 'uppercase' }}>Mastered</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#087F5B', marginTop: 2 }}>{masteredConceptCount}</div>
                       </div>
                       <div style={{ padding: '8px 10px', borderRadius: 10, background: 'rgba(255,170,0,.10)', border: '0.5px solid rgba(255,170,0,.22)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: '#C87014', letterSpacing: '.1em', textTransform: 'uppercase' }}>Developing</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#C87014', marginTop: 2 }}>{developingConceptCount}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#C87014', letterSpacing: '.1em', textTransform: 'uppercase' }}>Developing</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#C87014', marginTop: 2 }}>{developingConceptCount}</div>
                       </div>
                     </div>
                   </div>
@@ -1187,8 +1187,8 @@ const ConceptMastery = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: '#99AACC', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4 }}>Concept Averages</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Class performance per concept</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4 }}>Concept Averages</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Class performance per concept</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1217,7 +1217,7 @@ const ConceptMastery = () => {
                             }}
                           />
                         </div>
-                        <div style={{ width: 60, textAlign: 'right', fontSize: 13, fontWeight: 800, color: status.color }}>
+                        <div style={{ width: 60, textAlign: 'right', fontSize: 13, fontWeight: 700, color: status.color }}>
                           {avg > 0 ? `${avg}%` : '—'}
                         </div>
                       </div>
@@ -1270,7 +1270,7 @@ const ConceptMastery = () => {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Student Concept Matrix</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Student Concept Matrix</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
                     {filtered.length} student{filtered.length!==1?'s':''} · {dynamicHeaders.length} concept{dynamicHeaders.length!==1?'s':''}
                   </div>
@@ -1289,7 +1289,7 @@ const ConceptMastery = () => {
               </div>
             ) : dynamicHeaders.length === 0 ? (
               <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px' }}>No concepts tracked yet</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px' }}>No concepts tracked yet</div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: '#5070B0', marginTop: 6, maxWidth: 420, margin: '6px auto 0' }}>
                   Add concept scores from the Tests &amp; Exams section to see mastery data here.
                 </div>
@@ -1300,14 +1300,14 @@ const ConceptMastery = () => {
                   <thead>
                     <tr style={{ background: 'rgba(0,85,255,.03)' }}>
                       <th style={{
-                        textAlign: 'left', padding: '12px 22px', fontSize: 10, fontWeight: 800,
+                        textAlign: 'left', padding: '12px 22px', fontSize: 10, fontWeight: 700,
                         color: '#5070B0', letterSpacing: '0.12em', textTransform: 'uppercase',
                         position: 'sticky', left: 0, background: 'rgba(0,85,255,.03)', zIndex: 2,
                         borderBottom: '0.5px solid rgba(0,85,255,.08)',
                       }}>Student</th>
                       {dynamicHeaders.map(h => (
                         <th key={h} style={{
-                          textAlign: 'center', padding: '12px 14px', fontSize: 10, fontWeight: 800,
+                          textAlign: 'center', padding: '12px 14px', fontSize: 10, fontWeight: 700,
                           color: '#5070B0', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
                           borderBottom: '0.5px solid rgba(0,85,255,.08)',
                         }}>{h}</th>
@@ -1341,13 +1341,13 @@ const ConceptMastery = () => {
                                   width: 36, height: 36, borderRadius: '50%',
                                   background: avatarBg, color: '#fff',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: 12, fontWeight: 800, flexShrink: 0,
+                                  fontSize: 12, fontWeight: 700, flexShrink: 0,
                                   boxShadow: '0 4px 10px rgba(0,85,255,.18)',
                                 }}>
                                   {getInitials(stuName)}
                                 </div>
                                 <div>
-                                  <div style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px' }}>{stuName}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px' }}>{stuName}</div>
                                   {(() => {
                                     const m = getStudentMastery(stu);
                                     if (m === null) return <div style={{ fontSize: 10, fontWeight: 600, color: '#99AACC', marginTop: 1 }}>No assessments yet</div>;
@@ -1370,7 +1370,7 @@ const ConceptMastery = () => {
                                   <div style={{
                                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                     minWidth: 44, padding: '6px 10px', borderRadius: 10,
-                                    fontSize: 12, fontWeight: 800,
+                                    fontSize: 12, fontWeight: 700,
                                     background: bg, color,
                                   }}>
                                     {hasVal ? `${pct}%` : '—'}
@@ -1387,7 +1387,7 @@ const ConceptMastery = () => {
                         <td style={{
                           padding: '14px 22px', position: 'sticky', left: 0,
                           background: '#F5F9FF',
-                          fontSize: 12, fontWeight: 800, color: '#001040',
+                          fontSize: 12, fontWeight: 700, color: '#001040',
                           letterSpacing: '0.08em', textTransform: 'uppercase',
                           borderTop: '0.5px solid rgba(0,85,255,.12)',
                         }}>Class Avg</td>
@@ -1396,7 +1396,7 @@ const ConceptMastery = () => {
                           return (
                             <td key={i} style={{
                               padding: '14px 14px', textAlign: 'center',
-                              fontSize: 13, fontWeight: 800, color: status.color,
+                              fontSize: 13, fontWeight: 700, color: status.color,
                               borderTop: '0.5px solid rgba(0,85,255,.12)',
                             }}>
                               {avg > 0 ? `${avg}%` : '—'}
@@ -1461,10 +1461,10 @@ const ConceptMastery = () => {
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.72)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.72)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
                       {hasWeak ? 'Attention Needed' : 'All Clear'}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.6px', marginBottom: 6 }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.6px', marginBottom: 6 }}>
                       {hasWeak ? 'Weak Concepts Requiring Attention' : 'No weak spots — great class!'}
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.82)', marginBottom: 14 }}>
@@ -1491,7 +1491,7 @@ const ConceptMastery = () => {
                             <span style={{
                               padding: '2px 8px', borderRadius: 999,
                               background: c.avg < 50 ? 'rgba(255,51,85,.6)' : 'rgba(255,170,0,.7)',
-                              fontSize: 10, fontWeight: 800, letterSpacing: '.04em',
+                              fontSize: 10, fontWeight: 700, letterSpacing: '.04em',
                             }}>
                               {c.avg}%
                             </span>
@@ -1502,7 +1502,7 @@ const ConceptMastery = () => {
                             display: 'inline-flex', alignItems: 'center',
                             padding: '8px 14px', borderRadius: 12,
                             background: 'rgba(255,255,255,.10)', border: '0.5px solid rgba(255,255,255,.18)',
-                            fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '.04em',
+                            fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: '.04em',
                           }}>
                             +{weakList.length - 8} more
                           </div>
@@ -1561,10 +1561,10 @@ const ConceptMastery = () => {
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
                       AI Teacher Intelligence
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
                       Concept Mastery Summary
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -1579,8 +1579,8 @@ const ConceptMastery = () => {
                     { label: 'At-Risk Students', value: studentsAtRisk.toString(), sub: studentsAtRisk > 0 ? 'Below 50% mastery' : 'All tracking well', valueColor: studentsAtRisk > 0 ? '#FF99AA' : '#C8A4FF' },
                   ].map(s => (
                     <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: s.valueColor, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: s.valueColor, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
                     </div>
                   ))}
@@ -1592,7 +1592,7 @@ const ConceptMastery = () => {
                       <div style={{ width: `${(devCnt/totalCnt)*100}%`, background: 'linear-gradient(90deg,#FFAA00,#FFCC33)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
                       <div style={{ width: `${(weakCnt/totalCnt)*100}%`, background: 'linear-gradient(90deg,#FF3355,#FF6677)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                       {totalCnt} concepts
                     </div>
                   </div>

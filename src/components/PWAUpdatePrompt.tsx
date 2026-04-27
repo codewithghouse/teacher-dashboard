@@ -25,7 +25,7 @@ export function PWAUpdatePrompt() {
         </div>
         <button
           onClick={() => applyUpdate(reg)}
-          className="flex items-center gap-1.5 bg-[#1e3272] text-white text-xs font-black px-3 py-2 rounded-xl shrink-0 hover:bg-[#15234d] transition-colors"
+          className="flex items-center gap-1.5 bg-[#1e3272] text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0 hover:bg-[#15234d] transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Reload

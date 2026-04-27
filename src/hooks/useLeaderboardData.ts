@@ -614,6 +614,171 @@ export function useTeacherSelfMetrics() {
   });
 }
 
+// ── Hook: Branch teacher leaderboard ────────────────────────────────────────
+// Computes composite for every teacher in the branch from existing collections.
+// Cross-teacher reads of test_scores / attendance are required — if Firestore
+// security rules forbid them, the query throws and the UI falls back to the
+// locked-section copy. No Cloud Function needed when rules permit branch reads.
+
+export interface BranchTeacherEntry {
+  teacherId: string;
+  name: string;
+  initials: string;
+  subject: string;
+  totalStudents: number;
+  composite: number;
+  classAvgScore: number;
+  classAvgAttendance: number;
+  classCount: number;
+  rank: number;
+  isYou: boolean;
+  hasData: boolean;       // false when teacher has 0 scores AND 0 attendance — keeps composite meaningful
+}
+
+export function useBranchTeacherLeaderboard() {
+  const { teacherData } = useAuth();
+  const tid = teacherData?.id;
+  const sid = teacherData?.schoolId;
+  const bid = teacherData?.branchId;
+
+  const queryFn: QueryFunction<BranchTeacherEntry[]> = async () => {
+    const SC = tenantConstraints(teacherData);
+    if (!SC || !tid) return [];
+
+    const [teacherSnaps, classSnaps, assignSnaps, enrollSnaps, scoreSnaps, attSnaps] = await Promise.all([
+      fetchAll("teachers", SC),
+      fetchAll("classes", SC),
+      fetchAll("teaching_assignments", [...SC, where("status", "==", "active")]),
+      fetchAll("enrollments", SC),
+      fetchAll("test_scores", SC),
+      fetchAll("attendance", SC),
+    ]);
+
+    if (teacherSnaps.length === 0) return [];
+
+    type Bucket = {
+      teacherId: string;
+      name: string;
+      subject: string;
+      classIds: Set<string>;
+      enrollKeys: Set<string>;
+      scoreSum: number;
+      scoreCount: number;
+      presentCount: number;
+      attTotal: number;
+    };
+    const byTid = new Map<string, Bucket>();
+
+    teacherSnaps.forEach(t => {
+      // Skip inactive accounts if explicitly marked
+      const isActive = t.data.isActive !== false && t.data.status !== "inactive";
+      if (!isActive) return;
+      byTid.set(t.id, {
+        teacherId: t.id,
+        name: (t.data.name as string) || (t.data.displayName as string) || "Teacher",
+        subject: (t.data.subject as string) || "Subject",
+        classIds: new Set<string>(),
+        enrollKeys: new Set<string>(),
+        scoreSum: 0,
+        scoreCount: 0,
+        presentCount: 0,
+        attTotal: 0,
+      });
+    });
+
+    classSnaps.forEach(c => {
+      const owner = c.data.teacherId as string | undefined;
+      if (owner && byTid.has(owner)) byTid.get(owner)!.classIds.add(c.id);
+    });
+
+    assignSnaps.forEach(a => {
+      const owner = a.data.teacherId as string | undefined;
+      const cid = a.data.classId as string | undefined;
+      if (owner && cid && byTid.has(owner)) byTid.get(owner)!.classIds.add(cid);
+    });
+
+    enrollSnaps.forEach(e => {
+      const tch = e.data.teacherId as string | undefined;
+      if (!tch || !byTid.has(tch)) return;
+      const key = (e.data.studentId as string) || (e.data.studentEmail as string) || `${e.data.classId ?? ""}::${e.id}`;
+      byTid.get(tch)!.enrollKeys.add(key);
+    });
+
+    scoreSnaps.forEach(s => {
+      const tch = s.data.teacherId as string | undefined;
+      if (!tch || !byTid.has(tch)) return;
+      if (s.data.isAbsent) return;
+      const pct = Number(s.data.percentage);
+      if (!Number.isFinite(pct)) return;
+      const b = byTid.get(tch)!;
+      b.scoreSum += pct;
+      b.scoreCount += 1;
+    });
+
+    attSnaps.forEach(a => {
+      const tch = a.data.teacherId as string | undefined;
+      if (!tch || !byTid.has(tch)) return;
+      const status = String(a.data.status ?? "").toLowerCase();
+      const b = byTid.get(tch)!;
+      if (status === "present" || status === "late") b.presentCount += 1;
+      b.attTotal += 1;
+    });
+
+    const rows = Array.from(byTid.values()).map(b => {
+      const avgScore = b.scoreCount > 0 ? b.scoreSum / b.scoreCount : 0;
+      const avgAtt = b.attTotal > 0 ? (b.presentCount / b.attTotal) * 100 : 0;
+      const hasData = b.scoreCount > 0 || b.attTotal > 0;
+      // Composite stays 0 for teachers without any data so they sink to bottom.
+      const composite = hasData ? 0.6 * avgScore + 0.4 * avgAtt : 0;
+      return {
+        teacherId: b.teacherId,
+        name: b.name,
+        subject: b.subject,
+        totalStudents: b.enrollKeys.size,
+        composite: Number(composite.toFixed(1)),
+        classAvgScore: Number(avgScore.toFixed(1)),
+        classAvgAttendance: Number(avgAtt.toFixed(1)),
+        classCount: b.classIds.size,
+        hasData,
+      };
+    });
+
+    // Active teachers with NO classes assigned aren't useful on a leaderboard.
+    // Keep current teacher always so they see their own row even with zero data.
+    const filtered = rows.filter(r => r.classCount > 0 || r.teacherId === tid);
+
+    filtered.sort((a, b) => {
+      // hasData first, then composite desc, then totalStudents desc as tiebreak
+      if (a.hasData !== b.hasData) return a.hasData ? -1 : 1;
+      if (b.composite !== a.composite) return b.composite - a.composite;
+      return b.totalStudents - a.totalStudents;
+    });
+
+    return filtered.map((r, i) => ({
+      teacherId: r.teacherId,
+      name: r.name,
+      initials: initialsOf(r.name),
+      subject: r.subject,
+      totalStudents: r.totalStudents,
+      composite: r.composite,
+      classAvgScore: r.classAvgScore,
+      classAvgAttendance: r.classAvgAttendance,
+      classCount: r.classCount,
+      rank: i + 1,
+      isYou: r.teacherId === tid,
+      hasData: r.hasData,
+    } satisfies BranchTeacherEntry));
+  };
+
+  return useQuery<BranchTeacherEntry[]>({
+    queryKey: ["leaderboard", "branchTeachers", sid, bid],
+    queryFn,
+    enabled: Boolean(tid && sid),
+    staleTime: 5 * 60_000,
+    retry: 0, // permission errors shouldn't be retried
+  });
+}
+
 // ── AI Hooks ────────────────────────────────────────────────────────────────
 // Each calls the deployed Cloud Function getTeacherAIInsights with a specific
 // prompt type. Heavy caching (1 hour) since AI responses cost money.

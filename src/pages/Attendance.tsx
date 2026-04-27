@@ -36,7 +36,7 @@ const T = {
 
 // ── Mobile Attendance tokens (EduIntellect v2) ────────────────────────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -267,11 +267,11 @@ const Attendance = () => {
 
         {/* Page header */}
         <div className="px-4 pt-3 pb-[14px]">
-          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+          <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
             <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
             Teacher Dashboard · Attendance
           </div>
-          <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+          <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
             Attendance
           </h1>
           <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -296,10 +296,10 @@ const Attendance = () => {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Overall Rate</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Overall Rate</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Today · {activeClass?.name || "All classes"}</div>
               </div>
-              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                 style={{
                   background: stats.rateNum >= 85 ? "rgba(0,232,102,0.18)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.22)" : stats.rateNum > 0 ? "rgba(255,51,85,0.18)" : "rgba(255,255,255,0.14)",
                   border: `0.5px solid ${stats.rateNum >= 85 ? "rgba(0,232,102,0.5)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.5)" : stats.rateNum > 0 ? "rgba(255,51,85,0.5)" : "rgba(255,255,255,0.22)"}`,
@@ -313,7 +313,7 @@ const Attendance = () => {
                 {stats.rateNum >= 85 ? "On Track" : stats.rateNum >= 70 ? "Watch" : stats.rateNum > 0 ? "Low" : "No data"}
               </div>
             </div>
-            <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+            <div className="text-[56px] font-bold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
               {stats.rateNum > 0 ? stats.rateNum.toFixed(1) : "—"}
               {stats.rateNum > 0 && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
             </div>
@@ -325,16 +325,16 @@ const Attendance = () => {
             </div>
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
               <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[20px] font-extrabold" style={{ color: "#6FFFAA", letterSpacing: "-0.6px" }}>{stats.presentToday}</div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Present</div>
+                <div className="text-[20px] font-bold" style={{ color: "#6FFFAA", letterSpacing: "-0.6px" }}>{stats.presentToday}</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Present</div>
               </div>
               <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[20px] font-extrabold" style={{ color: "#FF9AA9", letterSpacing: "-0.6px" }}>{stats.absentToday}</div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Absent</div>
+                <div className="text-[20px] font-bold" style={{ color: "#FF9AA9", letterSpacing: "-0.6px" }}>{stats.absentToday}</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Absent</div>
               </div>
               <div className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[20px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.6px" }}>{stats.lateToday}</div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Late</div>
+                <div className="text-[20px] font-bold" style={{ color: "#FFD060", letterSpacing: "-0.6px" }}>{stats.lateToday}</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Late</div>
               </div>
             </div>
           </div>
@@ -345,7 +345,7 @@ const Attendance = () => {
           <button type="button"
             onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
             className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.98] transition-transform"
-            style={{ background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
+            style={{ background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Mark today's attendance
           </button>
@@ -378,7 +378,7 @@ const Attendance = () => {
                 {s.icon}
               </div>
               <div className="text-[9px] font-bold uppercase mb-[4px]" style={{ color: s.color, letterSpacing: "1.1px" }}>{s.label}</div>
-              <div className="text-[24px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-0.9px" }}>{s.value}</div>
+              <div className="text-[24px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-0.9px" }}>{s.value}</div>
             </button>
           ))}
         </div>
@@ -416,7 +416,7 @@ const Attendance = () => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </div>
               <div>
-                <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Weekly Overview</div>
+                <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Weekly Overview</div>
                 {activeClass && weeklyDays.length > 0 && (
                   <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                     {activeClass.name} · {weeklyDays[0]?.dateLabel} – {weeklyDays[weeklyDays.length - 1]?.dateLabel}
@@ -450,23 +450,23 @@ const Attendance = () => {
                   {day.isToday && (
                     <>
                       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 45%)" }} />
-                      <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                      <div className="absolute top-[10px] right-[10px] text-[8px] font-bold px-[7px] py-[3px] rounded-full uppercase"
                         style={{ background: "rgba(255,255,255,0.25)", backdropFilter: "blur(8px)", color: "#fff", border: "0.5px solid rgba(255,255,255,0.3)", letterSpacing: "0.5px" }}>
                         Today
                       </div>
                     </>
                   )}
                   {day.isFuture && (
-                    <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                    <div className="absolute top-[10px] right-[10px] text-[8px] font-bold px-[7px] py-[3px] rounded-full uppercase"
                       style={{ background: "rgba(9,87,247,0.1)", color: MA.P, letterSpacing: "0.5px" }}>
                       Upcoming
                     </div>
                   )}
                   <div className="relative z-[2]">
-                    <div className="text-[9px] font-extrabold uppercase" style={{ color: day.isToday ? "rgba(255,255,255,0.8)" : MA.T3, letterSpacing: "1.3px", marginBottom: 3 }}>
+                    <div className="text-[9px] font-bold uppercase" style={{ color: day.isToday ? "rgba(255,255,255,0.8)" : MA.T3, letterSpacing: "1.3px", marginBottom: 3 }}>
                       {day.label}
                     </div>
-                    <div className="text-[17px] font-extrabold mb-[10px]" style={{ color: day.isToday ? "#fff" : MA.T1, letterSpacing: "-0.5px" }}>
+                    <div className="text-[17px] font-bold mb-[10px]" style={{ color: day.isToday ? "#fff" : MA.T1, letterSpacing: "-0.5px" }}>
                       {day.dateLabel}
                     </div>
                     {day.hasData ? (
@@ -474,14 +474,14 @@ const Attendance = () => {
                         <div className="flex flex-col gap-[5px] mb-[10px]">
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Present</span>
-                            <span className="font-extrabold" style={{ color: day.isToday ? "#6FFFAA" : MA.GREEN, letterSpacing: "-0.2px" }}>{day.present}</span>
+                            <span className="font-bold" style={{ color: day.isToday ? "#6FFFAA" : MA.GREEN, letterSpacing: "-0.2px" }}>{day.present}</span>
                           </div>
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Absent</span>
-                            <span className="font-extrabold" style={{ color: day.isToday ? "#FF9AA9" : MA.RED, letterSpacing: "-0.2px" }}>{day.absent}</span>
+                            <span className="font-bold" style={{ color: day.isToday ? "#FF9AA9" : MA.RED, letterSpacing: "-0.2px" }}>{day.absent}</span>
                           </div>
                         </div>
-                        <div className="text-[17px] font-extrabold" style={{
+                        <div className="text-[17px] font-bold" style={{
                           color: day.isToday ? "#fff" : (parseFloat(day.rate!) >= 85 ? MA.GREEN : parseFloat(day.rate!) >= 70 ? MA.ORANGE : MA.RED),
                           letterSpacing: "-0.5px",
                         }}>{day.rate}</div>
@@ -513,7 +513,7 @@ const Attendance = () => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
               </div>
               <div>
-                <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Attendance Concerns</div>
+                <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Attendance Concerns</div>
                 <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                   {concerns.length === 0 ? "No flagged students" : `${concerns.length} student${concerns.length === 1 ? "" : "s"} need follow up`}
                 </div>
@@ -534,7 +534,7 @@ const Attendance = () => {
                 }}>
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <div className="text-[15px] font-extrabold mb-[4px]" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>All good here ✨</div>
+              <div className="text-[15px] font-bold mb-[4px]" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>All good here ✨</div>
               <div className="text-[12px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                 <b className="font-bold" style={{ color: MA.GREEN }}>All students</b> have good attendance
               </div>
@@ -545,15 +545,15 @@ const Attendance = () => {
                 <button key={i} type="button" onClick={() => navigate('/risks-alerts')}
                   className="w-full flex items-center gap-[11px] p-[11px] rounded-[14px] active:scale-[0.98] transition-transform text-left"
                   style={{ background: MA.SURFACE }}>
-                  <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center flex-shrink-0 text-white text-[12px] font-extrabold"
+                  <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center flex-shrink-0 text-white text-[12px] font-bold"
                     style={{ background: s.av.color, letterSpacing: "0.3px" }}>
                     {s.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{s.name}</div>
+                    <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{s.name}</div>
                     <div className="text-[11px] font-semibold mt-[1px] truncate" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>{s.issue}</div>
                   </div>
-                  <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex-shrink-0"
+                  <span className="px-[10px] py-[4px] rounded-full text-[10px] font-bold flex-shrink-0"
                     style={{ background: s.badge.bg, color: s.badge.color, letterSpacing: "0.3px" }}>
                     {s.badge.text}
                   </span>
@@ -585,10 +585,10 @@ const Attendance = () => {
                       border: "0.5px solid rgba(255,255,255,0.22)",
                       color: "#FFDD55",
                     }}>⚡</div>
-                  <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
+                  <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
                     AI Attendance Intelligence
                   </div>
-                  <div className="ml-auto px-[9px] py-[4px] rounded-full text-[9px] font-extrabold"
+                  <div className="ml-auto px-[9px] py-[4px] rounded-full text-[9px] font-bold"
                     style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                     Live
                   </div>
@@ -606,18 +606,18 @@ const Attendance = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                   <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[17px] font-extrabold" style={{ color: stats.rateNum >= 85 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{rateLabel}</div>
-                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Rate</div>
+                    <div className="text-[17px] font-bold" style={{ color: stats.rateNum >= 85 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{rateLabel}</div>
+                    <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Rate</div>
                   </div>
                   <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>
+                    <div className="text-[17px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>
                       {stats.presentToday}{roster > 0 ? `/${roster}` : ""}
                     </div>
-                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Present</div>
+                    <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Present</div>
                   </div>
                   <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{unmarkedCount}</div>
-                    <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Unmarked</div>
+                    <div className="text-[17px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>{unmarkedCount}</div>
+                    <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Unmarked</div>
                   </div>
                 </div>
               </div>
@@ -633,11 +633,11 @@ const Attendance = () => {
 
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · Attendance
             </div>
-            <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Attendance</h1>
+            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Attendance</h1>
             <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
               Track and manage student attendance across all classes.
             </div>
@@ -660,10 +660,10 @@ const Attendance = () => {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Overall Rate</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Overall Rate</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Today · {activeClass?.name || "All classes"}</div>
                 </div>
-                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                   style={{
                     background: stats.rateNum >= 85 ? "rgba(0,232,102,0.18)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.22)" : stats.rateNum > 0 ? "rgba(255,51,85,0.18)" : "rgba(255,255,255,0.14)",
                     border: `0.5px solid ${stats.rateNum >= 85 ? "rgba(0,232,102,0.5)" : stats.rateNum >= 70 ? "rgba(255,170,0,0.5)" : stats.rateNum > 0 ? "rgba(255,51,85,0.5)" : "rgba(255,255,255,0.22)"}`,
@@ -679,7 +679,7 @@ const Attendance = () => {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-extrabold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
+                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
                     {stats.rateNum > 0 ? stats.rateNum.toFixed(1) : "—"}
                     {stats.rateNum > 0 && <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>}
                   </div>
@@ -692,16 +692,16 @@ const Attendance = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[380px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: "#6FFFAA", letterSpacing: "-0.8px" }}>{stats.presentToday}</div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Present</div>
+                    <div className="text-[26px] font-bold" style={{ color: "#6FFFAA", letterSpacing: "-0.8px" }}>{stats.presentToday}</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Present</div>
                   </div>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: "#FF9AA9", letterSpacing: "-0.8px" }}>{stats.absentToday}</div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Absent</div>
+                    <div className="text-[26px] font-bold" style={{ color: "#FF9AA9", letterSpacing: "-0.8px" }}>{stats.absentToday}</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Absent</div>
                   </div>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.8px" }}>{stats.lateToday}</div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Late</div>
+                    <div className="text-[26px] font-bold" style={{ color: "#FFD060", letterSpacing: "-0.8px" }}>{stats.lateToday}</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>Late</div>
                   </div>
                 </div>
               </div>
@@ -713,7 +713,7 @@ const Attendance = () => {
             <button type="button"
               onClick={() => { setMarkingClassId(selectedClassId); setMarking(true); }}
               className="h-auto rounded-[22px] flex flex-col items-center justify-center gap-2 p-5 hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              style={{ background: MA.GREEN, color: "#fff", fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
+              style={{ background: MA.GREEN, color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", fontFamily: MA.FONT }}>
               <div className="w-11 h-11 rounded-[12px] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
@@ -723,15 +723,15 @@ const Attendance = () => {
               { key: "present", color: MA.GREEN, value: stats.presentToday, label: "Present", onClick: () => navigate('/students'),
                 tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)", tintBorder: "rgba(0,200,83,0.16)",
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><polyline points="17 11 19 13 23 9"/></svg> },
               { key: "absent", color: MA.RED, value: stats.absentToday, label: "Absent", onClick: () => navigate('/risks-alerts'),
                 tintBg: "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)", tintBorder: "rgba(255,51,85,0.14)",
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0112 0"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></svg> },
               { key: "late", color: MA.ORANGE, value: stats.lateToday, label: "Late", onClick: () => navigate('/risks-alerts'),
                 tintBg: "linear-gradient(135deg, #FFF6E8 0%, #FFEED4 100%)", tintBorder: "rgba(255,136,0,0.14)",
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
                 {...tilt3D}
@@ -744,7 +744,7 @@ const Attendance = () => {
                   {s.icon}
                 </div>
                 <div className="text-[11px] font-bold uppercase mb-[8px]" style={{ color: s.color, letterSpacing: "1px" }}>{s.label}</div>
-                <div className="text-[36px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.value}</div>
+                <div className="text-[36px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.value}</div>
               </button>
             ))}
           </div>
@@ -785,7 +785,7 @@ const Attendance = () => {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </div>
                   <div>
-                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Weekly Overview</div>
+                    <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Weekly Overview</div>
                     {activeClass && weeklyDays.length > 0 && (
                       <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                         {activeClass.name} · {weeklyDays[0]?.dateLabel} – {weeklyDays[weeklyDays.length - 1]?.dateLabel}
@@ -819,23 +819,23 @@ const Attendance = () => {
                       {day.isToday && (
                         <>
                           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 45%)" }} />
-                          <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                          <div className="absolute top-[10px] right-[10px] text-[8px] font-bold px-[7px] py-[3px] rounded-full uppercase"
                             style={{ background: "rgba(255,255,255,0.25)", backdropFilter: "blur(8px)", color: "#fff", border: "0.5px solid rgba(255,255,255,0.3)", letterSpacing: "0.5px" }}>
                             Today
                           </div>
                         </>
                       )}
                       {day.isFuture && (
-                        <div className="absolute top-[10px] right-[10px] text-[8px] font-extrabold px-[7px] py-[3px] rounded-full uppercase"
+                        <div className="absolute top-[10px] right-[10px] text-[8px] font-bold px-[7px] py-[3px] rounded-full uppercase"
                           style={{ background: "rgba(9,87,247,0.1)", color: MA.P, letterSpacing: "0.5px" }}>
                           Upcoming
                         </div>
                       )}
                       <div className="relative z-[2]">
-                        <div className="text-[9px] font-extrabold uppercase" style={{ color: day.isToday ? "rgba(255,255,255,0.8)" : MA.T3, letterSpacing: "1.3px", marginBottom: 3 }}>
+                        <div className="text-[9px] font-bold uppercase" style={{ color: day.isToday ? "rgba(255,255,255,0.8)" : MA.T3, letterSpacing: "1.3px", marginBottom: 3 }}>
                           {day.label}
                         </div>
-                        <div className="text-[17px] font-extrabold mb-[10px]" style={{ color: day.isToday ? "#fff" : MA.T1, letterSpacing: "-0.5px" }}>
+                        <div className="text-[17px] font-bold mb-[10px]" style={{ color: day.isToday ? "#fff" : MA.T1, letterSpacing: "-0.5px" }}>
                           {day.dateLabel}
                         </div>
                         {day.hasData ? (
@@ -843,14 +843,14 @@ const Attendance = () => {
                             <div className="flex flex-col gap-[5px] mb-[10px]">
                               <div className="flex justify-between items-center text-[10px]">
                                 <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Present</span>
-                                <span className="font-extrabold" style={{ color: day.isToday ? "#6FFFAA" : MA.GREEN, letterSpacing: "-0.2px" }}>{day.present}</span>
+                                <span className="font-bold" style={{ color: day.isToday ? "#6FFFAA" : MA.GREEN, letterSpacing: "-0.2px" }}>{day.present}</span>
                               </div>
                               <div className="flex justify-between items-center text-[10px]">
                                 <span className="font-semibold" style={{ color: day.isToday ? "rgba(255,255,255,0.7)" : MA.T3 }}>Absent</span>
-                                <span className="font-extrabold" style={{ color: day.isToday ? "#FF9AA9" : MA.RED, letterSpacing: "-0.2px" }}>{day.absent}</span>
+                                <span className="font-bold" style={{ color: day.isToday ? "#FF9AA9" : MA.RED, letterSpacing: "-0.2px" }}>{day.absent}</span>
                               </div>
                             </div>
-                            <div className="text-[17px] font-extrabold" style={{
+                            <div className="text-[17px] font-bold" style={{
                               color: day.isToday ? "#fff" : (parseFloat(day.rate!) >= 85 ? MA.GREEN : parseFloat(day.rate!) >= 70 ? MA.ORANGE : MA.RED),
                               letterSpacing: "-0.5px",
                             }}>{day.rate}</div>
@@ -882,7 +882,7 @@ const Attendance = () => {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 21h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
                   </div>
                   <div>
-                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Attendance Concerns</div>
+                    <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Attendance Concerns</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                       {concerns.length === 0 ? "No flagged students" : `${concerns.length} student${concerns.length === 1 ? "" : "s"} need follow up`}
                     </div>
@@ -903,7 +903,7 @@ const Attendance = () => {
                     }}>
                     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
-                  <div className="text-[17px] font-extrabold mb-[5px]" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>All good here ✨</div>
+                  <div className="text-[17px] font-bold mb-[5px]" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>All good here ✨</div>
                   <div className="text-[13px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                     <b className="font-bold" style={{ color: MA.GREEN }}>All students</b> have good attendance
                   </div>
@@ -914,15 +914,15 @@ const Attendance = () => {
                     <button key={i} type="button" onClick={() => navigate('/risks-alerts')}
                       className="w-full flex items-center gap-3 p-[13px] rounded-[14px] hover:brightness-[0.98] active:scale-[0.99] transition text-left"
                       style={{ background: MA.SURFACE }}>
-                      <div className="w-[44px] h-[44px] rounded-[13px] flex items-center justify-center flex-shrink-0 text-white text-[13px] font-extrabold"
+                      <div className="w-[44px] h-[44px] rounded-[13px] flex items-center justify-center flex-shrink-0 text-white text-[13px] font-bold"
                         style={{ background: s.av.color, letterSpacing: "0.3px" }}>
                         {s.initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>{s.name}</div>
+                        <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>{s.name}</div>
                         <div className="text-[12px] font-semibold mt-[2px] truncate" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>{s.issue}</div>
                       </div>
-                      <span className="px-[12px] py-[5px] rounded-full text-[11px] font-extrabold flex-shrink-0"
+                      <span className="px-[12px] py-[5px] rounded-full text-[11px] font-bold flex-shrink-0"
                         style={{ background: s.badge.bg, color: s.badge.color, letterSpacing: "0.3px" }}>
                         {s.badge.text}
                       </span>
@@ -956,10 +956,10 @@ const Attendance = () => {
                         border: "0.5px solid rgba(255,255,255,0.22)",
                         color: "#FFDD55",
                       }}>⚡</div>
-                    <div className="text-[11px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
                       AI Attendance Intelligence
                     </div>
-                    <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-extrabold"
+                    <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-bold"
                       style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                       Live
                     </div>
@@ -977,18 +977,18 @@ const Attendance = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                     <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[22px] font-extrabold" style={{ color: stats.rateNum >= 85 ? "#6FFFAA" : "#fff", letterSpacing: "-0.6px" }}>{rateLabel}</div>
-                      <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Rate</div>
+                      <div className="text-[22px] font-bold" style={{ color: stats.rateNum >= 85 ? "#6FFFAA" : "#fff", letterSpacing: "-0.6px" }}>{rateLabel}</div>
+                      <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Rate</div>
                     </div>
                     <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>
+                      <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>
                         {stats.presentToday}{roster > 0 ? `/${roster}` : ""}
                       </div>
-                      <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Present</div>
+                      <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Present</div>
                     </div>
                     <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{unmarkedCount}</div>
-                      <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Unmarked</div>
+                      <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{unmarkedCount}</div>
+                      <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Unmarked</div>
                     </div>
                   </div>
                 </div>

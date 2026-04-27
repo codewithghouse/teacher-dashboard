@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -197,7 +197,7 @@ const SettingsPage = () => {
       style={{
         minHeight: "100vh",
         background: "#EEF4FF",
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
       }}
     >
       <style>{`
@@ -219,11 +219,11 @@ const SettingsPage = () => {
         {/* ═══ Page Head ═══ */}
         <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }}/>
               Teacher Dashboard · Preferences
             </div>
-            <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+            <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
               Settings
             </h1>
             <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -240,7 +240,7 @@ const SettingsPage = () => {
                 height: 44, padding: '0 18px', borderRadius: 14,
                 background: '#fff', color: '#5070B0',
                 border: '0.5px solid rgba(0,85,255,.12)',
-                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                 boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 14px rgba(0,85,255,.08)',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -260,7 +260,7 @@ const SettingsPage = () => {
                 height: 44, padding: '0 22px', borderRadius: 14,
                 background: isSaving ? '#F5F6F9' : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
                 color: isSaving ? '#99AACC' : '#fff',
-                fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                 border: 'none',
                 cursor: isSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 boxShadow: isSaving ? 'none' : '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)',
@@ -300,17 +300,17 @@ const SettingsPage = () => {
               width: 72, height: 72, borderRadius: 18,
               background: 'rgba(255,255,255,.16)', border: '0.5px solid rgba(255,255,255,.26)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, fontWeight: 800, color: '#fff',
+              fontSize: 22, fontWeight: 700, color: '#fff',
               flexShrink: 0, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
             }}>
               {initials}
             </div>
             <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: '#6FFFAA' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: '#6FFFAA' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4CC9A4' }}/>
                 Active Profile
               </div>
-              <h2 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.8px', margin: 0, color: '#fff', lineHeight: 1.05 }}>
+              <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.8px', margin: 0, color: '#fff', lineHeight: 1.05 }}>
                 {formData.name || "Teacher"}
               </h2>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '6px 0 0 0' }}>
@@ -324,8 +324,8 @@ const SettingsPage = () => {
                 { label: 'Format', value: preferences.dateFormat.slice(0, 10), color: '#C8A4FF' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
                 </div>
               ))}
             </div>
@@ -501,10 +501,10 @@ const SettingsPage = () => {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
               AI Settings Intelligence
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
               Profile &amp; Preferences Summary
             </div>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -525,8 +525,8 @@ const SettingsPage = () => {
             { label: 'Locale', value: preferences.language, sub: preferences.dateFormat, color: '#fff' },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
             </div>
           ))}
@@ -626,11 +626,11 @@ const MobileSettings = ({
 
         {/* Page Header */}
         <div style={{ padding: "8px 2px 14px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
             Preferences
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Settings</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Settings</h1>
           <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
             Manage your profile, notifications and preferences.
           </div>
@@ -657,7 +657,7 @@ const MobileSettings = ({
               backdropFilter: "blur(22px)",
               border: "0.5px solid rgba(255,255,255,.3)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 22, fontWeight: 800, letterSpacing: "-0.4px", flexShrink: 0,
+              color: "#fff", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", flexShrink: 0,
               boxShadow: "inset 0 0.5px 0 rgba(255,255,255,.22)",
               position: "relative",
             }}>
@@ -676,7 +676,7 @@ const MobileSettings = ({
               </span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 3 }}>
+              <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 3 }}>
                 {formData.name || "Teacher"}
               </div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", fontWeight: 500, letterSpacing: "-0.1px", marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -687,7 +687,7 @@ const MobileSettings = ({
                   background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
                   border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
                   padding: "3px 9px", borderRadius: 100,
-                  fontSize: 9, fontWeight: 800, letterSpacing: "0.3px",
+                  fontSize: 9, fontWeight: 700, letterSpacing: "0.3px",
                   display: "flex", alignItems: "center", gap: 4,
                 }}>
                   <span className="st-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 6px #00E866" }} />
@@ -698,7 +698,7 @@ const MobileSettings = ({
                     background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
                     border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
                     padding: "3px 9px", borderRadius: 100,
-                    fontSize: 9, fontWeight: 800, letterSpacing: "0.3px",
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.3px",
                   }}>Teacher · {formData.subject}</div>
                 )}
               </div>
@@ -707,7 +707,7 @@ const MobileSettings = ({
         </div>
 
         {/* Profile Section */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Profile</span>
           <button type="button" onClick={editName} className="st-press" style={{ fontSize: 11, fontWeight: 700, color: "#0055FF", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px" }}>
             Edit name
@@ -726,7 +726,7 @@ const MobileSettings = ({
             tabIndex={0}
             style={{ padding: "10px 12px", position: "relative", cursor: "pointer", borderRadius: 11 }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>
               </svg>
@@ -738,7 +738,7 @@ const MobileSettings = ({
           </div>
 
           <div style={{ padding: "10px 12px", position: "relative", background: "rgba(255,170,0,.04)", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h16c1 0 2 1 2 2v12c0 1-1 2-2 2H4c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/><polyline points="22 6 12 13 2 6"/>
               </svg>
@@ -763,7 +763,7 @@ const MobileSettings = ({
             tabIndex={0}
             style={{ padding: "10px 12px", position: "relative", cursor: "pointer", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
               </svg>
@@ -775,7 +775,7 @@ const MobileSettings = ({
           </div>
 
           <div style={{ padding: "10px 12px", position: "relative", background: "rgba(255,170,0,.04)", borderRadius: 11, borderTop: "0.5px solid rgba(0,85,255,.07)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.3px", textTransform: "uppercase", marginBottom: 5 }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#99AACC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
               </svg>
@@ -795,7 +795,7 @@ const MobileSettings = ({
         </div>
 
         {/* Notifications Section */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Notifications</span>
           <button type="button" onClick={toggleAllNotifs} className="st-press" style={{ fontSize: 11, fontWeight: 700, color: allNotifsOn ? "#FF3355" : "#0055FF", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px" }}>
             {allNotifsOn ? "Disable all" : "Enable all"}
@@ -847,7 +847,7 @@ const MobileSettings = ({
         </div>
 
         {/* Preferences Section */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Preferences</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Preferences</div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
           boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
@@ -889,7 +889,7 @@ const MobileSettings = ({
         </div>
 
         {/* Security Section */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Security</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853", letterSpacing: "-0.1px", display: "flex", alignItems: "center", gap: 3 }}>✓ Secured</span>
         </div>
@@ -916,13 +916,13 @@ const MobileSettings = ({
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px" }}>Admin-managed account</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>Admin-managed account</div>
                 <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 1, letterSpacing: "-0.1px", lineHeight: 1.4 }}>Contact admin to change password</div>
               </div>
               <div style={{
                 background: "rgba(0,200,83,.1)", color: "#00C853",
                 padding: "3px 9px", borderRadius: 100,
-                fontSize: 9, fontWeight: 900, letterSpacing: "0.5px", textTransform: "uppercase", flexShrink: 0,
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", flexShrink: 0,
               }}>Safe</div>
             </div>
           </div>
@@ -975,7 +975,7 @@ const MobileSettings = ({
         </div>
 
         {/* Danger zone */}
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Danger zone</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", padding: "4px 8px 10px" }}>Danger zone</div>
         <div className="st-card3d" style={{
           background: "#fff", borderRadius: 16, padding: 3, marginBottom: 18,
           boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
@@ -1076,7 +1076,7 @@ const MobileSettings = ({
             flex: 1, height: 48, borderRadius: 14,
             background: "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)",
             color: "#fff",
-            fontSize: 14, fontWeight: 800, border: "none",
+            fontSize: 14, fontWeight: 700, border: "none",
             cursor: isSaving ? "wait" : "pointer",
             letterSpacing: "-0.2px",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 7,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
 import { db } from "../lib/firebase";
@@ -25,7 +25,7 @@ const T = {
 
 // ── Mobile tokens (EduIntellect v2) ──────────────────────────────────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -338,11 +338,11 @@ export default function Students() {
         {/* Page header */}
         <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-[14px]">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · Students
             </div>
-            <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+            <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
               Students
             </h1>
             <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -380,7 +380,7 @@ export default function Students() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Total Students</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Total Students</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Across all classes</div>
               </div>
               {(() => {
@@ -392,7 +392,7 @@ export default function Students() {
                 const dot = band === "crit" ? "#FF5577"              : band === "warn" ? "#FFCC22"              : band === "good" ? "#00FF88"              : "#fff";
                 const label = band === "crit" ? `${atRiskCount} At risk` : band === "warn" ? `${needAttn} Attention` : band === "good" ? "All healthy" : "Empty";
                 return (
-                  <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+                  <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                     style={{ background: bg, border: `0.5px solid ${bd}`, color: fg, letterSpacing: "0.3px" }}>
                     <span className="w-[6px] h-[6px] rounded-full" style={{ background: dot, boxShadow: `0 0 8px ${dot}` }} />
                     {label}
@@ -400,7 +400,7 @@ export default function Students() {
                 );
               })()}
             </div>
-            <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[6px]" style={{ letterSpacing: "-2.6px" }}>
+            <div className="text-[56px] font-bold text-white leading-none mb-[8px] flex items-baseline gap-[6px]" style={{ letterSpacing: "-2.6px" }}>
               {students.length}
               <span className="text-[22px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.4px" }}>
                 {students.length === 1 ? "student" : "students"}
@@ -420,21 +420,21 @@ export default function Students() {
                 aria-label={`Filter to ${goodCount} good students`}
                 className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
                 style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                <div className="text-[18px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{goodCount}</div>
+                <div className="text-[18px] font-bold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{goodCount}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Good</div>
               </button>
               <button type="button" onClick={() => setStatusAndScroll("Attention")}
                 aria-label={`Filter to ${attentionCount + atRiskCount} students needing attention`}
                 className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
                 style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                <div className="text-[18px] font-extrabold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{attentionCount + atRiskCount}</div>
+                <div className="text-[18px] font-bold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{attentionCount + atRiskCount}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Attention</div>
               </button>
               <button type="button" onClick={scrollToChips}
                 aria-label={`Browse ${uniqueClasses.length} classes`}
                 className="py-[12px] px-[4px] text-center active:scale-[0.96] transition-transform"
                 style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                <div className="text-[18px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{uniqueClasses.length}</div>
+                <div className="text-[18px] font-bold text-white" style={{ letterSpacing: "-0.5px" }}>{uniqueClasses.length}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Classes</div>
               </button>
             </div>
@@ -511,7 +511,7 @@ export default function Students() {
                   <span className="w-[5px] h-[5px] rounded-full" style={{ background: "#fff" }} />
                 )}
                 {chip.label}
-                <span className="text-[10px] font-extrabold px-[7px] py-[1px] rounded-full"
+                <span className="text-[10px] font-bold px-[7px] py-[1px] rounded-full"
                   style={{
                     background: isActive ? "rgba(255,255,255,0.22)" : MA.SURFACE,
                     color: isActive ? "#fff" : MA.T3,
@@ -527,7 +527,7 @@ export default function Students() {
         {/* Section header */}
         <div className="flex items-end justify-between px-4 pb-[10px]">
           <div className="flex items-baseline gap-2">
-            <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
+            <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
               {filterStatus === "All" && filterClass === "All"
                 ? "All Students"
                 : filterClass !== "All"
@@ -561,12 +561,12 @@ export default function Students() {
                   boxShadow: "0 0 0 8px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
                 }}>
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                <div className="absolute -top-[6px] -right-[6px] w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[14px] font-extrabold"
+                <div className="absolute -top-[6px] -right-[6px] w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[14px] font-bold"
                   style={{ background: MA.P, border: "3px solid #fff", boxShadow: "0 2px 6px rgba(9,87,247,0.35)" }}>
                   +
                 </div>
               </div>
-              <div className="text-[17px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.5px" }}>
+              <div className="text-[17px] font-bold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.5px" }}>
                 {search || filterStatus !== "All" || filterClass !== "All" ? "No matches" : "No students yet"}
               </div>
               <div className="text-[13px] font-medium leading-[1.5] mb-[18px] px-[10px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -613,16 +613,16 @@ export default function Students() {
                     className="rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
                     style={{ background: cardTint.bg, boxShadow: "0 6px 18px rgba(20,40,90,0.05), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${cardTint.border}`, ...tilt3DStyle }}>
                     <div className="flex items-center gap-[12px] mb-[12px]">
-                      <div className="w-12 h-12 rounded-[15px] flex items-center justify-center text-[14px] font-extrabold flex-shrink-0"
+                      <div className="w-12 h-12 rounded-[15px] flex items-center justify-center text-[14px] font-bold flex-shrink-0"
                         style={{ background: `${avBg}22`, color: avBg, letterSpacing: "0.3px" }}>
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[15px] font-extrabold leading-[1.2] truncate" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
+                        <div className="text-[15px] font-bold leading-[1.2] truncate" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
                           {stu.name || "Student"}
                         </div>
                         <div className="flex items-center gap-[5px] text-[11px] font-medium mt-[3px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                          <span className="px-[8px] py-[2px] rounded-[6px] text-[10px] font-extrabold"
+                          <span className="px-[8px] py-[2px] rounded-[6px] text-[10px] font-bold"
                             style={{ background: "rgba(9,87,247,0.08)", color: MA.P, letterSpacing: "-0.1px" }}>
                             {stu.className || "—"}
                           </span>
@@ -630,7 +630,7 @@ export default function Students() {
                           <span>Roll {stu.rollNo || "—"}</span>
                         </div>
                       </div>
-                      <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex items-center gap-[5px] flex-shrink-0"
+                      <span className="px-[10px] py-[4px] rounded-full text-[10px] font-bold flex items-center gap-[5px] flex-shrink-0"
                         style={{ background: tone.pillBg, color: tone.pillFg, letterSpacing: "0.3px" }}>
                         <span className="w-[5px] h-[5px] rounded-full" style={{ background: tone.pillFg, animation: tone.pulse ? "pulse 2s ease-in-out infinite" : undefined }} />
                         {tone.label}
@@ -644,8 +644,8 @@ export default function Students() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>
                         </div>
                         <div className="text-left">
-                          <div className="text-[8px] font-extrabold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Attend</div>
-                          <div className="text-[14px] font-extrabold mt-[3px] leading-none" style={{ color: attTone, letterSpacing: "-0.3px" }}>
+                          <div className="text-[8px] font-bold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Attend</div>
+                          <div className="text-[14px] font-bold mt-[3px] leading-none" style={{ color: attTone, letterSpacing: "-0.3px" }}>
                             {attPct}%
                           </div>
                         </div>
@@ -656,8 +656,8 @@ export default function Students() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                         </div>
                         <div className="text-left">
-                          <div className="text-[8px] font-extrabold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Score</div>
-                          <div className="text-[14px] font-extrabold mt-[3px] leading-none" style={{ color: hasScore ? scoreTone : MA.T4, letterSpacing: "-0.3px" }}>
+                          <div className="text-[8px] font-bold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Score</div>
+                          <div className="text-[14px] font-bold mt-[3px] leading-none" style={{ color: hasScore ? scoreTone : MA.T4, letterSpacing: "-0.3px" }}>
                             {hasScore ? `${scorePct.toFixed(1)}%` : "—"}
                           </div>
                         </div>
@@ -688,10 +688,10 @@ export default function Students() {
                     border: "0.5px solid rgba(255,255,255,0.22)",
                     color: "#FFDD55",
                   }}>⚡</div>
-                <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
                   AI Student Intelligence
                 </div>
-                <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+                <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-bold"
                   style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                   Live
                 </div>
@@ -718,20 +718,20 @@ export default function Students() {
                       <button type="button" onClick={() => setStatusAndScroll("Good")}
                         className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
                         style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                        <div className="text-[17px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{goodCount}</div>
-                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Good</div>
+                        <div className="text-[17px] font-bold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>{goodCount}</div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Good</div>
                       </button>
                       <button type="button" onClick={() => setStatusAndScroll("Attention")}
                         className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
                         style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                        <div className="text-[17px] font-extrabold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.4px" }}>{needAttn}</div>
-                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Attention</div>
+                        <div className="text-[17px] font-bold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.4px" }}>{needAttn}</div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Attention</div>
                       </button>
                       <button type="button" onClick={resetAndScroll}
                         className="py-[11px] px-[4px] text-center active:scale-[0.96] transition-transform"
                         style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                        <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{students.length}</div>
-                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Total</div>
+                        <div className="text-[17px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>{students.length}</div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Total</div>
                       </button>
                     </div>
                   </>
@@ -758,11 +758,11 @@ export default function Students() {
           {/* Header row */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
             <div>
-              <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+              <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
                 <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
                 Teacher Dashboard · Students
               </div>
-              <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Students</h1>
+              <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Students</h1>
               <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                 View and manage all your students across classes.
               </div>
@@ -798,7 +798,7 @@ export default function Students() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Total Students</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Total Students</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Across all classes</div>
                 </div>
                 {(() => {
@@ -810,7 +810,7 @@ export default function Students() {
                   const dot = band === "crit" ? "#FF5577"              : band === "warn" ? "#FFCC22"              : band === "good" ? "#00FF88"              : "#fff";
                   const label = band === "crit" ? `${atRiskCount} At risk` : band === "warn" ? `${needAttn} Attention` : band === "good" ? "All healthy" : "Empty";
                   return (
-                    <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                    <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                       style={{ background: bg, border: `0.5px solid ${bd}`, color: fg, letterSpacing: "0.3px" }}>
                       <span className="w-[6px] h-[6px] rounded-full" style={{ background: dot, boxShadow: `0 0 8px ${dot}` }} />
                       {label}
@@ -820,7 +820,7 @@ export default function Students() {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-extrabold text-white leading-none mb-[6px] flex items-baseline gap-[10px]" style={{ letterSpacing: "-3.8px" }}>
+                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[10px]" style={{ letterSpacing: "-3.8px" }}>
                     {students.length}
                     <span className="text-[32px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.6px" }}>
                       {students.length === 1 ? "student" : "students"}
@@ -841,21 +841,21 @@ export default function Students() {
                     aria-label={`Filter to ${goodCount} good students`}
                     className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                     style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.8px" }}>{goodCount}</div>
+                    <div className="text-[26px] font-bold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.8px" }}>{goodCount}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Good</div>
                   </button>
                   <button type="button" onClick={() => setStatusAndScroll("Attention")}
                     aria-label={`Filter to ${attentionCount + atRiskCount} students needing attention`}
                     className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                     style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.8px" }}>{attentionCount + atRiskCount}</div>
+                    <div className="text-[26px] font-bold" style={{ color: (attentionCount + atRiskCount) > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.8px" }}>{attentionCount + atRiskCount}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Attention</div>
                   </button>
                   <button type="button" onClick={scrollToChips}
                     aria-label={`Browse ${uniqueClasses.length} classes`}
                     className="py-4 px-5 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                     style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                    <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{uniqueClasses.length}</div>
+                    <div className="text-[26px] font-bold text-white" style={{ letterSpacing: "-0.8px" }}>{uniqueClasses.length}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Classes</div>
                   </button>
                 </div>
@@ -933,7 +933,7 @@ export default function Students() {
                     <span className="w-[5px] h-[5px] rounded-full" style={{ background: "#fff" }} />
                   )}
                   {chip.label}
-                  <span className="text-[11px] font-extrabold px-[8px] py-[2px] rounded-full"
+                  <span className="text-[11px] font-bold px-[8px] py-[2px] rounded-full"
                     style={{
                       background: isActive ? "rgba(255,255,255,0.22)" : MA.SURFACE,
                       color: isActive ? "#fff" : MA.T3,
@@ -949,7 +949,7 @@ export default function Students() {
           {/* Section header */}
           <div className="flex items-end justify-between pb-3">
             <div className="flex items-baseline gap-3">
-              <div className="text-[18px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
+              <div className="text-[18px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
                 {filterStatus === "All" && filterClass === "All"
                   ? "All Students"
                   : filterClass !== "All"
@@ -983,12 +983,12 @@ export default function Students() {
                     boxShadow: "0 0 0 10px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
                   }}>
                   <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                  <div className="absolute -top-[7px] -right-[7px] w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[16px] font-extrabold"
+                  <div className="absolute -top-[7px] -right-[7px] w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[16px] font-bold"
                     style={{ background: MA.P, border: "3px solid #fff", boxShadow: "0 2px 6px rgba(9,87,247,0.35)" }}>
                     +
                   </div>
                 </div>
-                <div className="text-[20px] font-extrabold mb-[8px]" style={{ color: MA.T1, letterSpacing: "-0.5px" }}>
+                <div className="text-[20px] font-bold mb-[8px]" style={{ color: MA.T1, letterSpacing: "-0.5px" }}>
                   {search || filterStatus !== "All" || filterClass !== "All" ? "No matches" : "No students yet"}
                 </div>
                 <div className="text-[14px] font-medium leading-[1.5] mb-[22px] max-w-[460px] mx-auto" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -1035,16 +1035,16 @@ export default function Students() {
                       className="rounded-[20px] p-5 relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
                       style={{ background: cardTint.bg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${cardTint.border}`, ...tilt3DStyle }}>
                       <div className="flex items-center gap-3 mb-[14px]">
-                        <div className="w-14 h-14 rounded-[17px] flex items-center justify-center text-[16px] font-extrabold flex-shrink-0"
+                        <div className="w-14 h-14 rounded-[17px] flex items-center justify-center text-[16px] font-bold flex-shrink-0"
                           style={{ background: `${avBg}22`, color: avBg, letterSpacing: "0.3px" }}>
                           {initials}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[16px] font-extrabold leading-[1.2] truncate" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
+                          <div className="text-[16px] font-bold leading-[1.2] truncate" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
                             {stu.name || "Student"}
                           </div>
                           <div className="flex items-center gap-[5px] text-[12px] font-medium mt-[4px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                            <span className="px-[9px] py-[2px] rounded-[7px] text-[11px] font-extrabold"
+                            <span className="px-[9px] py-[2px] rounded-[7px] text-[11px] font-bold"
                               style={{ background: "rgba(9,87,247,0.08)", color: MA.P, letterSpacing: "-0.1px" }}>
                               {stu.className || "—"}
                             </span>
@@ -1052,7 +1052,7 @@ export default function Students() {
                             <span>Roll {stu.rollNo || "—"}</span>
                           </div>
                         </div>
-                        <span className="px-[11px] py-[5px] rounded-full text-[10px] font-extrabold flex items-center gap-[5px] flex-shrink-0"
+                        <span className="px-[11px] py-[5px] rounded-full text-[10px] font-bold flex items-center gap-[5px] flex-shrink-0"
                           style={{ background: tone.pillBg, color: tone.pillFg, letterSpacing: "0.3px" }}>
                           <span className="w-[5px] h-[5px] rounded-full" style={{ background: tone.pillFg, animation: tone.pulse ? "pulse 2s ease-in-out infinite" : undefined }} />
                           {tone.label}
@@ -1066,8 +1066,8 @@ export default function Students() {
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>
                           </div>
                           <div className="text-left">
-                            <div className="text-[9px] font-extrabold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Attend</div>
-                            <div className="text-[16px] font-extrabold mt-[3px] leading-none" style={{ color: attTone, letterSpacing: "-0.3px" }}>
+                            <div className="text-[9px] font-bold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Attend</div>
+                            <div className="text-[16px] font-bold mt-[3px] leading-none" style={{ color: attTone, letterSpacing: "-0.3px" }}>
                               {attPct}%
                             </div>
                           </div>
@@ -1078,8 +1078,8 @@ export default function Students() {
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                           </div>
                           <div className="text-left">
-                            <div className="text-[9px] font-extrabold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Score</div>
-                            <div className="text-[16px] font-extrabold mt-[3px] leading-none" style={{ color: hasScore ? scoreTone : MA.T4, letterSpacing: "-0.3px" }}>
+                            <div className="text-[9px] font-bold uppercase leading-none" style={{ color: MA.T3, letterSpacing: "1px" }}>Score</div>
+                            <div className="text-[16px] font-bold mt-[3px] leading-none" style={{ color: hasScore ? scoreTone : MA.T4, letterSpacing: "-0.3px" }}>
                               {hasScore ? `${scorePct.toFixed(1)}%` : "—"}
                             </div>
                           </div>
@@ -1110,10 +1110,10 @@ export default function Students() {
                       border: "0.5px solid rgba(255,255,255,0.22)",
                       color: "#FFDD55",
                     }}>⚡</div>
-                  <div className="text-[11px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
                     AI Student Intelligence
                   </div>
-                  <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-extrabold"
+                  <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-bold"
                     style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                     Live
                   </div>
@@ -1140,20 +1140,20 @@ export default function Students() {
                         <button type="button" onClick={() => setStatusAndScroll("Good")}
                           className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                           style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                          <div className="text-[22px] font-extrabold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.6px" }}>{goodCount}</div>
-                          <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Good</div>
+                          <div className="text-[22px] font-bold" style={{ color: goodCount > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.6px" }}>{goodCount}</div>
+                          <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Good</div>
                         </button>
                         <button type="button" onClick={() => setStatusAndScroll("Attention")}
                           className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                           style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                          <div className="text-[22px] font-extrabold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.6px" }}>{needAttn}</div>
-                          <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attention</div>
+                          <div className="text-[22px] font-bold" style={{ color: needAttn > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.6px" }}>{needAttn}</div>
+                          <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attention</div>
                         </button>
                         <button type="button" onClick={resetAndScroll}
                           className="py-4 px-3 text-center hover:brightness-110 active:scale-[0.97] transition-all"
                           style={{ background: "rgba(0,20,80,0.55)", border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
-                          <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{students.length}</div>
-                          <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Total</div>
+                          <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{students.length}</div>
+                          <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Total</div>
                         </button>
                       </div>
                     </>
@@ -1200,7 +1200,7 @@ export default function Students() {
                 <Mail size={18} strokeWidth={2.2} aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[17px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Invite Student</div>
+                <div className="text-[17px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Invite Student</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>Send an email invite to join your class</div>
               </div>
               <button type="button" aria-label="Close"
@@ -1215,8 +1215,8 @@ export default function Students() {
             <div className="flex-1 overflow-y-auto p-[18px]" style={{ scrollbarWidth: "none" as const }}>
               {/* Full Name */}
               <div className="mb-[14px]">
-                <label htmlFor="invite-name-mobile" className="block text-[9px] font-extrabold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                  Full Name <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+                <label htmlFor="invite-name-mobile" className="block text-[9px] font-bold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                  Full Name <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
                 </label>
                 <input id="invite-name-mobile"
                   type="text"
@@ -1237,8 +1237,8 @@ export default function Students() {
 
               {/* Email */}
               <div className="mb-[14px]">
-                <label htmlFor="invite-email-mobile" className="block text-[9px] font-extrabold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                  Email <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+                <label htmlFor="invite-email-mobile" className="block text-[9px] font-bold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                  Email <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
                 </label>
                 <input id="invite-email-mobile"
                   type="email" inputMode="email" autoComplete="email"
@@ -1260,8 +1260,8 @@ export default function Students() {
               {/* Class segmented + Roll No */}
               <div className="grid gap-[10px] mb-[14px]" style={{ gridTemplateColumns: "2fr 1fr" }}>
                 <div>
-                  <div className="block text-[9px] font-extrabold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                    Class <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+                  <div className="block text-[9px] font-bold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                    Class <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
                   </div>
                   {teacherClasses.length === 0 ? (
                     <div className="rounded-[11px] px-[12px] py-[11px] text-[12px] font-medium" style={{ background: MA.SURFACE, color: MA.T3, letterSpacing: "-0.1px" }}>
@@ -1293,7 +1293,7 @@ export default function Students() {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="invite-roll-mobile" className="block text-[9px] font-extrabold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                  <label htmlFor="invite-roll-mobile" className="block text-[9px] font-bold uppercase mb-[8px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
                     Roll No <span className="font-semibold" style={{ color: MA.T4, letterSpacing: 0, textTransform: "none", fontSize: 10 }}>(opt.)</span>
                   </label>
                   <input id="invite-roll-mobile"
@@ -1344,7 +1344,7 @@ export default function Students() {
                 className="flex-1 h-[46px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.97] transition-transform"
                 style={{
                   background: MA.P, color: "#fff",
-                  fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+                  fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
                   boxShadow: "0 1px 2px rgba(9,87,247,0.25), 0 6px 16px rgba(9,87,247,0.35)",
                   fontFamily: MA.FONT, border: "none",
                   cursor: inviting ? "not-allowed" : "pointer",

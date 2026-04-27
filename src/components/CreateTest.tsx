@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db, storage } from "../lib/firebase";
 import {
@@ -136,7 +136,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
   // Bright-blue Apple tokens (shared mobile + desktop)
   const MA = {
-    FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+    FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
     BG: "#EEF4FF",
     CARD: "#FFFFFF",
     SURFACE: "#F4F7FE",
@@ -201,16 +201,16 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               Back to tests
             </button>
-            <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
+            <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
               New Test
             </div>
             <div style={{ width: 44 }} />
           </div>
           <div className="pt-[2px] px-[2px]">
-            <div className="text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+            <div className="text-[9px] font-bold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
               Step 1 of 1
             </div>
-            <div className="text-[26px] font-extrabold leading-[1.1] mb-[5px]" style={{ color: "#fff", letterSpacing: "-1px" }}>
+            <div className="text-[26px] font-bold leading-[1.1] mb-[5px]" style={{ color: "#fff", letterSpacing: "-1px" }}>
               Create test
             </div>
             <div className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "-0.1px" }}>
@@ -224,8 +224,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Select Class */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Select Class <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <div className="text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Select Class <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </div>
           {classes.length === 0 ? (
             <div className="text-[12px] font-medium py-[10px]" style={{ color: MA.T3 }}>
@@ -257,8 +257,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Test Name */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="test-name-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Test Name <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <label htmlFor="test-name-mobile" className="block text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Test Name <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </label>
           <input id="test-name-mobile"
             type="text"
@@ -284,7 +284,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Description */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="test-desc-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <label htmlFor="test-desc-mobile" className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Description
           </label>
           <textarea id="test-desc-mobile"
@@ -312,7 +312,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
         {/* Category + Subject */}
         <div className="grid grid-cols-2 gap-[10px] mb-[12px]">
           <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-            <div className="text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            <div className="text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
               Category
             </div>
             <div className="relative flex items-center gap-[12px] px-[14px] py-[11px] rounded-[12px]"
@@ -336,7 +336,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
             </div>
           </div>
           <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-            <label htmlFor="test-subject-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            <label htmlFor="test-subject-mobile" className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
               Subject
             </label>
             <input id="test-subject-mobile"
@@ -359,45 +359,45 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
         {/* Total Marks stepper + Duration stepper */}
         <div className="grid grid-cols-2 gap-[10px] mb-[12px]">
           <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-            <div className="text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-              Total Marks <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+            <div className="text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+              Total Marks <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
             </div>
             <div className="flex items-center rounded-[12px] overflow-hidden" style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)" }}>
               <button type="button" aria-label="Decrement marks"
                 onClick={() => setMarks(parseMarks(formData.marks) - 5)}
                 className="w-[36px] h-[44px] flex items-center justify-center active:bg-[rgba(9,87,247,0.08)]"
-                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 −
               </button>
-              <div className="flex-1 text-center text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+              <div className="flex-1 text-center text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
                 {parseMarks(formData.marks)}
               </div>
               <button type="button" aria-label="Increment marks"
                 onClick={() => setMarks(parseMarks(formData.marks) + 5)}
                 className="w-[36px] h-[44px] flex items-center justify-center active:bg-[rgba(9,87,247,0.08)]"
-                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 +
               </button>
             </div>
           </div>
           <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-            <div className="text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-              Duration <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+            <div className="text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+              Duration <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
             </div>
             <div className="flex items-center rounded-[12px] overflow-hidden" style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)" }}>
               <button type="button" aria-label="Decrement duration"
                 onClick={() => setDuration(parseDuration(formData.duration) - 5)}
                 className="w-[36px] h-[44px] flex items-center justify-center active:bg-[rgba(9,87,247,0.08)]"
-                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 −
               </button>
-              <div className="flex-1 text-center text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+              <div className="flex-1 text-center text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
                 {parseDuration(formData.duration)}<span className="text-[11px] font-bold ml-[3px]" style={{ color: MA.T3 }}>min</span>
               </div>
               <button type="button" aria-label="Increment duration"
                 onClick={() => setDuration(parseDuration(formData.duration) + 5)}
                 className="w-[36px] h-[44px] flex items-center justify-center active:bg-[rgba(9,87,247,0.08)]"
-                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                style={{ background: "transparent", color: MA.P, fontSize: 18, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                 +
               </button>
             </div>
@@ -406,8 +406,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Test Date */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <label htmlFor="test-date-mobile" className="block text-[9px] font-extrabold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Test Date <span className="text-[11px] font-black" style={{ color: MA.RED }}>*</span>
+          <label htmlFor="test-date-mobile" className="block text-[9px] font-bold uppercase mb-[10px] flex items-center gap-[6px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+            Test Date <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span>
           </label>
           <div className="relative flex items-center gap-[12px] px-[14px] py-[11px] rounded-[12px] active:bg-[#EAF0FB] transition-colors"
             style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)", cursor: "pointer" }}>
@@ -421,7 +421,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               </div>
             </div>
             {daysLeft && (
-              <div className="px-[10px] py-[4px] rounded-full text-[11px] font-extrabold flex-shrink-0"
+              <div className="px-[10px] py-[4px] rounded-full text-[11px] font-bold flex-shrink-0"
                 style={{ background: "rgba(255,136,0,0.12)", color: daysLeft.tone, letterSpacing: "-0.1px" }}>
                 {daysLeft.text}
               </div>
@@ -439,7 +439,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Attach Paper */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <div className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Attach Paper <span className="font-semibold" style={{ color: MA.T4, letterSpacing: 0 }}>(PDF · Optional)</span>
           </div>
           <label
@@ -480,7 +480,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 <div className="text-[13px] font-bold mb-[4px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Upload blueprint</div>
                 <div className="flex gap-[6px] justify-center mt-[10px]">
                   {["PDF", "DOC", "IMG"].map(t => (
-                    <span key={t} className="px-[9px] py-[3px] rounded-full text-[9px] font-extrabold bg-white"
+                    <span key={t} className="px-[9px] py-[3px] rounded-full text-[9px] font-bold bg-white"
                       style={{ color: MA.T3, letterSpacing: "0.6px", boxShadow: "0 1px 3px rgba(9,87,247,0.08)" }}>
                       {t}
                     </span>
@@ -494,7 +494,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Topics Covered — chip builder */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="block text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <div className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Topics Covered
           </div>
           <div className="flex gap-[8px] mb-[12px]">
@@ -538,7 +538,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   {q}
                   <button type="button" aria-label={`Remove ${q}`}
                     onClick={() => setQTypes(qTypes.filter((_, i) => i !== idx))}
-                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-extrabold active:bg-[#0055FF] active:text-white"
+                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold active:bg-[#0055FF] active:text-white"
                     style={{ background: "rgba(9,87,247,0.14)", color: MA.P, border: "none", cursor: "pointer" }}>
                     ×
                   </button>
@@ -550,7 +550,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   {t}
                   <button type="button" aria-label={`Remove ${t}`}
                     onClick={() => setTopics(topics.filter((_, i) => i !== idx))}
-                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-extrabold active:bg-[#0055FF] active:text-white"
+                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold active:bg-[#0055FF] active:text-white"
                     style={{ background: "rgba(9,87,247,0.14)", color: MA.P, border: "none", cursor: "pointer" }}>
                     ×
                   </button>
@@ -562,7 +562,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
 
         {/* Additional Settings — iOS toggles */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[6px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
-          <div className="block text-[9px] font-extrabold uppercase mb-[4px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+          <div className="block text-[9px] font-bold uppercase mb-[4px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
             Additional Settings
           </div>
           {([
@@ -653,7 +653,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
           className="flex-1 h-[46px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.97] transition-transform"
           style={{
             background: MA.P, color: "#fff",
-            fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+            fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
             boxShadow: "0 1px 2px rgba(9,87,247,0.25), 0 6px 16px rgba(9,87,247,0.4)",
             fontFamily: MA.FONT, border: "none",
             cursor: isSaving ? "not-allowed" : "pointer",
@@ -697,11 +697,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
         {/* Header eyebrow + title + top action bar */}
         <div className="mb-6 flex items-end justify-between gap-6 flex-wrap">
           <div>
-            <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · New Test
             </div>
-            <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>
+            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>
               Create test
             </h1>
             <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -737,7 +737,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               className="ct-press h-[44px] px-6 rounded-[12px] flex items-center gap-[8px]"
               style={{
                 background: MA.P, color: "#fff",
-                fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+                fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
                 boxShadow: "0 1px 2px rgba(9,87,247,0.25), 0 6px 16px rgba(9,87,247,0.4)",
                 fontFamily: MA.FONT, border: "none",
                 cursor: isSaving ? "not-allowed" : "pointer",
@@ -773,13 +773,13 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-[4px]">
-                  <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Step 1 of 1</div>
-                  <div className="px-[10px] py-[3px] rounded-full text-[9px] font-extrabold"
+                  <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Step 1 of 1</div>
+                  <div className="px-[10px] py-[3px] rounded-full text-[9px] font-bold"
                     style={{ background: "rgba(9,87,247,0.3)", border: "0.5px solid rgba(74,133,255,0.55)", color: "#B5CEFF", letterSpacing: "0.5px" }}>
                     NEW
                   </div>
                 </div>
-                <div className="text-[22px] font-extrabold text-white leading-[1.15]" style={{ letterSpacing: "-0.6px" }}>
+                <div className="text-[22px] font-bold text-white leading-[1.15]" style={{ letterSpacing: "-0.6px" }}>
                   Build a new test
                 </div>
                 <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.62)", letterSpacing: "-0.1px" }}>
@@ -790,25 +790,25 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
             {/* 4-col mini status grid */}
             <div className="grid grid-cols-4 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[520px]" style={{ background: "rgba(255,255,255,0.1)" }}>
               <div className="py-[14px] px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[16px] font-extrabold truncate" style={{ color: formData.classId ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
+                <div className="text-[16px] font-bold truncate" style={{ color: formData.classId ? "#6FFFAA" : "#fff", letterSpacing: "-0.4px" }}>
                   {formData.className || "—"}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Class</div>
               </div>
               <div className="py-[14px] px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[16px] font-extrabold" style={{ color: daysLeft ? (daysLeft.tone === MA.RED ? "#FF9AA9" : "#FFD060") : "#fff", letterSpacing: "-0.4px" }}>
+                <div className="text-[16px] font-bold" style={{ color: daysLeft ? (daysLeft.tone === MA.RED ? "#FF9AA9" : "#FFD060") : "#fff", letterSpacing: "-0.4px" }}>
                   {daysLeft?.text || "—"}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Date</div>
               </div>
               <div className="py-[14px] px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[16px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>
+                <div className="text-[16px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>
                   {parseMarks(formData.marks)}
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Marks</div>
               </div>
               <div className="py-[14px] px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[16px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>
+                <div className="text-[16px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>
                   {parseDuration(formData.duration)}<span className="text-[10px] font-bold ml-[2px]" style={{ color: "rgba(255,255,255,0.6)" }}>min</span>
                 </div>
                 <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Duration</div>
@@ -833,14 +833,14 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Select Class <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Select Class <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </div>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Where will this test run?</div>
                   </div>
                 </div>
                 {formData.classId && (
-                  <div className="px-[12px] py-[5px] rounded-full text-[11px] font-extrabold flex items-center gap-[5px]"
+                  <div className="px-[12px] py-[5px] rounded-full text-[11px] font-bold flex items-center gap-[5px]"
                     style={{ background: "rgba(0,200,83,0.1)", color: MA.GREEN, letterSpacing: "0.3px" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Selected
@@ -887,13 +887,13 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
                   </div>
                   <div>
-                    <label htmlFor="ct-title-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Test Name <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <label htmlFor="ct-title-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Test Name <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </label>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Displayed to students on the test card</div>
                   </div>
                 </div>
-                <span className="text-[11px] font-extrabold" style={{ color: formData.title.length > 180 ? MA.ORANGE : MA.T3 }}>
+                <span className="text-[11px] font-bold" style={{ color: formData.title.length > 180 ? MA.ORANGE : MA.T3 }}>
                   {formData.title.length} / 200
                 </span>
               </div>
@@ -925,13 +925,13 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
                   </div>
                   <div>
-                    <label htmlFor="ct-desc-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                    <label htmlFor="ct-desc-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
                       Description <span className="font-semibold" style={{ color: MA.T4 }}>(Optional)</span>
                     </label>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Scope, syllabus refs, instructions for students</div>
                   </div>
                 </div>
-                <span className="text-[11px] font-extrabold" style={{ color: formData.description.length > 450 ? MA.ORANGE : MA.T3 }}>
+                <span className="text-[11px] font-bold" style={{ color: formData.description.length > 450 ? MA.ORANGE : MA.T3 }}>
                   {formData.description.length} / 500
                 </span>
               </div>
@@ -963,14 +963,14 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Category</div>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Category</div>
                     <div className="text-[12px] font-bold mt-[1px]" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Type of assessment</div>
                   </div>
                 </div>
                 <div className="relative flex items-center gap-3 px-4 py-[13px] rounded-[14px]"
                   style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)", cursor: "pointer" }}>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>{formData.category}</div>
+                    <div className="text-[15px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>{formData.category}</div>
                   </div>
                   <div className="text-[20px] font-normal -mt-[3px]" style={{ color: MA.T4 }}>›</div>
                   <select aria-label="Test category"
@@ -992,7 +992,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                   </div>
                   <div>
-                    <label htmlFor="ct-subject-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Subject</label>
+                    <label htmlFor="ct-subject-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Subject</label>
                     <div className="text-[12px] font-bold mt-[1px]" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>e.g. Math, Science, English</div>
                   </div>
                 </div>
@@ -1023,8 +1023,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Total Marks <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Total Marks <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </div>
                     <div className="text-[12px] font-bold mt-[1px]" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Maximum score · 5-mark steps</div>
                   </div>
@@ -1033,16 +1033,16 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   <button type="button" aria-label="Decrement marks"
                     onClick={() => setMarks(parseMarks(formData.marks) - 5)}
                     className="ct-press w-[52px] h-[56px] flex items-center justify-center hover:bg-[rgba(9,87,247,0.06)]"
-                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     −
                   </button>
-                  <div className="flex-1 text-center text-[24px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.6px" }}>
+                  <div className="flex-1 text-center text-[24px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.6px" }}>
                     {parseMarks(formData.marks)}
                   </div>
                   <button type="button" aria-label="Increment marks"
                     onClick={() => setMarks(parseMarks(formData.marks) + 5)}
                     className="ct-press w-[52px] h-[56px] flex items-center justify-center hover:bg-[rgba(9,87,247,0.06)]"
-                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     +
                   </button>
                 </div>
@@ -1055,8 +1055,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                      Duration <span className="font-black" style={{ color: MA.RED }}>*</span>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                      Duration <span className="font-bold" style={{ color: MA.RED }}>*</span>
                     </div>
                     <div className="text-[12px] font-bold mt-[1px]" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Time limit · 5–300 minutes</div>
                   </div>
@@ -1065,16 +1065,16 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   <button type="button" aria-label="Decrement duration"
                     onClick={() => setDuration(parseDuration(formData.duration) - 5)}
                     className="ct-press w-[52px] h-[56px] flex items-center justify-center hover:bg-[rgba(9,87,247,0.06)]"
-                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     −
                   </button>
-                  <div className="flex-1 text-center text-[24px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.6px" }}>
+                  <div className="flex-1 text-center text-[24px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.6px" }}>
                     {parseDuration(formData.duration)}<span className="text-[14px] font-bold ml-[4px]" style={{ color: MA.T3 }}>min</span>
                   </div>
                   <button type="button" aria-label="Increment duration"
                     onClick={() => setDuration(parseDuration(formData.duration) + 5)}
                     className="ct-press w-[52px] h-[56px] flex items-center justify-center hover:bg-[rgba(9,87,247,0.06)]"
-                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 800, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
+                    style={{ background: "transparent", color: MA.P, fontSize: 22, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: MA.FONT }}>
                     +
                   </button>
                 </div>
@@ -1090,8 +1090,8 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
                 <div>
-                  <label htmlFor="ct-date-desktop" className="block text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                    Test Date <span className="font-black" style={{ color: MA.RED }}>*</span>
+                  <label htmlFor="ct-date-desktop" className="block text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                    Test Date <span className="font-bold" style={{ color: MA.RED }}>*</span>
                   </label>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>When students will sit for this test</div>
                 </div>
@@ -1099,13 +1099,13 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               <div className="relative flex items-center gap-4 px-5 py-[14px] rounded-[14px] hover:bg-[#EAF0FB] transition-colors"
                 style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)", cursor: "pointer" }}>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[16px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{prettyTestDate}</div>
+                  <div className="text-[16px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>{prettyTestDate}</div>
                   <div className="text-[12px] font-semibold mt-[3px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                     {formData.testDate ? "Click to change" : "Pick a date"}
                   </div>
                 </div>
                 {daysLeft && (
-                  <div className="px-[14px] py-[6px] rounded-full text-[12px] font-extrabold flex-shrink-0"
+                  <div className="px-[14px] py-[6px] rounded-full text-[12px] font-bold flex-shrink-0"
                     style={{ background: daysLeft.tone === MA.RED ? "rgba(255,51,85,0.1)" : "rgba(255,136,0,0.12)", color: daysLeft.tone, letterSpacing: "-0.1px" }}>
                     {daysLeft.text}
                   </div>
@@ -1130,7 +1130,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
                 </div>
                 <div className="flex-1">
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
                     Attach Blueprint <span className="font-semibold" style={{ color: MA.T4 }}>(Optional)</span>
                   </div>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Upload PDF/Word/image of the question paper — max 10 MB</div>
@@ -1153,7 +1153,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                       <FileText size={20} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-[14px] font-extrabold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{pdfFile.name}</div>
+                      <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{pdfFile.name}</div>
                       <div className="text-[11px] font-semibold mt-[2px]" style={{ color: MA.T3 }}>
                         {pdfFile.size >= 1024 * 1024
                           ? `${(pdfFile.size / 1024 / 1024).toFixed(1)} MB`
@@ -1175,11 +1175,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                       style={{ background: "rgba(9,87,247,0.1)", color: MA.P }}>
                       <UploadCloud size={26} strokeWidth={2.2} aria-hidden="true" />
                     </div>
-                    <div className="text-[15px] font-extrabold mb-[5px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Click to upload blueprint</div>
+                    <div className="text-[15px] font-bold mb-[5px]" style={{ color: MA.P, letterSpacing: "-0.2px" }}>Click to upload blueprint</div>
                     <div className="text-[12px] font-medium mb-[14px]" style={{ color: MA.T3 }}>Helps you remember which paper this test maps to</div>
                     <div className="flex gap-[7px] justify-center">
                       {["PDF", "DOC", "DOCX", "PNG", "JPG"].map(t => (
-                        <span key={t} className="px-[11px] py-[4px] rounded-full text-[10px] font-extrabold bg-white"
+                        <span key={t} className="px-[11px] py-[4px] rounded-full text-[10px] font-bold bg-white"
                           style={{ color: MA.T3, letterSpacing: "0.6px", boxShadow: "0 1px 3px rgba(9,87,247,0.08)", border: "0.5px solid rgba(9,87,247,0.08)" }}>
                           {t}
                         </span>
@@ -1201,11 +1201,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                   </div>
                   <div>
-                    <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Topics & Question Types</div>
+                    <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Topics & Question Types</div>
                     <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Tag the test for filtering and AI suggestions</div>
                   </div>
                 </div>
-                <span className="text-[11px] font-extrabold px-[10px] py-[4px] rounded-full"
+                <span className="text-[11px] font-bold px-[10px] py-[4px] rounded-full"
                   style={{ background: "rgba(9,87,247,0.08)", color: MA.P, letterSpacing: "0.3px" }}>
                   {qTypes.length + topics.length} tag{qTypes.length + topics.length === 1 ? "" : "s"}
                 </span>
@@ -1230,7 +1230,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   className="ct-press h-[48px] px-6 rounded-[14px] flex items-center gap-[6px]"
                   style={{
                     background: MA.P, color: "#fff",
-                    fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+                    fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
                     boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 4px 12px rgba(9,87,247,0.3)",
                     fontFamily: MA.FONT, border: "none",
                     cursor: newTopic.trim() ? "pointer" : "not-allowed",
@@ -1252,7 +1252,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                       {q}
                       <button type="button" aria-label={`Remove ${q}`}
                         onClick={() => setQTypes(qTypes.filter((_, i) => i !== idx))}
-                        className="ct-press w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] font-extrabold"
+                        className="ct-press w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] font-bold"
                         style={{ background: "rgba(9,87,247,0.14)", color: MA.P, border: "none", cursor: "pointer" }}>
                         ×
                       </button>
@@ -1264,7 +1264,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                       {t}
                       <button type="button" aria-label={`Remove ${t}`}
                         onClick={() => setTopics(topics.filter((_, i) => i !== idx))}
-                        className="ct-press w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] font-extrabold"
+                        className="ct-press w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] font-bold"
                         style={{ background: "rgba(0,200,83,0.16)", color: MA.GREEN, border: "none", cursor: "pointer" }}>
                         ×
                       </button>
@@ -1283,7 +1283,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Additional Settings</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>Additional Settings</div>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Behavior options for the test</div>
                 </div>
               </div>
@@ -1308,7 +1308,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                         {icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{title}</div>
+                        <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{title}</div>
                         <div className="text-[12px] font-medium mt-[3px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>{desc}</div>
                       </div>
                       <div className="relative flex-shrink-0" style={{
@@ -1342,36 +1342,36 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 style={{ background: MA.CARD, boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
                 <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-[4px]" style={{ background: MA.GOLD }} />
                 <div className="flex items-center gap-[8px] mb-4">
-                  <div className="text-[10px] font-black uppercase flex items-center gap-[6px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
+                  <div className="text-[10px] font-bold uppercase flex items-center gap-[6px]" style={{ color: MA.GOLD, letterSpacing: "1.6px" }}>
                     <span className="w-[7px] h-[7px] rounded-full" style={{ background: MA.GOLD, boxShadow: `0 0 8px ${MA.GOLD}` }} />
                     Live Preview
                   </div>
                 </div>
                 <div className="rounded-[16px] p-4 mb-3" style={{ background: MA.SURFACE, border: "0.5px solid rgba(9,87,247,0.08)" }}>
-                  <div className="text-[16px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.3px", wordBreak: "break-word" }}>
+                  <div className="text-[16px] font-bold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.3px", wordBreak: "break-word" }}>
                     {formData.title || "Test name"}
                   </div>
                   <div className="flex items-center gap-[8px] flex-wrap mb-[8px]">
-                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-extrabold"
+                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-bold"
                       style={{ background: "rgba(9,87,247,0.08)", color: MA.P }}>
                       {formData.className || "Select a class"}
                     </span>
-                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-extrabold"
+                    <span className="px-[9px] py-[3px] rounded-[7px] text-[11px] font-bold"
                       style={{ background: "rgba(123,63,244,0.08)", color: MA.VIOLET }}>
                       {formData.category}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-[1px] rounded-[10px] overflow-hidden p-[1px] mb-[8px]" style={{ background: "rgba(9,87,247,0.08)" }}>
                     <div className="py-[8px] px-[6px] text-center bg-white">
-                      <div className="text-[13px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{parseMarks(formData.marks)}</div>
+                      <div className="text-[13px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{parseMarks(formData.marks)}</div>
                       <div className="text-[8px] font-bold uppercase mt-[2px]" style={{ color: MA.T3, letterSpacing: "0.8px" }}>Marks</div>
                     </div>
                     <div className="py-[8px] px-[6px] text-center bg-white">
-                      <div className="text-[13px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{parseDuration(formData.duration)}m</div>
+                      <div className="text-[13px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{parseDuration(formData.duration)}m</div>
                       <div className="text-[8px] font-bold uppercase mt-[2px]" style={{ color: MA.T3, letterSpacing: "0.8px" }}>Time</div>
                     </div>
                     <div className="py-[8px] px-[6px] text-center bg-white">
-                      <div className="text-[13px] font-extrabold" style={{ color: formData.testDate ? MA.ORANGE : MA.T4, letterSpacing: "-0.2px" }}>
+                      <div className="text-[13px] font-bold" style={{ color: formData.testDate ? MA.ORANGE : MA.T4, letterSpacing: "-0.2px" }}>
                         {formData.testDate ? new Date(`${formData.testDate}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                       </div>
                       <div className="text-[8px] font-bold uppercase mt-[2px]" style={{ color: MA.T3, letterSpacing: "0.8px" }}>Date</div>
@@ -1403,10 +1403,10 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 }}>
                 <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 45%)" }} />
                 <div className="relative z-[2]">
-                  <div className="text-[10px] font-black uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
+                  <div className="text-[10px] font-bold uppercase mb-[6px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "1.8px" }}>
                     Ready to publish?
                   </div>
-                  <div className="text-[20px] font-extrabold text-white mb-[14px]" style={{ letterSpacing: "-0.6px", lineHeight: 1.2 }}>
+                  <div className="text-[20px] font-bold text-white mb-[14px]" style={{ letterSpacing: "-0.6px", lineHeight: 1.2 }}>
                     {(!formData.title.trim() || !formData.classId)
                       ? "Fill required fields first"
                       : "Looks good — let's go!"}
@@ -1445,7 +1445,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                     className="ct-press w-full h-[52px] rounded-[14px] flex items-center justify-center gap-[8px]"
                     style={{
                       background: MA.GREEN, color: "#fff",
-                      fontSize: 15, fontWeight: 800, letterSpacing: "-0.2px",
+                      fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px",
                       boxShadow: "0 1px 2px rgba(0,200,83,0.2), 0 8px 20px rgba(0,200,83,0.4)",
                       fontFamily: MA.FONT, border: "none",
                       cursor: isSaving ? "not-allowed" : "pointer",
@@ -1492,9 +1492,9 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 <div className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0 text-[18px]"
                   style={{ background: "rgba(255,170,0,0.12)", color: MA.GOLD }}>💡</div>
                 <div>
-                  <div className="text-[11px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Pro tip</div>
+                  <div className="text-[11px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.15px" }}>Pro tip</div>
                   <div className="text-[11px] font-medium mt-[3px] leading-[1.5]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                    Press <kbd className="px-[5px] py-[1px] rounded-[5px] text-[10px] font-extrabold" style={{ background: MA.SURFACE, color: MA.T1, border: "0.5px solid rgba(9,87,247,0.1)" }}>Enter</kbd> in the topic field to add it instantly. Save as draft if you want to come back later.
+                    Press <kbd className="px-[5px] py-[1px] rounded-[5px] text-[10px] font-bold" style={{ background: MA.SURFACE, color: MA.T1, border: "0.5px solid rgba(9,87,247,0.1)" }}>Enter</kbd> in the topic field to add it instantly. Save as draft if you want to come back later.
                   </div>
                 </div>
               </div>

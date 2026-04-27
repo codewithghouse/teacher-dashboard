@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+﻿import { useEffect, useMemo, useState, useRef } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, TrendingUp, MessageSquare, FileText, BookOpen, Calendar, BarChart3, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar } from "recharts";
 import { db } from "../lib/firebase";
@@ -307,7 +307,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
 
   // ══════════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: embedded ? "auto" : "100vh", background: "#EEF4FF", fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    <div style={{ minHeight: embedded ? "auto" : "100vh", background: "#EEF4FF", fontFamily: "'Montserrat',-apple-system,sans-serif" }}>
       {!embedded && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <button type="button" onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: `1px solid ${T.bdr}`, background: T.white, color: T.ink2, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
@@ -331,7 +331,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: T.blue }}>{(m.avg / 25).toFixed(1)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: T.ink }}>{Math.round(m.avg)}%</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: T.ink }}>{Math.round(m.avg)}%</div>
                 <div style={{ fontSize: 11, color: T.ink3, display: "flex", alignItems: "center", gap: 4 }}>Avg // {testScores.length} tests{m.trend === "up" && <TrendingUp size={12} color={T.grn} />}</div>
               </div>
             </div>
@@ -355,7 +355,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
         {/* CENTER */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 20 }}>
           <div style={{ width: 140, height: 140, borderRadius: "50%", border: `4px solid ${T.blue}`, background: T.blBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, boxShadow: "0 8px 30px rgba(59,91,219,0.15)" }}>
-            <span style={{ fontSize: 42, fontWeight: 800, color: T.blue }}>{initials}</span>
+            <span style={{ fontSize: 42, fontWeight: 700, color: T.blue }}>{initials}</span>
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: T.ink, textAlign: "center", marginBottom: 4 }}>{sName}</h2>
           <p style={{ fontSize: 12, color: T.ink3, textAlign: "center", marginBottom: 4 }}>{student.className || student.class || masterProfile?.className || "—"}</p>
@@ -397,7 +397,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
           {[...assignments].sort((a, b) => (toDate(b.dueDate)?.getTime() || 0) - (toDate(a.dueDate)?.getTime() || 0)).slice(0, 5).map(a => { const sub = submissions.find((s: any) => s.assignmentId === a.id); return <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${T.s2}` }}><CheckCircle2 size={14} color={sub ? T.grn : T.ink3} /><span style={{ fontSize: 13, color: T.ink, flex: 1 }}>{(a.title || "Assignment").slice(0, 35)}</span></div>; })}
         </Card>
         <Card title="Risk Assessment" action={<DLink />}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: riskColor, marginBottom: 14 }}>{riskLevel}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: riskColor, marginBottom: 14 }}>{riskLevel}</div>
           {[{ l: "ATTENDANCE", v: m.attRate }, { l: "ACADEMIC", v: m.avg }, { l: "SUBMISSION", v: m.completion }, { l: "BEHAVIOURAL", v: incidents.length === 0 ? 100 : Math.max(0, 100 - incidents.length * 25) }].map(r => <div key={r.l} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><span style={{ fontSize: 11, color: T.ink3, width: 100 }}>{r.l}</span><div style={{ flex: 1, height: 6, background: T.s1, borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${r.v}%`, background: r.v >= 80 ? T.blue : r.v >= 50 ? T.amb : T.red, borderRadius: 3 }} /></div><span style={{ fontSize: 12, fontWeight: 600, color: r.v >= 80 ? T.blue : r.v >= 50 ? T.amb : T.red, width: 50, textAlign: "right" }}>{r.l === "BEHAVIOURAL" && incidents.length > 0 ? `${incidents.length} Events` : `${Math.round(r.v)}%`}</span></div>)}
         </Card>
       </div>

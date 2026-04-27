@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "../lib/AuthContext";
 import { db, storage, auth } from "../lib/firebase";
 import {
@@ -444,11 +444,11 @@ const Syllabus = () => {
         {/* Page header with Upload pill */}
         <div style={{ padding: "8px 2px 14px", display: "flex", alignItems: "flex-end", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
               Teacher Dashboard · Documents
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Syllabus &amp; Documents</h1>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Syllabus &amp; Documents</h1>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
               Upload PDFs — syllabus, notes, resources — for your classes.
             </div>
@@ -496,15 +496,15 @@ const Syllabus = () => {
                 <FileText className="w-5 h-5" strokeWidth={2.2} />
               </div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.72)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Total Documents</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.72)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Total Documents</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Across all classes</div>
               </div>
-              <div style={{ marginLeft: "auto", background: "rgba(0,232,102,.18)", border: "0.5px solid rgba(0,232,102,.5)", color: "#6FFFAA", padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px" }}>
+              <div style={{ marginLeft: "auto", background: "rgba(0,232,102,.18)", border: "0.5px solid rgba(0,232,102,.5)", color: "#6FFFAA", padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00FF88", boxShadow: "0 0 8px #00FF88" }} />
                 Synced
               </div>
             </div>
-            <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <div style={{ fontSize: 56, fontWeight: 700, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
               {docs.length}
               <span style={{ fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.65)", letterSpacing: "-0.4px" }}>
                 {docs.length === 1 ? "document" : "documents"}
@@ -516,15 +516,15 @@ const Syllabus = () => {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.1)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{classes.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{classes.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Classes</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#FF9AA9", letterSpacing: "-0.5px" }}>{docs.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FF9AA9", letterSpacing: "-0.5px" }}>{docs.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>{docs.length === 1 ? "PDF" : "PDFs"}</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{formatBytes(totalBytes)}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{formatBytes(totalBytes)}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.58)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Storage</div>
               </div>
             </div>
@@ -555,7 +555,7 @@ const Syllabus = () => {
                 <span style={{
                   background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                   color: active ? "#fff" : "#5070B0",
-                  fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                 }}>
                   {ch.count}
                 </span>
@@ -581,7 +581,7 @@ const Syllabus = () => {
             }}>
               <Library className="w-7 h-7" />
             </div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No classes assigned yet</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No classes assigned yet</div>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
               Once your principal assigns you classes, you'll be able to upload documents here.
             </div>
@@ -608,8 +608,8 @@ const Syllabus = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ background: `${clsColor}1F`, color: clsColor, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: "-0.1px" }}>{c.className}</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ background: `${clsColor}1F`, color: clsColor, padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "-0.1px" }}>{c.className}</span>
                   </div>
                   <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, marginTop: 2, letterSpacing: "-0.1px" }}>
                     {all.length} {all.length === 1 ? "document" : "documents"}
@@ -650,10 +650,10 @@ const Syllabus = () => {
                       borderRadius: "50%", border: "3px solid #fff",
                       boxShadow: "0 2px 6px rgba(9,87,247,.35)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1,
+                      color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1,
                     }}>+</div>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No documents yet</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No documents yet</div>
                   <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5, marginBottom: 12 }}>
                     Upload syllabus or notes for {c.className} class.
                   </div>
@@ -708,13 +708,13 @@ const Syllabus = () => {
                         borderRadius: "0 10px 0 4px",
                         boxShadow: "-1px 1px 2px rgba(255,51,85,.05)",
                       }} />
-                      <div style={{ fontSize: 9, fontWeight: 900, color: "#FF3355", letterSpacing: "0.5px", lineHeight: 1, position: "relative", zIndex: 2 }}>PDF</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#FF3355", letterSpacing: "0.5px", lineHeight: 1, position: "relative", zIndex: 2 }}>PDF</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.25, marginBottom: 4, wordBreak: "break-word" }}>{d.title}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.25, marginBottom: 4, wordBreak: "break-word" }}>{d.title}</div>
                       <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", marginBottom: 6, wordBreak: "break-all", lineHeight: 1.4 }}>{d.fileName}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 700, color: "#99AACC", letterSpacing: "0.2px" }}>
-                        <span style={{ background: "rgba(255,51,85,.08)", color: "#FF3355", padding: "2px 7px", borderRadius: 6, fontSize: 10, fontWeight: 800 }}>{formatBytes(d.fileSize)}</span>
+                        <span style={{ background: "rgba(255,51,85,.08)", color: "#FF3355", padding: "2px 7px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{formatBytes(d.fileSize)}</span>
                         <span style={{ color: "#99AACC" }}>·</span>
                         <span>{formatRelative(d.uploadedAt)}</span>
                       </div>
@@ -818,8 +818,8 @@ const Syllabus = () => {
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12, position: "relative", zIndex: 2 }}>
               <div style={{ width: 40, height: 40, borderRadius: 13, background: "rgba(255,255,255,.14)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFDD55", fontSize: 19 }}>⚡</div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Documents Intelligence</div>
-              <div style={{ marginLeft: "auto", background: "rgba(123,63,244,.3)", border: "0.5px solid rgba(155,95,255,.5)", color: "#DCC8FF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: "0.5px" }}>Tip</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Documents Intelligence</div>
+              <div style={{ marginLeft: "auto", background: "rgba(123,63,244,.3)", border: "0.5px solid rgba(155,95,255,.5)", color: "#DCC8FF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: "0.5px" }}>Tip</div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,.85)", letterSpacing: "-0.15px", marginBottom: 14, position: "relative", zIndex: 2 }}>
               {(() => {
@@ -831,15 +831,15 @@ const Syllabus = () => {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "rgba(255,255,255,.1)", borderRadius: 12, padding: 1, gap: 1, overflow: "hidden", position: "relative", zIndex: 2 }}>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{docs.length}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>{docs.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Uploaded</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{classes.length}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>{classes.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Classes</div>
               </div>
               <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.4px" }}>{formatBytes(totalBytes)}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.4px" }}>{formatBytes(totalBytes)}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Used</div>
               </div>
             </div>
@@ -879,7 +879,7 @@ const Syllabus = () => {
                 <Upload className="w-5 h-5" strokeWidth={2.2} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>Upload Document</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Upload Document</div>
                 <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, marginTop: 2, letterSpacing: "-0.1px" }}>PDF only · Max 50 MB</div>
               </div>
               <button
@@ -903,9 +903,9 @@ const Syllabus = () => {
             <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
               {/* Class segmented */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
                   Class
-                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
                 </div>
                 <div style={{
                   display: "flex", gap: 4,
@@ -942,9 +942,9 @@ const Syllabus = () => {
 
               {/* Title */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
                   Title
-                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
                 </div>
                 <input
                   type="text"
@@ -970,9 +970,9 @@ const Syllabus = () => {
 
               {/* File picker / preview */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 9, display: "flex", alignItems: "center", gap: 6 }}>
                   PDF File
-                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
                 </div>
                 <input
                   ref={fileInputRef}
@@ -997,12 +997,12 @@ const Syllabus = () => {
                       display: "flex", alignItems: "flex-end", justifyContent: "center",
                       paddingBottom: 5, position: "relative", flexShrink: 0,
                     }}>
-                      <div style={{ fontSize: 8, fontWeight: 900, color: "#FF3355", letterSpacing: "0.5px" }}>PDF</div>
+                      <div style={{ fontSize: 8, fontWeight: 700, color: "#FF3355", letterSpacing: "0.5px" }}>PDF</div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", wordBreak: "break-all", lineHeight: 1.3, marginBottom: 3 }}>{pickedFile.name}</div>
                       <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ background: "rgba(0,200,83,.12)", color: "#00C853", padding: "1px 7px", borderRadius: 5, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ background: "rgba(0,200,83,.12)", color: "#00C853", padding: "1px 7px", borderRadius: 5, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
                           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#00C853" }} />
                           {formatBytes(pickedFile.size)}
                         </span>
@@ -1047,7 +1047,7 @@ const Syllabus = () => {
                     }}>
                       <Upload className="w-5 h-5" strokeWidth={2.2} />
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px", marginBottom: 4 }}>Choose PDF file</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px", marginBottom: 4 }}>Choose PDF file</div>
                     <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500 }}>Tap to browse · PDF only · max 50 MB</div>
                   </button>
                 )}
@@ -1058,7 +1058,7 @@ const Syllabus = () => {
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: "#5070B0", marginBottom: 6, fontWeight: 600 }}>
                     <span>Uploading…</span>
-                    <span style={{ color: "#0055FF", fontWeight: 800 }}>{progress.toFixed(0)}%</span>
+                    <span style={{ color: "#0055FF", fontWeight: 700 }}>{progress.toFixed(0)}%</span>
                   </div>
                   <div style={{ height: 6, borderRadius: 100, background: "#EAF0FB", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #7B3FF4, #0055FF)", transition: "width .2s linear" }} />
@@ -1109,7 +1109,7 @@ const Syllabus = () => {
                 style={{
                   flex: 1, height: 46, borderRadius: 14,
                   background: "#0055FF", color: "#fff",
-                  fontSize: 14, fontWeight: 800, border: "none",
+                  fontSize: 14, fontWeight: 700, border: "none",
                   letterSpacing: "-0.2px",
                   cursor: (uploading || !title.trim() || !pickedFile || !selClassId) ? "not-allowed" : "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -1133,7 +1133,7 @@ const Syllabus = () => {
       style={{
         background: '#EEF4FF',
         minHeight: '100vh',
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
         fontVariantNumeric: 'tabular-nums',
       }}
     >
@@ -1170,11 +1170,11 @@ const Syllabus = () => {
         {/* ═══ Page Head ═══ */}
         <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="syld-pulse" style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
               Teacher Dashboard · Documents
             </div>
-            <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+            <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
               Syllabus &amp; Documents
             </h1>
             <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -1191,7 +1191,7 @@ const Syllabus = () => {
               height: 44, padding: '0 20px', borderRadius: 14,
               background: (loading || classes.length === 0) ? '#F5F6F9' : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
               color: (loading || classes.length === 0) ? '#99AACC' : '#fff',
-              fontSize: 13, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+              fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
               border: 'none', cursor: (loading || classes.length === 0) ? 'not-allowed' : 'pointer',
               boxShadow: (loading || classes.length === 0) ? 'none' : '0 6px 22px rgba(0,85,255,.40), 0 2px 5px rgba(0,85,255,.20)',
               fontFamily: 'inherit',
@@ -1240,10 +1240,10 @@ const Syllabus = () => {
                     <Library className="w-7 h-7" color="#fff" strokeWidth={2}/>
                   </div>
                   <div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
                       Library Overview
                     </div>
-                    <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.9px', margin: 0, color: '#fff', lineHeight: 1.05 }}>
+                    <h2 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.9px', margin: 0, color: '#fff', lineHeight: 1.05 }}>
                       {docs.length} document{docs.length !== 1 ? 's' : ''}
                     </h2>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '8px 0 0 0', lineHeight: 1.5 }}>
@@ -1258,8 +1258,8 @@ const Syllabus = () => {
                     { label: 'This Week', value: recentCount.toString(), color: recentCount > 0 ? '#C8A4FF' : 'rgba(255,255,255,.6)' },
                   ].map(s => (
                     <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '12px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: s.color, margin: 0, letterSpacing: '-0.4px' }}>{s.value}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: s.color, margin: 0, letterSpacing: '-0.4px' }}>{s.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1326,7 +1326,7 @@ const Syllabus = () => {
                   }}
                 >
                   <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
-                    <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       {k.iconStroke}
                     </svg>
                   </div>
@@ -1335,8 +1335,8 @@ const Syllabus = () => {
                       {k.iconStroke}
                     </svg>
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                  <div style={{ fontSize: 36, fontWeight: 700, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
                 </div>
               ))}
@@ -1364,13 +1364,13 @@ const Syllabus = () => {
                     color: active ? '#fff' : '#5070B0',
                     border: active ? 'none' : '0.5px solid rgba(0,85,255,.12)',
                     boxShadow: active ? `0 6px 18px ${classTone}50, 0 2px 5px rgba(0,0,0,.06)` : '0 1px 2px rgba(0,85,255,.06)',
-                    fontSize: 11, fontWeight: 800, letterSpacing: '0.04em',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
                   {chip.label}
                   <span style={{
-                    padding: '2px 7px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+                    padding: '2px 7px', borderRadius: 999, fontSize: 10, fontWeight: 700,
                     background: active ? 'rgba(255,255,255,.28)' : 'rgba(0,85,255,.08)',
                     color: active ? '#fff' : '#0055FF',
                     letterSpacing: '0',
@@ -1399,7 +1399,7 @@ const Syllabus = () => {
             <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, boxShadow: '0 10px 24px rgba(123,63,244,.28)' }}>
               <Library className="w-8 h-8" color="#fff" strokeWidth={2}/>
             </div>
-            <p style={{ fontSize: 16, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>No classes assigned yet</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>No classes assigned yet</p>
             <p style={{ fontSize: 13, fontWeight: 500, color: '#5070B0', maxWidth: 420, margin: '8px 0 0 0', lineHeight: 1.55 }}>
               Once your principal assigns you classes, you'll be able to upload documents here.
             </p>
@@ -1417,7 +1417,7 @@ const Syllabus = () => {
             <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg,#0055FF 0%,#2277FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, boxShadow: '0 10px 24px rgba(0,85,255,.32)' }}>
               <FileText className="w-8 h-8" color="#fff" strokeWidth={2}/>
             </div>
-            <p style={{ fontSize: 16, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>No documents uploaded yet</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>No documents uploaded yet</p>
             <p style={{ fontSize: 13, fontWeight: 500, color: '#5070B0', maxWidth: 440, margin: '8px 0 18px 0', lineHeight: 1.55 }}>
               Click "Upload Document" to share syllabus, notes, or any resource with your students.
             </p>
@@ -1429,7 +1429,7 @@ const Syllabus = () => {
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '10px 18px', borderRadius: 12,
                 background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', color: '#fff',
-                fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: '0 6px 22px rgba(0,85,255,.40), 0 2px 5px rgba(0,85,255,.20)',
               }}
@@ -1460,7 +1460,7 @@ const Syllabus = () => {
                       <Library className="w-5 h-5" color="#fff" strokeWidth={2.2}/>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>
                         {c.className}
                       </div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
@@ -1503,7 +1503,7 @@ const Syllabus = () => {
                               <FileText className="w-5 h-5" color="#fff" strokeWidth={2.2}/>
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                 {d.title}
                               </div>
                               <div style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1529,7 +1529,7 @@ const Syllabus = () => {
                                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                   padding: '9px 14px', borderRadius: 11,
                                   background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', color: '#fff',
-                                  fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                  fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                                   border: 'none', cursor: 'pointer', textDecoration: 'none',
                                   boxShadow: '0 4px 12px rgba(0,85,255,.32), 0 1px 3px rgba(0,85,255,.2)',
                                 }}
@@ -1546,7 +1546,7 @@ const Syllabus = () => {
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                 padding: '9px 12px', borderRadius: 11,
                                 background: 'rgba(255,51,85,.08)', color: '#C92A2A',
-                                fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                                 border: '0.5px solid rgba(255,51,85,.22)', cursor: 'pointer', fontFamily: 'inherit',
                               }}
                             >
@@ -1570,7 +1570,7 @@ const Syllabus = () => {
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#001040' }}>No documents match this filter.</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#001040' }}>No documents match this filter.</div>
                 <button
                   type="button"
                   onClick={() => setActiveFilter('all')}
@@ -1580,7 +1580,7 @@ const Syllabus = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 10,
                     background: '#EEF4FF', color: '#0055FF',
-                    fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                     border: '0.5px solid rgba(0,85,255,.18)', cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
@@ -1629,10 +1629,10 @@ const Syllabus = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
                     AI Library Intelligence
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
                     Document Coverage Summary
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -1647,8 +1647,8 @@ const Syllabus = () => {
                   { label: 'Storage', value: formatBytes(totalBytes), sub: `${docs.length} file${docs.length!==1?'s':''} total`, valueColor: '#66CCFF' },
                 ].map(s => (
                   <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: s.valueColor, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: s.valueColor, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
                   </div>
                 ))}
@@ -1678,7 +1678,7 @@ const Syllabus = () => {
               display: 'flex',
               flexDirection: 'column',
               maxHeight: '90vh',
-              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+              fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
             }}
           >
             {/* Gradient modal header */}
@@ -1700,7 +1700,7 @@ const Syllabus = () => {
                     <Upload className="w-5 h-5" color="#fff" strokeWidth={2.2}/>
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', margin: 0 }}>Upload Document</h3>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', margin: 0 }}>Upload Document</h3>
                     <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '3px 0 0 0', letterSpacing: '0.06em', textTransform: 'uppercase' }}>PDF only · Max 50 MB</p>
                   </div>
                 </div>
@@ -1725,7 +1725,7 @@ const Syllabus = () => {
             <div style={{ padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 18, overflowY: 'auto', background: '#F8FAFF' }}>
               {/* Class select */}
               <div>
-                <label style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                   Class *
                 </label>
                 <select
@@ -1749,7 +1749,7 @@ const Syllabus = () => {
 
               {/* Title input */}
               <div>
-                <label style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                   Title *
                 </label>
                 <input
@@ -1775,7 +1775,7 @@ const Syllabus = () => {
 
               {/* File picker */}
               <div>
-                <label style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                   PDF File *
                 </label>
                 <label
@@ -1794,7 +1794,7 @@ const Syllabus = () => {
                     <Upload className="w-4 h-4" color="#fff" strokeWidth={2.4}/>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px' }}>
                       {pickedFile ? 'Change file' : 'Click to choose a PDF'}
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: '#5070B0', marginTop: 3, letterSpacing: '0.04em' }}>
@@ -1825,7 +1825,7 @@ const Syllabus = () => {
                       <FileText className="w-4 h-4" color="#fff" strokeWidth={2.2}/>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pickedFile.name}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pickedFile.name}</div>
                       <div style={{ fontSize: 10, fontWeight: 600, color: '#5070B0', marginTop: 2 }}>{formatBytes(pickedFile.size)}</div>
                     </div>
                   </div>
@@ -1837,7 +1837,7 @@ const Syllabus = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: '#5070B0', marginBottom: 8, letterSpacing: '0.04em' }}>
                     <span>Uploading...</span>
-                    <span style={{ color: '#0055FF', fontWeight: 800, fontSize: 13 }}>{progress.toFixed(0)}%</span>
+                    <span style={{ color: '#0055FF', fontWeight: 700, fontSize: 13 }}>{progress.toFixed(0)}%</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 999, background: '#EEF4FF', overflow: 'hidden' }}>
                     <div
@@ -1872,7 +1872,7 @@ const Syllabus = () => {
                 style={{
                   padding: '10px 18px', borderRadius: 12,
                   background: '#F5F6F9', border: '0.5px solid rgba(0,85,255,.1)',
-                  fontSize: 12, fontWeight: 800, color: '#5070B0',
+                  fontSize: 12, fontWeight: 700, color: '#5070B0',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.5 : 1,
                   fontFamily: 'inherit',
@@ -1892,7 +1892,7 @@ const Syllabus = () => {
                     ? '#99AACC'
                     : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)',
                   color: '#fff',
-                  fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   border: 'none',
                   cursor: (uploading || !title.trim() || !pickedFile || !selClassId) ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',

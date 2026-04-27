@@ -278,13 +278,13 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
                 width: 52, height: 52, borderRadius: 14,
                 background: av.bg, color: av.text,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, fontWeight: 800, flexShrink: 0,
+                fontSize: 18, fontWeight: 700, flexShrink: 0,
                 boxShadow: `0 0 0 3px ${av.bg}55`,
               }}>
                 {student.initials || getInitials(student.name || "S")}
               </div>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2 }}>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1.2 }}>
                   {student.name}
                 </h1>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", margin: "4px 0 0" }}>
@@ -336,7 +336,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
               borderRadius: 16, padding: "14px 0",
               textAlign: "center",
             }}>
-              <p className="md:!text-4xl" style={{ fontSize: 26, fontWeight: 800, color: stat.color, margin: 0, lineHeight: 1 }}>
+              <p className="md:!text-4xl" style={{ fontSize: 26, fontWeight: 700, color: stat.color, margin: 0, lineHeight: 1 }}>
                 {stat.count}
               </p>
               <p className="md:!text-sm" style={{ fontSize: 11, fontWeight: 600, color: T.ink2, margin: "4px 0 0" }}>
@@ -419,7 +419,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
                 <span style={{
                   width: 26, height: 26, borderRadius: 8,
                   background: "#eff6ff", color: T.blue2,
-                  fontSize: 12, fontWeight: 800,
+                  fontSize: 12, fontWeight: 700,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
@@ -583,11 +583,11 @@ const MobileConceptMasteryDetail = ({
             </svg>
             All students
           </button>
-          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 10, fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Mastery</div>
+          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Mastery</div>
           <div style={{ width: 70 }} />
         </div>
         <div style={{ position: 'relative', zIndex: 2, padding: '4px 2px 0' }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 10 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 10 }}>
             Concept Mastery Analysis
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -595,13 +595,13 @@ const MobileConceptMasteryDetail = ({
               width: 54, height: 54, borderRadius: 16,
               background: avColor, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, fontWeight: 800, letterSpacing: '0.5px', flexShrink: 0,
+              fontSize: 16, fontWeight: 700, letterSpacing: '0.5px', flexShrink: 0,
               boxShadow: `0 1px 2px ${avColor}4D, 0 8px 16px ${avColor}55, inset 0 1px 0 rgba(255,255,255,.25)`,
             }}>{student.initials || initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px', lineHeight: 1.1 }}>{student.name}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.8px', lineHeight: 1.1 }}>{student.name}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.1px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                {className && <span style={{ background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.2)', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 800, color: '#fff', letterSpacing: '-0.1px' }}>{className}</span>}
+                {className && <span style={{ background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.2)', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '-0.1px' }}>{className}</span>}
                 {student.roll && <><span>·</span><span>Roll {student.roll}</span></>}
               </div>
             </div>
@@ -665,8 +665,8 @@ const MobileConceptMasteryDetail = ({
               <div style={{ width: 34, height: 34, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', color: '#fff', background: s.color }}>
                 {s.icon}
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-1.2px', lineHeight: 1, color: s.color }}>{s.count}</div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 6 }}>{s.label}</div>
+              <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-1.2px', lineHeight: 1, color: s.color }}>{s.count}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -696,8 +696,8 @@ const MobileConceptMasteryDetail = ({
             }}>
               <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 9, background: headBg }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, flexShrink: 0 }} />
-                <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>{title}</div>
-                <div style={{ background: '#fff', padding: '3px 10px', borderRadius: 100, fontSize: 11, fontWeight: 800, letterSpacing: '-0.1px', boxShadow: '0 1px 2px rgba(0,0,0,.04)', color }}>
+                <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>{title}</div>
+                <div style={{ background: '#fff', padding: '3px 10px', borderRadius: 100, fontSize: 11, fontWeight: 700, letterSpacing: '-0.1px', boxShadow: '0 1px 2px rgba(0,0,0,.04)', color }}>
                   {items.length}
                 </div>
               </div>
@@ -711,8 +711,8 @@ const MobileConceptMasteryDetail = ({
                   <div key={c.title} style={{ background: '#F4F7FE', borderRadius: 12, padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 11, marginTop: i > 0 ? 8 : 0 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{formatTitle(c.title)}</div>
-                        <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.3px', color, flexShrink: 0 }}>{c.score}%</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{formatTitle(c.title)}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px', color, flexShrink: 0 }}>{c.score}%</div>
                       </div>
                       <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
                         <div className="cmd-fill" style={{ height: '100%', borderRadius: 100, background: fillGrad, width: `${Math.max(0, Math.min(100, c.score))}%` }} />
@@ -727,7 +727,7 @@ const MobileConceptMasteryDetail = ({
                             marginTop: 10, width: '100%', padding: '7px 0',
                             background: isGenerating && selectedRemedial === c.title ? 'rgba(255,51,85,.6)' : '#FF3355',
                             color: '#fff', border: 'none', borderRadius: 10,
-                            fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit',
                             boxShadow: '0 1px 2px rgba(255,51,85,.2), 0 3px 8px rgba(255,51,85,.25)',
                           }}
@@ -755,28 +755,28 @@ const MobileConceptMasteryDetail = ({
             borderRadius: 20, padding: 18, marginBottom: 12,
             boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
           }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: '#818cf8', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 4 }}>AI Remedial Plan</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#001040', marginBottom: 14, letterSpacing: '-0.3px' }}>{formatTitle(selectedRemedial)}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#818cf8', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 4 }}>AI Remedial Plan</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#001040', marginBottom: 14, letterSpacing: '-0.3px' }}>{formatTitle(selectedRemedial)}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {aiData.learning_gap && (
                 <div style={{ background: '#eef2ff', borderRadius: 14, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 4 }}>Learning Gap</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 4 }}>Learning Gap</div>
                   <div style={{ fontSize: 13, color: '#312e81', lineHeight: 1.5 }}>{aiData.learning_gap}</div>
                 </div>
               )}
               {aiData.prerequisite_chain && (
                 <div style={{ background: '#fff1f2', borderRadius: 14, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#FF3355', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 4 }}>Root Cause</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#FF3355', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 4 }}>Root Cause</div>
                   <div style={{ fontSize: 13, color: '#9f1239', lineHeight: 1.5 }}>{aiData.prerequisite_chain}</div>
                 </div>
               )}
               {aiData.remedial_plan && (
                 <div style={{ background: '#f0fdf4', borderRadius: 14, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#00C853', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 8 }}>Remedial Steps</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#00C853', textTransform: 'uppercase', letterSpacing: '1.4px', marginBottom: 8 }}>Remedial Steps</div>
                   <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {(aiData.remedial_plan as string[]).map((step, i) => (
                       <li key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#14532d', lineHeight: 1.5 }}>
-                        <span style={{ fontWeight: 800, color: '#00C853', flexShrink: 0 }}>{i + 1}.</span>
+                        <span style={{ fontWeight: 700, color: '#00C853', flexShrink: 0 }}>{i + 1}.</span>
                         {step}
                       </li>
                     ))}
@@ -799,13 +799,13 @@ const MobileConceptMasteryDetail = ({
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>Recommended Actions</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>Recommended Actions</div>
               <div style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, marginTop: 1, letterSpacing: '-0.1px' }}>Suggested next steps</div>
             </div>
           </div>
           {recommendedActions.map((action, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '10px 0', position: 'relative', borderTop: i > 0 ? '0.5px solid rgba(9,87,247,.07)' : 'none' }}>
-              <div style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(9,87,247,.1)', color: '#0055FF', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(9,87,247,.1)', color: '#0055FF', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {i + 1}
               </div>
               <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#001040', letterSpacing: '-0.15px', lineHeight: 1.5, paddingTop: 3 }}>{action}</div>
@@ -828,8 +828,8 @@ const MobileConceptMasteryDetail = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,.9)', letterSpacing: '1.4px', textTransform: 'uppercase' }}>Status</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginTop: 2 }}>Intervention Required</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.9)', letterSpacing: '1.4px', textTransform: 'uppercase' }}>Status</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginTop: 2 }}>Intervention Required</div>
               </div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(255,255,255,.9)', fontWeight: 500, letterSpacing: '-0.1px', position: 'relative', zIndex: 2 }}>
@@ -850,8 +850,8 @@ const MobileConceptMasteryDetail = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,.9)', letterSpacing: '1.4px', textTransform: 'uppercase' }}>Status</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginTop: 2 }}>On Track ✨</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.9)', letterSpacing: '1.4px', textTransform: 'uppercase' }}>Status</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginTop: 2 }}>On Track ✨</div>
               </div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(255,255,255,.9)', fontWeight: 500, letterSpacing: '-0.1px', position: 'relative', zIndex: 2 }}>

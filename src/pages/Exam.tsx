@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Loader2, Printer, Copy, RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
@@ -7,7 +7,7 @@ import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 // ── Mobile tokens (matches Students page) ────────────────────────────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -199,11 +199,11 @@ const Exam = () => {
 
         {/* Header */}
         <div className="px-4 pt-3 pb-[14px]">
-          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+          <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
             <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
             Teacher Dashboard · Exam
           </div>
-          <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+          <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
             Exam Generator
           </h1>
           <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -228,12 +228,12 @@ const Exam = () => {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>AI Exam Paper</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>AI Exam Paper</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>
                   Subject · Grade · Difficulty
                 </div>
               </div>
-              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+              <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                 style={{
                   background: "rgba(255,170,0,0.2)",
                   border: "0.5px solid rgba(255,170,0,0.5)",
@@ -245,7 +245,7 @@ const Exam = () => {
               </div>
             </div>
             <div className="text-[15px] font-semibold text-white leading-[1.45]" style={{ letterSpacing: "-0.2px" }}>
-              Customize <b className="font-extrabold">question types, marks, difficulty</b> — AI ek exam-ready paper banayega.
+              Customize <b className="font-bold">question types, marks, difficulty</b> — AI ek exam-ready paper banayega.
             </div>
           </div>
         </div>
@@ -369,7 +369,7 @@ const Exam = () => {
             style={{
               background: loading ? MA.T4 : MA.P,
               color: "#fff",
-              fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+              fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
               boxShadow: loading ? "none" : "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.32)",
               fontFamily: MA.FONT, border: "none",
               cursor: loading ? "not-allowed" : "pointer",
@@ -427,11 +427,11 @@ const Exam = () => {
 
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · Exam
             </div>
-            <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Exam Generator</h1>
+            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Exam Generator</h1>
             <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
               Apni requirements ke hisaab se AI se exam paper banwao.
             </div>
@@ -454,12 +454,12 @@ const Exam = () => {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>AI Exam Paper</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>AI Exam Paper</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>
                     Subject · Grade · Difficulty
                   </div>
                 </div>
-                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                   style={{
                     background: "rgba(255,170,0,0.2)",
                     border: "0.5px solid rgba(255,170,0,0.5)",
@@ -471,7 +471,7 @@ const Exam = () => {
                 </div>
               </div>
               <div className="text-[18px] font-semibold text-white leading-[1.45]" style={{ letterSpacing: "-0.2px" }}>
-                Customize <b className="font-extrabold">question types, marks, difficulty</b> — AI ek exam-ready paper banayega.
+                Customize <b className="font-bold">question types, marks, difficulty</b> — AI ek exam-ready paper banayega.
               </div>
             </div>
           </div>
@@ -598,7 +598,7 @@ const Exam = () => {
                 style={{
                   background: loading ? MA.T4 : MA.P,
                   color: "#fff",
-                  fontSize: 15, fontWeight: 800, letterSpacing: "-0.2px",
+                  fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px",
                   boxShadow: loading ? "none" : "0 1px 2px rgba(9,87,247,0.2), 0 6px 16px rgba(9,87,247,0.32)",
                   fontFamily: MA.FONT, border: "none",
                   cursor: loading ? "not-allowed" : "pointer",
@@ -622,8 +622,8 @@ const Exam = () => {
                     style={{ background: "linear-gradient(145deg, rgba(9,87,247,0.1) 0%, rgba(123,63,244,0.12) 100%)", color: MA.P, boxShadow: "0 0 0 10px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)" }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   </div>
-                  <div className="text-[18px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Paper yahan render hoga</div>
-                  <div className="text-[13px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>Form bharo aur <b style={{ color: MA.P, fontWeight: 800 }}>Generate</b> dabao.</div>
+                  <div className="text-[18px] font-bold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>Paper yahan render hoga</div>
+                  <div className="text-[13px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>Form bharo aur <b style={{ color: MA.P, fontWeight: 700 }}>Generate</b> dabao.</div>
                 </div>
               )}
 
@@ -703,14 +703,14 @@ const paperToText = (p: GeneratedPaper): string => {
 };
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[9px] font-extrabold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
+  <div className="text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
     {children}
   </div>
 );
 
 const MField = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="mb-[12px]">
-    <div className="text-[10px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T2, letterSpacing: "0.8px" }}>{label}</div>
+    <div className="text-[10px] font-bold uppercase mb-[6px]" style={{ color: MA.T2, letterSpacing: "0.8px" }}>{label}</div>
     {children}
   </div>
 );
@@ -773,10 +773,10 @@ const ActionBtn = ({ label, onClick, icon, primary }:
 const PaperHeader = ({ paper, form }: { paper: GeneratedPaper; form: FormData }) => (
   <div className="px-[16px] py-[14px] relative overflow-hidden"
     style={{ background: MA.HERO_GRAD }}>
-    <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.6px" }}>
+    <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.6px" }}>
       {paper.board || form.board} · {paper.grade || form.grade}
     </div>
-    <div className="text-[17px] font-extrabold text-white mt-[3px]" style={{ letterSpacing: "-0.4px" }}>
+    <div className="text-[17px] font-bold text-white mt-[3px]" style={{ letterSpacing: "-0.4px" }}>
       {paper.title || `${paper.subject || form.subject} — ${form.difficulty}`}
     </div>
     <div className="flex items-center gap-[12px] mt-[8px] text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.78)" }}>
@@ -805,7 +805,7 @@ const PaperBody = ({ paper, showAnswers, desktop }:
             background: desktop ? T.amberL : "rgba(255,170,0,0.08)",
             border: desktop ? `1px solid ${T.amberL}` : "1px solid rgba(255,170,0,0.25)",
           }}>
-          <div className="text-[10px] font-extrabold uppercase mb-[6px]" style={{ color: desktop ? T.amber : MA.ORANGE, letterSpacing: "1.2px" }}>
+          <div className="text-[10px] font-bold uppercase mb-[6px]" style={{ color: desktop ? T.amber : MA.ORANGE, letterSpacing: "1.2px" }}>
             General Instructions
           </div>
           <ol className={`${desktop ? "text-[13px]" : "text-[12px]"} font-medium leading-[1.6] pl-[18px]`} style={{ color: desktop ? T.ink1 : MA.T2, listStyle: "decimal" }}>
@@ -817,11 +817,11 @@ const PaperBody = ({ paper, showAnswers, desktop }:
       {paper.sections.map((section, si) => (
         <div key={si}>
           <div className="flex items-baseline justify-between mb-[8px]">
-            <div className={`${desktop ? "text-[14px]" : "text-[13px]"} font-extrabold`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.2px" }}>
+            <div className={`${desktop ? "text-[14px]" : "text-[13px]"} font-bold`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.2px" }}>
               {section.title || `Section ${si + 1}`}
             </div>
             {section.marks != null && (
-              <div className="text-[10px] font-extrabold px-[8px] py-[3px] rounded-full"
+              <div className="text-[10px] font-bold px-[8px] py-[3px] rounded-full"
                 style={{ background: desktop ? T.blueL : "rgba(9,87,247,0.1)", color: desktop ? T.blue : MA.P, letterSpacing: "0.3px" }}>
                 {section.marks} marks
               </div>
@@ -840,14 +840,14 @@ const PaperBody = ({ paper, showAnswers, desktop }:
                   borderColor: desktop ? T.bdr : undefined,
                 }}>
                 <div className="flex items-start gap-[8px]">
-                  <span className={`${desktop ? "text-[13px]" : "text-[12px]"} font-extrabold flex-shrink-0`} style={{ color: desktop ? T.blue : MA.P }}>
+                  <span className={`${desktop ? "text-[13px]" : "text-[12px]"} font-bold flex-shrink-0`} style={{ color: desktop ? T.blue : MA.P }}>
                     {q.number ?? qi + 1}.
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className={`${desktop ? "text-[13.5px]" : "text-[12.5px]"} font-semibold leading-[1.55]`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.1px" }}>
                       {q.question || "—"}
                       {q.marks != null && (
-                        <span className="text-[10px] font-extrabold ml-[6px] px-[6px] py-[1px] rounded-[5px]"
+                        <span className="text-[10px] font-bold ml-[6px] px-[6px] py-[1px] rounded-[5px]"
                           style={{ background: desktop ? T.s2 : "rgba(9,87,247,0.08)", color: desktop ? T.ink2 : MA.P }}>
                           {q.marks}m
                         </span>
@@ -872,7 +872,7 @@ const PaperBody = ({ paper, showAnswers, desktop }:
                           color: desktop ? T.green : MA.GREEN,
                           border: `1px solid ${desktop ? "#B2F2BB" : "rgba(0,200,83,0.2)"}`,
                         }}>
-                        <b className="font-extrabold">Ans: </b>
+                        <b className="font-bold">Ans: </b>
                         {q.answer && <span>{q.answer}</span>}
                         {q.solution && <div className="mt-[3px] font-medium" style={{ color: desktop ? T.ink1 : MA.T2 }}>{q.solution}</div>}
                       </div>
@@ -925,7 +925,7 @@ const PaperHeaderDesktop = ({ paper, form, totalQ }:
     <div className="text-[11px] font-bold uppercase tracking-[2px]" style={{ color: T.ink2 }}>
       {paper.board || form.board} · {paper.grade || form.grade}
     </div>
-    <div className="text-[22px] font-extrabold mt-1" style={{ color: T.ink0, letterSpacing: "-0.5px" }}>
+    <div className="text-[22px] font-bold mt-1" style={{ color: T.ink0, letterSpacing: "-0.5px" }}>
       {paper.title || `${paper.subject || form.subject} — Examination`}
     </div>
     <div className="flex items-center justify-center gap-4 text-[13px] font-semibold mt-2" style={{ color: T.ink1 }}>

@@ -41,7 +41,7 @@ export function InstallBanner() {
           </div>
           <button
             onClick={handleInstall}
-            className="flex items-center gap-1.5 bg-white text-[#1e3272] text-xs font-black px-3 py-2 rounded-xl shrink-0 hover:bg-white/90 transition-colors"
+            className="flex items-center gap-1.5 bg-white text-[#1e3272] text-xs font-bold px-3 py-2 rounded-xl shrink-0 hover:bg-white/90 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Install
@@ -78,7 +78,7 @@ export function InstallBanner() {
             </div>
             <button
               onClick={() => setIosExpanded((v) => !v)}
-              className="bg-white text-[#1e3272] text-xs font-black px-3 py-2 rounded-xl shrink-0 hover:bg-white/90 transition-colors"
+              className="bg-white text-[#1e3272] text-xs font-bold px-3 py-2 rounded-xl shrink-0 hover:bg-white/90 transition-colors"
             >
               {iosExpanded ? 'Hide' : 'Show'}
             </button>

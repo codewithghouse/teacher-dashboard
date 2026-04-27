@@ -657,11 +657,11 @@ export default function Gradebook() {
 
           {/* Page header */}
           <div style={{ padding: '8px 2px 14px' }}>
-            <div style={{ fontSize: 9, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 5, height: 5, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
               Teacher Dashboard · Gradebook
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001040', letterSpacing: '-1.1px', lineHeight: 1.05, margin: 0 }}>Gradebook</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001040', letterSpacing: '-1.1px', lineHeight: 1.05, margin: 0 }}>Gradebook</h1>
             <div style={{ fontSize: 12, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
               {selectedClass ? `Complete academic record for ${selectedClass.name}.` : 'Select a class to view gradebook.'}
             </div>
@@ -685,8 +685,8 @@ export default function Gradebook() {
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', marginBottom: 2 }}>Viewing</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', marginBottom: 2 }}>Viewing</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                 </div>
               </div>
@@ -731,7 +731,7 @@ export default function Gradebook() {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Average</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Average</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 2, fontWeight: 500, letterSpacing: '-0.1px' }}>
                     {columns.length > 0 ? `${columns.length} ${columns.length === 1 ? 'unit' : 'units'} · ${selectedClass?.name || ''}` : 'No units yet'}
                   </div>
@@ -741,13 +741,13 @@ export default function Gradebook() {
                   background: `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`,
                   color: '#fff', borderRadius: 14,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px',
+                  fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px',
                   boxShadow: `0 1px 2px ${avgLetter.color}55, 0 6px 14px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`,
                 }}>
                   {avgLetter.label}
                 </div>
               </div>
-              <div style={{ fontSize: 56, fontWeight: 800, color: '#fff', letterSpacing: '-2.6px', lineHeight: 1, marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, color: '#fff', letterSpacing: '-2.6px', lineHeight: 1, marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
                 <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.4px' }}>/ 100</span>
               </div>
@@ -757,15 +757,15 @@ export default function Gradebook() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, overflow: 'hidden' }}>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>{filtered.length}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px' }}>{filtered.length}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>Students</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#6FFFAA', letterSpacing: '-0.5px' }}>{passingCount}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.5px' }}>{passingCount}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>Passing</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#FF9AA9', letterSpacing: '-0.5px' }}>{atRiskCount}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.5px' }}>{atRiskCount}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>At Risk</div>
                 </div>
               </div>
@@ -790,7 +790,7 @@ export default function Gradebook() {
           {/* Section head: Student Grades + Add Unit + search + export */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 10px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.35px' }}>Student Grades</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px' }}>Student Grades</span>
               <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px' }}>
                 {filtered.length} student{filtered.length === 1 ? '' : 's'} · {columns.length} unit{columns.length === 1 ? '' : 's'}
               </span>
@@ -877,7 +877,7 @@ export default function Gradebook() {
               boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
               border: '0.5px solid rgba(9,87,247,.1)',
             }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase' }}>
                 Add unit
               </div>
               <input
@@ -994,12 +994,12 @@ export default function Gradebook() {
                     width: 42, height: 42, borderRadius: 13,
                     background: avBg, color: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 800, letterSpacing: '0.3px', flexShrink: 0,
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
                   }}>
                     {getInitials(stu.name || '')}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.35px', lineHeight: 1.2 }}>{stu.name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px', lineHeight: 1.2 }}>{stu.name}</div>
                     <div style={{ fontSize: 11, color: '#5070B0', marginTop: 3, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 5 }}>
                       {stu.rollNo && (
                         <span style={{ background: '#F4F7FE', color: '#002080', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>Roll {stu.rollNo}</span>
@@ -1012,7 +1012,7 @@ export default function Gradebook() {
                     width: 48, height: 48, borderRadius: 15,
                     background: grd.color, color: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 24, fontWeight: 900, letterSpacing: '-0.8px', flexShrink: 0,
+                    fontSize: 24, fontWeight: 700, letterSpacing: '-0.8px', flexShrink: 0,
                     boxShadow: `0 1px 2px ${grd.color}40, 0 6px 14px ${grd.color}55`,
                     position: 'relative',
                   }}>
@@ -1046,7 +1046,7 @@ export default function Gradebook() {
                             width: 28, height: 28, borderRadius: 9,
                             background: 'rgba(9,87,247,.1)', color: '#0055FF',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0, fontSize: 11, fontWeight: 800, letterSpacing: '-0.2px',
+                            flexShrink: 0, fontSize: 11, fontWeight: 700, letterSpacing: '-0.2px',
                             cursor: 'pointer',
                           }}
                           aria-label={`Edit ${col.name} scores`}
@@ -1073,7 +1073,7 @@ export default function Gradebook() {
                             borderRadius: 10,
                             padding: '7px 12px', width: 68,
                             textAlign: 'center',
-                            fontSize: 13, fontWeight: 800, color: '#001040',
+                            fontSize: 13, fontWeight: 700, color: '#001040',
                             fontFamily: 'inherit', letterSpacing: '-0.2px', outline: 'none',
                           }}
                         />
@@ -1090,11 +1090,11 @@ export default function Gradebook() {
                   borderRadius: 12,
                   border: '0.5px solid rgba(9,87,247,.12)',
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0055FF' }} />
                     Total Score
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: totalToneColor }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: totalToneColor }}>
                     {earned}
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ {totalMax}</span>
                   </div>
@@ -1126,14 +1126,14 @@ export default function Gradebook() {
                   </svg>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.35px' }}>Class Average</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px' }}>Class Average</div>
                   <div style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, marginTop: 2, letterSpacing: '-0.1px' }}>Based on {filtered.length} students</div>
                 </div>
                 <div style={{
                   width: 44, height: 44, borderRadius: 14,
                   background: avgLetter.color, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 900,
+                  fontSize: 22, fontWeight: 700,
                   boxShadow: `0 1px 2px ${avgLetter.color}40, 0 6px 14px ${avgLetter.color}55`,
                   position: 'relative',
                 }}>
@@ -1150,11 +1150,11 @@ export default function Gradebook() {
                     marginTop: idx > 0 ? 1 : 0,
                     borderTop: idx > 0 ? '0.5px solid rgba(9,87,247,.07)' : 'none',
                   }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(9,87,247,.1)', color: '#0055FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(9,87,247,.1)', color: '#0055FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
                       {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px' }}>{col.name} avg</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#FF8800', letterSpacing: '-0.2px', padding: '7px 12px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#FF8800', letterSpacing: '-0.2px', padding: '7px 12px' }}>
                       {colAvgs[idx] > 0 ? colAvgs[idx].toFixed(1) : '—'}
                     </div>
                   </div>
@@ -1168,11 +1168,11 @@ export default function Gradebook() {
                 borderRadius: 12,
                 border: '0.5px solid rgba(9,87,247,.12)',
               }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0055FF' }} />
                   Overall Avg
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
                   {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ 100</span>
                 </div>
@@ -1199,8 +1199,8 @@ export default function Gradebook() {
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)', pointerEvents: 'none' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12, position: 'relative', zIndex: 2 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 13, background: 'rgba(255,255,255,.14)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '0.5px solid rgba(255,255,255,.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFDD55', fontSize: 19 }}>⚡</div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,.95)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>AI Gradebook Intelligence</div>
-                <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.5px' }}>Insight</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.95)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>AI Gradebook Intelligence</div>
+                <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: '0.5px' }}>Insight</div>
               </div>
               <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(255,255,255,.85)', letterSpacing: '-0.15px', marginBottom: 14, position: 'relative', zIndex: 2 }}>
                 Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{classAvgPct.toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
@@ -1211,15 +1211,15 @@ export default function Gradebook() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: 1, gap: 1, overflow: 'hidden', position: 'relative', zIndex: 2 }}>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{lowest}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{lowest}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Lowest</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-0.4px' }}>{classAvgPct.toFixed(1)}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.4px' }}>{classAvgPct.toFixed(1)}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Avg</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{highest}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{highest}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Highest</div>
                 </div>
               </div>
@@ -1254,11 +1254,11 @@ export default function Gradebook() {
           {/* Header row: title + class picker */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
                 Teacher Dashboard · Gradebook
               </div>
-              <h1 style={{ fontSize: 40, fontWeight: 800, color: '#001040', letterSpacing: '-1.4px', lineHeight: 1.05, margin: 0 }}>Gradebook</h1>
+              <h1 style={{ fontSize: 40, fontWeight: 700, color: '#001040', letterSpacing: '-1.4px', lineHeight: 1.05, margin: 0 }}>Gradebook</h1>
               <div style={{ fontSize: 14, color: '#5070B0', fontWeight: 500, marginTop: 8, letterSpacing: '-0.15px' }}>
                 {selectedClass ? `Complete academic record for ${selectedClass.name}.` : 'Select a class to view gradebook.'}
               </div>
@@ -1281,8 +1281,8 @@ export default function Gradebook() {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', marginBottom: 2 }}>Viewing</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', marginBottom: 2 }}>Viewing</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                   </div>
                 </div>
@@ -1328,7 +1328,7 @@ export default function Gradebook() {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Average</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.72)', letterSpacing: '1.8px', textTransform: 'uppercase' }}>Class Average</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginTop: 3, fontWeight: 500, letterSpacing: '-0.1px' }}>
                     {columns.length > 0 ? `${columns.length} ${columns.length === 1 ? 'unit' : 'units'} · ${selectedClass?.name || ''}` : 'No units yet'}
                   </div>
@@ -1338,7 +1338,7 @@ export default function Gradebook() {
                   background: `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`,
                   color: '#fff', borderRadius: 16,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 28, fontWeight: 900, letterSpacing: '-0.6px',
+                  fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px',
                   boxShadow: `0 1px 2px ${avgLetter.color}55, 0 8px 18px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`,
                 }}>
                   {avgLetter.label}
@@ -1346,7 +1346,7 @@ export default function Gradebook() {
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: 84, fontWeight: 800, color: '#fff', letterSpacing: '-3.8px', lineHeight: 1, marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                  <div style={{ fontSize: 84, fontWeight: 700, color: '#fff', letterSpacing: '-3.8px', lineHeight: 1, marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 10 }}>
                     {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
                     <span style={{ fontSize: 32, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.6px' }}>/ 100</span>
                   </div>
@@ -1357,15 +1357,15 @@ export default function Gradebook() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, overflow: 'hidden', minWidth: 380 }}>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.8px' }}>{filtered.length}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.8px' }}>{filtered.length}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Students</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#6FFFAA', letterSpacing: '-0.8px' }}>{passingCount}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.8px' }}>{passingCount}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Passing</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#FF9AA9', letterSpacing: '-0.8px' }}>{atRiskCount}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.8px' }}>{atRiskCount}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>At Risk</div>
                   </div>
                 </div>
@@ -1420,7 +1420,7 @@ export default function Gradebook() {
           {/* Section head: title + search + save */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: '#001040', letterSpacing: '-0.4px' }}>Student Grades</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px' }}>Student Grades</span>
               <span style={{ fontSize: 13, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px' }}>
                 {filtered.length} student{filtered.length === 1 ? '' : 's'} · {columns.length} unit{columns.length === 1 ? '' : 's'}
               </span>
@@ -1477,7 +1477,7 @@ export default function Gradebook() {
               border: '0.5px solid rgba(9,87,247,.1)',
               flexWrap: 'wrap',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', flexShrink: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', flexShrink: 0 }}>
                 Add unit
               </div>
               <input
@@ -1592,12 +1592,12 @@ export default function Gradebook() {
                         width: 50, height: 50, borderRadius: 15,
                         background: avBg, color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, fontWeight: 800, letterSpacing: '0.3px', flexShrink: 0,
+                        fontSize: 14, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
                       }}>
                         {getInitials(stu.name || '')}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: '#001040', letterSpacing: '-0.4px', lineHeight: 1.2 }}>{stu.name}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px', lineHeight: 1.2 }}>{stu.name}</div>
                         <div style={{ fontSize: 12, color: '#5070B0', marginTop: 4, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 6 }}>
                           {stu.rollNo && (
                             <span style={{ background: '#F4F7FE', color: '#002080', padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700 }}>Roll {stu.rollNo}</span>
@@ -1610,7 +1610,7 @@ export default function Gradebook() {
                         width: 56, height: 56, borderRadius: 17,
                         background: grd.color, color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 28, fontWeight: 900, letterSpacing: '-0.9px', flexShrink: 0,
+                        fontSize: 28, fontWeight: 700, letterSpacing: '-0.9px', flexShrink: 0,
                         boxShadow: `0 1px 2px ${grd.color}40, 0 8px 18px ${grd.color}55`,
                         position: 'relative',
                       }}>
@@ -1644,7 +1644,7 @@ export default function Gradebook() {
                                 width: 32, height: 32, borderRadius: 10,
                                 background: 'rgba(9,87,247,.1)', color: '#0055FF',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, fontSize: 12, fontWeight: 800, letterSpacing: '-0.2px',
+                                flexShrink: 0, fontSize: 12, fontWeight: 700, letterSpacing: '-0.2px',
                                 cursor: 'pointer',
                               }}
                               aria-label={`Edit ${col.name} scores`}
@@ -1671,7 +1671,7 @@ export default function Gradebook() {
                                 borderRadius: 11,
                                 padding: '8px 14px', width: 80,
                                 textAlign: 'center',
-                                fontSize: 14, fontWeight: 800, color: '#001040',
+                                fontSize: 14, fontWeight: 700, color: '#001040',
                                 fontFamily: 'inherit', letterSpacing: '-0.2px', outline: 'none',
                               }}
                             />
@@ -1688,11 +1688,11 @@ export default function Gradebook() {
                       borderRadius: 13,
                       border: '0.5px solid rgba(9,87,247,.12)',
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0055FF' }} />
                         Total Score
                       </div>
-                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: totalToneColor }}>
+                      <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: totalToneColor }}>
                         {earned}
                         <span style={{ fontSize: 14, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ {totalMax}</span>
                       </div>
@@ -1729,14 +1729,14 @@ export default function Gradebook() {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: '#001040', letterSpacing: '-0.4px' }}>Class Average</div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px' }}>Class Average</div>
                     <div style={{ fontSize: 12, color: '#5070B0', fontWeight: 600, marginTop: 3, letterSpacing: '-0.1px' }}>Based on {filtered.length} students</div>
                   </div>
                   <div style={{
                     width: 52, height: 52, borderRadius: 16,
                     background: avgLetter.color, color: '#fff',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 26, fontWeight: 900,
+                    fontSize: 26, fontWeight: 700,
                     boxShadow: `0 1px 2px ${avgLetter.color}40, 0 8px 18px ${avgLetter.color}55`,
                     position: 'relative',
                   }}>
@@ -1753,11 +1753,11 @@ export default function Gradebook() {
                       marginTop: idx > 0 ? 1 : 0,
                       borderTop: idx > 0 ? '0.5px solid rgba(9,87,247,.07)' : 'none',
                     }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(9,87,247,.1)', color: '#0055FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(9,87,247,.1)', color: '#0055FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
                         {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px' }}>{col.name} avg</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#FF8800', letterSpacing: '-0.2px', padding: '8px 14px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#FF8800', letterSpacing: '-0.2px', padding: '8px 14px' }}>
                         {colAvgs[idx] > 0 ? colAvgs[idx].toFixed(1) : '—'}
                       </div>
                     </div>
@@ -1771,11 +1771,11 @@ export default function Gradebook() {
                   borderRadius: 13,
                   border: '0.5px solid rgba(9,87,247,.12)',
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0055FF' }} />
                     Overall Avg
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
+                  <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
                     {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ 100</span>
                   </div>
@@ -1800,8 +1800,8 @@ export default function Gradebook() {
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)', pointerEvents: 'none' }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, position: 'relative', zIndex: 2 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,.14)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '0.5px solid rgba(255,255,255,.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFDD55', fontSize: 22 }}>⚡</div>
-                  <div style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,.95)', letterSpacing: '1.9px', textTransform: 'uppercase' }}>AI Gradebook Intelligence</div>
-                  <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '5px 11px', borderRadius: 100, fontSize: 10, fontWeight: 800, letterSpacing: '0.5px' }}>Insight</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.95)', letterSpacing: '1.9px', textTransform: 'uppercase' }}>AI Gradebook Intelligence</div>
+                  <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '5px 11px', borderRadius: 100, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px' }}>Insight</div>
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,.85)', letterSpacing: '-0.15px', marginBottom: 20, position: 'relative', zIndex: 2 }}>
                   Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{classAvgPct.toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
@@ -1812,15 +1812,15 @@ export default function Gradebook() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, gap: 1, overflow: 'hidden', position: 'relative', zIndex: 2 }}>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#FF9AA9', letterSpacing: '-0.6px' }}>{lowest}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.6px' }}>{lowest}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Lowest</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.6px' }}>{classAvgPct.toFixed(1)}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.6px' }}>{classAvgPct.toFixed(1)}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Avg</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#6FFFAA', letterSpacing: '-0.6px' }}>{highest}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.6px' }}>{highest}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Highest</div>
                   </div>
                 </div>

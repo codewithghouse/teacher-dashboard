@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { db } from "../lib/firebase";
 import {
   collection, query, onSnapshot, getDocs,
@@ -694,11 +694,11 @@ const RisksAlerts = () => {
 
               {/* Page Header */}
               <div style={{ padding: "8px 2px 14px" }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
                   <span className={criticalCount > 0 ? "ra-pulse" : ""} style={{ width: 5, height: 5, borderRadius: 2, background: "#FF3355", display: "inline-block", boxShadow: "0 0 8px rgba(255,51,85,.5)" }} />
                   Teacher Dashboard · Alerts
                 </div>
-                <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Risks &amp; Alerts</h1>
+                <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Risks &amp; Alerts</h1>
                 <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
                   Monitor and respond to student concerns.
                 </div>
@@ -728,15 +728,15 @@ const RisksAlerts = () => {
                       </svg>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Critical Alerts</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Critical Alerts</div>
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Requires immediate action</div>
                     </div>
-                    <div style={{ marginLeft: "auto", background: "rgba(255,255,255,.18)", border: "0.5px solid rgba(255,255,255,.28)", color: "#fff", padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px" }}>
+                    <div style={{ marginLeft: "auto", background: "rgba(255,255,255,.18)", border: "0.5px solid rgba(255,255,255,.28)", color: "#fff", padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px" }}>
                       <span className="ra-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", boxShadow: "0 0 8px #fff" }} />
                       Live
                     </div>
                   </div>
-                  <div style={{ fontSize: 60, fontWeight: 800, color: "#fff", letterSpacing: "-2.8px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <div style={{ fontSize: 60, fontWeight: 700, color: "#fff", letterSpacing: "-2.8px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
                     {criticalCount}
                     <span style={{ fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.7)", letterSpacing: "-0.4px" }}>active</span>
                   </div>
@@ -749,15 +749,15 @@ const RisksAlerts = () => {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
                     <div style={{ background: "rgba(40,6,16,.7)", padding: "12px 4px", textAlign: "center" }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{gradesCount}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{gradesCount}</div>
                       <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Grades</div>
                     </div>
                     <div style={{ background: "rgba(40,6,16,.7)", padding: "12px 4px", textAlign: "center" }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.5px" }}>{attCount}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#FFD060", letterSpacing: "-0.5px" }}>{attCount}</div>
                       <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Attend.</div>
                     </div>
                     <div style={{ background: "rgba(40,6,16,.7)", padding: "12px 4px", textAlign: "center" }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{resolvedCount}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{resolvedCount}</div>
                       <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Resolved</div>
                     </div>
                   </div>
@@ -820,8 +820,8 @@ const RisksAlerts = () => {
                         {s.iconStroke}
                       </svg>
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.count}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 6, position: "relative", zIndex: 1 }}>{s.label}</div>
+                    <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-1.2px", lineHeight: 1, color: "#001040", position: "relative", zIndex: 1 }}>{s.count}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, marginTop: 6, letterSpacing: "-0.15px", position: "relative", zIndex: 1 }}>{s.sub(s.count)}</div>
                   </button>
                 ))}
@@ -864,7 +864,7 @@ const RisksAlerts = () => {
                       <span style={{
                         background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                         color: active ? "#fff" : "#5070B0",
-                        fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                        fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                       }}>{tab.count}</span>
                     </button>
                   );
@@ -893,7 +893,7 @@ const RisksAlerts = () => {
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.4px" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", marginBottom: 6, letterSpacing: "-0.4px" }}>
                     {activeTab === "All" ? "All students on track" : activeTab === "Attendance" ? "No attendance concerns" : "No grade concerns"}
                   </div>
                   <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
@@ -940,7 +940,7 @@ const RisksAlerts = () => {
                         width: 42, height: 42, borderRadius: 13,
                         background: avatarBgC, color: "#fff",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 800, letterSpacing: "0.3px", flexShrink: 0, position: "relative",
+                        fontSize: 12, fontWeight: 700, letterSpacing: "0.3px", flexShrink: 0, position: "relative",
                       }}>
                         {getInitials(a.name)}
                         <div style={{
@@ -964,10 +964,10 @@ const RisksAlerts = () => {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.2 }}>{a.name}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px", lineHeight: 1.2 }}>{a.name}</div>
                           <div style={{
                             background: accentColor, color: "#fff",
-                            fontSize: 9, fontWeight: 900, padding: "3px 8px", borderRadius: 100,
+                            fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
                             letterSpacing: "0.4px", textTransform: "uppercase",
                             display: "flex", alignItems: "center", gap: 4,
                             boxShadow: `0 1px 2px ${accentColor}33, 0 2px 6px ${accentColor}40`,
@@ -977,7 +977,7 @@ const RisksAlerts = () => {
                           </div>
                         </div>
                         <div style={{ fontSize: 11, color: "#5070B0", marginTop: 3, fontWeight: 500, letterSpacing: "-0.1px", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                          <span style={{ background: classChip.bg, color: classChip.color, padding: "2px 7px", borderRadius: 6, fontSize: 10, fontWeight: 800 }}>{clsName}</span>
+                          <span style={{ background: classChip.bg, color: classChip.color, padding: "2px 7px", borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{clsName}</span>
                           {subject && <><span style={{ color: "#99AACC" }}>·</span><span>{subject}</span></>}
                         </div>
                       </div>
@@ -993,7 +993,7 @@ const RisksAlerts = () => {
                       <div style={{
                         display: "inline-flex", alignItems: "center", gap: 5,
                         padding: "3px 8px", borderRadius: 6,
-                        fontSize: 9, fontWeight: 900, letterSpacing: "0.8px", textTransform: "uppercase",
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase",
                         marginBottom: 8,
                         background: tagCls === "attendance" ? "rgba(255,136,0,.12)" : "rgba(255,51,85,.12)",
                         color: accentColor,
@@ -1012,7 +1012,7 @@ const RisksAlerts = () => {
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.4, marginBottom: 8 }}>
                         {a.issue.split(/(\b\d+%|\b\d+\b)/g).map((part, i) =>
                           /^\d+%?$/.test(part) && part !== "0" && part !== ""
-                            ? <b key={i} style={{ color: accentColor, fontWeight: 900 }}>{part}</b>
+                            ? <b key={i} style={{ color: accentColor, fontWeight: 700 }}>{part}</b>
                             : <span key={i}>{part}</span>
                         )}
                       </div>
@@ -1038,7 +1038,7 @@ const RisksAlerts = () => {
                               {hasKV ? (
                                 <>
                                   <span style={{ color: "#99AACC", fontWeight: 600 }}>{k}</span>
-                                  <span style={{ color: chipStyle.vColor, fontWeight: 800 }}>{v}</span>
+                                  <span style={{ color: chipStyle.vColor, fontWeight: 700 }}>{v}</span>
                                 </>
                               ) : d}
                             </div>
@@ -1123,8 +1123,8 @@ const RisksAlerts = () => {
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
                     <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12, position: "relative", zIndex: 2 }}>
                       <div style={{ width: 40, height: 40, borderRadius: 13, background: "rgba(255,255,255,.14)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFDD55", fontSize: 19 }}>⚡</div>
-                      <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Risk Intelligence</div>
-                      <div style={{ marginLeft: "auto", background: "rgba(255,51,85,.25)", border: "0.5px solid rgba(255,51,85,.5)", color: "#FFB5BF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.95)", letterSpacing: "1.8px", textTransform: "uppercase" }}>AI Risk Intelligence</div>
+                      <div style={{ marginLeft: "auto", background: "rgba(255,51,85,.25)", border: "0.5px solid rgba(255,51,85,.5)", color: "#FFB5BF", padding: "4px 10px", borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 5 }}>
                         <span className="ra-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF9AA9" }} />
                         {criticalCount > 0 ? "Critical" : "Insight"}
                       </div>
@@ -1145,15 +1145,15 @@ const RisksAlerts = () => {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "rgba(255,255,255,.1)", borderRadius: 12, padding: 1, gap: 1, overflow: "hidden", position: "relative", zIndex: 2 }}>
                       <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: "#FF9AA9", letterSpacing: "-0.4px" }}>{criticalCount}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: "#FF9AA9", letterSpacing: "-0.4px" }}>{criticalCount}</div>
                         <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Critical</div>
                       </div>
                       <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: "#FFD060", letterSpacing: "-0.4px" }}>{attCount}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: "#FFD060", letterSpacing: "-0.4px" }}>{attCount}</div>
                         <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Attend.</div>
                       </div>
                       <div style={{ background: "rgba(0,20,80,.55)", padding: "11px 4px", textAlign: "center" }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{gradesCount}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>{gradesCount}</div>
                         <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1px", textTransform: "uppercase", marginTop: 3 }}>Grade</div>
                       </div>
                     </div>
@@ -1206,7 +1206,7 @@ const RisksAlerts = () => {
                 <div style={{ background: "#F4F7FE", borderRadius: 12, padding: "12px 14px" }}>
                   <p style={{ fontSize: 10, color: "#5070B0", margin: "0 0 4px", fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" }}>Contact Number</p>
                   {selectedContact.phone ? (
-                    <p style={{ fontSize: 17, fontWeight: 800, color: "#0055FF", margin: 0, letterSpacing: "-0.3px" }}>{selectedContact.phone}</p>
+                    <p style={{ fontSize: 17, fontWeight: 700, color: "#0055FF", margin: 0, letterSpacing: "-0.3px" }}>{selectedContact.phone}</p>
                   ) : (
                     <p style={{ fontSize: 13, fontWeight: 500, color: "#99AACC", margin: 0, fontStyle: "italic" }}>
                       Not available — add parent phone in Students
@@ -1749,7 +1749,7 @@ const RisksAlerts = () => {
         style={{
           background: '#EEF4FF',
           minHeight: '100vh',
-          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -1788,7 +1788,7 @@ const RisksAlerts = () => {
           {/* ═══ Page Head ═══ */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
             <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span
                   className={criticalCount > 0 ? 'rad-pulse-d' : ''}
                   style={{
@@ -1800,7 +1800,7 @@ const RisksAlerts = () => {
                 />
                 Teacher Dashboard · {hc.eyebrow}
               </div>
-              <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+              <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
                 {hc.line1} <span style={{ color: criticalCount > 0 ? '#FF3355' : '#0055FF' }}>{hc.line2}</span>
               </h1>
               <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -1816,7 +1816,7 @@ const RisksAlerts = () => {
                     padding: '10px 16px', borderRadius: 14,
                     background: 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)',
                     color: '#fff',
-                    fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                     boxShadow: '0 6px 20px rgba(255,51,85,.35), 0 2px 5px rgba(255,51,85,.2)',
                   }}
                 >
@@ -1833,7 +1833,7 @@ const RisksAlerts = () => {
                   height: 42, padding: '0 18px', borderRadius: 14,
                   background: '#fff', color: '#0055FF',
                   border: '0.5px solid rgba(0,85,255,.12)',
-                  fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                   boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 14px rgba(0,85,255,.08)',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -1882,10 +1882,10 @@ const RisksAlerts = () => {
                       </svg>
                     </div>
                     <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, color: statusColor }}>
                         {statusLabel}
                       </div>
-                      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
+                      <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-1px', margin: 0, color: '#fff', lineHeight: 1 }}>
                         {criticalCount}
                       </h2>
                       <p style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', fontWeight: 500, margin: '8px 0 0 0', lineHeight: 1.55 }}>
@@ -1904,8 +1904,8 @@ const RisksAlerts = () => {
                       { label: 'Resolved',   value: resolvedCount.toString(), color: '#6FFFAA' },
                     ].map(s => (
                       <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '12px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: s.color, margin: 0, letterSpacing: '-0.5px' }}>{s.value}</div>
                       </div>
                     ))}
                   </div>
@@ -1968,7 +1968,7 @@ const RisksAlerts = () => {
                 }}
               >
                 <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     {k.iconStroke}
                   </svg>
                 </div>
@@ -1977,8 +1977,8 @@ const RisksAlerts = () => {
                     {k.iconStroke}
                   </svg>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+                <div style={{ fontSize: 36, fontWeight: 700, color: '#001040', letterSpacing: '-1.6px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
               </div>
             ))}
@@ -2008,13 +2008,13 @@ const RisksAlerts = () => {
                     color: active ? '#fff' : '#5070B0',
                     border: active ? 'none' : '0.5px solid rgba(0,85,255,.12)',
                     boxShadow: active ? '0 6px 18px rgba(0,16,64,.22), 0 2px 5px rgba(0,0,0,.06)' : '0 1px 2px rgba(0,85,255,.06)',
-                    fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
                   {tab.id}
                   <span style={{
-                    padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+                    padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700,
                     background: active ? 'rgba(255,255,255,.28)' : 'rgba(0,85,255,.08)',
                     color: active ? '#fff' : '#0055FF',
                   }}>{tabCount}</span>
@@ -2040,7 +2040,7 @@ const RisksAlerts = () => {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px' }}>
                     {activeTab === 'All' ? 'All Active Alerts' : activeTab === 'Attendance' ? 'Attendance Alerts' : 'Grade Alerts'}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#99AACC', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
@@ -2060,7 +2060,7 @@ const RisksAlerts = () => {
                     </svg>
                   </div>
                   <div>
-                    <p style={{ fontSize: 16, fontWeight: 800, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>
                       {activeTab === 'All' ? 'All students on track' : activeTab === 'Attendance' ? 'No attendance concerns' : 'No grade concerns'}
                     </p>
                     <p style={{ fontSize: 13, fontWeight: 500, color: '#5070B0', margin: '6px 0 0 0' }}>
@@ -2111,7 +2111,7 @@ const RisksAlerts = () => {
                         width: 44, height: 44, borderRadius: '50%',
                         background: avBg(a.name), color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 800, flexShrink: 0,
+                        fontSize: 13, fontWeight: 700, flexShrink: 0,
                         boxShadow: `0 4px 12px ${avBg(a.name)}55`,
                       }}>
                         {a.initials || getInitials(a.name)}
@@ -2119,10 +2119,10 @@ const RisksAlerts = () => {
 
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                          <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{a.name}</p>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>{a.name}</p>
                           <span
                             style={{
-                              fontSize: 9, fontWeight: 800, padding: '3px 10px', borderRadius: 999,
+                              fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
                               background: sevGrad, color: '#fff',
                               letterSpacing: '0.1em', textTransform: 'uppercase',
                               boxShadow: `0 3px 8px ${sevColor}40`,
@@ -2173,7 +2173,7 @@ const RisksAlerts = () => {
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '9px 14px', borderRadius: 11,
                             background: sevGrad, color: '#fff',
-                            fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                            fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                             boxShadow: `0 6px 18px ${sevColor}45, 0 2px 5px ${sevColor}22`,
                           }}
@@ -2190,7 +2190,7 @@ const RisksAlerts = () => {
                             padding: '9px 14px', borderRadius: 11,
                             background: '#fff', color: '#087F5B',
                             border: '0.5px solid rgba(0,200,83,.28)',
-                            fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                            fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                             cursor: resolving === a.id ? 'not-allowed' : 'pointer',
                             opacity: resolving === a.id ? 0.6 : 1,
                             fontFamily: 'inherit',
@@ -2250,10 +2250,10 @@ const RisksAlerts = () => {
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
                       AI Risk Intelligence
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
                       Risk Summary &amp; Outreach Plan
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -2268,8 +2268,8 @@ const RisksAlerts = () => {
                     { label: 'Grade Gaps',     value: gradesCount.toString(),  sub: gradesCount > 0 ? 'Schedule meetings' : 'Healthy', color: gradesCount > 0 ? '#FF99AA' : '#C8A4FF' },
                   ].map(s => (
                     <div key={s.label} style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)' }}>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0' }}>{s.sub}</div>
                     </div>
                   ))}
@@ -2280,7 +2280,7 @@ const RisksAlerts = () => {
                     <div style={{ width: `${(highCount / maxBar) * 100}%`, background: 'linear-gradient(90deg,#FF8800,#FFAA44)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
                     <div style={{ width: `${(mediumCount / maxBar) * 100}%`, background: 'linear-gradient(90deg,#0055FF,#2277FF)', transition: 'width 1s cubic-bezier(.2,.9,.3,1)' }}/>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                     {totalCount} open
                   </div>
                 </div>

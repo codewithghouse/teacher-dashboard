@@ -958,7 +958,7 @@ const MobileLessonPlanner = ({
         <div style={{ padding: "8px 2px 14px" }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 9, fontWeight: 800, color: "#fff",
+            fontSize: 9, fontWeight: 700, color: "#fff",
             letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 12,
             background: "linear-gradient(135deg, #001A66 0%, #0055FF 50%, #1166FF 100%)",
             padding: "6px 12px 6px 8px", borderRadius: 100,
@@ -971,7 +971,7 @@ const MobileLessonPlanner = ({
             }}>✦</span>
             AI Powered
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
             AI Lesson{" "}
             <span style={{
               background: "linear-gradient(135deg, #0055FF 0%, #1166FF 100%)",
@@ -1011,7 +1011,7 @@ const MobileLessonPlanner = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Curriculum-aligned · Real-time</div>
               </div>
               <div style={{
@@ -1020,14 +1020,14 @@ const MobileLessonPlanner = ({
                 border: "0.5px solid rgba(255,255,255,.32)",
                 color: "#fff",
                 padding: "5px 12px", borderRadius: 100,
-                fontSize: 10, fontWeight: 800,
+                fontSize: 10, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
               }}>
                 <span className="lp-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 8px #FFDD55" }} />
                 Live
               </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: "-1.2px", lineHeight: 1.1, marginBottom: 8 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-1.2px", lineHeight: 1.1, marginBottom: 8 }}>
               Craft lessons in seconds ✨
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,.82)", marginBottom: 20, fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
@@ -1035,15 +1035,15 @@ const MobileLessonPlanner = ({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{history.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{history.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Generated</div>
               </div>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.5px" }}>~8s</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>~8s</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Avg Time</div>
               </div>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>100%</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>100%</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Saved</div>
               </div>
             </div>
@@ -1089,7 +1089,7 @@ const MobileLessonPlanner = ({
                   <span style={{
                     background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                     color: active ? "#fff" : "#5070B0",
-                    fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                   }}>{tab.badge}</span>
                 )}
               </button>
@@ -1115,7 +1115,7 @@ const MobileLessonPlanner = ({
                 boxShadow: "0 1px 2px rgba(0,85,255,.2), 0 3px 8px rgba(0,85,255,.25)",
               }}>⚡</div>
               <div style={{ flex: 1, fontSize: 11, color: "#002080", lineHeight: 1.5, fontWeight: 500, letterSpacing: "-0.1px" }}>
-                <b style={{ color: "#0055FF", fontWeight: 800 }}>Pro tip:</b> The more specific your topic, the better the lesson plan. Try "Noun types with examples" instead of just "Nouns".
+                <b style={{ color: "#0055FF", fontWeight: 700 }}>Pro tip:</b> The more specific your topic, the better the lesson plan. Try "Noun types with examples" instead of just "Nouns".
               </div>
             </div>
 
@@ -1125,9 +1125,9 @@ const MobileLessonPlanner = ({
               boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                 Subject
-                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
               </div>
               <div className="lp-scroll" style={{ display: "flex", gap: 6, overflowX: "auto", margin: "0 -4px", padding: "2px 4px 4px" }}>
                 {SUBJECT_CHIPS.map(sc => {
@@ -1165,9 +1165,9 @@ const MobileLessonPlanner = ({
                 boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                   Class
-                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                   {CLASS_OPTIONS.map(c => {
@@ -1217,7 +1217,7 @@ const MobileLessonPlanner = ({
                 boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Board</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Board</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3, background: "#F4F7FE", padding: 3, borderRadius: 11 }}>
                   {BOARD_OPTIONS.map(b => {
                     const active = boardActive(b);
@@ -1250,9 +1250,9 @@ const MobileLessonPlanner = ({
               boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                 Lesson Topic
-                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 900 }}>*</span>
+                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
               </div>
               <input
                 type="text"
@@ -1285,22 +1285,22 @@ const MobileLessonPlanner = ({
                 boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Lessons</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Lessons</div>
                 <div style={{ display: "flex", alignItems: "center", background: "#F4F7FE", border: "0.5px solid rgba(0,85,255,.07)", borderRadius: 12, overflow: "hidden" }}>
                   <button
                     type="button"
                     onClick={() => upd("num_lessons", Math.max(1, form.num_lessons - 1))}
                     aria-label="Decrease lessons"
                     className="lp-press"
-                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                   >−</button>
-                  <div style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>{form.num_lessons}</div>
+                  <div style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>{form.num_lessons}</div>
                   <button
                     type="button"
                     onClick={() => upd("num_lessons", Math.min(5, form.num_lessons + 1))}
                     aria-label="Increase lessons"
                     className="lp-press"
-                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                   >+</button>
                 </div>
               </div>
@@ -1310,16 +1310,16 @@ const MobileLessonPlanner = ({
                 boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                 border: "0.5px solid rgba(0,85,255,.07)",
               }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Duration</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>Duration</div>
                 <div style={{ display: "flex", alignItems: "center", background: "#F4F7FE", border: "0.5px solid rgba(0,85,255,.07)", borderRadius: 12, overflow: "hidden" }}>
                   <button
                     type="button"
                     onClick={() => upd("duration_per_lesson", minToDuration(Math.max(15, durationMin - 15)))}
                     aria-label="Decrease duration"
                     className="lp-press"
-                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                   >−</button>
-                  <div style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>
+                  <div style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>
                     {durationMin}<span style={{ color: "#5070B0", fontSize: 11, fontWeight: 700, marginLeft: 3 }}>min</span>
                   </div>
                   <button
@@ -1327,7 +1327,7 @@ const MobileLessonPlanner = ({
                     onClick={() => upd("duration_per_lesson", minToDuration(Math.min(120, durationMin + 15)))}
                     aria-label="Increase duration"
                     className="lp-press"
-                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ width: 36, height: 44, background: "transparent", border: "none", color: "#0055FF", fontSize: 18, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                   >+</button>
                 </div>
               </div>
@@ -1339,7 +1339,7 @@ const MobileLessonPlanner = ({
               boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                 Include in Plan
                 <span style={{ color: "#99AACC", fontWeight: 600, letterSpacing: 0, textTransform: "none", fontSize: 10, marginLeft: 2 }}>(optional)</span>
               </div>
@@ -1431,7 +1431,7 @@ const MobileLessonPlanner = ({
                   width: "100%", height: 52, borderRadius: 16,
                   background: canGenerate ? "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)" : "#EAF0FB",
                   color: canGenerate ? "#fff" : "#99AACC",
-                  fontSize: 15, fontWeight: 800, border: "none",
+                  fontSize: 15, fontWeight: 700, border: "none",
                   cursor: canGenerate ? "pointer" : "not-allowed",
                   letterSpacing: "-0.3px",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1458,7 +1458,7 @@ const MobileLessonPlanner = ({
             {/* History section head */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>Recent Plans</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Recent Plans</span>
                 <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>{history.length} plan{history.length === 1 ? "" : "s"}</span>
               </div>
             </div>
@@ -1480,9 +1480,9 @@ const MobileLessonPlanner = ({
                     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No plans yet</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No plans yet</div>
                 <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
-                  Switch to <b style={{ color: "#0055FF", fontWeight: 800 }}>Generate</b> to create your first lesson plan.
+                  Switch to <b style={{ color: "#0055FF", fontWeight: 700 }}>Generate</b> to create your first lesson plan.
                 </div>
               </div>
             ) : history.map(h => (
@@ -1523,14 +1523,14 @@ const MobileLessonPlanner = ({
                     }}>✦</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.25, marginBottom: 6 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.25, marginBottom: 6 }}>
                       {(h.plan?.plan_title as string) || h.topic || "Untitled plan"}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
-                      {h.subject && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,85,255,.1)", color: "#0055FF" }}>{h.subject}</span>}
-                      {h.grade && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,85,255,.04)", color: "#0044CC", border: "0.5px solid rgba(0,85,255,.07)" }}>{h.grade}</span>}
-                      {h.board && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,200,83,.1)", color: "#00C853" }}>{h.board}</span>}
-                      {h.plan?.lessons && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(255,170,0,.12)", color: "#FFAA00" }}>{h.plan.lessons.length} lesson{h.plan.lessons.length === 1 ? "" : "s"}</span>}
+                      {h.subject && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,85,255,.1)", color: "#0055FF" }}>{h.subject}</span>}
+                      {h.grade && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,85,255,.04)", color: "#0044CC", border: "0.5px solid rgba(0,85,255,.07)" }}>{h.grade}</span>}
+                      {h.board && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,200,83,.1)", color: "#00C853" }}>{h.board}</span>}
+                      {h.plan?.lessons && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(255,170,0,.12)", color: "#FFAA00" }}>{h.plan.lessons.length} lesson{h.plan.lessons.length === 1 ? "" : "s"}</span>}
                     </div>
                     <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px", display: "flex", alignItems: "center", gap: 5 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1650,7 +1650,7 @@ const DesktopLessonPlanner = ({
           <div>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 7,
-              fontSize: 10, fontWeight: 800, color: "#fff",
+              fontSize: 10, fontWeight: 700, color: "#fff",
               letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 14,
               background: "linear-gradient(135deg, #001A66 0%, #0055FF 50%, #1166FF 100%)",
               padding: "7px 14px 7px 10px", borderRadius: 100,
@@ -1663,7 +1663,7 @@ const DesktopLessonPlanner = ({
               }}>✦</span>
               AI Powered
             </div>
-            <h1 style={{ fontSize: 40, fontWeight: 800, color: "#001040", letterSpacing: "-1.4px", lineHeight: 1.05, margin: 0 }}>
+            <h1 style={{ fontSize: 40, fontWeight: 700, color: "#001040", letterSpacing: "-1.4px", lineHeight: 1.05, margin: 0 }}>
               AI Lesson{" "}
               <span style={{
                 background: "linear-gradient(135deg, #0055FF 0%, #1166FF 100%)",
@@ -1716,7 +1716,7 @@ const DesktopLessonPlanner = ({
                     <span style={{
                       background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                       color: active ? "#fff" : "#5070B0",
-                      fontSize: 11, fontWeight: 800, padding: "1px 8px", borderRadius: 100,
+                      fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100,
                     }}>{tab.badge}</span>
                   )}
                 </button>
@@ -1751,7 +1751,7 @@ const DesktopLessonPlanner = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 3, fontWeight: 500, letterSpacing: "-0.1px" }}>Curriculum-aligned · Real-time</div>
               </div>
               <div style={{
@@ -1760,7 +1760,7 @@ const DesktopLessonPlanner = ({
                 border: "0.5px solid rgba(255,255,255,.32)",
                 color: "#fff",
                 padding: "7px 14px", borderRadius: 100,
-                fontSize: 11, fontWeight: 800,
+                fontSize: 11, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 7, letterSpacing: "0.3px",
               }}>
                 <span className="lpd-pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 8px #FFDD55" }} />
@@ -1769,7 +1769,7 @@ const DesktopLessonPlanner = ({
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 32, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 42, fontWeight: 800, color: "#fff", letterSpacing: "-1.6px", lineHeight: 1.1, marginBottom: 10 }}>
+                <div style={{ fontSize: 42, fontWeight: 700, color: "#fff", letterSpacing: "-1.6px", lineHeight: 1.1, marginBottom: 10 }}>
                   Craft lessons in seconds ✨
                 </div>
                 <div style={{ fontSize: 15, color: "rgba(255,255,255,.82)", fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
@@ -1778,15 +1778,15 @@ const DesktopLessonPlanner = ({
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden", minWidth: 380 }}>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.7px" }}>{history.length}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#fff", letterSpacing: "-0.7px" }}>{history.length}</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Generated</div>
                 </div>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.7px" }}>~8s</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.7px" }}>~8s</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Avg Time</div>
                 </div>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.7px" }}>100%</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.7px" }}>100%</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Saved</div>
                 </div>
               </div>
@@ -1811,7 +1811,7 @@ const DesktopLessonPlanner = ({
               }}>
                 <Loader2 style={{ width: 36, height: 36, color: "#0055FF" }} className="animate-spin" />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>AI is crafting your lesson plan…</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>AI is crafting your lesson plan…</div>
               <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px" }}>This may take 10-20 seconds</div>
               <div style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
                 {[80, 55, 90, 45].map((w, i) => (
@@ -1837,7 +1837,7 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 1px 2px rgba(0,85,255,.2), 0 3px 8px rgba(0,85,255,.25)",
                 }}>⚡</div>
                 <div style={{ flex: 1, fontSize: 13, color: "#002080", lineHeight: 1.55, fontWeight: 500, letterSpacing: "-0.1px" }}>
-                  <b style={{ color: "#0055FF", fontWeight: 800 }}>Pro tip:</b> The more specific your topic, the better the lesson plan. Try "Noun types with examples" instead of just "Nouns".
+                  <b style={{ color: "#0055FF", fontWeight: 700 }}>Pro tip:</b> The more specific your topic, the better the lesson plan. Try "Noun types with examples" instead of just "Nouns".
                 </div>
               </div>
 
@@ -1851,9 +1851,9 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Subject
-                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 900 }}>*</span>
+                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {SUBJECT_CHIPS.map(sc => {
@@ -1890,9 +1890,9 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Class
-                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 900 }}>*</span>
+                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6 }}>
                     {CLASS_OPTIONS.map(c => {
@@ -1943,7 +1943,7 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Board</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Board</div>
                   <div style={{ display: "flex", gap: 4, background: "#F4F7FE", padding: 4, borderRadius: 12 }}>
                     {BOARD_OPTIONS.map(b => {
                       const active = boardActive(b);
@@ -1976,9 +1976,9 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Lesson Topic
-                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 900 }}>*</span>
+                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
                   </div>
                   <input
                     type="text"
@@ -2010,22 +2010,22 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Lessons</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Lessons</div>
                   <div style={{ display: "flex", alignItems: "center", background: "#F4F7FE", border: "0.5px solid rgba(0,85,255,.07)", borderRadius: 13, overflow: "hidden" }}>
                     <button
                       type="button"
                       onClick={() => upd("num_lessons", Math.max(1, form.num_lessons - 1))}
                       aria-label="Decrease lessons"
                       className="lpd-press"
-                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >−</button>
-                    <div style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>{form.num_lessons}</div>
+                    <div style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>{form.num_lessons}</div>
                     <button
                       type="button"
                       onClick={() => upd("num_lessons", Math.min(5, form.num_lessons + 1))}
                       aria-label="Increase lessons"
                       className="lpd-press"
-                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >+</button>
                   </div>
                 </div>
@@ -2036,16 +2036,16 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Duration</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>Duration</div>
                   <div style={{ display: "flex", alignItems: "center", background: "#F4F7FE", border: "0.5px solid rgba(0,85,255,.07)", borderRadius: 13, overflow: "hidden" }}>
                     <button
                       type="button"
                       onClick={() => upd("duration_per_lesson", minToDuration(Math.max(15, durationMin - 15)))}
                       aria-label="Decrease duration"
                       className="lpd-press"
-                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >−</button>
-                    <div style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>
+                    <div style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>
                       {durationMin}<span style={{ color: "#5070B0", fontSize: 13, fontWeight: 700, marginLeft: 4 }}>min</span>
                     </div>
                     <button
@@ -2053,7 +2053,7 @@ const DesktopLessonPlanner = ({
                       onClick={() => upd("duration_per_lesson", minToDuration(Math.min(120, durationMin + 15)))}
                       aria-label="Increase duration"
                       className="lpd-press"
-                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ width: 46, height: 52, background: "transparent", border: "none", color: "#0055FF", fontSize: 22, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >+</button>
                   </div>
                 </div>
@@ -2065,7 +2065,7 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Include in Plan
                     <span style={{ color: "#99AACC", fontWeight: 600, letterSpacing: 0, textTransform: "none", fontSize: 11, marginLeft: 2 }}>(optional)</span>
                   </div>
@@ -2148,7 +2148,7 @@ const DesktopLessonPlanner = ({
                     flex: 1, height: 52, borderRadius: 16,
                     background: canGenerate ? "linear-gradient(135deg, #0044CC 0%, #0055FF 50%, #1166FF 100%)" : "#EAF0FB",
                     color: canGenerate ? "#fff" : "#99AACC",
-                    fontSize: 16, fontWeight: 800, border: "none",
+                    fontSize: 16, fontWeight: 700, border: "none",
                     cursor: canGenerate ? "pointer" : "not-allowed",
                     letterSpacing: "-0.3px",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -2176,7 +2176,7 @@ const DesktopLessonPlanner = ({
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 14px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>Recent Plans</span>
+                <span style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Recent Plans</span>
                 <span style={{ fontSize: 13, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>{history.length} plan{history.length === 1 ? "" : "s"}</span>
               </div>
             </div>
@@ -2198,9 +2198,9 @@ const DesktopLessonPlanner = ({
                     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No plans yet</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No plans yet</div>
                 <div style={{ fontSize: 13, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
-                  Switch to <b style={{ color: "#0055FF", fontWeight: 800 }}>Generate</b> to create your first lesson plan.
+                  Switch to <b style={{ color: "#0055FF", fontWeight: 700 }}>Generate</b> to create your first lesson plan.
                 </div>
               </div>
             ) : (
@@ -2243,14 +2243,14 @@ const DesktopLessonPlanner = ({
                         }}>✦</span>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.25, marginBottom: 7 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.25, marginBottom: 7 }}>
                           {(h.plan?.plan_title as string) || h.topic || "Untitled plan"}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 7 }}>
-                          {h.subject && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,85,255,.1)", color: "#0055FF" }}>{h.subject}</span>}
-                          {h.grade && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,85,255,.04)", color: "#0044CC", border: "0.5px solid rgba(0,85,255,.07)" }}>{h.grade}</span>}
-                          {h.board && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(0,200,83,.1)", color: "#00C853" }}>{h.board}</span>}
-                          {h.plan?.lessons && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, letterSpacing: "-0.1px", background: "rgba(255,170,0,.12)", color: "#FFAA00" }}>{h.plan.lessons.length} lesson{h.plan.lessons.length === 1 ? "" : "s"}</span>}
+                          {h.subject && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,85,255,.1)", color: "#0055FF" }}>{h.subject}</span>}
+                          {h.grade && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,85,255,.04)", color: "#0044CC", border: "0.5px solid rgba(0,85,255,.07)" }}>{h.grade}</span>}
+                          {h.board && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(0,200,83,.1)", color: "#00C853" }}>{h.board}</span>}
+                          {h.plan?.lessons && <span style={{ padding: "3px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px", background: "rgba(255,170,0,.12)", color: "#FFAA00" }}>{h.plan.lessons.length} lesson{h.plan.lessons.length === 1 ? "" : "s"}</span>}
                         </div>
                         <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px", display: "flex", alignItems: "center", gap: 6 }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

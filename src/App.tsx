@@ -110,7 +110,7 @@ const AppRoutes = () => {
         </div>
         <div className="flex flex-col items-center gap-1">
           <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" />
-          <p className="text-xs font-black text-[#1e294b] uppercase tracking-widest mt-2">Checking Access</p>
+          <p className="text-xs font-bold text-[#1e294b] uppercase tracking-widest mt-2">Checking Access</p>
         </div>
       </div>
     );

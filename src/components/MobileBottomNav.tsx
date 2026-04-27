@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+﻿import { useNavigate, useLocation } from "react-router-dom";
 
 /* ── Blue Apple tokens ── */
 const ACTIVE = "#0055FF";
@@ -90,7 +90,7 @@ const MobileBottomNav = () => {
           border: "0.5px solid rgba(255,255,255,0.85)",
           boxShadow:
             "0 0 0 0.5px rgba(0,85,255,0.10), 0 2px 6px rgba(0,85,255,0.08), 0 12px 28px rgba(0,85,255,0.18), 0 28px 64px rgba(0,85,255,0.22)",
-          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
         {NAV_ITEMS.map((item) => {

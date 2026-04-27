@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { db } from '../lib/firebase';
 import {
@@ -312,7 +312,7 @@ const Dashboard = () => {
   const SH_D = BLUE_SHADOW;
   const SH_LG_D = BLUE_SHADOW_LG;
   const SH_BTN_D = "0 6px 22px rgba(0,85,255,0.42), 0 2px 6px rgba(0,85,255,0.22)";
-  const FONT_D = "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif";
+  const FONT_D = "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif";
 
   // 3D tilt handlers (desktop)
   const handle3DEnter = (e: React.MouseEvent<HTMLElement>) => {
@@ -352,11 +352,11 @@ const Dashboard = () => {
       {/* ── Greeting + actions (bell + avatar) ── */}
       <div className="flex items-center justify-between px-4 pt-[10px] pb-[18px]">
         <div>
-          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
+          <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
             <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: B1 }} />
             Teacher Dashboard
           </div>
-          <div className="text-[25px] font-extrabold flex items-center gap-2 leading-[1.05]" style={{ color: TT1, letterSpacing: "-0.9px" }}>
+          <div className="text-[25px] font-bold flex items-center gap-2 leading-[1.05]" style={{ color: TT1, letterSpacing: "-0.9px" }}>
             Hello, {firstName}
             <span className="inline-block" style={{ animation: "tdWave 2.8s ease-in-out infinite", transformOrigin: "70% 70%" }}>👋</span>
           </div>
@@ -376,7 +376,7 @@ const Dashboard = () => {
                 <path d="M10.3 21a1.94 1.94 0 003.4 0"/>
               </svg>
               {unreadNotes.length > 0 && (
-                <span className="absolute top-[3px] right-[3px] min-w-[16px] h-[16px] px-[4px] rounded-full text-white text-[9px] font-extrabold flex items-center justify-center"
+                <span className="absolute top-[3px] right-[3px] min-w-[16px] h-[16px] px-[4px] rounded-full text-white text-[9px] font-bold flex items-center justify-center"
                   style={{ background: RED, border: "2px solid white" }}>
                   {unreadNotes.length > 9 ? "9+" : unreadNotes.length}
                 </span>
@@ -426,7 +426,7 @@ const Dashboard = () => {
 
           <button type="button" onClick={() => navigate('/settings')}
             aria-label="Profile"
-            className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[15px] font-extrabold active:scale-[0.92] transition-transform"
+            className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[15px] font-bold active:scale-[0.92] transition-transform"
             style={{ background: B1, letterSpacing: "-0.3px", boxShadow: "0 0.5px 1px rgba(9,87,247,0.2), 0 6px 14px rgba(9,87,247,0.3)" }}>
             {avatarInitial}
           </button>
@@ -460,10 +460,10 @@ const Dashboard = () => {
               </svg>
             </div>
             <div>
-              <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Attendance Rate</div>
+              <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Attendance Rate</div>
               <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Last 30 days · All classes</div>
             </div>
-            <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+            <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
               style={{
                 background: stats.avgAttendance >= 85 ? "rgba(0,232,102,0.18)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.22)" : "rgba(255,51,85,0.18)",
                 border: `0.5px solid ${stats.avgAttendance >= 85 ? "rgba(0,232,102,0.5)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.5)" : "rgba(255,51,85,0.5)"}`,
@@ -477,7 +477,7 @@ const Dashboard = () => {
               {stats.avgAttendance >= 85 ? "Strong" : stats.avgAttendance >= 70 ? "Holding" : stats.avgAttendance > 0 ? "Needs focus" : "No data"}
             </div>
           </div>
-          <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+          <div className="text-[56px] font-bold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
             {stats.avgAttendance > 0 ? stats.avgAttendance.toFixed(1) : "—"}
             {stats.avgAttendance > 0 && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
           </div>
@@ -491,8 +491,8 @@ const Dashboard = () => {
               { v: stats.pendingGrading, l: "Pending" },
             ].map(({ v, l }) => (
               <div key={l} className="py-[13px] px-[6px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[20px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
-                <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
+                <div className="text-[20px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{v}</div>
+                <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
               </div>
             ))}
           </div>
@@ -624,7 +624,7 @@ const Dashboard = () => {
             <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color, letterSpacing: "1px" }}>
               {label}
             </div>
-            <div className="text-[28px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
+            <div className="text-[28px] font-bold leading-none" style={{ color: TT1, letterSpacing: "-1.2px" }}>{val}</div>
             <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
               {sub}
             </div>
@@ -698,7 +698,7 @@ const Dashboard = () => {
               </svg>
             </div>
             <div>
-              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Today's Classes</div>
+              <div className="text-[15px] font-bold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Today's Classes</div>
               <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{todayClasses.length} scheduled</div>
             </div>
           </div>
@@ -732,7 +732,7 @@ const Dashboard = () => {
                 </div>
               </div>
               {cls.isNow ? (
-                <div className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full text-[9px] font-black text-white uppercase flex-shrink-0"
+                <div className="flex items-center gap-[5px] px-[10px] py-[5px] rounded-full text-[9px] font-bold text-white uppercase flex-shrink-0"
                   style={{ background: GREEN, letterSpacing: "0.6px" }}>
                   <span className="w-[5px] h-[5px] rounded-full bg-white animate-pulse" />
                   Now
@@ -759,7 +759,7 @@ const Dashboard = () => {
               </svg>
             </div>
             <div>
-              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Pending Tasks</div>
+              <div className="text-[15px] font-bold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Pending Tasks</div>
               <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>
                 {pendingTasks.length} {pendingTasks.length === 1 ? "to complete" : "to complete"}
               </div>
@@ -791,7 +791,7 @@ const Dashboard = () => {
                 <div className="text-[14px] font-bold" style={{ color: TT1, letterSpacing: "-0.25px", textDecoration: task.done ? "line-through" : "none" }}>{task.title}</div>
                 <div className="text-[11px] font-bold mt-[3px]" style={{ color: ORANGE, letterSpacing: "-0.1px" }}>{task.sub}</div>
               </div>
-              <div className="px-[11px] py-[5px] rounded-full text-[9px] font-black text-white uppercase flex-shrink-0"
+              <div className="px-[11px] py-[5px] rounded-full text-[9px] font-bold text-white uppercase flex-shrink-0"
                 style={{ background: ORANGE, letterSpacing: "0.7px" }}>
                 {task.status === 'Pending' ? 'Pending' : 'Todo'}
               </div>
@@ -813,7 +813,7 @@ const Dashboard = () => {
               </svg>
             </div>
             <div>
-              <div className="text-[15px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Needs Attention</div>
+              <div className="text-[15px] font-bold" style={{ color: TT1, letterSpacing: "-0.35px" }}>Needs Attention</div>
               <div className="text-[11px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{criticalStudents.length} flagged</div>
             </div>
           </div>
@@ -838,7 +838,7 @@ const Dashboard = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || ''}`); }}
                 className={`flex items-center gap-[11px] p-[10px] pl-3 rounded-[14px] cursor-pointer active:brightness-95 transition ${idx < criticalStudents.length - 1 ? "mb-2" : ""}`}
                 style={{ background: "rgba(255,51,85,0.04)" }}>
-                <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white text-[11px] font-extrabold flex-shrink-0"
+                <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
                   style={{ background: avatarBg, letterSpacing: "0.3px" }}>
                   {initStr}
                 </div>
@@ -886,8 +886,8 @@ const Dashboard = () => {
                 color: "#FFDD55",
                 boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
               }}>⚡</div>
-            <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Teacher Intelligence</div>
-            <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+            <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Teacher Intelligence</div>
+            <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-bold"
               style={{
                 background: "rgba(123,63,244,0.3)",
                 border: "0.5px solid rgba(155,95,255,0.5)",
@@ -902,22 +902,22 @@ const Dashboard = () => {
             <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
-              <div className="text-[19px] font-extrabold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.5px" }}>
+              <div className="text-[19px] font-bold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.5px" }}>
                 {stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—"}
               </div>
-              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
+              <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
             </button>
             <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/risks-alerts'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
-              <div className="text-[19px] font-extrabold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.5px" }}>{stats.atRiskCount}</div>
-              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
+              <div className="text-[19px] font-bold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.5px" }}>{stats.atRiskCount}</div>
+              <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
             </button>
             <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/my-classes'); }}
               className="py-[13px] px-[6px] text-center active:brightness-110 transition"
               style={{ background: "rgba(0,20,80,0.55)" }}>
-              <div className="text-[19px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.activeClasses}</div>
-              <div className="text-[9px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Classes</div>
+              <div className="text-[19px] font-bold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.activeClasses}</div>
+              <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Classes</div>
             </button>
           </div>
         </div>
@@ -946,11 +946,11 @@ const Dashboard = () => {
           {/* ── Header: Greeting + bell + avatar ── */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
+              <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: TT3, letterSpacing: "1.8px" }}>
                 <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: B1 }} />
                 Teacher Dashboard
               </div>
-              <div className="text-[36px] font-extrabold flex items-center gap-3 leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.2px" }}>
+              <div className="text-[36px] font-bold flex items-center gap-3 leading-[1.05]" style={{ color: TT1, letterSpacing: "-1.2px" }}>
                 Hello, {firstName}
                 <span className="inline-block text-[34px]" style={{ animation: "tdWave 2.8s ease-in-out infinite", transformOrigin: "70% 70%" }}>👋</span>
               </div>
@@ -970,7 +970,7 @@ const Dashboard = () => {
                     <path d="M10.3 21a1.94 1.94 0 003.4 0"/>
                   </svg>
                   {unreadNotes.length > 0 && (
-                    <span className="absolute top-[4px] right-[4px] min-w-[18px] h-[18px] px-[5px] rounded-full text-white text-[10px] font-extrabold flex items-center justify-center"
+                    <span className="absolute top-[4px] right-[4px] min-w-[18px] h-[18px] px-[5px] rounded-full text-white text-[10px] font-bold flex items-center justify-center"
                       style={{ background: RED, border: "2px solid white" }}>
                       {unreadNotes.length > 9 ? "9+" : unreadNotes.length}
                     </span>
@@ -1020,7 +1020,7 @@ const Dashboard = () => {
 
               <button type="button" onClick={() => navigate('/settings')}
                 aria-label="Profile"
-                className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[17px] font-extrabold hover:scale-[1.04] active:scale-[0.96] transition-transform"
+                className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[17px] font-bold hover:scale-[1.04] active:scale-[0.96] transition-transform"
                 style={{ background: B1, letterSpacing: "-0.3px", boxShadow: "0 0.5px 1px rgba(9,87,247,0.2), 0 6px 14px rgba(9,87,247,0.3)" }}>
                 {avatarInitial}
               </button>
@@ -1064,10 +1064,10 @@ const Dashboard = () => {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Attendance Rate</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Attendance Rate</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Last 30 days · All classes</div>
                 </div>
-                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                   style={{
                     background: stats.avgAttendance >= 85 ? "rgba(0,232,102,0.18)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.22)" : "rgba(255,51,85,0.18)",
                     border: `0.5px solid ${stats.avgAttendance >= 85 ? "rgba(0,232,102,0.5)" : stats.avgAttendance >= 70 ? "rgba(255,170,0,0.5)" : "rgba(255,51,85,0.5)"}`,
@@ -1083,7 +1083,7 @@ const Dashboard = () => {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-extrabold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
+                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
                     {stats.avgAttendance > 0 ? stats.avgAttendance.toFixed(1) : "—"}
                     {stats.avgAttendance > 0 && <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>}
                   </div>
@@ -1098,8 +1098,8 @@ const Dashboard = () => {
                     { v: stats.pendingGrading, l: "Pending" },
                   ].map(({ v, l }) => (
                     <div key={l} className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{v}</div>
-                      <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
+                      <div className="text-[26px] font-bold text-white" style={{ letterSpacing: "-0.8px" }}>{v}</div>
+                      <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.2px" }}>{l}</div>
                     </div>
                   ))}
                 </div>
@@ -1129,7 +1129,7 @@ const Dashboard = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="13" width="4" height="8" rx="1"/>
                     <rect x="10" y="9" width="4" height="12" rx="1"/>
                     <rect x="17" y="5" width="4" height="16" rx="1"/>
@@ -1154,7 +1154,7 @@ const Dashboard = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="4" y="3" width="16" height="18" rx="2"/>
                     <path d="M9 3v4h6V3"/>
                     <path d="M8 12h8M8 16h6"/>
@@ -1179,7 +1179,7 @@ const Dashboard = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3L3 20h18L12 3z"/>
                     <line x1="12" y1="10" x2="12" y2="14"/>
                     <circle cx="12" cy="17" r="0.6" fill="currentColor"/>
@@ -1206,7 +1206,7 @@ const Dashboard = () => {
                   </svg>
                 ),
                 decor: (
-                  <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 11l9-8 9 8"/>
                     <path d="M5 10v10h14V10"/>
                     <path d="M10 20v-6h4v6"/>
@@ -1237,7 +1237,7 @@ const Dashboard = () => {
                 <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color, letterSpacing: "1px", transform: "translateZ(10px)" }}>
                   {label}
                 </div>
-                <div className="text-[36px] font-extrabold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
+                <div className="text-[36px] font-bold leading-none" style={{ color: TT1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
                 <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: TT3, letterSpacing: "-0.15px" }}>
                   {sub}
                 </div>
@@ -1323,7 +1323,7 @@ const Dashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-[17px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Today's Classes</div>
+                    <div className="text-[17px] font-bold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Today's Classes</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{todayClasses.length} scheduled</div>
                   </div>
                 </div>
@@ -1357,7 +1357,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     {cls.isNow ? (
-                      <div className="flex items-center gap-[5px] px-[11px] py-[6px] rounded-full text-[10px] font-black text-white uppercase flex-shrink-0"
+                      <div className="flex items-center gap-[5px] px-[11px] py-[6px] rounded-full text-[10px] font-bold text-white uppercase flex-shrink-0"
                         style={{ background: GREEN, letterSpacing: "0.6px" }}>
                         <span className="w-[5px] h-[5px] rounded-full bg-white animate-pulse" />
                         Now
@@ -1389,7 +1389,7 @@ const Dashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-[17px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Pending Tasks</div>
+                    <div className="text-[17px] font-bold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Pending Tasks</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>
                       {pendingTasks.length} to complete
                     </div>
@@ -1421,7 +1421,7 @@ const Dashboard = () => {
                       <div className="text-[15px] font-bold" style={{ color: TT1, letterSpacing: "-0.25px", textDecoration: task.done ? "line-through" : "none" }}>{task.title}</div>
                       <div className="text-[12px] font-bold mt-[3px]" style={{ color: ORANGE, letterSpacing: "-0.1px" }}>{task.sub}</div>
                     </div>
-                    <div className="px-[12px] py-[6px] rounded-full text-[10px] font-black text-white uppercase flex-shrink-0"
+                    <div className="px-[12px] py-[6px] rounded-full text-[10px] font-bold text-white uppercase flex-shrink-0"
                       style={{ background: ORANGE, letterSpacing: "0.7px" }}>
                       {task.status === 'Pending' ? 'Pending' : 'Todo'}
                     </div>
@@ -1453,7 +1453,7 @@ const Dashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-[17px] font-extrabold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Needs Attention</div>
+                    <div className="text-[17px] font-bold" style={{ color: TT1, letterSpacing: "-0.4px" }}>Needs Attention</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: TT3, letterSpacing: "-0.1px" }}>{criticalStudents.length} flagged</div>
                   </div>
                 </div>
@@ -1478,7 +1478,7 @@ const Dashboard = () => {
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || ''}`); }}
                       className={`flex items-center gap-3 p-3 pl-4 rounded-[14px] cursor-pointer hover:brightness-[0.97] transition ${idx < criticalStudents.length - 1 ? "mb-2" : ""}`}
                       style={{ background: "rgba(255,51,85,0.04)" }}>
-                      <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white text-[12px] font-extrabold flex-shrink-0"
+                      <div className="w-[42px] h-[42px] rounded-[13px] flex items-center justify-center text-white text-[12px] font-bold flex-shrink-0"
                         style={{ background: avatarBg, letterSpacing: "0.3px" }}>
                         {initStr}
                       </div>
@@ -1535,8 +1535,8 @@ const Dashboard = () => {
                       color: "#FFDD55",
                       boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.15)",
                     }}>⚡</div>
-                  <div className="text-[11px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Teacher Intelligence</div>
-                  <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-extrabold"
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>AI Teacher Intelligence</div>
+                  <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-bold"
                     style={{
                       background: "rgba(123,63,244,0.3)",
                       border: "0.5px solid rgba(155,95,255,0.5)",
@@ -1551,22 +1551,22 @@ const Dashboard = () => {
                   <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[22px] font-extrabold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.6px" }}>
+                    <div className="text-[22px] font-bold" style={{ color: stats.avgAttendance >= 70 ? "#6FFFAA" : "#FF8899", letterSpacing: "-0.6px" }}>
                       {stats.avgAttendance > 0 ? `${stats.avgAttendance}%` : "—"}
                     </div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Attend.</div>
                   </button>
                   <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/risks-alerts'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[22px] font-extrabold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.6px" }}>{stats.atRiskCount}</div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
+                    <div className="text-[22px] font-bold" style={{ color: stats.atRiskCount > 0 ? "#FF8899" : "#fff", letterSpacing: "-0.6px" }}>{stats.atRiskCount}</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>At-Risk</div>
                   </button>
                   <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/my-classes'); }}
                     className="py-4 px-3 text-center hover:brightness-110 transition"
                     style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{stats.activeClasses}</div>
-                    <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Classes</div>
+                    <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{stats.activeClasses}</div>
+                    <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Classes</div>
                   </button>
                 </div>
               </div>

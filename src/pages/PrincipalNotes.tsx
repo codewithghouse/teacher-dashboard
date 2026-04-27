@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
@@ -275,7 +275,7 @@ const PrincipalNotes = () => {
       style={{
         background: '#EEF4FF',
         minHeight: '100vh',
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
         fontVariantNumeric: 'tabular-nums',
       }}
     >
@@ -305,7 +305,7 @@ const PrincipalNotes = () => {
         {/* ═══ Page Head ═══ */}
         <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span
                 className={stats.unread > 0 ? 'pnot-pulse' : ''}
                 style={{
@@ -317,7 +317,7 @@ const PrincipalNotes = () => {
               />
               Teacher Dashboard · Admin Communication
             </div>
-            <h1 style={{ fontSize: 34, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
+            <h1 style={{ fontSize: 34, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', lineHeight: 1.05, margin: 0 }}>
               Principal <span style={{ color: '#0055FF' }}>notes</span>
             </h1>
             <div style={{ fontSize: 13, color: '#5070B0', fontWeight: 500, marginTop: 6, letterSpacing: '-0.15px' }}>
@@ -335,7 +335,7 @@ const PrincipalNotes = () => {
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '10px 16px', borderRadius: 14,
                   background: 'linear-gradient(135deg,#FFAA00 0%,#FFCC33 100%)', color: '#fff',
-                  fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   boxShadow: '0 6px 20px rgba(255,170,0,.36), 0 2px 5px rgba(255,170,0,.2)',
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -354,7 +354,7 @@ const PrincipalNotes = () => {
                 padding: '10px 14px', borderRadius: 14,
                 background: '#fff', color: '#087F5B',
                 border: '0.5px solid rgba(0,200,83,.18)',
-                fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                 boxShadow: '0 1px 2px rgba(0,200,83,.08), 0 4px 14px rgba(0,200,83,.08)',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -397,11 +397,11 @@ const PrincipalNotes = () => {
               <SchoolIco size={32} color="#fff" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, color: lastPrincipalMsg ? '#6FFFAA' : 'rgba(255,255,255,.6)' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, color: lastPrincipalMsg ? '#6FFFAA' : 'rgba(255,255,255,.6)' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: lastPrincipalMsg ? '#4CC9A4' : 'rgba(255,255,255,.4)' }}/>
                 {lastPrincipalMsg ? 'Active' : 'Offline'}
               </div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.7px', margin: 0, color: '#fff', lineHeight: 1.1 }}>
+              <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', margin: 0, color: '#fff', lineHeight: 1.1 }}>
                 {principalName}
               </h2>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.72)', fontWeight: 500, margin: '6px 0 0 0' }}>
@@ -422,8 +422,8 @@ const PrincipalNotes = () => {
                   aria-label={`${s.label}: ${s.value} — ${s.hint}`}
                   style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '10px 14px', border: '0.5px solid rgba(255,255,255,.14)', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit', color: '#fff' }}
                 >
-                  <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: s.color, letterSpacing: '-0.3px' }}>{s.value}</div>
                 </button>
               ))}
             </div>
@@ -477,7 +477,7 @@ const PrincipalNotes = () => {
               }}
             >
               <div style={{ position: 'absolute', right: 14, bottom: 12, color: k.color, opacity: 0.22, pointerEvents: 'none' }}>
-                <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   {k.iconStroke}
                 </svg>
               </div>
@@ -486,8 +486,8 @@ const PrincipalNotes = () => {
                   {k.iconStroke}
                 </svg>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#001040', letterSpacing: '-1.2px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: k.color, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 8px 0', position: 'relative', zIndex: 1 }}>{k.label}</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: '#001040', letterSpacing: '-1.2px', margin: 0, lineHeight: 1.05, position: 'relative', zIndex: 1 }}>{k.value}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#5070B0', margin: '8px 0 0 0', position: 'relative', zIndex: 1 }}>{k.sub}</div>
             </button>
           ))}
@@ -521,7 +521,7 @@ const PrincipalNotes = () => {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, fontWeight: 800, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>End-to-end encrypted channel</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>End-to-end encrypted channel</p>
             <p style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', margin: '3px 0 0 0' }}>
               Messages are only visible to you and the principal. Audit logs maintained for compliance.
             </p>
@@ -531,7 +531,7 @@ const PrincipalNotes = () => {
             padding: '6px 12px', borderRadius: 999,
             background: 'rgba(0,200,83,.10)', color: '#087F5B',
             border: '0.5px solid rgba(0,200,83,.22)',
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
             flexShrink: 0,
           }}>
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -608,7 +608,7 @@ const PrincipalNotes = () => {
                   <SchoolIco size={30} color="#fff" />
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: 15, fontWeight: 800, color: '#001040', margin: 0, letterSpacing: '-0.3px' }}>No messages yet</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: '#001040', margin: 0, letterSpacing: '-0.3px' }}>No messages yet</p>
                   <p style={{ fontSize: 12, fontWeight: 500, color: '#5070B0', margin: '6px 0 0 0' }}>
                     Messages from your principal will appear here.
                   </p>
@@ -814,10 +814,10 @@ const PrincipalNotes = () => {
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.22)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
                     AI Admin Intelligence
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 6 }}>
                     Communication Summary
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.82)', lineHeight: 1.55 }}>
@@ -839,8 +839,8 @@ const PrincipalNotes = () => {
                     aria-label={`${s.label}: ${s.value}`}
                     style={{ background: 'rgba(255,255,255,.10)', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,.14)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: '#fff' }}
                   >
-                    <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,.65)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: s.color, letterSpacing: '-0.4px', lineHeight: 1 }}>{s.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.72)', margin: '6px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>
                   </button>
                 ))}
@@ -948,7 +948,7 @@ const MobilePrincipalChat = ({
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px", lineHeight: 1.1 }}>{principalName}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px", lineHeight: 1.1 }}>{principalName}</div>
               <div style={{ width: 14, height: 14, background: "#0055FF", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
@@ -990,8 +990,8 @@ const MobilePrincipalChat = ({
             <div key={s.label} style={{ background: "#fff", padding: "9px 6px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <div style={{ width: 22, height: 22, borderRadius: 7, background: s.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.icon}</div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: "#5070B0", letterSpacing: "0.9px", textTransform: "uppercase", lineHeight: 1 }}>{s.label}</div>
-                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 2, lineHeight: 1, color: s.valueColor }}>{s.value}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "#5070B0", letterSpacing: "0.9px", textTransform: "uppercase", lineHeight: 1 }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.3px", marginTop: 2, lineHeight: 1, color: s.valueColor }}>{s.value}</div>
               </div>
             </div>
           ))}
@@ -1024,7 +1024,7 @@ const MobilePrincipalChat = ({
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#001040", letterSpacing: "-0.2px" }}>End-to-end encrypted</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>End-to-end encrypted</div>
             <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 1, letterSpacing: "-0.1px" }}>Only you and the principal can see these messages</div>
           </div>
           <div style={{ width: 22, height: 22, background: "#00C853", borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 5px rgba(0,200,83,.1)" }}>
@@ -1050,7 +1050,7 @@ const MobilePrincipalChat = ({
                 <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>
               </svg>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.3px" }}>No messages yet</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.3px" }}>No messages yet</div>
             <div style={{ fontSize: 11, color: "#5070B0", textAlign: "center", fontWeight: 500, maxWidth: 240 }}>
               Messages from your principal will appear here. Send the first note below.
             </div>

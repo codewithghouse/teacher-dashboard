@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateTest from "../components/CreateTest";
 import EnterScores from "../components/EnterScores";
@@ -22,7 +22,7 @@ const T = {
 
 // ── Mobile tokens (EduIntellect v2) ──────────────────────────────────────────
 const MA = {
-  FONT: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  FONT: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif",
   BG: "#EEF4FF",
   CARD: "#FFFFFF",
   SURFACE: "#F4F7FE",
@@ -255,11 +255,11 @@ export default function TestsExams() {
 
         {/* Page header */}
         <div className="px-4 pt-3 pb-[14px]">
-          <div className="flex items-center gap-[7px] text-[9px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+          <div className="flex items-center gap-[7px] text-[9px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
             <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
             Teacher Dashboard · Tests
           </div>
-          <h1 className="text-[28px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+          <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
             Tests &amp; Exams
           </h1>
           <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
@@ -284,7 +284,7 @@ export default function TestsExams() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
               </div>
               <div>
-                <div className="text-[10px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Average</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Average</div>
                 <div className="text-[11px] font-medium mt-[2px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Across recorded scores</div>
               </div>
               {(() => {
@@ -296,7 +296,7 @@ export default function TestsExams() {
                 const dot = band === "good" ? "#00FF88" : band === "watch" ? "#FFCC22" : band === "low" ? "#FF5577" : "#fff";
                 const label = band === "good" ? "Strong" : band === "watch" ? "Watch" : band === "low" ? "Low" : "No data";
                 return (
-                  <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-extrabold"
+                  <div className="ml-auto flex items-center gap-[6px] px-3 py-[5px] rounded-full text-[10px] font-bold"
                     style={{ background: bg, border: `0.5px solid ${bd}`, color: fg, letterSpacing: "0.3px" }}>
                     <span className="w-[6px] h-[6px] rounded-full" style={{ background: dot, boxShadow: `0 0 8px ${dot}` }} />
                     {label}
@@ -304,7 +304,7 @@ export default function TestsExams() {
                 );
               })()}
             </div>
-            <div className="text-[56px] font-extrabold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
+            <div className="text-[56px] font-bold text-white leading-none mb-[8px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-2.6px" }}>
               {stats.classAvg !== null ? stats.classAvg.toFixed(1) : "—"}
               {stats.classAvg !== null && <span className="text-[28px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-0.8px" }}>%</span>}
             </div>
@@ -321,15 +321,15 @@ export default function TestsExams() {
             </div>
             <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
               <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.upcoming}</div>
+                <div className="text-[18px] font-bold text-white" style={{ letterSpacing: "-0.5px" }}>{stats.upcoming}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Upcoming</div>
               </div>
               <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold" style={{ color: stats.completed > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{stats.completed}</div>
+                <div className="text-[18px] font-bold" style={{ color: stats.completed > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.5px" }}>{stats.completed}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Completed</div>
               </div>
               <div className="py-[12px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                <div className="text-[18px] font-extrabold" style={{ color: stats.pendingScores > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{stats.pendingScores}</div>
+                <div className="text-[18px] font-bold" style={{ color: stats.pendingScores > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.5px" }}>{stats.pendingScores}</div>
                 <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Pending</div>
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function TestsExams() {
             className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-[6px] active:scale-[0.98] transition-transform"
             style={{
               background: MA.P, color: "#fff",
-              fontSize: 13, fontWeight: 800, letterSpacing: "-0.2px",
+              fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
               fontFamily: MA.FONT, border: "none",
             }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -422,7 +422,7 @@ export default function TestsExams() {
               <div className="text-[10px] font-bold uppercase leading-[1.3] mb-[6px]" style={{ color: s.color, letterSpacing: "1px" }}>
                 {s.label}
               </div>
-              <div className="text-[28px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.2px" }}>{s.val}</div>
+              <div className="text-[28px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-1.2px" }}>{s.val}</div>
               <div className="text-[11px] font-semibold mt-[6px] flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                 {s.sub}
               </div>
@@ -438,7 +438,7 @@ export default function TestsExams() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </div>
               <div>
-                <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
+                <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
                   {filter === "All" ? "Upcoming Tests" : `${filter} Tests`}
                 </div>
                 <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
@@ -466,7 +466,7 @@ export default function TestsExams() {
                       fontFamily: MA.FONT, border: "none", cursor: "pointer",
                     }}>
                     {key}
-                    <span className="text-[9px] font-extrabold px-[6px] py-[1px] rounded-full min-w-[16px] text-center"
+                    <span className="text-[9px] font-bold px-[6px] py-[1px] rounded-full min-w-[16px] text-center"
                       style={{ background: isActive ? "rgba(255,255,255,0.22)" : "#fff", color: isActive ? "#fff" : MA.T3 }}>
                       {filterCounts[key]}
                     </span>
@@ -502,12 +502,12 @@ export default function TestsExams() {
                   boxShadow: "0 0 0 7px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
                 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                <div className="absolute -top-[4px] -right-[4px] w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[14px] font-extrabold"
+                <div className="absolute -top-[4px] -right-[4px] w-[26px] h-[26px] rounded-full flex items-center justify-center text-white text-[14px] font-bold"
                   style={{ background: MA.P, border: "3px solid #fff", boxShadow: "0 3px 8px rgba(9,87,247,0.35)" }}>
                   +
                 </div>
               </div>
-              <div className="text-[16px] font-extrabold mb-[5px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
+              <div className="text-[16px] font-bold mb-[5px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
                 {search ? "No matches" : filter !== "All" ? `No ${filter.toLowerCase()} tests` : "No tests yet"}
               </div>
               <div className="text-[12px] font-medium leading-[1.5] mb-[14px] px-[14px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
@@ -551,10 +551,10 @@ export default function TestsExams() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-[8px]">
-                          <div className="text-[14px] font-extrabold truncate capitalize" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>
+                          <div className="text-[14px] font-bold truncate capitalize" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>
                             {test.title || test.subject || "Untitled Test"}
                           </div>
-                          <span className="px-[9px] py-[3px] rounded-full text-[10px] font-extrabold flex-shrink-0 whitespace-nowrap"
+                          <span className="px-[9px] py-[3px] rounded-full text-[10px] font-bold flex-shrink-0 whitespace-nowrap"
                             style={{ background: statusTone.bg, color: statusTone.color, letterSpacing: "0.3px" }}>
                             {statusTone.text}
                           </span>
@@ -593,7 +593,7 @@ export default function TestsExams() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
               </div>
               <div>
-                <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Performance Overview</div>
+                <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Performance Overview</div>
                 <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                   {scores.length > 0 ? `Based on ${scores.length} score${scores.length === 1 ? "" : "s"}` : "No scores recorded yet"}
                 </div>
@@ -628,15 +628,15 @@ export default function TestsExams() {
                           style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-[22px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-0.8px" }}>{pct.toFixed(1)}%</div>
-                        <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Avg</div>
+                        <div className="text-[22px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-0.8px" }}>{pct.toFixed(1)}%</div>
+                        <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Avg</div>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-extrabold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Class Average</div>
-                      <div className="text-[15px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>{band.label}</div>
+                      <div className="text-[10px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Class Average</div>
+                      <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>{band.label}</div>
                       <div className="mt-[6px]">
-                        <span className="inline-flex items-center gap-[5px] px-[10px] py-[4px] rounded-full text-[10px] font-extrabold"
+                        <span className="inline-flex items-center gap-[5px] px-[10px] py-[4px] rounded-full text-[10px] font-bold"
                           style={{ background: `${band.tone}1a`, color: band.tone, letterSpacing: "0.3px" }}>
                           <span className="w-[5px] h-[5px] rounded-full" style={{ background: band.tone }} />
                           {pct >= 75 ? "On track" : pct >= 60 ? "Monitor" : "At risk"}
@@ -650,7 +650,7 @@ export default function TestsExams() {
               {/* Topic performance list */}
               {(classPerf.length > 0 || topicPerf.length > 0) && (
                 <>
-                  <div className="text-[12px] font-extrabold pt-[12px] pb-[10px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
+                  <div className="text-[12px] font-bold pt-[12px] pb-[10px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
                     {classPerf.length > 0 ? "Class Performance" : "Topic Performance"}
                   </div>
                   {classPerf.map((c, i) => {
@@ -662,7 +662,7 @@ export default function TestsExams() {
                         <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
                           <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                         </div>
-                        <div className="text-[13px] font-extrabold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
+                        <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
                       </div>
                     );
                   })}
@@ -675,7 +675,7 @@ export default function TestsExams() {
                         <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
                           <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                         </div>
-                        <div className="text-[13px] font-extrabold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
+                        <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
                       </div>
                     );
                   })}
@@ -702,10 +702,10 @@ export default function TestsExams() {
                   border: "0.5px solid rgba(255,255,255,0.22)",
                   color: "#FFDD55",
                 }}>⚡</div>
-              <div className="text-[10px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
+              <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.8px" }}>
                 AI Tests Intelligence
               </div>
-              <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-extrabold"
+              <div className="ml-auto px-[10px] py-[4px] rounded-full text-[9px] font-bold"
                 style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                 Tip
               </div>
@@ -732,16 +732,16 @@ export default function TestsExams() {
                   </div>
                   <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                     <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{avgLabel}</div>
-                      <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Class Avg</div>
+                      <div className="text-[17px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>{avgLabel}</div>
+                      <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Class Avg</div>
                     </div>
                     <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[17px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.4px" }}>{topTopicVal}</div>
-                      <div className="text-[8px] font-extrabold uppercase mt-[3px] truncate" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>{topTopicLabel}</div>
+                      <div className="text-[17px] font-bold" style={{ color: "#FFD060", letterSpacing: "-0.4px" }}>{topTopicVal}</div>
+                      <div className="text-[8px] font-bold uppercase mt-[3px] truncate" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>{topTopicLabel}</div>
                     </div>
                     <div className="py-[11px] px-[4px] text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                      <div className="text-[17px] font-extrabold text-white" style={{ letterSpacing: "-0.4px" }}>{stats.upcoming}</div>
-                      <div className="text-[8px] font-extrabold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Scheduled</div>
+                      <div className="text-[17px] font-bold text-white" style={{ letterSpacing: "-0.4px" }}>{stats.upcoming}</div>
+                      <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>Scheduled</div>
                     </div>
                   </div>
                 </>
@@ -768,11 +768,11 @@ export default function TestsExams() {
 
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center gap-[7px] text-[10px] font-extrabold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
               <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
               Teacher Dashboard · Tests
             </div>
-            <h1 className="text-[40px] font-extrabold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Tests &amp; Exams</h1>
+            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Tests &amp; Exams</h1>
             <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
               Manage tests, enter scores, and analyse performance.
             </div>
@@ -795,7 +795,7 @@ export default function TestsExams() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Average</div>
+                  <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px" }}>Class Average</div>
                   <div className="text-[12px] font-medium mt-[3px]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.1px" }}>Across recorded scores</div>
                 </div>
                 {(() => {
@@ -807,7 +807,7 @@ export default function TestsExams() {
                   const dot = band === "good" ? "#00FF88" : band === "watch" ? "#FFCC22" : band === "low" ? "#FF5577" : "#fff";
                   const label = band === "good" ? "Strong" : band === "watch" ? "Watch" : band === "low" ? "Low" : "No data";
                   return (
-                    <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-extrabold"
+                    <div className="ml-auto flex items-center gap-[6px] px-4 py-[7px] rounded-full text-[11px] font-bold"
                       style={{ background: bg, border: `0.5px solid ${bd}`, color: fg, letterSpacing: "0.3px" }}>
                       <span className="w-[6px] h-[6px] rounded-full" style={{ background: dot, boxShadow: `0 0 8px ${dot}` }} />
                       {label}
@@ -817,7 +817,7 @@ export default function TestsExams() {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-extrabold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
+                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
                     {stats.classAvg !== null ? stats.classAvg.toFixed(1) : "—"}
                     {stats.classAvg !== null && <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>}
                   </div>
@@ -835,15 +835,15 @@ export default function TestsExams() {
                 </div>
                 <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px] min-w-[380px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold text-white" style={{ letterSpacing: "-0.8px" }}>{stats.upcoming}</div>
+                    <div className="text-[26px] font-bold text-white" style={{ letterSpacing: "-0.8px" }}>{stats.upcoming}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Upcoming</div>
                   </div>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: stats.completed > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.8px" }}>{stats.completed}</div>
+                    <div className="text-[26px] font-bold" style={{ color: stats.completed > 0 ? "#6FFFAA" : "#fff", letterSpacing: "-0.8px" }}>{stats.completed}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Completed</div>
                   </div>
                   <div className="py-4 px-5 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                    <div className="text-[26px] font-extrabold" style={{ color: stats.pendingScores > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.8px" }}>{stats.pendingScores}</div>
+                    <div className="text-[26px] font-bold" style={{ color: stats.pendingScores > 0 ? "#FFD060" : "#fff", letterSpacing: "-0.8px" }}>{stats.pendingScores}</div>
                     <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.58)", letterSpacing: "1.1px" }}>Pending</div>
                   </div>
                 </div>
@@ -857,7 +857,7 @@ export default function TestsExams() {
               className="rounded-[22px] flex flex-col items-center justify-center gap-2 p-5 hover:scale-[1.02] active:scale-[0.98] transition-transform"
               style={{
                 background: MA.P, color: "#fff",
-                fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px",
+                fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px",
                 fontFamily: MA.FONT, border: "none",
               }}>
               <div className="w-11 h-11 rounded-[12px] flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
@@ -874,7 +874,7 @@ export default function TestsExams() {
                   : <span className="font-semibold" style={{ color: MA.T3 }}>Nothing scheduled</span>,
                 onClick: () => applyFilter("Upcoming"),
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
               },
               {
                 key: "completed", label: "Completed", val: `${stats.completed}`, color: MA.VIOLET,
@@ -884,7 +884,7 @@ export default function TestsExams() {
                   : <span className="font-semibold" style={{ color: MA.T3 }}>No history yet</span>,
                 onClick: () => applyFilter("Completed"),
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
               },
               {
                 key: "pending", label: "Pending Scores", val: `${stats.pendingScores}`, color: stats.pendingScores > 0 ? MA.RED : MA.GREEN,
@@ -897,7 +897,7 @@ export default function TestsExams() {
                   : <span className="font-bold" style={{ color: MA.GREEN }}>✓ All entered</span>,
                 onClick: () => applyFilter("Pending"),
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 12h6"/><path d="M9 17h4"/></svg>,
               },
               {
                 key: "avg", label: "Class Avg", val: stats.classAvg !== null ? `${stats.classAvg.toFixed(1)}%` : "—",
@@ -919,7 +919,7 @@ export default function TestsExams() {
                       : <span className="font-bold" style={{ color: MA.RED }}>↓ Needs lift</span>,
                 onClick: () => navigate("/reports"),
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-                decor: <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+                decor: <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
               },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
@@ -935,7 +935,7 @@ export default function TestsExams() {
                 <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color: s.color, letterSpacing: "1px" }}>
                   {s.label}
                 </div>
-                <div className="text-[36px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.val}</div>
+                <div className="text-[36px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-1.6px" }}>{s.val}</div>
                 <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
                   {s.sub}
                 </div>
@@ -954,7 +954,7 @@ export default function TestsExams() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </div>
                   <div>
-                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
+                    <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>
                       {filter === "All" ? "Upcoming Tests" : `${filter} Tests`}
                     </div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
@@ -981,7 +981,7 @@ export default function TestsExams() {
                           fontFamily: MA.FONT, border: "none", cursor: "pointer",
                         }}>
                         {key}
-                        <span className="text-[10px] font-extrabold px-[7px] py-[1px] rounded-full min-w-[18px] text-center"
+                        <span className="text-[10px] font-bold px-[7px] py-[1px] rounded-full min-w-[18px] text-center"
                           style={{ background: isActive ? "rgba(255,255,255,0.22)" : "#fff", color: isActive ? "#fff" : MA.T3 }}>
                           {filterCounts[key]}
                         </span>
@@ -1016,12 +1016,12 @@ export default function TestsExams() {
                       boxShadow: "0 0 0 9px rgba(9,87,247,0.04), inset 0 1px 0 rgba(255,255,255,0.6)",
                     }}>
                     <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                    <div className="absolute -top-[5px] -right-[5px] w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[15px] font-extrabold"
+                    <div className="absolute -top-[5px] -right-[5px] w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[15px] font-bold"
                       style={{ background: MA.P, border: "3px solid #fff", boxShadow: "0 3px 8px rgba(9,87,247,0.35)" }}>
                       +
                     </div>
                   </div>
-                  <div className="text-[18px] font-extrabold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
+                  <div className="text-[18px] font-bold mb-[6px]" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>
                     {search ? "No matches" : filter !== "All" ? `No ${filter.toLowerCase()} tests` : "No tests yet"}
                   </div>
                   <div className="text-[13px] font-medium leading-[1.5] mb-[18px] max-w-[360px] mx-auto" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
@@ -1065,10 +1065,10 @@ export default function TestsExams() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-[8px]">
-                              <div className="text-[15px] font-extrabold truncate capitalize" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>
+                              <div className="text-[15px] font-bold truncate capitalize" style={{ color: MA.T1, letterSpacing: "-0.25px" }}>
                                 {test.title || test.subject || "Untitled Test"}
                               </div>
-                              <span className="px-[10px] py-[4px] rounded-full text-[10px] font-extrabold flex-shrink-0 whitespace-nowrap"
+                              <span className="px-[10px] py-[4px] rounded-full text-[10px] font-bold flex-shrink-0 whitespace-nowrap"
                                 style={{ background: statusTone.bg, color: statusTone.color, letterSpacing: "0.3px" }}>
                                 {statusTone.text}
                               </span>
@@ -1107,7 +1107,7 @@ export default function TestsExams() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                   </div>
                   <div>
-                    <div className="text-[16px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Performance Overview</div>
+                    <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Performance Overview</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
                       {scores.length > 0 ? `Based on ${scores.length} score${scores.length === 1 ? "" : "s"}` : "No scores recorded yet"}
                     </div>
@@ -1142,15 +1142,15 @@ export default function TestsExams() {
                               style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                           </svg>
                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="text-[26px] font-extrabold leading-none" style={{ color: MA.T1, letterSpacing: "-0.9px" }}>{pct.toFixed(1)}%</div>
-                            <div className="text-[9px] font-extrabold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Avg</div>
+                            <div className="text-[26px] font-bold leading-none" style={{ color: MA.T1, letterSpacing: "-0.9px" }}>{pct.toFixed(1)}%</div>
+                            <div className="text-[9px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Avg</div>
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-extrabold uppercase mb-2" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Class Average</div>
-                          <div className="text-[18px] font-extrabold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>{band.label}</div>
+                          <div className="text-[11px] font-bold uppercase mb-2" style={{ color: MA.T3, letterSpacing: "1.3px" }}>Class Average</div>
+                          <div className="text-[18px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.4px" }}>{band.label}</div>
                           <div className="mt-2">
-                            <span className="inline-flex items-center gap-[5px] px-[11px] py-[5px] rounded-full text-[11px] font-extrabold"
+                            <span className="inline-flex items-center gap-[5px] px-[11px] py-[5px] rounded-full text-[11px] font-bold"
                               style={{ background: `${band.tone}1a`, color: band.tone, letterSpacing: "0.3px" }}>
                               <span className="w-[6px] h-[6px] rounded-full" style={{ background: band.tone }} />
                               {pct >= 75 ? "On track" : pct >= 60 ? "Monitor" : "At risk"}
@@ -1164,7 +1164,7 @@ export default function TestsExams() {
                   {/* Topic/Class performance list */}
                   {(classPerf.length > 0 || topicPerf.length > 0) && (
                     <>
-                      <div className="text-[13px] font-extrabold pt-[14px] pb-[12px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
+                      <div className="text-[13px] font-bold pt-[14px] pb-[12px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
                         {classPerf.length > 0 ? "Class Performance" : "Topic Performance"}
                       </div>
                       {classPerf.map((c, i) => {
@@ -1176,7 +1176,7 @@ export default function TestsExams() {
                             <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
                               <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                             </div>
-                            <div className="text-[14px] font-extrabold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
+                            <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
                           </div>
                         );
                       })}
@@ -1189,7 +1189,7 @@ export default function TestsExams() {
                             <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
                               <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
                             </div>
-                            <div className="text-[14px] font-extrabold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
+                            <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
                           </div>
                         );
                       })}
@@ -1218,10 +1218,10 @@ export default function TestsExams() {
                     border: "0.5px solid rgba(255,255,255,0.22)",
                     color: "#FFDD55",
                   }}>⚡</div>
-                <div className="text-[11px] font-black uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
+                <div className="text-[11px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "1.9px" }}>
                   AI Tests Intelligence
                 </div>
-                <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-extrabold"
+                <div className="ml-auto px-[11px] py-[5px] rounded-full text-[10px] font-bold"
                   style={{ background: "rgba(123,63,244,0.3)", border: "0.5px solid rgba(155,95,255,0.5)", color: "#DCC8FF", letterSpacing: "0.5px" }}>
                   Tip
                 </div>
@@ -1248,16 +1248,16 @@ export default function TestsExams() {
                     </div>
                     <div className="grid grid-cols-3 gap-[1px] rounded-[14px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
                       <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                        <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{avgLabel}</div>
-                        <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Class Avg</div>
+                        <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{avgLabel}</div>
+                        <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Class Avg</div>
                       </div>
                       <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                        <div className="text-[22px] font-extrabold" style={{ color: "#FFD060", letterSpacing: "-0.6px" }}>{topTopicVal}</div>
-                        <div className="text-[10px] font-extrabold uppercase mt-[4px] truncate" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>{topTopicLabel}</div>
+                        <div className="text-[22px] font-bold" style={{ color: "#FFD060", letterSpacing: "-0.6px" }}>{topTopicVal}</div>
+                        <div className="text-[10px] font-bold uppercase mt-[4px] truncate" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>{topTopicLabel}</div>
                       </div>
                       <div className="py-4 px-3 text-center" style={{ background: "rgba(0,20,80,0.55)" }}>
-                        <div className="text-[22px] font-extrabold text-white" style={{ letterSpacing: "-0.6px" }}>{stats.upcoming}</div>
-                        <div className="text-[10px] font-extrabold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Scheduled</div>
+                        <div className="text-[22px] font-bold text-white" style={{ letterSpacing: "-0.6px" }}>{stats.upcoming}</div>
+                        <div className="text-[10px] font-bold uppercase mt-[4px]" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "1.1px" }}>Scheduled</div>
                       </div>
                     </div>
                   </>

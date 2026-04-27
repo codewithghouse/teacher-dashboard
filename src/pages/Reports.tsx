@@ -375,18 +375,18 @@ const MobileReports = ({
 
         {/* Page header */}
         <div style={{ padding: "8px 2px 14px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 5, height: 5, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
             Academic Documents
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Reports</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>Reports</h1>
           <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
             Generate and download academic reports.
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
             <div style={{
               padding: "5px 11px", background: "rgba(0,85,255,.08)", color: "#0055FF",
-              fontSize: 10, fontWeight: 800, borderRadius: 100, letterSpacing: "0.2px",
+              fontSize: 10, fontWeight: 700, borderRadius: 100, letterSpacing: "0.2px",
               display: "flex", alignItems: "center", gap: 5,
               border: "0.5px solid rgba(0,85,255,.15)",
             }}>
@@ -397,7 +397,7 @@ const MobileReports = ({
             </div>
             <div style={{
               padding: "5px 11px", background: "rgba(0,85,255,.08)", color: "#0055FF",
-              fontSize: 10, fontWeight: 800, borderRadius: 100, letterSpacing: "0.2px",
+              fontSize: 10, fontWeight: 700, borderRadius: 100, letterSpacing: "0.2px",
               display: "flex", alignItems: "center", gap: 5,
               border: "0.5px solid rgba(0,85,255,.15)",
             }}>
@@ -428,7 +428,7 @@ const MobileReports = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Report Center</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Report Center</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Academic year {new Date().getFullYear()}-{String((new Date().getFullYear() + 1) % 100).padStart(2, "0")}</div>
               </div>
               <div style={{
@@ -437,14 +437,14 @@ const MobileReports = ({
                 border: "0.5px solid rgba(255,255,255,.3)",
                 color: "#fff",
                 padding: "5px 12px", borderRadius: 100,
-                fontSize: 10, fontWeight: 800,
+                fontSize: 10, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
               }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 8px #00E866" }} />
                 Ready
               </div>
             </div>
-            <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <div style={{ fontSize: 56, fontWeight: 700, color: "#fff", letterSpacing: "-2.6px", lineHeight: 1, marginBottom: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
               {reports.length}
               <span style={{ fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.7)", letterSpacing: "-0.4px" }}>types</span>
             </div>
@@ -453,15 +453,15 @@ const MobileReports = ({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>{reports.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{reports.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Types</div>
               </div>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{history.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{history.length}</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Generated</div>
               </div>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.5px" }}>~6s</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>~6s</div>
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Avg Time</div>
               </div>
             </div>
@@ -504,7 +504,7 @@ const MobileReports = ({
                 <span style={{
                   background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                   color: active ? "#fff" : "#5070B0",
-                  fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                 }}>{f.count}</span>
               </button>
             );
@@ -514,7 +514,7 @@ const MobileReports = ({
         {/* Section head */}
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>Available Reports</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Available Reports</span>
             <span style={{ fontSize: 11, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>Tap to generate</span>
           </div>
         </div>
@@ -526,7 +526,7 @@ const MobileReports = ({
             boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)", marginBottom: 14,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No reports match this filter</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No reports match this filter</div>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px" }}>
               Try switching to <b style={{ color: "#0055FF", fontWeight: 700 }}>All</b> to see every report type.
             </div>
@@ -561,10 +561,10 @@ const MobileReports = ({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.2 }}>{r.title}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px", lineHeight: 1.2 }}>{r.title}</div>
                       <div style={{
                         flexShrink: 0, padding: "3px 9px", borderRadius: 100,
-                        fontSize: 9, fontWeight: 900, letterSpacing: "0.5px", textTransform: "uppercase",
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase",
                         display: "flex", alignItems: "center", gap: 4,
                         background: tone.tagBg, color: tone.tagColor,
                         border: `0.5px solid ${tone.tagBorder}`,
@@ -580,7 +580,7 @@ const MobileReports = ({
                         <span key={fmt} style={{
                           display: "inline-flex", alignItems: "center", gap: 5,
                           padding: "4px 9px", background: "#F4F7FE", color: "#002080",
-                          fontSize: 10, fontWeight: 800, borderRadius: 6,
+                          fontSize: 10, fontWeight: 700, borderRadius: 6,
                           letterSpacing: "0.2px",
                           border: "0.5px solid rgba(0,85,255,.07)",
                         }}>
@@ -601,7 +601,7 @@ const MobileReports = ({
                 className="rp-press"
                 style={{
                   width: "100%", height: 44, borderRadius: 0, border: "none",
-                  cursor: "pointer", fontSize: 13, fontWeight: 800,
+                  cursor: "pointer", fontSize: 13, fontWeight: 700,
                   letterSpacing: "-0.2px", color: "#fff",
                   background: tone.btnGrad,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
@@ -621,8 +621,8 @@ const MobileReports = ({
         <div style={{ padding: "12px 4px 10px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#001040", letterSpacing: "-0.35px" }}>Intelligence output history</div>
-              <div style={{ fontSize: 9, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Intelligence output history</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 4 }}>
                 {history.length === 0 ? "Audit trail" : `${history.length} report${history.length === 1 ? "" : "s"} on record`}
               </div>
             </div>
@@ -661,7 +661,7 @@ const MobileReports = ({
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No reports generated yet</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", marginBottom: 5, letterSpacing: "-0.3px" }}>No reports generated yet</div>
             <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px" }}>
               Tap any report above to generate your first one.
             </div>
@@ -720,14 +720,14 @@ const MobileReports = ({
                     <span style={{
                       position: "absolute", bottom: -3, right: -3,
                       background: fmt === "PDF" ? "#FF3355" : "#00C853",
-                      color: "#fff", fontSize: 7, fontWeight: 900,
+                      color: "#fff", fontSize: 7, fontWeight: 700,
                       padding: "2px 4px", borderRadius: 4,
                       letterSpacing: "0.2px",
                       border: "2px solid #fff", lineHeight: 1,
                     }}>{fmt}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {(h.title as string) || "Report"}
                       {(h.grade || h.className) ? ` — ${h.grade || h.className}` : ""}
                     </div>
@@ -820,11 +820,11 @@ const DesktopReports = ({
         {/* Page header row */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 24, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 6, height: 6, borderRadius: 2, background: "#0055FF", display: "inline-block" }} />
               Academic Documents
             </div>
-            <h1 style={{ fontSize: 40, fontWeight: 800, color: "#001040", letterSpacing: "-1.4px", lineHeight: 1.05, margin: 0 }}>Reports</h1>
+            <h1 style={{ fontSize: 40, fontWeight: 700, color: "#001040", letterSpacing: "-1.4px", lineHeight: 1.05, margin: 0 }}>Reports</h1>
             <div style={{ fontSize: 14, color: "#5070B0", fontWeight: 500, marginTop: 8, letterSpacing: "-0.15px" }}>
               Generate and download academic reports.
             </div>
@@ -832,7 +832,7 @@ const DesktopReports = ({
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{
               padding: "7px 14px", background: "rgba(0,85,255,.08)", color: "#0055FF",
-              fontSize: 11, fontWeight: 800, borderRadius: 100, letterSpacing: "0.2px",
+              fontSize: 11, fontWeight: 700, borderRadius: 100, letterSpacing: "0.2px",
               display: "flex", alignItems: "center", gap: 6,
               border: "0.5px solid rgba(0,85,255,.15)",
             }}>
@@ -843,7 +843,7 @@ const DesktopReports = ({
             </div>
             <div style={{
               padding: "7px 14px", background: "rgba(0,85,255,.08)", color: "#0055FF",
-              fontSize: 11, fontWeight: 800, borderRadius: 100, letterSpacing: "0.2px",
+              fontSize: 11, fontWeight: 700, borderRadius: 100, letterSpacing: "0.2px",
               display: "flex", alignItems: "center", gap: 6,
               border: "0.5px solid rgba(0,85,255,.15)",
             }}>
@@ -874,7 +874,7 @@ const DesktopReports = ({
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Report Center</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.8)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Report Center</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 3, fontWeight: 500, letterSpacing: "-0.1px" }}>Academic year {new Date().getFullYear()}-{String((new Date().getFullYear() + 1) % 100).padStart(2, "0")}</div>
               </div>
               <div style={{
@@ -883,7 +883,7 @@ const DesktopReports = ({
                 border: "0.5px solid rgba(255,255,255,.3)",
                 color: "#fff",
                 padding: "7px 14px", borderRadius: 100,
-                fontSize: 11, fontWeight: 800,
+                fontSize: 11, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 7, letterSpacing: "0.3px",
               }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 8px #00E866" }} />
@@ -892,7 +892,7 @@ const DesktopReports = ({
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 32, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 84, fontWeight: 800, color: "#fff", letterSpacing: "-3.8px", lineHeight: 1, marginBottom: 10, display: "flex", alignItems: "baseline", gap: 10 }}>
+                <div style={{ fontSize: 84, fontWeight: 700, color: "#fff", letterSpacing: "-3.8px", lineHeight: 1, marginBottom: 10, display: "flex", alignItems: "baseline", gap: 10 }}>
                   {reports.length}
                   <span style={{ fontSize: 32, fontWeight: 700, color: "rgba(255,255,255,.7)", letterSpacing: "-0.6px" }}>types</span>
                 </div>
@@ -902,15 +902,15 @@ const DesktopReports = ({
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden", minWidth: 380 }}>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.7px" }}>{reports.length}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#fff", letterSpacing: "-0.7px" }}>{reports.length}</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Types</div>
                 </div>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#6FFFAA", letterSpacing: "-0.7px" }}>{history.length}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.7px" }}>{history.length}</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Generated</div>
                 </div>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#FFDD55", letterSpacing: "-0.7px" }}>~6s</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.7px" }}>~6s</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Avg Time</div>
                 </div>
               </div>
@@ -921,7 +921,7 @@ const DesktopReports = ({
         {/* Filter tabs + section head row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>Available Reports</span>
+            <span style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Available Reports</span>
             <span style={{ fontSize: 12, color: "#5070B0", fontWeight: 600, letterSpacing: "-0.1px" }}>Click to generate</span>
           </div>
           <div
@@ -959,7 +959,7 @@ const DesktopReports = ({
                   <span style={{
                     background: active ? "rgba(255,255,255,.22)" : "#F4F7FE",
                     color: active ? "#fff" : "#5070B0",
-                    fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                   }}>{f.count}</span>
                 </button>
               );
@@ -974,7 +974,7 @@ const DesktopReports = ({
             boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
             border: "0.5px solid rgba(0,85,255,.07)", marginBottom: 18,
           }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No reports match this filter</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No reports match this filter</div>
             <div style={{ fontSize: 13, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px" }}>
               Try switching to <b style={{ color: "#0055FF", fontWeight: 700 }}>All</b> to see every report type.
             </div>
@@ -1011,10 +1011,10 @@ const DesktopReports = ({
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 7 }}>
-                          <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px", lineHeight: 1.2 }}>{r.title}</div>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px", lineHeight: 1.2 }}>{r.title}</div>
                           <div style={{
                             flexShrink: 0, padding: "4px 11px", borderRadius: 100,
-                            fontSize: 10, fontWeight: 900, letterSpacing: "0.5px", textTransform: "uppercase",
+                            fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase",
                             display: "flex", alignItems: "center", gap: 5,
                             background: tone.tagBg, color: tone.tagColor,
                             border: `0.5px solid ${tone.tagBorder}`,
@@ -1030,7 +1030,7 @@ const DesktopReports = ({
                             <span key={fmt} style={{
                               display: "inline-flex", alignItems: "center", gap: 6,
                               padding: "5px 11px", background: "#F4F7FE", color: "#002080",
-                              fontSize: 11, fontWeight: 800, borderRadius: 7,
+                              fontSize: 11, fontWeight: 700, borderRadius: 7,
                               letterSpacing: "0.2px",
                               border: "0.5px solid rgba(0,85,255,.07)",
                             }}>
@@ -1051,7 +1051,7 @@ const DesktopReports = ({
                     className="rpd-press"
                     style={{
                       width: "100%", height: 50, borderRadius: 0, border: "none",
-                      cursor: "pointer", fontSize: 14, fontWeight: 800,
+                      cursor: "pointer", fontSize: 14, fontWeight: 700,
                       letterSpacing: "-0.2px", color: "#fff",
                       background: tone.btnGrad,
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1072,8 +1072,8 @@ const DesktopReports = ({
         {/* History section header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "8px 4px 12px" }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "#001040", letterSpacing: "-0.4px" }}>Intelligence output history</div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 5 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Intelligence output history</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 5 }}>
               {history.length === 0 ? "Audit trail" : `${history.length} report${history.length === 1 ? "" : "s"} on record`}
             </div>
           </div>
@@ -1111,7 +1111,7 @@ const DesktopReports = ({
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No reports generated yet</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#001040", marginBottom: 6, letterSpacing: "-0.3px" }}>No reports generated yet</div>
             <div style={{ fontSize: 13, color: "#5070B0", fontWeight: 500, letterSpacing: "-0.1px" }}>
               Click any report above to generate your first one.
             </div>
@@ -1175,14 +1175,14 @@ const DesktopReports = ({
                       <span style={{
                         position: "absolute", bottom: -3, right: -3,
                         background: fmt === "PDF" ? "#FF3355" : "#00C853",
-                        color: "#fff", fontSize: 8, fontWeight: 900,
+                        color: "#fff", fontSize: 8, fontWeight: 700,
                         padding: "2px 5px", borderRadius: 4,
                         letterSpacing: "0.2px",
                         border: "2px solid #fff", lineHeight: 1,
                       }}>{fmt}</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2, marginBottom: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#001040", letterSpacing: "-0.25px", lineHeight: 1.2, marginBottom: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {(h.title as string) || "Report"}
                         {(h.grade || h.className) ? ` — ${h.grade || h.className}` : ""}
                       </div>
