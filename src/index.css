@@ -27,58 +27,63 @@ button, a, [role="button"] {
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* ── Apple-style premium palette ─────────────────
+       Neutral base · single navy accent · desaturated status
+       (saturation reduced ~15–25% from prior values to feel calm) */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --background: 220 20% 98.5%;        /* off-white, faintly cool */
+    --foreground: 222 30% 12%;          /* near-black slate */
+
+    --card: 0 0% 100%;                  /* pure white surfaces */
+    --card-foreground: 222 30% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 30% 12%;
 
-    --primary: 224 58% 25%;
+    --primary: 224 58% 25%;             /* brand navy — single accent */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 220 18% 96%;           /* quiet panel */
+    --secondary-foreground: 222 30% 18%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 16% 95.5%;
+    --muted-foreground: 220 10% 46%;    /* softer secondary text */
 
     --accent: 224 58% 25%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 4 70% 54%;           /* desaturated red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 224 58% 25%;
+    --border: 220 16% 92%;              /* lighter, less cool */
+    --input:  220 16% 92%;
+    --ring:   224 58% 25%;
 
     --radius: 0.75rem;
 
-    /* Edullent specific tokens */
-    --edu-navy: 224 58% 25%;
-    --edu-navy-light: 224 40% 40%;
-    --edu-blue: 217 91% 60%;
-    --edu-green: 142 71% 45%;
-    --edu-yellow: 45 93% 58%;
-    --edu-red: 0 84% 60%;
-    --edu-orange: 25 95% 53%;
-    --edu-pink: 350 80% 90%;
-    --edu-light-blue: 210 100% 95%;
-    --edu-light-green: 142 76% 94%;
-    --edu-light-yellow: 45 100% 94%;
-    --edu-light-red: 0 100% 95%;
-    --edu-light-orange: 25 100% 94%;
+    /* Edullent semantic tokens — desaturated for premium calm */
+    --edu-navy:        224 58% 25%;     /* unchanged — brand */
+    --edu-navy-light:  224 30% 45%;     /* less saturated */
+    --edu-blue:        214 70% 52%;     /* calmer than 217 91% 60% */
+    --edu-green:       150 45% 42%;     /* muted forest, not neon */
+    --edu-yellow:      42 78% 52%;      /* warm honey, not flag */
+    --edu-red:         4 70% 54%;       /* coral red, less alarm */
+    --edu-orange:      22 78% 52%;      /* burnt orange, calmer */
+    --edu-pink:        350 40% 92%;
+    --edu-light-blue:   214 60% 96%;
+    --edu-light-green:  150 40% 95%;
+    --edu-light-yellow: 42 80% 95%;
+    --edu-light-red:    4 70% 96%;
+    --edu-light-orange: 22 80% 95%;
 
+    /* Sidebar — light minimal Apple style */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 16% 47%;
+    --sidebar-foreground: 220 12% 38%;
     --sidebar-primary: 224 58% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 58% 25%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 214 32% 91%;
+    --sidebar-accent: 220 18% 96%;            /* quiet hover, not navy */
+    --sidebar-accent-foreground: 224 58% 25%;
+    --sidebar-border: 220 16% 92%;
     --sidebar-ring: 224 58% 25%;
   }
 }
@@ -332,7 +337,7 @@ button[class*="bg-[#1e3272]"]:hover,
 button[class*="bg-[#1e3a8a]"]:hover,
 a[class*="bg-primary"]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(30, 50, 114, 0.25);
+  box-shadow: 0 6px 16px rgba(30, 50, 114, 0.18);
 }
 button:active, a:active { transform: scale(0.97); }
 
@@ -381,9 +386,9 @@ a[class*="rounded-3xl"],
 a[class*="rounded-xl"][class*="border"] {
   /* BLUE_SHADOW_LG — identical to principal dashboard's signature */
   box-shadow:
-    0 0 0 0.5px rgba(0, 85, 255, 0.10),
-    0 4px 16px rgba(0, 85, 255, 0.12),
-    0 18px 44px rgba(0, 85, 255, 0.15);
+    0 0 0 0.5px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.05),
+    0 18px 44px rgba(15, 23, 42, 0.06);
   /* Ease-out-expo for transform — scale settles smoothly without
      perceptible mid-animation stutter. Box-shadow uses a slightly
      shorter, simpler ease so the shadow doesn't lag the lift. */
@@ -419,9 +424,9 @@ a[class*="rounded-xl"][class*="border"] {
   a[class*="rounded-xl"][class*="border"]:hover {
     transform: translate3d(0, -5px, 0) !important;
     box-shadow:
-      0 0 0 0.5px rgba(0, 85, 255, 0.14),
-      0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18) !important;
+      0 0 0 0.5px rgba(30, 50, 114, 0.08),
+      0 8px 24px rgba(15, 23, 42, 0.06),
+      0 20px 46px rgba(15, 23, 42, 0.08) !important;
     z-index: 2;
   }
 }
@@ -439,8 +444,8 @@ a[class*="rounded-2xl"]:active,
 a[class*="rounded-3xl"]:active {
   transform: translateY(-1px) scale(0.985);
   box-shadow:
-    0 1px 2px rgba(0, 85, 255, 0.1),
-    0 6px 16px rgba(0, 85, 255, 0.14);
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 6px 16px rgba(30, 50, 114, 0.08);
   transition:
     transform 0.1s ease,
     box-shadow 0.1s ease;
@@ -458,8 +463,8 @@ a[class*="rounded-3xl"]:active {
   div[style*="linear-gradient(135deg, #FF3355"]:hover {
     transform: translate3d(0, -5px, 0) !important;
     box-shadow:
-      0 22px 52px rgba(255, 51, 85, 0.5),
-      0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+      0 22px 52px rgba(220, 60, 80, 0.30),
+      0 0 0 0.5px rgba(255, 255, 255, 0.18) !important;
   }
 
   /* Dark blue / navy gradient hero (e.g. Concept Mastery Summary) — navy halo */
@@ -469,8 +474,8 @@ a[class*="rounded-3xl"]:active {
   [class*="-card3d"][style*="linear-gradient(135deg, #000"]:hover {
     transform: translate3d(0, -5px, 0) !important;
     box-shadow:
-      0 22px 52px rgba(0, 8, 60, 0.48),
-      0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+      0 22px 52px rgba(15, 23, 42, 0.28),
+      0 0 0 0.5px rgba(255, 255, 255, 0.16) !important;
   }
 
   /* Legacy wrappers using rounded-2xl/3xl with gradients (principal dashboard pattern) */
@@ -482,9 +487,9 @@ a[class*="rounded-3xl"]:active {
   div[style*="linear-gradient(140deg, #1A"]:hover {
     transform: translate3d(0, -5px, 0);
     box-shadow:
-      0 2px 4px rgba(0, 8, 60, 0.22),
-      0 26px 52px rgba(0, 8, 60, 0.34),
-      0 10px 22px rgba(0, 8, 60, 0.22);
+      0 2px 4px rgba(15, 23, 42, 0.10),
+      0 26px 52px rgba(15, 23, 42, 0.18),
+      0 10px 22px rgba(15, 23, 42, 0.10);
   }
 }
 
@@ -503,16 +508,16 @@ a[class*="rounded-3xl"]:active {
   [class*="bg-teal-50"][class*="rounded-"]:hover {
     transform: translate3d(0, -5px, 0) !important;
     box-shadow:
-      0 0 0 0.5px rgba(0, 85, 255, 0.14),
-      0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18) !important;
+      0 0 0 0.5px rgba(30, 50, 114, 0.08),
+      0 8px 24px rgba(15, 23, 42, 0.06),
+      0 20px 46px rgba(15, 23, 42, 0.08) !important;
     z-index: 2;
   }
 }
 
 /* Table rows — subtle hover on desktop tables */
 tbody tr:hover {
-  box-shadow: inset 3px 0 0 rgba(0, 85, 255, 0.3);
+  box-shadow: inset 3px 0 0 rgba(30, 50, 114, 0.25);
 }
 
 /* Button cards / action tiles — lift on hover */
@@ -529,9 +534,9 @@ button[class*="rounded-xl"][class*="border"] {
   button[class*="rounded-xl"][class*="border"]:not([disabled]):hover {
     transform: translate3d(0, -4px, 0) !important;
     box-shadow:
-      0 0 0 0.5px rgba(0, 85, 255, 0.14),
-      0 8px 24px rgba(0, 85, 255, 0.16),
-      0 20px 46px rgba(0, 85, 255, 0.18) !important;
+      0 0 0 0.5px rgba(30, 50, 114, 0.08),
+      0 8px 24px rgba(15, 23, 42, 0.06),
+      0 20px 46px rgba(15, 23, 42, 0.08) !important;
   }
 }
 
