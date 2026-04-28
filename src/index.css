@@ -90,15 +90,40 @@ button, a, [role="button"] {
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 300;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Form elements default to system font in every browser — force inherit
-     so the global Montserrat applies edge-to-edge. */
-  button, input, textarea, select, optgroup {
+  /* Force every element to inherit the SF Pro stack — no stray system fonts. */
+  button, input, textarea, select, optgroup,
+  h1, h2, h3, h4, h5, h6, p, span, div, a, li {
     font-family: inherit;
   }
+
+  /* ── Apple-style typography scale ──────────────────────────────
+     1. Page Titles      — 28px / 600
+     2. Section Titles   — 18–20px / 500
+     3. KPI Numbers      — 22–24px / 600
+     4. Card Labels      — 13–14px / 500
+     5. Body Text        — 14–15px / 400
+     6. Sidebar Items    — 14–15px / 500
+     7. Sidebar Section  — 11–12px / 500 / uppercase / 0.08em
+     8. Secondary Text   — 12–13px / 400
+  ────────────────────────────────────────────────────────────── */
+  h1 { font-size: 28px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em; }
+  h2 { font-size: 20px; font-weight: 500; line-height: 1.3;  letter-spacing: -0.015em; }
+  h3 { font-size: 18px; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; }
+  h4 { font-size: 15px; font-weight: 500; line-height: 1.4;  letter-spacing: -0.005em; }
+  h5 { font-size: 14px; font-weight: 500; line-height: 1.4; }
+  h6 { font-size: 13px; font-weight: 500; line-height: 1.4; }
+  p, li, span, div, td, th { letter-spacing: -0.005em; }
+  small { font-size: 12px; font-weight: 400; }
 }
 
 @layer components {
@@ -113,11 +138,19 @@ button, a, [role="button"] {
     @apply bg-white border border-slate-100 rounded-2xl shadow-sm;
   }
 
-  /* ── Typography ────────────────────────────────── */
-  .ds-page-title    { @apply text-2xl font-bold text-slate-800 leading-tight; }
-  .ds-page-subtitle { @apply text-sm text-slate-500 mt-1; }
-  .ds-section-title { @apply text-sm font-semibold text-slate-700; }
-  .ds-caption       { @apply text-xs text-slate-400; }
+  /* ── Typography (Apple-style scale) ───────────────
+     Page titles, section titles, KPI numbers, card labels,
+     body, sidebar, and secondary text — single source of truth. */
+  .ds-page-title    { font-size: 28px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em;  @apply text-slate-800; }
+  .ds-page-subtitle { font-size: 14px; font-weight: 400; line-height: 1.45; letter-spacing: -0.005em; @apply text-slate-500 mt-1; }
+  .ds-section-title { font-size: 18px; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em;  @apply text-slate-700; }
+  .ds-kpi-number    { font-size: 24px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em;  @apply text-slate-900; }
+  .ds-card-label    { font-size: 13px; font-weight: 500; line-height: 1.4;                            @apply text-slate-600; }
+  .ds-body          { font-size: 14px; font-weight: 400; line-height: 1.5;  letter-spacing: -0.005em; @apply text-slate-700; }
+  .ds-sidebar-item  { font-size: 14px; font-weight: 500; line-height: 1.4;  letter-spacing: -0.005em; }
+  .ds-sidebar-label { font-size: 11px; font-weight: 500; line-height: 1.4;  letter-spacing: 0.08em;   text-transform: uppercase; @apply text-slate-400; }
+  .ds-secondary     { font-size: 12px; font-weight: 400; line-height: 1.4;                            @apply text-slate-500; }
+  .ds-caption       { font-size: 12px; font-weight: 400; line-height: 1.4;                            @apply text-slate-400; }
 
   /* ── Buttons ───────────────────────────────────── */
   /* Primary — filled, main CTA */
