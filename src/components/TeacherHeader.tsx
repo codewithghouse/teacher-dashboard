@@ -1,4 +1,4 @@
-import { Bell, BookOpen, LogOut, Menu } from "lucide-react";
+import { Bell, LogOut, Menu } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { getInitials } from "../lib/initials";
 
@@ -23,9 +23,12 @@ const TeacherHeader = ({ onMenuClick }: HeaderProps) => {
           <Menu className="w-5 h-5 text-slate-500" />
         </button>
 
-        <div className="w-9 h-9 rounded-lg bg-[#1e3272] flex items-center justify-center shrink-0">
-          <BookOpen className="w-5 h-5 text-white" />
-        </div>
+        <img
+          src="/edullent-icon.png"
+          alt="Edullent"
+          className="w-9 h-9 rounded-lg object-contain shrink-0"
+          draggable={false}
+        />
         <div className="flex flex-col min-w-0">
           <span className="text-sm font-bold text-[#1e3272] uppercase leading-tight truncate max-w-[120px] sm:max-w-none">
             {teacherData?.schoolName || "EDULLENT"}
