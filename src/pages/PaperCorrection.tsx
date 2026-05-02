@@ -16,6 +16,12 @@ import {
   BookOpen,
   Lightbulb,
   Heart,
+  PenLine,
+  Eye,
+  Users,
+  Brain,
+  MessageCircle,
+  Mail,
 } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 // Bundle the PDF.js worker via Vite so it loads from same-origin (CSP-safe).
@@ -27,15 +33,28 @@ import { AIController } from "../ai/controller/ai-controller";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 // ── Types — must match the JSON shape returned by paper_correction handler ──
+type MistakeType =
+  | "none" | "conceptual" | "calculation" | "missing_step"
+  | "silly_mistake" | "incomplete" | "wrong_method"
+  | "presentation" | "no_attempt" | "unreadable";
+
 interface QuestionResult {
   number: string;
   question_text: string;
   max_marks: number;
   marks_awarded: number;
   verdict: "correct" | "partial" | "wrong" | "blank" | "unreadable";
+  mistake_type?: MistakeType;
   student_answer_summary: string;
   correct_answer: string;
   comment: string;
+  step_marks_breakdown?: string | null;
+}
+
+interface ConceptUnderstanding {
+  concept: string;
+  level: "strong" | "developing" | "weak";
+  evidence: string;
 }
 
 interface ImprovementItem {
@@ -52,11 +71,17 @@ interface CorrectionResult {
   percentage: number;
   grade_band: "A+" | "A" | "B" | "C" | "D" | "E" | "F";
   overall_summary: string;
+  handwriting_note?: string;
+  presentation_note?: string;
+  effort_note?: string;
   questions: QuestionResult[];
+  concept_understanding?: ConceptUnderstanding[];
   strengths: string[];
   weaknesses: string[];
   improvement_plan: ImprovementItem[];
   encouragement: string;
+  parent_note?: string;
+  student_letter?: string;
 }
 
 const MAX_PAGES = 8;
@@ -86,6 +111,38 @@ const PRIORITY_STYLES: Record<ImprovementItem["priority"], string> = {
   high:   "bg-rose-50 text-rose-700 ring-rose-200",
   medium: "bg-amber-50 text-amber-700 ring-amber-200",
   low:    "bg-emerald-50 text-emerald-700 ring-emerald-200",
+};
+
+// Short, classroom-style labels for the mistake taxonomy returned by the AI.
+const MISTAKE_LABELS: Record<MistakeType, string> = {
+  none:           "—",
+  conceptual:     "Concept gap",
+  calculation:    "Calculation slip",
+  missing_step:   "Missing step",
+  silly_mistake:  "Silly mistake",
+  incomplete:     "Incomplete",
+  wrong_method:   "Wrong method",
+  presentation:   "Presentation",
+  no_attempt:     "Not attempted",
+  unreadable:     "Unreadable",
+};
+const MISTAKE_TONE: Record<MistakeType, string> = {
+  none:           "bg-slate-50 text-slate-500 ring-slate-200",
+  conceptual:     "bg-rose-50 text-rose-700 ring-rose-200",
+  calculation:    "bg-amber-50 text-amber-800 ring-amber-200",
+  missing_step:   "bg-amber-50 text-amber-800 ring-amber-200",
+  silly_mistake:  "bg-yellow-50 text-yellow-800 ring-yellow-200",
+  incomplete:     "bg-orange-50 text-orange-700 ring-orange-200",
+  wrong_method:   "bg-rose-50 text-rose-700 ring-rose-200",
+  presentation:   "bg-blue-50 text-blue-700 ring-blue-200",
+  no_attempt:     "bg-slate-100 text-slate-600 ring-slate-200",
+  unreadable:     "bg-violet-50 text-violet-700 ring-violet-200",
+};
+
+const CONCEPT_LEVEL_STYLES: Record<ConceptUnderstanding["level"], { dot: string; text: string; label: string }> = {
+  strong:     { dot: "bg-emerald-500", text: "text-emerald-700", label: "Strong" },
+  developing: { dot: "bg-amber-500",   text: "text-amber-700",   label: "Developing" },
+  weak:       { dot: "bg-rose-500",    text: "text-rose-700",    label: "Weak" },
 };
 
 const GRADE_BAND_STYLES: Record<CorrectionResult["grade_band"], { bg: string; text: string; ring: string }> = {
@@ -423,7 +480,21 @@ const PaperCorrection = () => {
           <div id="correction-results" className="mt-10 space-y-6">
             <ResultsHeader result={result} studentName={studentName} onReset={reset} />
             <OverallSummary result={result} />
+
+            {/* Teacher's quick observations — handwriting / presentation / effort */}
+            {(result.handwriting_note || result.presentation_note || result.effort_note) && (
+              <ObservationsCard
+                handwriting={result.handwriting_note}
+                presentation={result.presentation_note}
+                effort={result.effort_note}
+              />
+            )}
+
             <QuestionBreakdown questions={result.questions} />
+
+            {result.concept_understanding && result.concept_understanding.length > 0 && (
+              <ConceptUnderstandingCard items={result.concept_understanding} />
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <StrengthsCard items={result.strengths} />
@@ -431,7 +502,18 @@ const PaperCorrection = () => {
             </div>
 
             <ImprovementPlan items={result.improvement_plan} />
+
+            {/* Personal letter from teacher to student */}
+            {result.student_letter && (
+              <StudentLetterCard text={result.student_letter} studentName={studentName} />
+            )}
+
             <Encouragement text={result.encouragement} />
+
+            {/* Parent-facing note */}
+            {result.parent_note && (
+              <ParentNoteCard text={result.parent_note} studentName={studentName} />
+            )}
           </div>
         )}
       </div>
@@ -574,13 +656,20 @@ const QuestionBreakdown = ({ questions }: { questions: QuestionResult[] }) => (
     <div className="space-y-3">
       {questions.map((q, i) => {
         const v = VERDICT_STYLES[q.verdict] ?? VERDICT_STYLES.partial;
+        const mistakeKey: MistakeType = q.mistake_type ?? "none";
+        const showMistake = mistakeKey !== "none" && mistakeKey !== "no_attempt" && mistakeKey !== "unreadable";
         return (
           <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
-            <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
               <div className="text-[13px] font-medium text-slate-900 shrink-0">Q{q.number}</div>
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ring-inset ${v.bg} ${v.ring} ${v.text}`}>
                 {v.icon} {v.label}
               </span>
+              {showMistake && (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ring-inset ${MISTAKE_TONE[mistakeKey]}`}>
+                  {MISTAKE_LABELS[mistakeKey]}
+                </span>
+              )}
               <div className="ml-auto text-[13px] font-medium text-slate-900 shrink-0">
                 {q.marks_awarded} / {q.max_marks}
                 <span className="text-[11px] text-slate-500 ml-1">marks</span>
@@ -598,6 +687,12 @@ const QuestionBreakdown = ({ questions }: { questions: QuestionResult[] }) => (
                   <div className="text-[12.5px] text-slate-700 bg-emerald-50 rounded-lg px-3 py-2 leading-[1.5]">{q.correct_answer}</div>
                 </div>
               </div>
+              {q.step_marks_breakdown && (
+                <div className="text-[11.5px] text-slate-600 bg-slate-50 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5">
+                  <span className="font-medium uppercase tracking-wider text-[10px] text-slate-400">Step marks:</span>
+                  <span>{q.step_marks_breakdown}</span>
+                </div>
+              )}
               <div className="flex items-start gap-2 bg-[#1e3272]/5 rounded-lg px-3 py-2.5">
                 <div className="w-5 h-5 rounded-full bg-[#1e3272] text-white flex items-center justify-center shrink-0 mt-0.5">
                   <span className="text-[10px] font-bold">T</span>
@@ -608,6 +703,121 @@ const QuestionBreakdown = ({ questions }: { questions: QuestionResult[] }) => (
           </div>
         );
       })}
+    </div>
+  </div>
+);
+
+const ObservationsCard = ({
+  handwriting, presentation, effort,
+}: {
+  handwriting?: string;
+  presentation?: string;
+  effort?: string;
+}) => (
+  <div className="bg-white border border-slate-200 rounded-2xl p-6">
+    <div className="flex items-center gap-2 mb-4">
+      <Eye className="w-4 h-4 text-[#1e3272]" />
+      <div className="text-[15px] font-medium text-slate-900">Teacher's observations</div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {handwriting && (
+        <ObsTile icon={<PenLine className="w-4 h-4 text-blue-700" />} bg="bg-blue-100" title="Handwriting" body={handwriting} />
+      )}
+      {presentation && (
+        <ObsTile icon={<BookOpen className="w-4 h-4 text-violet-700" />} bg="bg-violet-100" title="Presentation" body={presentation} />
+      )}
+      {effort && (
+        <ObsTile icon={<TrendingUp className="w-4 h-4 text-emerald-700" />} bg="bg-emerald-100" title="Effort" body={effort} />
+      )}
+    </div>
+  </div>
+);
+
+const ObsTile = ({
+  icon, bg, title, body,
+}: { icon: React.ReactNode; bg: string; title: string; body: string }) => (
+  <div className="border border-slate-200 rounded-xl p-4">
+    <div className="flex items-center gap-2 mb-1.5">
+      <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>{icon}</div>
+      <div className="text-[12.5px] font-medium text-slate-900">{title}</div>
+    </div>
+    <p className="text-[13px] text-slate-700 leading-[1.5]">{body}</p>
+  </div>
+);
+
+const ConceptUnderstandingCard = ({ items }: { items: ConceptUnderstanding[] }) => (
+  <div className="bg-white border border-slate-200 rounded-2xl p-6">
+    <div className="flex items-center gap-2 mb-4">
+      <Brain className="w-4 h-4 text-[#1e3272]" />
+      <div>
+        <div className="text-[15px] font-medium text-slate-900">Concept understanding</div>
+        <div className="text-[12px] text-slate-500">Topic-wise grasp based on this paper</div>
+      </div>
+    </div>
+    <div className="space-y-2.5">
+      {items.map((c, i) => {
+        const s = CONCEPT_LEVEL_STYLES[c.level] ?? CONCEPT_LEVEL_STYLES.developing;
+        return (
+          <div key={i} className="flex items-start gap-3 border border-slate-200 rounded-xl p-3.5">
+            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${s.dot}`} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="text-[13.5px] font-medium text-slate-900">{c.concept}</div>
+                <span className={`text-[10.5px] font-medium uppercase tracking-wider ${s.text}`}>{s.label}</span>
+              </div>
+              <div className="text-[12.5px] text-slate-600 mt-1 leading-[1.5]">{c.evidence}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const StudentLetterCard = ({ text, studentName }: { text: string; studentName: string }) => (
+  <div className="bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><path d=%22M0 39 L40 39%22 stroke=%22%23fef3c7%22 stroke-width=%221%22/></svg>')] bg-amber-50/40 border border-amber-200 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+    <div className="absolute top-4 right-4 opacity-20">
+      <MessageCircle className="w-12 h-12 text-amber-700" />
+    </div>
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-amber-200 flex items-center justify-center">
+        <PenLine className="w-4 h-4 text-amber-800" />
+      </div>
+      <div>
+        <div className="text-[15px] font-medium text-slate-900">A note from your teacher</div>
+        <div className="text-[12px] text-slate-600">Personal · written for {studentName || "you"}</div>
+      </div>
+    </div>
+    <div className="text-[14.5px] text-slate-800 leading-[1.65] whitespace-pre-line italic relative z-10">
+      {text}
+    </div>
+  </div>
+);
+
+const ParentNoteCard = ({ text, studentName }: { text: string; studentName: string }) => (
+  <div className="bg-white border border-slate-200 rounded-2xl p-6">
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+        <Users className="w-5 h-5 text-blue-700" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <div className="text-[13.5px] font-medium text-slate-900">Note for parent</div>
+          <span className="text-[10.5px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200">
+            Share-ready
+          </span>
+        </div>
+        <p className="text-[13.5px] text-slate-700 leading-[1.55]">{text}</p>
+        {studentName && (
+          <button
+            onClick={() => navigator.clipboard?.writeText(text).catch(() => undefined)}
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-blue-700 hover:underline"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            Copy parent note
+          </button>
+        )}
+      </div>
     </div>
   </div>
 );
