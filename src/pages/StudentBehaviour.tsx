@@ -139,6 +139,12 @@ export default function StudentBehaviour() {
   }, [teacherData?.id, teacherData?.schoolId]);
 
   // ── Load behaviour data for selected student ──
+  // Incidents listener uses a school-scoped query + in-memory filter so we
+  // pick up BOTH the modern root-level studentId schema (teacher writes) AND
+  // the legacy nested `student: {name, grade}` schema (older principal
+  // writes that lacked a studentId field). Was: server-side
+  // `where("studentId", "==", selectedId)` which silently dropped principal
+  // incidents — student behaviour page showed nothing for those.
   useEffect(() => {
     if (!teacherData?.schoolId || !selectedId) {
       setIncidents([]); setImprovements([]); setRatings([]);
@@ -149,9 +155,29 @@ export default function StudentBehaviour() {
       where("studentId", "==", selectedId),
     ];
 
+    const selectedStudent = students.find(s => s.id === selectedId);
+    const selectedName = (selectedStudent?.name || "").toLowerCase().trim();
+    const selectedEmail = (selectedStudent?.email || "").toLowerCase().trim();
+
     const u1 = onSnapshot(
-      query(collection(db, "incidents"), ...SC),
-      snap => setIncidents(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Incident)),
+      query(
+        collection(db, "incidents"),
+        where("schoolId", "==", teacherData.schoolId),
+      ),
+      snap => {
+        const matched = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter(d => {
+            // Modern schema match
+            if (d.studentId && d.studentId === selectedId) return true;
+            if (d.studentEmail && selectedEmail && String(d.studentEmail).toLowerCase() === selectedEmail) return true;
+            // Legacy nested schema match by name
+            const nm = (d.student?.name || "").toLowerCase().trim();
+            if (nm && selectedName && nm === selectedName) return true;
+            return false;
+          });
+        setIncidents(matched as Incident[]);
+      },
       err => console.warn("[StudentBehaviour/incidents]", err.code),
     );
     const u2 = onSnapshot(
@@ -165,7 +191,7 @@ export default function StudentBehaviour() {
       err => console.warn("[StudentBehaviour/ratings]", err.code),
     );
     return () => { u1(); u2(); u3(); };
-  }, [teacherData?.schoolId, selectedId]);
+  }, [teacherData?.schoolId, selectedId, students]);
 
   const selected = useMemo(() => students.find(s => s.id === selectedId), [students, selectedId]);
 
