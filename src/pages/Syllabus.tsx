@@ -41,7 +41,10 @@ type SyllabusDoc = {
   fileSize: number;
   uploadedBy: string;
   uploadedByName: string;
-  uploadedByTeacherId: string;
+  // Optional — set on teacher-authored uploads only. Principal-authored docs
+  // omit this and instead carry `uploadedByRole: "principal"`.
+  uploadedByTeacherId?: string;
+  uploadedByRole?: "teacher" | "principal";
   uploadedAt?: any;
   isActive?: boolean;
 };
@@ -91,7 +94,8 @@ const Syllabus = () => {
   const { teacherData } = useAuth();
 
   const [classes, setClasses] = useState<ClassOption[]>([]);
-  const [docs, setDocs] = useState<SyllabusDoc[]>([]);
+  // Raw syllabi for the school. Filtered to `docs` (assigned-classes only) below.
+  const [allDocs, setAllDocs] = useState<SyllabusDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Upload modal state
@@ -175,15 +179,25 @@ const Syllabus = () => {
     return () => { cancelled = true; unsub(); };
   }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
-  // ── Live listener on docs this teacher uploaded ─────────────────────────────
+  // ── Live listener on syllabi for this teacher's assigned classes ────────────
+  // Pulls BOTH teacher-authored uploads AND principal-authored docs for the
+  // classes this teacher teaches. Server-side filter is schoolId only — class
+  // membership is filtered in-memory against `classes` (which derives from the
+  // teaching_assignments listener above) so we don't bump the Firestore `in`
+  // 10-doc cap and so principal-uploaded docs become visible the moment the
+  // teacher's assignment list changes.
+  const assignedClassIds = useMemo(
+    () => new Set(classes.map(c => c.classId)),
+    [classes],
+  );
+
   useEffect(() => {
-    if (!teacherData?.id || !teacherData?.schoolId) return;
+    if (!teacherData?.schoolId) return;
     let cancelled = false;
 
     const qDocs = query(
       collection(db, "syllabi"),
       where("schoolId", "==", teacherData.schoolId),
-      where("uploadedByTeacherId", "==", teacherData.id),
     );
 
     const unsub = onSnapshot(
@@ -201,16 +215,24 @@ const Syllabus = () => {
           const bm = (b.uploadedAt as any)?.toMillis?.() ?? 0;
           return bm - am;
         });
-        setDocs(list);
+        setAllDocs(list);
       },
       (err) => {
         console.error("syllabi listener error:", err);
-        toast.error("Failed to load your documents.");
+        toast.error("Failed to load syllabi.");
       },
     );
 
     return () => { cancelled = true; unsub(); };
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+  }, [teacherData?.schoolId]);
+
+  // Docs visible to this teacher = those for any of their assigned classes.
+  // Recomputes whenever assignments change so a freshly-added class lights up
+  // instantly. Same name `docs` as the prior state so the renderer is unchanged.
+  const docs = useMemo(
+    () => allDocs.filter(d => assignedClassIds.has(d.classId)),
+    [allDocs, assignedClassIds],
+  );
 
   // Group docs by class for display
   const docsByClass = useMemo(() => {
@@ -352,7 +374,13 @@ const Syllabus = () => {
   };
 
   // ── Delete ──────────────────────────────────────────────────────────────────
+  // Teachers can only delete their own uploads. Principal-authored docs are
+  // surfaced read-only (the principal owns lifecycle).
   const handleDelete = async (d: SyllabusDoc) => {
+    if (d.uploadedByRole === "principal" || (d.uploadedByTeacherId && d.uploadedByTeacherId !== teacherData?.id)) {
+      toast.error("This document was uploaded by your principal — only the principal can delete it.");
+      return;
+    }
     if (!window.confirm(`Delete "${d.title}"? This cannot be undone.`)) return;
     try {
       try { await deleteObject(ref(storage, d.filePath)); }
@@ -364,6 +392,10 @@ const Syllabus = () => {
       toast.error(err instanceof Error ? err.message : "Failed to delete document.");
     }
   };
+
+  // True if the teacher can manage (delete) this document.
+  const canManage = (d: SyllabusDoc): boolean =>
+    d.uploadedByRole !== "principal" && (!d.uploadedByTeacherId || d.uploadedByTeacherId === teacherData?.id);
 
   // ── Mobile-specific state & helpers ─────────────────────────────────────────
   const [activeFilter, setActiveFilter] = useState<string>("all"); // 'all' | classId | 'syllabus' | 'notes'
@@ -778,20 +810,35 @@ const Syllabus = () => {
                         Save
                       </a>
                     )}
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); handleDelete(d); }}
-                      aria-label={`Delete ${d.title}`}
-                      className="syl-press"
-                      style={{
-                        flex: "0 0 42px", height: 38, borderRadius: 11,
-                        background: "rgba(255,51,85,.08)", color: "#FF3355",
-                        border: "none", cursor: "pointer", fontFamily: "inherit",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" strokeWidth={2.6} />
-                    </button>
+                    {canManage(d) ? (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); handleDelete(d); }}
+                        aria-label={`Delete ${d.title}`}
+                        className="syl-press"
+                        style={{
+                          flex: "0 0 42px", height: 38, borderRadius: 11,
+                          background: "rgba(255,51,85,.08)", color: "#FF3355",
+                          border: "none", cursor: "pointer", fontFamily: "inherit",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" strokeWidth={2.6} />
+                      </button>
+                    ) : (
+                      <div
+                        title="Uploaded by your principal"
+                        style={{
+                          flex: "0 0 auto", height: 38, padding: "0 10px", borderRadius: 11,
+                          background: "rgba(0,85,255,.08)", color: "#0055FF",
+                          fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+                          textTransform: "uppercase", border: "0.5px solid rgba(0,85,255,.18)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        Principal
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1538,20 +1585,35 @@ const Syllabus = () => {
                                 View PDF
                               </a>
                             )}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(d); }}
-                              className="syld-btn"
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                padding: '9px 12px', borderRadius: 11,
-                                background: 'rgba(255,51,85,.08)', color: '#C92A2A',
-                                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                                border: '0.5px solid rgba(255,51,85,.22)', cursor: 'pointer', fontFamily: 'inherit',
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" strokeWidth={2.4}/>
-                            </button>
+                            {canManage(d) ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(d); }}
+                                className="syld-btn"
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                  padding: '9px 12px', borderRadius: 11,
+                                  background: 'rgba(255,51,85,.08)', color: '#C92A2A',
+                                  fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                  border: '0.5px solid rgba(255,51,85,.22)', cursor: 'pointer', fontFamily: 'inherit',
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" strokeWidth={2.4}/>
+                              </button>
+                            ) : (
+                              <div
+                                title="Uploaded by your principal"
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                  padding: '9px 12px', borderRadius: 11,
+                                  background: 'rgba(0,85,255,.08)', color: '#0055FF',
+                                  fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                  border: '0.5px solid rgba(0,85,255,.22)',
+                                }}
+                              >
+                                Principal
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
