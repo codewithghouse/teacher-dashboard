@@ -68,6 +68,7 @@ const navSections: {
       { title: "Risks & Alerts",    path: "/risks-alerts",     icon: AlertTriangle },
       { title: "Leaderboard",       path: "/leaderboard",      icon: Trophy        },
       { title: "Reports",           path: "/reports",          icon: BarChart3     },
+      { title: "Alumni",            path: "/alumni",           icon: Sparkles      },
     ],
   },
   {
