@@ -56,6 +56,7 @@ const SummarizeLesson    = lazyWithRetry(() => import("./pages/SummarizeLesson")
 const PaperCorrection    = lazyWithRetry(() => import("./pages/PaperCorrection"));
 const Syllabus           = lazyWithRetry(() => import("./pages/Syllabus"));
 const Exam               = lazyWithRetry(() => import("./pages/Exam"));
+const ExamStructureView  = lazyWithRetry(() => import("./pages/ExamStructureView"));
 const Leaderboard        = lazyWithRetry(() => import("./pages/Leaderboard"));
 const StudentBehaviour   = lazyWithRetry(() => import("./pages/StudentBehaviour"));
 const NotFound           = lazyWithRetry(() => import("./pages/NotFound"));
@@ -148,6 +149,7 @@ const AppRoutes = () => {
           <Route path="/paper-correction" element={<PaperCorrection />} />
           <Route path="/syllabus" element={<Syllabus />} />
           <Route path="/exam" element={<Exam />} />
+          <Route path="/exam-structure" element={<ExamStructureView />} />
           <Route path="/leaderboard/*" element={<Leaderboard />} />
           <Route path="/student-behaviour" element={<StudentBehaviour />} />
         </Route>
