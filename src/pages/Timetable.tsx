@@ -12,7 +12,8 @@ import { db } from "../lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { Calendar, Loader2 } from "lucide-react";
 
-interface TimetableSheet { name: string; headers: string[]; rows: any[][]; }
+// Rows wrapped in {cells} objects to satisfy Firestore's no-nested-arrays rule.
+interface TimetableSheet { name: string; headers: string[]; rows: { cells: string[] }[]; }
 interface TimetableDoc {
   schoolId?: string;
   branchId?: string | null;
@@ -173,28 +174,31 @@ const SheetTable = ({ sheet, highlightTeacherName }: { sheet: TimetableSheet; hi
             </thead>
           )}
           <tbody>
-            {sheet.rows.map((row, ri) => (
-              <tr key={ri} style={{ borderTop: "0.5px solid rgba(0,85,255,.06)" }}>
-                {Array.from({ length: Math.max(sheet.headers.length, row.length) }, (_, ci) => {
-                  const cell = String(row[ci] ?? "");
-                  const mine = isMyCell(cell);
-                  return (
-                    <td key={ci} style={{
-                      fontSize: 12, color: mine ? "#005A20" : T.T1,
-                      fontWeight: mine ? 700 : 500,
-                      padding: "9px 12px",
-                      borderRight: "0.5px solid rgba(0,85,255,.06)",
-                      background: mine ? "rgba(0,200,83,.10)" : T.CARD,
-                      verticalAlign: "top",
-                      whiteSpace: "pre-wrap",
-                      ...(mine ? { boxShadow: "inset 0 0 0 0.5px rgba(0,200,83,.22)" } : {}),
-                    }}>
-                      {cell === "" ? <span style={{ color: T.T4 }}>—</span> : cell}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {sheet.rows.map((row, ri) => {
+              const cells = row.cells || [];
+              return (
+                <tr key={ri} style={{ borderTop: "0.5px solid rgba(0,85,255,.06)" }}>
+                  {Array.from({ length: Math.max(sheet.headers.length, cells.length) }, (_, ci) => {
+                    const cell = String(cells[ci] ?? "");
+                    const mine = isMyCell(cell);
+                    return (
+                      <td key={ci} style={{
+                        fontSize: 12, color: mine ? "#005A20" : T.T1,
+                        fontWeight: mine ? 700 : 500,
+                        padding: "9px 12px",
+                        borderRight: "0.5px solid rgba(0,85,255,.06)",
+                        background: mine ? "rgba(0,200,83,.10)" : T.CARD,
+                        verticalAlign: "top",
+                        whiteSpace: "pre-wrap",
+                        ...(mine ? { boxShadow: "inset 0 0 0 0.5px rgba(0,200,83,.22)" } : {}),
+                      }}>
+                        {cell === "" ? <span style={{ color: T.T4 }}>—</span> : cell}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
