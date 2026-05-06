@@ -1,5 +1,5 @@
 /**
- * Edullent Teacher — Service Worker v2
+ * Edullent Teacher — Service Worker v3
  *
  * Caching strategy:
  *   Static assets (JS/CSS/HTML/fonts/images) -> Cache-First   (precached on install)
@@ -13,7 +13,7 @@
  *   - Push notifications ready
  */
 
-const CACHE_VERSION  = 'v2';
+const CACHE_VERSION  = 'v3';
 const STATIC_CACHE   = `edullent-teacher-static-${CACHE_VERSION}`;
 const API_CACHE      = `edullent-teacher-api-${CACHE_VERSION}`;
 const STORAGE_CACHE  = `edullent-teacher-storage-${CACHE_VERSION}`;
