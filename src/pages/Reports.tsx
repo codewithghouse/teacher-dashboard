@@ -142,17 +142,26 @@ const Reports = () => {
       setHistory(combined);
     };
     const schoolId = teacherData.schoolId;
+    // schoolId-only at server; branchId in-memory. Memory:
+    // bug_pattern_branch_filter_on_event_streams — server-side branchId
+    // filter on event docs (reports) silently drops principal-broadcast
+    // docs whose branchId field was missing OR hadn't been backfilled yet.
     const branchId = teacherData.branchId as string | undefined;
-    const tenant: QueryConstraint[] = branchId
-      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
-      : [where("schoolId", "==", schoolId)];
+    const inBranch = (raw: any) => !branchId || !raw?.branchId || raw.branchId === branchId;
+
+    const tenant: QueryConstraint[] = [where("schoolId", "==", schoolId)];
     const unsub1 = onSnapshot(
       query(
         collection(db, "reports"),
         ...tenant,
         where("teacherId", "==", teacherData.id),
       ),
-      snap => { snap1 = snap.docs.map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc)); merge(); },
+      snap => {
+        snap1 = snap.docs
+          .map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc))
+          .filter(inBranch);
+        merge();
+      },
       e => console.error("[Reports] own-reports subscription failed", e),
     );
     const unsub2 = onSnapshot(
@@ -161,7 +170,12 @@ const Reports = () => {
         ...tenant,
         where("publishedToTeacher", "==", true),
       ),
-      snap => { snap2 = snap.docs.map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc)); merge(); },
+      snap => {
+        snap2 = snap.docs
+          .map(d => ({ ...d.data(), id: d.id } as ReportHistoryDoc))
+          .filter(inBranch);
+        merge();
+      },
       e => console.error("[Reports] broadcast subscription failed", e),
     );
     return () => { unsub1(); unsub2(); };
