@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import StudentProfile from "@/components/StudentProfile";
 import { useAuth } from "../lib/AuthContext";
@@ -6,12 +6,51 @@ import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
   serverTimestamp,
+  type Unsubscribe, type DocumentData,
 } from "firebase/firestore";
 import { auditedAdd } from "../lib/auditedWrites";
-import { Loader2, X, UserPlus, Mail } from "lucide-react";
+import { Loader2, X, UserPlus, Mail, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { sendStudentInviteEmail } from "../lib/resend";
 import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
+
+// ── Canonical score normalizer (matches Dashboard / MyClasses / ClassDetail).
+// Returns 0-100% from any score doc shape, or null if no usable score.
+// Covers test_scores (score+maxScore), gradebook_scores (mark+maxMarks),
+// results (score / percentage). Returning null preserves "no data" so
+// untested entries don't get conflated with 0% scorers.
+const pctOfDoc = (d: any): number | null => {
+  if (!d) return null;
+  const pctField = [d.percentage, d.pct].find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof pctField === "number") return Math.max(0, Math.min(100, pctField));
+  const rawCandidates = [d.score, d.mark, d.marks, d.obtainedMarks, d.marksObtained];
+  const rawNum = rawCandidates.find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof rawNum !== "number") return null;
+  const maxCandidates = [d.maxScore, d.totalMarks, d.maxMarks, d.outOf];
+  const maxNum = maxCandidates.find(v => typeof v === "number" && !Number.isNaN(v) && v > 0);
+  if (typeof maxNum === "number") return Math.max(0, Math.min(100, (rawNum / maxNum) * 100));
+  if (rawNum >= 0 && rawNum <= 100) return rawNum;
+  return null;
+};
+
+// Resolve any timestamp shape to ms epoch. Different score writers use
+// different fields (test_scores: timestamp, gradebook_scores: updatedAt,
+// results: createdAt) — enumerate per `bug_pattern_filterbytime_field_drift`.
+const writerTimeMs = (d: any): number => {
+  const candidates = [d?.timestamp, d?.updatedAt, d?.createdAt, d?.date, d?.submittedAt];
+  for (const f of candidates) {
+    if (typeof f === "number") return f;
+    if (f && typeof f.toMillis === "function") return f.toMillis();
+    if (typeof f === "string" && f.length > 0) {
+      const t = new Date(f.includes("T") ? f : `${f}T00:00:00`).getTime();
+      if (!Number.isNaN(t)) return t;
+    }
+  }
+  return 0;
+};
+
+// 90-day score window — bounds at-risk classification to current performance.
+const SCORE_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
 // ── Design tokens (desktop) ──────────────────────────────────────────────────
 const T = {
@@ -45,10 +84,12 @@ const MA = {
   HERO_GRAD: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
 };
 
-// Tone by status tag
+// Tone by status tag — 4 honest states. "No Data" is gray/neutral so untested
+// students don't get falsely coloured red OR green.
 const mobileStatusTone = (tag: string) =>
   tag === 'Good'      ? { accent: MA.GREEN,  pillBg: 'rgba(0,200,83,0.12)',  pillFg: MA.GREEN,  label: 'Good',      pulse: false } :
   tag === 'Attention' ? { accent: MA.ORANGE, pillBg: 'rgba(255,136,0,0.12)', pillFg: MA.ORANGE, label: 'Attention', pulse: true } :
+  tag === 'No Data'   ? { accent: MA.T4,     pillBg: 'rgba(140,140,160,0.12)', pillFg: MA.T3,   label: 'No Data',   pulse: false } :
                         { accent: MA.RED,    pillBg: 'rgba(255,51,85,0.12)', pillFg: MA.RED,    label: 'Critical',  pulse: true };
 
 // Avatar mobile palette — deterministic per name
@@ -75,6 +116,7 @@ const getInitials = (name = '') => {
 const statusBadge = (tag: string) =>
   tag === 'Good'      ? { bg: T.greenL, color: T.green }
   : tag === 'Attention' ? { bg: T.amberL, color: T.amber }
+  : tag === 'No Data'   ? { bg: T.s2,     color: T.ink2 }
   : { bg: T.redL, color: T.red };
 const scoreBarColor = (pct: number) =>
   pct >= 75 ? T.green2 : pct >= 50 ? T.amber : T.red;
@@ -85,17 +127,270 @@ export default function Students() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [students, setStudents]             = useState<any[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  // ── State ──────────────────────────────────────────────────────────────
+  // Real-time listener buckets — flat arrays consumed by useMemo derivation.
+  const [assignedClassIds, setAssignedClassIds]     = useState<string[]>([]);
+  const [legacyOwnedClassIds, setLegacyOwnedClassIds] = useState<string[]>([]);
+  const [allClassDocs, setAllClassDocs]             = useState<any[]>([]);
+  const [enrollments, setEnrollments]               = useState<any[]>([]);
+  const [attendanceLogs, setAttendanceLogs]         = useState<any[]>([]);
+  const [testScoreDocs, setTestScoreDocs]           = useState<any[]>([]);
+  const [gradebookScoreDocs, setGradebookScoreDocs] = useState<any[]>([]);
+  const [resultDocs, setResultDocs]                 = useState<any[]>([]);
+
+  const [loading, setLoading]                       = useState(true);
+  const [error, setError]                           = useState<string | null>(null);
+  const [refreshKey, setRefreshKey]                 = useState(0);
+  const [selectedStudent, setSelectedStudent]       = useState<any | null>(null);
+  const [search, setSearch]                         = useState('');
+  const [filterStatus, setFilterStatus]             = useState('All');
+  const [filterClass, setFilterClass]               = useState('All');
+
+  // Invite modal state
+  const [inviteOpen, setInviteOpen]                 = useState(false);
+  const [inviting, setInviting]                     = useState(false);
+  const [inv, setInv]                               = useState({ name: '', email: '', classId: '', rollNo: '' });
+
+  // Auto-open guard — fires the cross-page handoff exactly once per arrival
+  const autoOpenedRef = useRef(false);
+
+  // ── Resolution + event listeners ────────────────────────────────────────
+  // Resolution entities (assignments / classes) — schoolId + teacherId only
+  // (no branchId per `bug_pattern_branch_filter_on_event_streams` extended
+  // to teacher's own resolution data).
+  useEffect(() => {
+    const tId = teacherData?.id;
+    const schoolId = teacherData?.schoolId as string | undefined;
+    if (!tId || !schoolId) return;
+    let cancelled = false;
+    const unsubs: Unsubscribe[] = [];
+    const errH = (err: any) => {
+      if (cancelled) return;
+      console.error('[Students] listener error:', err);
+      setError(err?.message || 'Failed to load data');
+      setLoading(false);
+    };
+
+    // teaching_assignments — active filter client-side (legacy docs may not
+    // have a status field; server-side filter would silently drop them).
+    unsubs.push(onSnapshot(
+      query(
+        collection(db, 'teaching_assignments'),
+        where('schoolId', '==', schoolId),
+        where('teacherId', '==', tId),
+      ),
+      (snap) => {
+        if (cancelled) return;
+        const activeIds = snap.docs
+          .filter(d => {
+            const s = (d.data() as any).status;
+            return !s || (typeof s === 'string' && s.toLowerCase() === 'active');
+          })
+          .map(d => (d.data() as any).classId)
+          .filter(Boolean);
+        setAssignedClassIds(activeIds);
+      },
+      errH,
+    ));
+
+    // classes legacy — teacher "owns" via teacherId field
+    unsubs.push(onSnapshot(
+      query(
+        collection(db, 'classes'),
+        where('schoolId', '==', schoolId),
+        where('teacherId', '==', tId),
+      ),
+      (snap) => { if (!cancelled) setLegacyOwnedClassIds(snap.docs.map(d => d.id)); },
+      errH,
+    ));
+
+    // classes school-wide — needed to resolve full class metadata for
+    // assignment-only references (teacher assigned but not "owner").
+    unsubs.push(onSnapshot(
+      query(collection(db, 'classes'), where('schoolId', '==', schoolId)),
+      (snap) => {
+        if (!cancelled) {
+          setAllClassDocs(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+          setLoading(false);
+        }
+      },
+      errH,
+    ));
+
+    // attendance — schoolId + teacherId (event stream, no branchId)
+    unsubs.push(onSnapshot(
+      query(collection(db, 'attendance'), where('schoolId', '==', schoolId), where('teacherId', '==', tId)),
+      (snap) => { if (!cancelled) setAttendanceLogs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      errH,
+    ));
+
+    // 3-source score listeners — test_scores + gradebook_scores + results.
+    // Reading only one drops ~40% of teacher's score data per
+    // `owner_dashboard_alternate_data_sources` memory.
+    unsubs.push(onSnapshot(
+      query(collection(db, 'test_scores'), where('schoolId', '==', schoolId), where('teacherId', '==', tId)),
+      (snap) => { if (!cancelled) setTestScoreDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      errH,
+    ));
+    unsubs.push(onSnapshot(
+      query(collection(db, 'gradebook_scores'), where('schoolId', '==', schoolId), where('teacherId', '==', tId)),
+      (snap) => { if (!cancelled) setGradebookScoreDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      errH,
+    ));
+    unsubs.push(onSnapshot(
+      query(collection(db, 'results'), where('schoolId', '==', schoolId), where('teacherId', '==', tId)),
+      (snap) => { if (!cancelled) setResultDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      errH,
+    ));
+
+    return () => { cancelled = true; unsubs.forEach(u => u()); };
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
+
+  // Resolved class list (union of assigned + legacy-owned)
+  const teacherClasses = useMemo<any[]>(() => {
+    const allowed = new Set<string>([...assignedClassIds, ...legacyOwnedClassIds]);
+    if (allowed.size === 0) return [];
+    return allClassDocs.filter(c => allowed.has(c.id));
+  }, [allClassDocs, assignedClassIds, legacyOwnedClassIds]);
+
+  const classIds = useMemo<string[]>(() => teacherClasses.map(c => c.id), [teacherClasses]);
+  const classIdsKey = classIds.join('|');
+
+  // Enrollments — chunked classId match. Replaces the old `teacherId` filter
+  // (many enrollment writers don't stamp teacherId — silent 0-student bug).
+  // classId IS the reliable join key per the dual-query memory pattern.
+  useEffect(() => {
+    const schoolId = teacherData?.schoolId as string | undefined;
+    if (!schoolId || classIds.length === 0) { setEnrollments([]); return; }
+    let cancelled = false;
+    const unsubs: Unsubscribe[] = [];
+    const errH = (err: any) => {
+      if (cancelled) return;
+      console.error('[Students] enrollments listener:', err);
+      setError(err?.message || 'Failed to load enrollments');
+    };
+
+    const chunks: string[][] = [];
+    for (let i = 0; i < classIds.length; i += 10) chunks.push(classIds.slice(i, i + 10));
+    const buckets: any[][] = chunks.map(() => []);
+
+    chunks.forEach((ch, i) => {
+      unsubs.push(onSnapshot(
+        query(
+          collection(db, 'enrollments'),
+          where('schoolId', '==', schoolId),
+          where('classId', 'in', ch),
+        ),
+        (snap) => {
+          if (cancelled) return;
+          buckets[i] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+          setEnrollments(buckets.flat());
+        },
+        errH,
+      ));
+    });
+
+    return () => { cancelled = true; unsubs.forEach(u => u()); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teacherData?.schoolId, classIdsKey, refreshKey]);
+
+  // Recent score docs (last 90 days) — bounds at-risk classification to
+  // current performance. Matches Dashboard / MyClasses / ClassDetail pattern.
+  const recentScoreDocs = useMemo<DocumentData[]>(() => {
+    const cutoff = Date.now() - SCORE_WINDOW_MS;
+    return [...testScoreDocs, ...gradebookScoreDocs, ...resultDocs]
+      .filter(d => writerTimeMs(d) >= cutoff);
+  }, [testScoreDocs, gradebookScoreDocs, resultDocs]);
+
+  // ── Enriched students (synchronous useMemo derivation) ──────────────────
+  // Replaces the old async getDocs-inside-onSnapshot pattern. No race
+  // conditions, no N+1 fetches — derives from already-loaded state.
+  const students = useMemo<any[]>(() => {
+    if (enrollments.length === 0) return [];
+
+    // Dedup enrollments by canonical student key (multi-class students appear
+    // multiple times — collapse to one row but track all classes).
+    const studentMap = new Map<string, any>();
+    enrollments.forEach((e: any) => {
+      const sid = (e.studentId || e.studentEmail || e.id) as string;
+      if (!sid) return;
+      const existing = studentMap.get(sid);
+      if (!existing) {
+        studentMap.set(sid, {
+          id: sid,
+          name: e.studentName || '',
+          email: e.studentEmail || '',
+          rollNo: e.rollNo || '—',
+          className: e.className || '',
+          classId: e.classId || '',
+          initials: (e.studentName as string)?.substring(0, 2).toUpperCase() || 'ST',
+        });
+      }
+    });
+
+    const arr = Array.from(studentMap.values());
+
+    // Per-student metric derivation
+    const enriched = arr.map((stu: any) => {
+      const sid = stu.id;
+      const email = (stu.email as string)?.toLowerCase();
+
+      // 2-tier student match (id → email)
+      const matchesStudent = (rec: any): boolean => {
+        if (sid && rec.studentId === sid) return true;
+        if (email && (rec.studentEmail as string)?.toLowerCase() === email) return true;
+        return false;
+      };
+
+      // Attendance % — null if no records (no fabricated 100% default)
+      const stuAtt = attendanceLogs.filter(matchesStudent);
+      const present = stuAtt.filter((a: any) =>
+        ['present', 'late'].includes((a.status as string)?.toLowerCase())
+      ).length;
+      const attPct: number | null = stuAtt.length > 0 ? (present / stuAtt.length) * 100 : null;
+
+      // Score % — canonical pctOfDoc (handles all 5 raw + 4 max field variants).
+      // Filter null returns so 0% scores ARE included (real failures count).
+      const stuScores = recentScoreDocs.filter((r: any) => !r.isAbsent && matchesStudent(r));
+      const pcts = stuScores.map(pctOfDoc).filter((v): v is number => v !== null);
+      const avgScorePct: number | null = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null;
+
+      // 4-state classifier — "No Data" prevents conflating untested students
+      // with "Attention" (the prior bug where avg=0 default → flagged everyone).
+      let statusTag: 'Good' | 'Attention' | 'At Risk' | 'No Data';
+      if (attPct == null && avgScorePct == null) {
+        statusTag = 'No Data';
+      } else {
+        statusTag = 'Good';
+        if ((avgScorePct != null && avgScorePct < 60) || (attPct != null && attPct < 85)) {
+          statusTag = 'Attention';
+        }
+        if (avgScorePct != null && avgScorePct < 45) {
+          statusTag = 'At Risk';
+        }
+      }
+
+      return {
+        ...stu,
+        avgScorePct: avgScorePct ?? 0,
+        attendancePct: attPct ?? 0,
+        // Surface raw nullability for honest UI rendering (cards check these).
+        avgScoreRaw: avgScorePct,
+        attendanceRaw: attPct,
+        statusTag,
+      };
+    });
+
+    enriched.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return enriched;
+  }, [enrollments, attendanceLogs, recentScoreDocs]);
 
   // Cross-page handoff: when ConceptMasteryDetail's "View Profile" navigates
   // here with location.state.autoOpenStudentId, auto-open that student's
-  // profile once the roster has loaded. We match on studentId first, then
-  // fall back to studentEmail (the dual-identifier story explained in
-  // memory file dual_query_pattern_studentid_email.md). After consuming the
-  // state we strip it via navigate(replace) so a back-button to this route
-  // doesn't re-fire the auto-select on every visit.
+  // profile once the roster has loaded. Match on studentId first, then email
+  // (the dual-identifier story in `dual_query_pattern_studentid_email.md`).
+  // The ref guard ensures we fire ONCE per state arrival — was previously
+  // re-running on every students/selectedStudent change.
   useEffect(() => {
     const st = (location.state ?? {}) as {
       autoOpenStudentId?: string;
@@ -104,137 +399,18 @@ export default function Students() {
     const wantedId = st.autoOpenStudentId?.toLowerCase();
     const wantedEmail = st.autoOpenStudentEmail?.toLowerCase();
     if (!wantedId && !wantedEmail) return;
+    if (autoOpenedRef.current) return;
     if (students.length === 0 || selectedStudent) return;
+
     const match = students.find((s) => {
-      const sid = (s.id || "").toLowerCase();
-      const semail = (s.email || "").toLowerCase();
+      const sid = (s.id || '').toLowerCase();
+      const semail = (s.email || '').toLowerCase();
       return (wantedId && sid === wantedId) || (wantedEmail && semail === wantedEmail);
     });
     if (match) setSelectedStudent(match);
-    // Clear the state regardless of whether a match was found — we don't want
-    // it firing again on subsequent re-renders or back-navigation.
+    autoOpenedRef.current = true;
     navigate(location.pathname, { replace: true, state: null });
   }, [location.state, location.pathname, navigate, students, selectedStudent]);
-  const [search, setSearch]                 = useState('');
-  const [filterStatus, setFilterStatus]     = useState('All');
-  const [filterClass, setFilterClass]       = useState('All');
-
-  // Invite modal state
-  const [inviteOpen, setInviteOpen]         = useState(false);
-  const [inviting, setInviting]             = useState(false);
-  const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
-  const [inv, setInv] = useState({ name: '', email: '', classId: '', rollNo: '' });
-
-  useEffect(() => {
-    if (!teacherData?.id || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-    setLoading(true);
-    try {
-      const qEnroll = query(
-        collection(db, 'enrollments'),
-        where('schoolId', '==', schoolId),
-        where('teacherId', '==', teacherData.id),
-      );
-      let ignore = false;
-      const unsubEnroll = onSnapshot(qEnroll, async (snap) => {
-        const enrolledDocs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; studentId?: string; studentEmail?: string; studentName?: string; rollNo?: string; className?: string; classId?: string }));
-        const uniqueMap = new Map<string, Record<string, unknown>>();
-        enrolledDocs.forEach(e => {
-          const sid = e.studentId || e.studentEmail;
-          if (!sid) return;
-          if (!uniqueMap.has(sid)) {
-            uniqueMap.set(sid, {
-              id: sid, name: e.studentName, email: e.studentEmail,
-              // Show a clear placeholder instead of a random roll number.
-              // Random values here caused the same student to show different
-              // rolls across reloads — a data-integrity footgun.
-              rollNo: e.rollNo || "—",
-              className: e.className, classId: e.classId,
-              initials: e.studentName?.substring(0, 2).toUpperCase() || 'ST',
-              attendancePct: 0, avgScorePct: 0, statusTag: 'Good',
-            });
-          }
-        });
-        const studentsArray = Array.from(uniqueMap.values());
-        const [scoresSnap, attSnap] = await Promise.all([
-          getDocs(query(
-            collection(db, 'test_scores'),
-            where('schoolId', '==', schoolId),
-            where('teacherId', '==', teacherData.id),
-          )),
-          getDocs(query(
-            collection(db, 'attendance'),
-            where('schoolId', '==', schoolId),
-            where('teacherId', '==', teacherData.id),
-          )),
-        ]);
-        const scoresData = scoresSnap.docs.map(d => d.data());
-        const attData    = attSnap.docs.map(d => d.data());
-        const final = studentsArray.map(stu => {
-          const stuScores = scoresData.filter(s =>
-            (s.studentId && s.studentId === stu.id) ||
-            (s.studentEmail && stu.email && s.studentEmail.toLowerCase() === stu.email.toLowerCase())
-          );
-          let totalPct = 0, count = 0;
-          stuScores.forEach(s => { if (!s.isAbsent && s.percentage) { totalPct += s.percentage; count++; } });
-          const avg = count > 0 ? totalPct / count : 0;
-          const stuAtt = attData.filter(a =>
-            (a.studentId && a.studentId === stu.id) ||
-            (a.studentEmail && stu.email && a.studentEmail.toLowerCase() === stu.email.toLowerCase())
-          );
-          const present = stuAtt.filter(a => ['present','late'].includes(a.status?.toLowerCase())).length;
-          const attPct  = stuAtt.length > 0 ? (present / stuAtt.length) * 100 : 100;
-          let tag = 'Good';
-          if (avg < 60 || attPct < 85) tag = 'Attention';
-          if (avg > 0 && avg < 45) tag = 'At Risk';
-          return { ...stu, avgScorePct: avg, attendancePct: attPct, statusTag: tag };
-        });
-        if (ignore) return;
-        final.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        setStudents(final);
-        setLoading(false);
-      });
-      return () => { ignore = true; unsubEnroll(); };
-    } catch (e) {
-      console.error('[Students] fetch error', e);
-      setLoading(false);
-    }
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
-
-  // Load teacher's classes for invite dropdown
-  useEffect(() => {
-    if (!teacherData?.id || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-
-    const qAssign = query(
-      collection(db, 'teaching_assignments'),
-      where('schoolId', '==', schoolId),
-      where('teacherId', '==', teacherData.id),
-      where('status', '==', 'active'),
-    );
-    let ignore = false;
-    const unsub = onSnapshot(qAssign, async (snap) => {
-      const assignedIds = snap.docs.map(d => d.data().classId).filter(Boolean);
-      const legacySnap = await getDocs(query(
-        collection(db, 'classes'),
-        where('schoolId', '==', schoolId),
-        where('teacherId', '==', teacherData.id),
-      ));
-      if (ignore) return;
-      const legacyIds = legacySnap.docs.map(d => d.id);
-      const allIds = Array.from(new Set([...assignedIds, ...legacyIds]));
-      if (allIds.length === 0) { setTeacherClasses([]); return; }
-      const classSnap = await getDocs(query(
-        collection(db, 'classes'),
-        where('schoolId', '==', schoolId),
-      ));
-      if (ignore) return;
-      setTeacherClasses(
-        classSnap.docs.filter(d => allIds.includes(d.id)).map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string }))
-      );
-    });
-    return () => { ignore = true; unsub(); };
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
   const openInvite = () => {
     setInv({ name: '', email: '', classId: teacherClasses[0]?.id || '', rollNo: '' });
@@ -324,10 +500,20 @@ export default function Students() {
 
   if (selectedStudent) return <StudentProfile student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
 
-  const uniqueClasses = [...new Set(students.map(s => s.className).filter(Boolean))];
-  const goodCount      = students.filter(s => s.statusTag === 'Good').length;
-  const attentionCount = students.filter(s => s.statusTag === 'Attention').length;
-  const atRiskCount    = students.filter(s => s.statusTag === 'At Risk').length;
+  // Memoized derivations — avoid recompute on unrelated re-renders (e.g.
+  // typing in search input). 4-state distribution preserves no-data students
+  // separately so they aren't conflated with "Attention".
+  const { uniqueClasses, goodCount, attentionCount, atRiskCount, noDataCount } = (() => {
+    const uniq = [...new Set(students.map(s => s.className).filter(Boolean))];
+    let good = 0, attn = 0, risk = 0, nd = 0;
+    students.forEach(s => {
+      if (s.statusTag === 'Good') good++;
+      else if (s.statusTag === 'Attention') attn++;
+      else if (s.statusTag === 'At Risk') risk++;
+      else if (s.statusTag === 'No Data') nd++;
+    });
+    return { uniqueClasses: uniq, goodCount: good, attentionCount: attn, atRiskCount: risk, noDataCount: nd };
+  })();
 
   const scrollToEl = (id: string) => {
     if (typeof window === "undefined") return;
@@ -352,15 +538,49 @@ export default function Students() {
     scrollToList();
   };
 
-  const filtered = students.filter(s => {
-    const mSearch = s.name?.toLowerCase().includes(search.toLowerCase()) || s.rollNo?.includes(search);
-    const mStatus = filterStatus === 'All' || s.statusTag === filterStatus;
-    const mClass  = filterClass  === 'All' || s.className === filterClass;
-    return mSearch && mStatus && mClass;
-  });
+  // Filter — search trimmed + lowercased on BOTH name AND rollNo (was case-
+  // sensitive on rollNo previously). Empty search returns all matches.
+  const filtered = (() => {
+    const q = search.trim().toLowerCase();
+    return students.filter(s => {
+      const mSearch = !q
+        || (s.name as string)?.toLowerCase().includes(q)
+        || (s.rollNo as string)?.toLowerCase().includes(q);
+      const mStatus = filterStatus === 'All' || s.statusTag === filterStatus;
+      const mClass  = filterClass  === 'All' || s.className === filterClass;
+      return mSearch && mStatus && mClass;
+    });
+  })();
 
   return (
-    <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
+    <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-[72px] md:pb-0 text-left">
+
+      {/* Error retry banner — surfaces listener failures (permission denied,
+          network, missing index) instead of silently leaving empty UI. */}
+      {error && (
+        <div className="px-4 pt-3 md:px-8 md:pt-4">
+          <div className="rounded-[14px] flex items-start gap-3 px-4 py-3"
+            style={{
+              background: "rgba(255,51,85,0.08)",
+              border: "0.5px solid rgba(255,51,85,0.30)",
+              boxShadow: "0 2px 10px rgba(255,51,85,0.10)",
+            }}>
+            <AlertCircle size={18} style={{ color: "#C92A2A", flexShrink: 0, marginTop: 2 }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold" style={{ color: "#7A1414", letterSpacing: "-0.1px" }}>
+                Couldn't load students
+              </div>
+              <div className="text-[11px] mt-[2px]" style={{ color: "#A33333" }}>{error}</div>
+            </div>
+            <button type="button"
+              onClick={() => { setError(null); setLoading(true); setRefreshKey(k => k + 1); }}
+              className="flex items-center gap-[5px] px-3 py-[7px] rounded-[10px] text-[11px] font-bold text-white active:scale-[0.94] transition-transform"
+              style={{ background: "#C92A2A", letterSpacing: "-0.1px" }}>
+              <RefreshCw size={12} /> Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
       <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
@@ -509,6 +729,7 @@ export default function Students() {
             { key: "Attention", kind: "status" as const, label: "Attention", count: attentionCount,  tone: MA.ORANGE },
             ...(atRiskCount > 0 ? [{ key: "At Risk", kind: "status" as const, label: "Critical", count: atRiskCount, tone: MA.RED }] : []),
             { key: "Good",      kind: "status" as const, label: "Good",      count: goodCount },
+            ...(noDataCount > 0 ? [{ key: "No Data", kind: "status" as const, label: "No Data", count: noDataCount, tone: MA.T4 }] : []),
             ...uniqueClasses.map(c => ({ key: c, kind: "class" as const, label: c, count: students.filter(s => s.className === c).length })),
           ] as const).map(chip => {
             const isActive =
@@ -568,12 +789,8 @@ export default function Students() {
               {filtered.length} {filtered.length === 1 ? "student" : "total"}
             </div>
           </div>
-          <button type="button"
-            onClick={() => setStudents(prev => [...prev].sort((a, b) => (a.name || '').localeCompare(b.name || '')))}
-            className="text-[12px] font-bold flex items-center gap-[2px] active:opacity-70 py-[4px]"
-            style={{ color: MA.P, fontFamily: MA.FONT, background: "none", border: "none", cursor: "pointer" }}>
-            Sort <span className="text-[18px] opacity-80 -mt-[3px]">›</span>
-          </button>
+          {/* Sort button removed — list is already alphabetically sorted in
+             the `students` useMemo. Filter chips above provide useful slicing. */}
         </div>
 
         {/* Student list */}
@@ -990,12 +1207,7 @@ export default function Students() {
                 {filtered.length} {filtered.length === 1 ? "student" : "total"}
               </div>
             </div>
-            <button type="button"
-              onClick={() => setStudents(prev => [...prev].sort((a, b) => (a.name || '').localeCompare(b.name || '')))}
-              className="text-[13px] font-bold flex items-center gap-[3px] active:opacity-70 hover:bg-[#EEF4FF] py-[6px] px-3 rounded-[9px] transition-colors"
-              style={{ color: MA.P, fontFamily: MA.FONT, background: "none", border: "none", cursor: "pointer" }}>
-              Sort <span className="text-[18px] opacity-80 -mt-[3px]">›</span>
-            </button>
+            {/* Sort button removed — list is already alphabetically sorted. */}
           </div>
 
           {/* Student cards grid */}

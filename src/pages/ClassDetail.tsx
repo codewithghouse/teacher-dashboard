@@ -4,8 +4,46 @@ import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot, getDocs,
   doc, getDoc, writeBatch,
-  type QueryConstraint, type DocumentData,
+  type DocumentData, type Unsubscribe,
 } from "firebase/firestore";
+
+// ── Canonical score normalizer (matches Dashboard.tsx + MyClasses.tsx).
+// Returns 0-100% from any score doc shape, or null if no usable score.
+// Covers test_scores (score+maxScore), gradebook_scores (mark+maxMarks),
+// results (score / percentage). Returning null preserves "no data" so
+// untested entries don't get conflated with 0%.
+const pctOfDoc = (d: any): number | null => {
+  if (!d) return null;
+  const pctField = [d.percentage, d.pct].find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof pctField === "number") return Math.max(0, Math.min(100, pctField));
+  const rawCandidates = [d.score, d.mark, d.marks, d.obtainedMarks, d.marksObtained];
+  const rawNum = rawCandidates.find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof rawNum !== "number") return null;
+  const maxCandidates = [d.maxScore, d.totalMarks, d.maxMarks, d.outOf];
+  const maxNum = maxCandidates.find(v => typeof v === "number" && !Number.isNaN(v) && v > 0);
+  if (typeof maxNum === "number") return Math.max(0, Math.min(100, (rawNum / maxNum) * 100));
+  if (rawNum >= 0 && rawNum <= 100) return rawNum;
+  return null;
+};
+
+// Resolve any timestamp shape to ms epoch. Different score writers use
+// different fields (test_scores: timestamp, gradebook_scores: updatedAt,
+// results: createdAt) — enumerate per `bug_pattern_filterbytime_field_drift`.
+const writerTimeMs = (d: any): number => {
+  const candidates = [d?.timestamp, d?.updatedAt, d?.createdAt, d?.date, d?.submittedAt];
+  for (const f of candidates) {
+    if (typeof f === "number") return f;
+    if (f && typeof f.toMillis === "function") return f.toMillis();
+    if (typeof f === "string" && f.length > 0) {
+      const t = new Date(f.includes("T") ? f : `${f}T00:00:00`).getTime();
+      if (!Number.isNaN(t)) return t;
+    }
+  }
+  return 0;
+};
+
+// 90-day score window — bounds at-risk classification to current performance.
+const SCORE_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 import { auditedUpdate } from "../lib/auditedWrites";
 import { getInitials } from "../lib/initials";
 import { useAuth } from "../lib/AuthContext";
@@ -13,6 +51,7 @@ import {
   Loader2, Search, ChevronLeft, ChevronRight,
   Download, Edit2, Check, X,
   Calendar, FileText, GraduationCap, TrendingUp, CheckCircle2, XCircle, Clock,
+  Users, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
@@ -77,10 +116,20 @@ const ClassDetail = () => {
     atRiskCount: 0,
   });
 
-  // Data for non-Students tabs
+  // Data for non-Students tabs + class-scoped score state
   const [attendanceLog, setAttendanceLog] = useState<DocumentData[]>([]);
   const [assignments, setAssignments]     = useState<DocumentData[]>([]);
   const [tests, setTests]                 = useState<DocumentData[]>([]);
+  // Class-scoped scores from 3 sources: test_scores + gradebook_scores + results.
+  // Listening at class-level (not per-student) eliminates N×4 getDocs in
+  // enrichment loop and ensures gradebook writes (which use `mark`+`maxMarks`)
+  // are visible. Single-collection read previously dropped ~40% of teacher's
+  // score data (memory: owner_dashboard_alternate_data_sources).
+  const [testScoreDocs, setTestScoreDocs]           = useState<DocumentData[]>([]);
+  const [gradebookScoreDocs, setGradebookScoreDocs] = useState<DocumentData[]>([]);
+  const [resultDocs, setResultDocs]                 = useState<DocumentData[]>([]);
+  // Roster — separated from enrichment so derivation is synchronous useMemo.
+  const [roster, setRoster] = useState<Array<Record<string, unknown> & { id: string }>>([]);
   const [tabLoading, setTabLoading]       = useState(false);
 
   // Fetch class info
@@ -91,56 +140,56 @@ const ClassDetail = () => {
       .catch(e => console.error("[ClassDetail] classInfo fetch failed", e));
   }, [classId]);
 
-  // Fetch attendance log for this class (last 60 days)
+  // ── Class-scoped event listeners — schoolId+classId ONLY (no branchId).
+  // Per `bug_pattern_branch_filter_on_event_streams` — branchId on events
+  // silently drops drift. classId IS the isolation key for this view.
   useEffect(() => {
     if (!classId || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
-    const branchId = teacherData.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
+    let cancelled = false;
+    const unsubs: Unsubscribe[] = [];
 
-    const qAtt = query(collection(db, "attendance"), ...SC, where("classId", "==", classId));
-    const unsub = onSnapshot(
-      qAtt,
-      snap => setAttendanceLog(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+    // Attendance for this class
+    unsubs.push(onSnapshot(
+      query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setAttendanceLog(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
       err => console.error("[ClassDetail] attendance subscription failed", err),
-    );
-    return () => unsub();
-  }, [classId, teacherData?.schoolId, teacherData?.branchId]);
+    ));
 
-  // Fetch assignments for this class
-  useEffect(() => {
-    if (!classId || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-    const branchId = teacherData.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
-
-    const qA = query(collection(db, "assignments"), ...SC, where("classId", "==", classId));
-    const unsub = onSnapshot(
-      qA,
-      snap => setAssignments(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+    // Assignments for this class
+    unsubs.push(onSnapshot(
+      query(collection(db, "assignments"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setAssignments(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
       err => console.error("[ClassDetail] assignments subscription failed", err),
-    );
-    return () => unsub();
-  }, [classId, teacherData?.schoolId, teacherData?.branchId]);
+    ));
 
-  // Fetch tests for this class
-  useEffect(() => {
-    if (!classId || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-    const branchId = teacherData.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
-
-    const qT = query(collection(db, "tests"), ...SC, where("classId", "==", classId));
-    const unsub = onSnapshot(
-      qT,
-      snap => setTests(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+    // Tests for this class
+    unsubs.push(onSnapshot(
+      query(collection(db, "tests"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setTests(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
       err => console.error("[ClassDetail] tests subscription failed", err),
-    );
-    return () => unsub();
-  }, [classId, teacherData?.schoolId, teacherData?.branchId]);
+    ));
+
+    // 3-source score listeners — all class-scoped (not per-student) so we
+    // load O(class scores) once instead of O(N students × 4 queries).
+    unsubs.push(onSnapshot(
+      query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setTestScoreDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      err => console.error("[ClassDetail] test_scores subscription failed", err),
+    ));
+    unsubs.push(onSnapshot(
+      query(collection(db, "gradebook_scores"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setGradebookScoreDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      err => console.error("[ClassDetail] gradebook_scores subscription failed", err),
+    ));
+    unsubs.push(onSnapshot(
+      query(collection(db, "results"), where("schoolId", "==", schoolId), where("classId", "==", classId)),
+      snap => { if (!cancelled) setResultDocs(snap.docs.map(d => ({ ...d.data(), id: d.id }))); },
+      err => console.error("[ClassDetail] results subscription failed", err),
+    ));
+
+    return () => { cancelled = true; unsubs.forEach(u => u()); };
+  }, [classId, teacherData?.schoolId]);
 
   // Mark the tab loading state when switching — purely cosmetic.
   useEffect(() => {
@@ -149,76 +198,88 @@ const ClassDetail = () => {
     return () => clearTimeout(t);
   }, [activeTab]);
 
-  // Fetch students + compute metrics
+  // Roster listener — enrollments for this class (real-time)
   useEffect(() => {
     if (!classId || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
-
-    const q = query(
-      collection(db, "enrollments"),
-      where("schoolId", "==", schoolId),
-      where("classId", "==", classId),
+    let cancelled = false;
+    const unsub = onSnapshot(
+      query(
+        collection(db, "enrollments"),
+        where("schoolId", "==", schoolId),
+        where("classId", "==", classId),
+      ),
+      snap => {
+        if (cancelled) return;
+        setRoster(snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string })));
+        setLoading(false);
+      },
+      err => console.error("[ClassDetail] enrollments subscription failed", err),
     );
-    let ignore = false;
-    const unsub = onSnapshot(q, async (snap) => {
-      const roster = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string }));
+    return () => { cancelled = true; unsub(); };
+  }, [classId, teacherData?.schoolId]);
 
-      const enriched = await Promise.all(roster.map(async (s: Record<string, unknown> & { id: string }) => {
-        const sid = s.studentId;
-        const email = s.studentEmail?.toLowerCase();
+  // ── Synchronous enrichment via useMemo — no more per-student getDocs.
+  // Filters from already-loaded state by 2-tier matching (studentId → email).
+  // 90-day score window applied for performance metric.
+  const allClassScores = useMemo(
+    () => [...testScoreDocs, ...gradebookScoreDocs, ...resultDocs],
+    [testScoreDocs, gradebookScoreDocs, resultDocs]
+  );
 
-        // Attendance
-        const attQueries = await Promise.all([
-          sid ? getDocs(query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-        ]);
-        const uniqueAtt = Array.from(new Map([...attQueries[0].docs, ...attQueries[1].docs].map(d => [d.id, d.data()])).values());
-        const present = uniqueAtt.filter((d: any) => d.status === "present" || d.status === "late").length;
-        const atndRaw = uniqueAtt.length > 0 ? (present / uniqueAtt.length) * 100 : -1;
+  const recentClassScores = useMemo(() => {
+    const cutoff = Date.now() - SCORE_WINDOW_MS;
+    return allClassScores.filter(d => writerTimeMs(d) >= cutoff);
+  }, [allClassScores]);
 
-        // Scores — try test_scores first, fallback to results
-        const scoreQueries = await Promise.all([
-          sid ? getDocs(query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("studentId", "==", sid))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("studentEmail", "==", email))) : Promise.resolve({ docs: [] }),
-          sid ? getDocs(query(collection(db, "results"), where("schoolId", "==", schoolId), where("studentId", "==", sid), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-          email ? getDocs(query(collection(db, "results"), where("schoolId", "==", schoolId), where("studentEmail", "==", email), where("classId", "==", classId))) : Promise.resolve({ docs: [] }),
-        ]);
-        const uniqueScores = Array.from(new Map([
-          ...scoreQueries[0].docs, ...scoreQueries[1].docs,
-          ...scoreQueries[2].docs, ...scoreQueries[3].docs
-        ].map(d => [d.id, d.data()])).values());
-        const totalScore = uniqueScores.reduce((acc, r: any) => acc + parseFloat(r.percentage || r.score || 0), 0);
-        const scoreRaw = uniqueScores.length > 0 ? totalScore / uniqueScores.length : -1;
+  useEffect(() => {
+    // Derive enriched students + stats whenever inputs change
+    const enriched = roster.map((s) => {
+      const sid = s.studentId as string | undefined;
+      const email = (s.studentEmail as string | undefined)?.toLowerCase();
 
-        const initials = getInitials((s as { studentName?: string }).studentName || "ST");
+      // 2-tier student match (id → email)
+      const matchesStudent = (rec: any): boolean => {
+        if (sid && rec.studentId === sid) return true;
+        if (email && (rec.studentEmail as string)?.toLowerCase() === email) return true;
+        return false;
+      };
 
-        const atndDisplay = atndRaw >= 0 ? `${atndRaw.toFixed(1)}%` : "—";
-        const scoreDisplay = scoreRaw >= 0 ? `${scoreRaw.toFixed(1)}%` : "—";
-        const status = getStatus(atndRaw >= 0 ? atndRaw : 100, scoreRaw >= 0 ? scoreRaw : 100, s.manualStatus);
+      // Attendance for THIS class (already class-scoped via attendanceLog listener)
+      const sAtt = attendanceLog.filter(matchesStudent);
+      const present = sAtt.filter((d: any) => d.status === "present" || d.status === "late").length;
+      const atndRaw: number = sAtt.length > 0 ? (present / sAtt.length) * 100 : -1;
 
-        return { ...s, initials, atndRaw, scoreRaw, attendance: atndDisplay, avg: scoreDisplay, status };
-      }));
+      // Scores for THIS class (90d window, 3-source merged) — uses canonical pctOfDoc
+      const sScores = recentClassScores.filter(matchesStudent);
+      const pcts = sScores.map(pctOfDoc).filter((v): v is number => v != null);
+      const scoreRaw: number = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : -1;
 
-      if (ignore) return;
-      setStudents(enriched);
+      const initials = getInitials((s as { studentName?: string }).studentName || "ST");
+      const atndDisplay = atndRaw >= 0 ? `${atndRaw.toFixed(1)}%` : "—";
+      const scoreDisplay = scoreRaw >= 0 ? `${scoreRaw.toFixed(1)}%` : "—";
+      const status = getStatus(atndRaw >= 0 ? atndRaw : 100, scoreRaw >= 0 ? scoreRaw : 100, s.manualStatus as string | undefined);
 
-      const totalAtnd = enriched.filter(s => s.atndRaw >= 0).reduce((a, s) => a + s.atndRaw, 0);
-      const atndCount = enriched.filter(s => s.atndRaw >= 0).length;
-      const totalScore = enriched.filter(s => s.scoreRaw >= 0).reduce((a, s) => a + s.scoreRaw, 0);
-      const scoreCount = enriched.filter(s => s.scoreRaw >= 0).length;
-      const atRisk = enriched.filter(s => s.status === "At Risk").length;
-
-      setStats({
-        totalStudents: enriched.length,
-        attendanceRate: atndCount > 0 ? `${(totalAtnd / atndCount).toFixed(1)}%` : "—",
-        avgScore: scoreCount > 0 ? `${(totalScore / scoreCount).toFixed(1)}%` : "—",
-        atRiskCount: atRisk,
-      });
-      setLoading(false);
+      return { ...s, initials, atndRaw, scoreRaw, attendance: atndDisplay, avg: scoreDisplay, status };
     });
 
-    return () => { ignore = true; unsub(); };
-  }, [classId, teacherData?.schoolId]);
+    setStudents(enriched);
+
+    const validAtnd = enriched.filter(s => s.atndRaw >= 0);
+    const validScore = enriched.filter(s => s.scoreRaw >= 0);
+    const atRisk = enriched.filter(s => s.status === "At Risk").length;
+
+    setStats({
+      totalStudents: enriched.length,
+      attendanceRate: validAtnd.length > 0
+        ? `${(validAtnd.reduce((a, s) => a + s.atndRaw, 0) / validAtnd.length).toFixed(1)}%`
+        : "—",
+      avgScore: validScore.length > 0
+        ? `${(validScore.reduce((a, s) => a + s.scoreRaw, 0) / validScore.length).toFixed(1)}%`
+        : "—",
+      atRiskCount: atRisk,
+    });
+  }, [roster, attendanceLog, recentClassScores]);
 
   // Save subject → update classes doc + all enrollment docs for this class
   const handleSaveSubject = async () => {
@@ -380,9 +441,37 @@ const ClassDetail = () => {
   // ── Performance tab aggregation: top/bottom performers + distribution ──
   const performanceView = useMemo(() => {
     const withScores = students.filter(s => s.scoreRaw >= 0);
-    const sortedByScore = [...withScores].sort((a, b) => b.scoreRaw - a.scoreRaw);
-    const top = sortedByScore.slice(0, 5);
-    const bottom = [...sortedByScore].reverse().slice(0, 5);
+    // Mutually exclusive lists by threshold (no overlap):
+    //   • Top performers    = students with score ≥ 80% (A grade + high B)
+    //   • Needs attention   = students with score < 80% AND ungraded students
+    //                         (the teacher's full intervention watch-list).
+    //                         Sorted: graded-low-first → ungraded last.
+    // For a class of 8 with 2 graded students, this surfaces the 1 below-80%
+    // graded student PLUS the 6 ungraded ones → teacher sees 7 entries total
+    // instead of just 1, matching expected workflow ("show me everyone I
+    // need to follow up on, including ungraded who need to be assessed").
+    const TOP_THRESHOLD = 80;
+    const ATTN_THRESHOLD = 80;
+
+    const top = [...withScores]
+      .filter(s => s.scoreRaw >= TOP_THRESHOLD)
+      .sort((a, b) => b.scoreRaw - a.scoreRaw) // best first
+      .slice(0, 5);
+
+    const bottom = [...students]
+      .filter(s => s.scoreRaw < 0 || s.scoreRaw < ATTN_THRESHOLD)
+      .sort((a, b) => {
+        const aGraded = a.scoreRaw >= 0;
+        const bGraded = b.scoreRaw >= 0;
+        // Graded students first (teacher sees real low scores at top of list),
+        // ungraded students after.
+        if (!aGraded && !bGraded) return 0;
+        if (!aGraded) return 1;
+        if (!bGraded) return -1;
+        return a.scoreRaw - b.scoreRaw; // both graded → ascending (worst first)
+      })
+      .slice(0, 10);
+
     const dist = { A: 0, B: 0, C: 0, D: 0, F: 0 };
     withScores.forEach(s => {
       const p = s.scoreRaw;
@@ -400,7 +489,7 @@ const ClassDetail = () => {
 
   if (loading) return (
     <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-[#1e3272] animate-spin" />
+      <Loader2 className="w-8 h-8 text-[#0055FF] animate-spin" />
     </div>
   );
 
@@ -1127,20 +1216,31 @@ const ClassDetail = () => {
                         </div>
                       </div>
                     </div>
-                    {performanceView.bottom.map((s, i) => (
-                      <div key={s.id}
-                        onClick={() => navigate(`/students?studentId=${s.studentId || s.id}`)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || s.id}`); }}
-                        className="flex items-center gap-[10px] py-[10px] cursor-pointer active:opacity-70 transition"
-                        style={i > 0 ? { borderTop: "0.5px solid rgba(9,87,247,0.07)" } : undefined}>
-                        <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-bold flex items-center justify-center flex-shrink-0"
-                          style={{ background: "rgba(255,51,85,0.12)", color: M.RED }}>!</div>
-                        <div className="flex-1 text-[13px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{s.studentName}</div>
-                        <div className="text-[13px] font-bold" style={{ color: s.scoreRaw >= 60 ? M.GREEN : M.RED, letterSpacing: "-0.3px" }}>{s.avg}</div>
-                      </div>
-                    ))}
+                    {performanceView.bottom.map((s, i) => {
+                      const ungraded = s.scoreRaw < 0;
+                      // Icon + colors: red for genuine low scores, neutral gray
+                      // for ungraded (so "—" doesn't mislead as "alarming").
+                      const iconBg    = ungraded ? "rgba(140,140,160,0.12)" : "rgba(255,51,85,0.12)";
+                      const iconColor = ungraded ? M.T3 : M.RED;
+                      const iconChar  = ungraded ? "?" : "!";
+                      const valueColor = ungraded ? M.T4
+                        : s.scoreRaw >= 60 ? M.GREEN
+                        : M.RED;
+                      return (
+                        <div key={s.id}
+                          onClick={() => navigate(`/students?studentId=${s.studentId || s.id}`)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/students?studentId=${s.studentId || s.id}`); }}
+                          className="flex items-center gap-[10px] py-[10px] cursor-pointer active:opacity-70 transition"
+                          style={i > 0 ? { borderTop: "0.5px solid rgba(9,87,247,0.07)" } : undefined}>
+                          <div className="w-[22px] h-[22px] rounded-[7px] text-[11px] font-bold flex items-center justify-center flex-shrink-0"
+                            style={{ background: iconBg, color: iconColor }}>{iconChar}</div>
+                          <div className="flex-1 text-[13px] font-bold truncate" style={{ color: M.T1, letterSpacing: "-0.2px" }}>{s.studentName}</div>
+                          <div className="text-[13px] font-bold" style={{ color: valueColor, letterSpacing: "-0.3px" }}>{s.avg}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1218,7 +1318,7 @@ const ClassDetail = () => {
                 <button type="button"
                   onClick={handleSaveSubject}
                   disabled={isSavingSubject}
-                  className="h-8 px-3 bg-[#1e3272] text-white rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[#162558]"
+                  className="h-8 px-3 bg-[#0055FF] text-white rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[#1166FF]"
                 >
                   {isSavingSubject ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
@@ -1230,7 +1330,7 @@ const ClassDetail = () => {
             ) : (
               <button type="button"
                 onClick={() => { setTempSubject(classInfo?.subject || teacherData?.subject || ""); setEditingSubject(true); }}
-                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#1e3272] group"
+                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0055FF] group"
               >
                 <span className={classInfo?.subject ? "text-slate-600 font-medium" : "text-slate-400 italic"}>
                   {classInfo?.subject || teacherData?.subject || "Set subject..."}
@@ -1253,7 +1353,7 @@ const ClassDetail = () => {
           </button>
           <button type="button"
             onClick={() => navigate("/attendance")}
-            className="px-5 py-2.5 bg-[#1e3272] text-white rounded-xl text-sm font-semibold hover:bg-[#162558] transition-all"
+            className="px-5 py-2.5 bg-[#0055FF] text-white rounded-xl text-sm font-semibold hover:bg-[#1166FF] transition-all"
           >
             Mark Attendance
           </button>
@@ -1267,40 +1367,122 @@ const ClassDetail = () => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`pb-3 text-sm font-semibold relative transition-colors ${
-              activeTab === tab ? "text-[#1e3272]" : "text-slate-400 hover:text-slate-600"
+              activeTab === tab ? "text-[#0055FF]" : "text-slate-400 hover:text-slate-600"
             }`}
           >
             {tab}
             {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#1e3272] rounded-full" />
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#0055FF] rounded-full" />
             )}
           </button>
         ))}
       </div>
 
-      {/* Stat Cards */}
+      {/* Stat Cards — Dashboard-vibe (tintBg gradient + decorative SVG + colored icon chip) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Students", value: stats.totalStudents, color: "bg-blue-100", route: "/students" },
-          { label: "Attendance", value: stats.attendanceRate, color: "bg-emerald-100", route: "/attendance" },
-          { label: "Avg. Score", value: stats.avgScore, color: "bg-blue-100", route: "/gradebook" },
-          { label: "At Risk", value: stats.atRiskCount, color: "bg-rose-100", route: "/risks-alerts" },
-        ].map(card => (
-          <div
-            key={card.label}
-            onClick={() => navigate(card.route)}
-            role="button"
-            tabIndex={0}
+          {
+            label: "Total Students",
+            val: `${stats.totalStudents}`,
+            color: M.B1,
+            tintBg: "linear-gradient(135deg, #EEF4FF 0%, #E4ECFF 100%)",
+            tintBorder: "rgba(0,85,255,0.10)",
+            sub: stats.totalStudents > 0
+              ? <span className="font-bold" style={{ color: M.GREEN }}>● Enrolled</span>
+              : <span className="font-bold" style={{ color: M.T3 }}>No students yet</span>,
+            icon: <Users className="w-[18px] h-[18px]" strokeWidth={2.4} aria-hidden="true" />,
+            decor: <Users className="w-[60px] h-[60px]" strokeWidth={1.5} aria-hidden="true" />,
+            route: "/students",
+          },
+          {
+            label: "Attendance",
+            val: stats.attendanceRate,
+            color: M.GREEN,
+            tintBg: "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+            tintBorder: "rgba(0,200,83,0.16)",
+            sub: atndNum >= 85
+              ? <span className="font-bold" style={{ color: M.GREEN }}>↑ Strong</span>
+              : atndNum >= 70
+                ? <span className="font-bold" style={{ color: M.ORANGE }}>● Watch</span>
+                : atndNum >= 0
+                  ? <span className="font-bold" style={{ color: M.RED }}>● Needs focus</span>
+                  : <span className="font-bold" style={{ color: M.T3 }}>Awaiting data</span>,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="12" width="4" height="9" rx="1"/>
+                <rect x="10" y="8" width="4" height="13" rx="1"/>
+                <rect x="17" y="4" width="4" height="17" rx="1"/>
+              </svg>
+            ),
+            decor: (
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="13" width="4" height="8" rx="1"/>
+                <rect x="10" y="9" width="4" height="12" rx="1"/>
+                <rect x="17" y="5" width="4" height="16" rx="1"/>
+              </svg>
+            ),
+            route: "/attendance",
+          },
+          {
+            label: "Avg. Score",
+            val: stats.avgScore,
+            color: M.VIOLET,
+            tintBg: "linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)",
+            tintBorder: "rgba(123,63,244,0.12)",
+            sub: stats.avgScore !== "—"
+              ? <span className="font-bold" style={{ color: M.VIOLET }}>● Class average</span>
+              : <span className="font-bold" style={{ color: M.T3 }}>Awaiting data</span>,
+            icon: <TrendingUp className="w-[18px] h-[18px]" strokeWidth={2.4} aria-hidden="true" />,
+            decor: <TrendingUp className="w-[60px] h-[60px]" strokeWidth={1.5} aria-hidden="true" />,
+            route: "/gradebook",
+          },
+          {
+            label: "At Risk",
+            val: `${stats.atRiskCount}`,
+            color: stats.atRiskCount > 0 ? M.RED : M.GREEN,
+            tintBg: stats.atRiskCount > 0
+              ? "linear-gradient(135deg, #FFEEF0 0%, #FFE2E6 100%)"
+              : "linear-gradient(135deg, #E8FBEF 0%, #DAF6E4 100%)",
+            tintBorder: stats.atRiskCount > 0 ? "rgba(255,51,85,0.14)" : "rgba(0,200,83,0.16)",
+            sub: stats.atRiskCount === 0
+              ? <span className="font-bold" style={{ color: M.GREEN }}>✓ All on track</span>
+              : <span className="font-bold" style={{ color: M.RED }}>● Needs outreach</span>,
+            icon: <AlertTriangle className="w-[18px] h-[18px]" strokeWidth={2.4} aria-hidden="true" />,
+            decor: <AlertTriangle className="w-[60px] h-[60px]" strokeWidth={1.5} aria-hidden="true" />,
+            route: "/risks-alerts",
+          },
+        ].map(({ label, val, color, tintBg, tintBorder, sub, icon, decor, route }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => navigate(route)}
             {...tilt3D}
-            className="clickable-card bg-white rounded-2xl p-5 flex items-center gap-4"
-            style={{ boxShadow: M.SH, border: M.BDR, ...tilt3DStyle }}
+            className="rounded-[22px] p-5 relative flex flex-col text-left cursor-pointer overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]/40"
+            style={{
+              background: tintBg,
+              boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)",
+              border: `0.5px solid ${tintBorder}`,
+              ...tilt3DStyle,
+            }}
+            aria-label={`${label}: ${val}`}
           >
-            <div className={`w-12 h-12 rounded-xl flex-shrink-0 ${card.color}`} />
-            <div>
-              <p className="text-2xl font-bold text-slate-800 leading-none mb-1">{card.value}</p>
-              <p className="text-xs text-slate-500 font-medium">{card.label}</p>
+            {/* decorative icon (bottom-right) */}
+            <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color, opacity: 0.22, transform: "translateZ(4px)" }}>
+              {decor}
             </div>
-          </div>
+            {/* top-left icon chip */}
+            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[12px] flex items-center justify-center mb-[14px]"
+              style={{ background: `${color}1F`, color, transform: "translateZ(18px)" }}>
+              {icon}
+            </div>
+            <div className="text-[11px] font-bold uppercase leading-[1.3] mb-[8px]" style={{ color, letterSpacing: "1px", transform: "translateZ(10px)" }}>
+              {label}
+            </div>
+            <div className="text-[36px] font-bold leading-none" style={{ color: M.T1, letterSpacing: "-1.6px", transform: "translateZ(10px)" }}>{val}</div>
+            <div className="text-[12px] font-semibold mt-2 flex items-center gap-[5px] relative" style={{ color: M.T3, letterSpacing: "-0.15px" }}>
+              {sub}
+            </div>
+          </button>
         ))}
       </div>
 
@@ -1403,7 +1585,7 @@ const ClassDetail = () => {
                       <td className="px-6 py-4 text-right">
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/students?studentId=${s.studentId || s.id}`); }}
-                          className="text-sm font-semibold text-[#1e3272] hover:underline"
+                          className="text-sm font-semibold text-[#0055FF] hover:underline"
                         >
                           View Profile
                         </button>
@@ -1435,7 +1617,7 @@ const ClassDetail = () => {
                     onClick={() => goPage(p)}
                     className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
                       p === currentPage
-                        ? "bg-[#1e3272] text-white"
+                        ? "bg-[#0055FF] text-white"
                         : "border border-slate-200 text-slate-500 hover:bg-slate-50"
                     }`}
                   >
@@ -1460,20 +1642,20 @@ const ClassDetail = () => {
         <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
+              <Calendar className="w-4 h-4 text-[#0055FF]" aria-hidden="true" />
               <h2 className="text-base font-bold text-slate-800">Attendance log</h2>
             </div>
             <button
               type="button"
               onClick={() => navigate("/attendance")}
-              className="px-3 h-8 bg-[#1e3272] text-white rounded-lg text-xs font-semibold hover:bg-[#162558]"
+              className="px-3 h-8 bg-[#0055FF] text-white rounded-lg text-xs font-semibold hover:bg-[#1166FF]"
             >
               Mark today
             </button>
           </div>
           {tabLoading ? (
             <div className="p-12 flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" aria-hidden="true" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#0055FF]" aria-hidden="true" />
             </div>
           ) : attendanceByDate.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm">
@@ -1542,20 +1724,20 @@ const ClassDetail = () => {
         <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
+              <FileText className="w-4 h-4 text-[#0055FF]" aria-hidden="true" />
               <h2 className="text-base font-bold text-slate-800">Assignments ({assignmentsView.length})</h2>
             </div>
             <button
               type="button"
               onClick={() => navigate("/assignments")}
-              className="px-3 h-8 bg-[#1e3272] text-white rounded-lg text-xs font-semibold hover:bg-[#162558]"
+              className="px-3 h-8 bg-[#0055FF] text-white rounded-lg text-xs font-semibold hover:bg-[#1166FF]"
             >
               Manage
             </button>
           </div>
           {tabLoading ? (
             <div className="p-12 flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" aria-hidden="true" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#0055FF]" aria-hidden="true" />
             </div>
           ) : assignmentsView.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm">
@@ -1600,20 +1782,20 @@ const ClassDetail = () => {
         <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: M.SH, border: M.BDR }}>
           <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-[#1e3272]" aria-hidden="true" />
+              <GraduationCap className="w-4 h-4 text-[#0055FF]" aria-hidden="true" />
               <h2 className="text-base font-bold text-slate-800">Tests ({testsView.length})</h2>
             </div>
             <button
               type="button"
               onClick={() => navigate("/tests")}
-              className="px-3 h-8 bg-[#1e3272] text-white rounded-lg text-xs font-semibold hover:bg-[#162558]"
+              className="px-3 h-8 bg-[#0055FF] text-white rounded-lg text-xs font-semibold hover:bg-[#1166FF]"
             >
               Manage
             </button>
           </div>
           {tabLoading ? (
             <div className="p-12 flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" aria-hidden="true" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#0055FF]" aria-hidden="true" />
             </div>
           ) : testsView.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm">
@@ -1665,8 +1847,9 @@ const ClassDetail = () => {
         <div className="space-y-4">
           {/* Summary header */}
           <div className="bg-white rounded-2xl p-5 flex items-center gap-5" style={{ boxShadow: M.SH, border: M.BDR }}>
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <TrendingUp className="w-5 h-5 text-[#1e3272]" aria-hidden="true" />
+            <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(0,85,255,0.10)", color: M.B1 }}>
+              <TrendingUp className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-800 leading-none">
@@ -1733,12 +1916,21 @@ const ClassDetail = () => {
                     <p className="text-xs text-slate-400">No scores yet.</p>
                   ) : (
                     <ul className="space-y-2">
-                      {performanceView.bottom.map(s => (
-                        <li key={s.id} className="flex items-center justify-between text-sm">
-                          <span className="text-slate-700 truncate">{s.studentName}</span>
-                          <span className="text-rose-700 font-bold ml-2">{s.avg}</span>
-                        </li>
-                      ))}
+                      {performanceView.bottom.map(s => {
+                        const ungraded = s.scoreRaw < 0;
+                        // Neutral gray for ungraded so "—" doesn't read as alarming
+                        const valueClass = ungraded
+                          ? "text-slate-400 font-bold ml-2"
+                          : s.scoreRaw >= 60
+                            ? "text-amber-700 font-bold ml-2"
+                            : "text-rose-700 font-bold ml-2";
+                        return (
+                          <li key={s.id} className="flex items-center justify-between text-sm">
+                            <span className="text-slate-700 truncate">{s.studentName}</span>
+                            <span className={valueClass}>{s.avg}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
