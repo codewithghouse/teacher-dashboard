@@ -1,7 +1,17 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
+import { db } from "../lib/firebase";
+import {
+  collection, query, where, onSnapshot, doc, serverTimestamp,
+} from "firebase/firestore";
+import { auditedAdd, auditedDelete } from "../lib/auditedWrites";
+import {
+  summaryCacheKey, getInflight, setInflight, lsRead, lsWrite, formatAge,
+  type SummaryFingerprint,
+} from "../lib/summaryCache";
 import * as pdfjsLib from "pdfjs-dist";
 // Bundle the PDF.js worker via Vite so it loads from same-origin (CSP-safe).
 // The previous CDN URL was being blocked by CSP and triggered a `blob:`
@@ -35,44 +45,15 @@ type SummaryDoc = {
   estimated_study_time?: string;
 };
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const T = {
-  hero:  "#08090C",
-  bg:    "#F5F6F9",
-  white: "#ffffff",
-  ink1:  "#08090C",
-  ink2:  "#42475A",
-  ink3:  "#8C92A4",
-  s1:    "#F5F6F9",
-  s2:    "#ECEEF4",
-  bdr:   "#E2E5EE",
-  blue:  "#3B5BDB",
-  blBg:  "#EDF2FF",
-  pur:   "#6741D9",
-  plBg:  "#F3F0FF",
-  plBdr: "#D0BFFF",
-  grn:   "#087F5B",
-  glBg:  "#EBFBEE",
-  red:   "#C92A2A",
-  rlBg:  "#FFF5F5",
-  amb:   "#C87014",
-  alBg:  "#FFF9DB",
-  alBdr: "#FFE066",
-  tea:   "#0C8599",
-  tlBg:  "#E3FAFC",
-};
-
-// ── "What you'll get" items ───────────────────────────────────────────────────
-const WYG_ITEMS = [
-  { label: "Brief summary",         bg: T.plBg, color: T.pur,  icon: <path d="M6 1L7.2 4.2H10L7.8 6L8.5 9L6 7.5L3.5 9L4.2 6L2 4.2H4.8Z" /> },
-  { label: "Key concepts",          bg: T.blBg, color: T.blue, icon: <><circle cx="6" cy="6" r="4.5" /><circle cx="6" cy="6" r="2" /></> },
-  { label: "Section breakdown",     bg: T.glBg, color: T.grn,  icon: <><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="6.5" y2="7" /></> },
-  { label: "Important definitions", bg: T.alBg, color: T.amb,  icon: <><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="7.5" y2="7" /><line x1="3.5" y1="9" x2="6" y2="9" /></> },
-  { label: "Formulas & rules",      bg: T.rlBg, color: T.red,  icon: <><line x1="6" y1="1" x2="6" y2="9" /><line x1="3" y1="9" x2="9" y2="9" /><polyline points="3,4 6,1 9,4" /></> },
-  { label: "Exam important points", bg: T.alBg, color: T.amb,  icon: <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" fill={T.amb} stroke="none" /> },
-  { label: "Quick revision points", bg: T.tlBg, color: T.tea,  icon: <><polyline points="3,8.5 6,3 9,8.5" /><line x1="4" y1="6.5" x2="8" y2="6.5" /></> },
-];
-
+// History row stored in `lessonSummaries`. Same shape pattern as Lesson Planner.
+interface HistoryItem {
+  id: string;
+  fileName?: string;
+  pageCount?: number;
+  summary?: SummaryDoc;
+  createdAt?: { toMillis?: () => number; toDate?: () => Date };
+  [key: string]: unknown;
+}
 
 // ── Main component ────────────────────────────────────────────────────────────
 const SummarizeLesson = () => {
@@ -87,18 +68,78 @@ const SummarizeLesson = () => {
   const [error, setError]                   = useState<string | null>(null);
   const [dragging, setDragging]             = useState(false);
 
-  // ── PDF text extraction ─────────────────────────────────────────────────
+  // P0-2: cache extracted text so we don't run pdfjs twice (handleFile +
+  // handleGenerate were both calling extractTextFromPDF in the old code).
+  const [extractedText, setExtractedText]   = useState<string>("");
+  // P0-1: cached-result badge — when the displayed summary came from cache,
+  // track its age + offer a "Regenerate fresh" override.
+  const [cachedAt, setCachedAt]             = useState<number | null>(null);
+  // P1-5 back-to-form override (Lesson Planner pattern).
+  const [forceShowForm, setForceShowForm]   = useState(false);
+  // P0-5 persistence + history.
+  const [saving, setSaving]                 = useState(false);
+  const [saved, setSaved]                   = useState(false);
+  const [savedId, setSavedId]               = useState<string | null>(null);
+  const [history, setHistory]               = useState<HistoryItem[]>([]);
+  const [historyError, setHistoryError]     = useState<string | null>(null);
+  const [refreshKey, setRefreshKey]         = useState(0);
+  const [showHistory, setShowHistory]       = useState(false);
+
+  // ── PDF text extraction (P0-4: pdf.cleanup + pdf.destroy) ──────────────
   const extractTextFromPDF = async (f: File): Promise<{ text: string; pages: number }> => {
     const buf = await f.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    let full = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      full += `\n\n[Page ${i}]\n${content.items.map((item) => ("str" in item ? item.str : "")).join(" ")}`;
+    try {
+      let full = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        try {
+          const content = await page.getTextContent();
+          full += `\n\n[Page ${i}]\n${content.items.map((item) => ("str" in item ? item.str : "")).join(" ")}`;
+        } finally {
+          // Release decoded page resources — without this, large multi-page
+          // PDFs hold textures in memory until GC eventually fires.
+          page.cleanup();
+        }
+      }
+      return { text: full.trim(), pages: pdf.numPages };
+    } finally {
+      // Tear down the worker connection + cached document data. Critical
+      // when teachers upload multiple PDFs in succession.
+      await pdf.destroy();
     }
-    return { text: full.trim(), pages: pdf.numPages };
   };
+
+  // P0-5 history listener — scoped by schoolId + teacherId.
+  useEffect(() => {
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    setHistoryError(null);
+    let cancelled = false;
+    const q = query(
+      collection(db, "lessonSummaries"),
+      where("schoolId", "==", teacherData.schoolId),
+      where("teacherId", "==", teacherData.id),
+    );
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        if (cancelled) return;
+        const docs = snap.docs.map(d => ({ ...d.data(), id: d.id } as HistoryItem));
+        docs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        setHistory(docs);
+      },
+      (e) => {
+        console.error("[SummarizeLesson] history subscription failed", e);
+        const code = (e as { code?: string })?.code;
+        setHistoryError(
+          code === "permission-denied"
+            ? "Permission denied — check your access."
+            : "Could not load saved summaries.",
+        );
+      },
+    );
+    return () => { cancelled = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleFile = useCallback(async (selectedFile: File) => {
@@ -109,8 +150,12 @@ const SummarizeLesson = () => {
       setError("File size must be under 20 MB."); return;
     }
     setError(null); setSummary(null); setFile(selectedFile); setExtracting(true);
+    setExtractedText(""); setCachedAt(null); setSaved(false); setSavedId(null); setForceShowForm(false);
     try {
-      const { pages } = await extractTextFromPDF(selectedFile);
+      const { text, pages } = await extractTextFromPDF(selectedFile);
+      // P0-2: persist the extracted text — handleGenerate reads it instead
+      // of running pdfjs a second time.
+      setExtractedText(text);
       setPageCount(pages);
     } catch (e) {
       console.error("[SummarizeLesson] PDF extraction failed", e);
@@ -126,24 +171,78 @@ const SummarizeLesson = () => {
     if (dropped) handleFile(dropped);
   }, [handleFile]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (forceFresh = false) => {
     if (!file) return;
-    setLoading(true); setError(null); setSummary(null);
-    try {
-      const { text } = await extractTextFromPDF(file);
+
+    // P0-1: cache lookup. Fingerprint = (filename + size + page count).
+    const fp: SummaryFingerprint = {
+      fileName: file.name,
+      fileSize: file.size,
+      pageCount,
+    };
+    const key = summaryCacheKey(fp);
+
+    if (!forceFresh) {
+      const cached = lsRead(key);
+      if (cached) {
+        setSummary(cached.summary as SummaryDoc);
+        setCachedAt(cached.cachedAt);
+        setError(null); setSaved(false); setForceShowForm(false);
+        toast.success(`Loaded cached summary (${formatAge(cached.cachedAt)}).`);
+        return;
+      }
+      const inflightP = getInflight(key);
+      if (inflightP) {
+        setLoading(true); setError(null); setForceShowForm(false);
+        try {
+          const s = await inflightP;
+          setSummary(s as SummaryDoc); setCachedAt(null);
+          toast.success("Summary ready.");
+        } catch {
+          setError("Something went wrong. Please try again.");
+        } finally { setLoading(false); }
+        return;
+      }
+    }
+
+    setLoading(true); setError(null); setSummary(null); setCachedAt(null); setForceShowForm(false);
+    setSaved(false); setSavedId(null);
+
+    // P0-2: prefer the cached extracted text. If the user uploaded a fresh
+    // file mid-session and we don't have it (edge case), re-extract once.
+    const aiCall: Promise<SummaryDoc> = (async () => {
+      let text = extractedText;
+      if (!text) {
+        const r = await extractTextFromPDF(file);
+        text = r.text;
+        setExtractedText(text); // back-fill so future calls skip extraction
+      }
       if (!text.trim()) {
-        setError("No readable text found. This may be an image-based PDF.");
-        setLoading(false); return;
+        throw new Error("No readable text found. This may be an image-based PDF.");
       }
       const result = await AIController.getSummary({ text, fileName: file.name });
-      if (result.status === "success" && result.data) {
-        setSummary(result.data as SummaryDoc);
-      } else {
-        setError((result as { message?: string }).message || "AI could not generate summary. Please try again.");
+      if (result.status !== "success" || !result.data) {
+        throw new Error(
+          (result as { message?: string }).message ||
+          "AI could not generate summary. Please try again.",
+        );
       }
-    } catch (e) {
+      return result.data as SummaryDoc;
+    })();
+
+    setInflight(key, aiCall as Promise<Record<string, unknown>>);
+
+    try {
+      const generated = await aiCall;
+      setSummary(generated);
+      lsWrite(key, generated as Record<string, unknown>);
+      if (forceFresh) toast.success("Summary regenerated.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Something went wrong. Please try again.";
       console.error("[SummarizeLesson] AI call failed", e);
-      setError("Something went wrong. Please try again.");
+      // P1-7: surface specific error codes when present.
+      const code = (e as { code?: string })?.code;
+      setError(code === "permission-denied" ? "Permission denied — check your access." : msg);
     } finally {
       setLoading(false);
     }
@@ -151,14 +250,449 @@ const SummarizeLesson = () => {
 
   const handleReset = () => {
     setFile(null); setPageCount(0); setSummary(null); setError(null);
+    setExtractedText(""); setCachedAt(null); setSaved(false); setSavedId(null);
+    setForceShowForm(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // P0-5 save the summary to Firestore so it's recoverable on refresh +
+  // listed in history. Idempotent enough — clicking Save twice creates two
+  // entries (acceptable; teacher can delete dupes). Captures docRef.id so
+  // future delete-while-open clears the saved badge cleanly.
+  const handleSave = async () => {
+    if (!summary || !file || !teacherData?.id) return;
+    setSaving(true);
+    try {
+      const docRef = await auditedAdd(collection(db, "lessonSummaries"), {
+        teacherId: teacherData.id,
+        schoolId: teacherData.schoolId || "",
+        teacherName: teacherData.name || teacherData.displayName || "",
+        fileName: file.name,
+        fileSize: file.size,
+        pageCount,
+        summary,
+        createdAt: serverTimestamp(),
+        source: "ai_summary",
+      });
+      setSaved(true); setSavedId(docRef.id);
+      toast.success("Summary saved.");
+    } catch (e) {
+      console.error("[SummarizeLesson] save failed", e);
+      const code = (e as { code?: string })?.code;
+      toast.error(code === "permission-denied" ? "Permission denied — Firestore rules may not be deployed yet." : "Failed to save summary.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteHistory = async (h: HistoryItem) => {
+    const label = h.fileName || "this summary";
+    const ok = window.confirm(`Delete saved summary for "${label}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await auditedDelete(doc(db, "lessonSummaries", h.id));
+      toast.success("Summary deleted.");
+      if (savedId === h.id) { setSaved(false); setSavedId(null); }
+    } catch (e) {
+      console.error("[SummarizeLesson] delete failed", e);
+      toast.error("Failed to delete summary.");
+    }
+  };
+
+  const loadFromHistory = (h: HistoryItem) => {
+    setSummary(h.summary ?? null);
+    setSaved(true); setSavedId(h.id); setCachedAt(null); setForceShowForm(false);
+    setShowHistory(false);
+    toast.success(`Loaded saved summary for "${h.fileName || "lesson"}".`);
+  };
+
+  // P1-4 copy + P1-1 print helpers
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch { /* fall through */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch { return false; }
+  };
+
+  const summaryToText = (s: SummaryDoc | null, fileName?: string): string => {
+    if (!s) return "";
+    const lines: string[] = [];
+    if (s.title || fileName) lines.push((s.title || fileName?.replace(/\.pdf$/i, "")) || "Summary");
+    if (s.estimated_study_time) lines.push(`Estimated study time: ${s.estimated_study_time}`);
+    if (s.brief_summary || s.summary) {
+      lines.push("\nBrief Summary:");
+      lines.push(String(s.brief_summary || s.summary));
+    }
+    if (s.key_concepts?.length) {
+      lines.push("\nKey Concepts:");
+      s.key_concepts.forEach((c) => {
+        const text = typeof c === "string" ? c : `${c.concept || ""}: ${c.explanation || c.definition || ""}`;
+        lines.push(`· ${text}`);
+      });
+    }
+    const defs = s.important_definitions ?? s.definitions ?? [];
+    if (defs.length) {
+      lines.push("\nImportant Definitions:");
+      defs.forEach((d) => lines.push(`· ${d.term}: ${d.definition || d.meaning || ""}`));
+    }
+    const formulas = s.key_formulas_or_rules ?? s.formulas ?? [];
+    if (formulas.length) {
+      lines.push("\nFormulas & Rules:");
+      formulas.forEach((f) => lines.push(`· ${typeof f === "string" ? f : f.formula || ""}`));
+    }
+    const sections = s.section_breakdown ?? s.sections ?? [];
+    if (sections.length) {
+      lines.push("\nSection Breakdown:");
+      sections.forEach((sec) => {
+        lines.push(`\n${sec.section || sec.title || "Section"}`);
+        (sec.points || []).forEach((p) => lines.push(`  · ${p}`));
+      });
+    }
+    const exam = s.exam_important_points ?? s.exam_points ?? [];
+    if (exam.length) {
+      lines.push("\nExam Important Points:");
+      exam.forEach((p) => lines.push(`· ${typeof p === "string" ? p : p.point || p.text || ""}`));
+    }
+    const revise = s.quick_revision ?? s.revision_points ?? [];
+    if (revise.length) {
+      lines.push("\nQuick Revision:");
+      revise.forEach((p) => lines.push(`· ${typeof p === "string" ? p : p.point || p.text || ""}`));
+    }
+    return lines.join("\n");
+  };
+
+  const handleCopySummary = async () => {
+    if (!summary) return;
+    const ok = await copyToClipboard(summaryToText(summary, file?.name));
+    if (ok) toast.success("Summary copied to clipboard.");
+    else toast.error("Copy failed — your browser blocked clipboard access.");
+  };
+
+  const handlePrintSummary = () => window.print();
+
+  // ── Word export ─────────────────────────────────────────────────────────
+  // Format the summary as styled HTML and download with the .doc extension +
+  // Microsoft Word MIME. Word, Google Docs, Pages, LibreOffice — all open
+  // it natively with the formatting intact. No new dependency needed.
+  // Replaces the previous "dump JSON.stringify into a .txt file" behaviour
+  // which was unreadable for teachers.
+  const escapeHtml = (s: unknown): string =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+  const summaryToHtml = (s: SummaryDoc | null, fileName?: string): string => {
+    if (!s) return "";
+    const title = escapeHtml(s.title || fileName?.replace(/\.pdf$/i, "") || "Lesson Summary");
+    const subtitle = s.estimated_study_time ? `Estimated study time: ${escapeHtml(s.estimated_study_time)}` : "";
+
+    const sections: string[] = [];
+    const brief = s.brief_summary || s.summary;
+    if (brief) {
+      sections.push(`<h2>Brief Summary</h2><p>${escapeHtml(brief)}</p>`);
+    }
+    if (s.key_concepts?.length) {
+      const items = s.key_concepts.map((c) => {
+        if (typeof c === "string") return `<li>${escapeHtml(c)}</li>`;
+        return `<li><strong>${escapeHtml(c.concept || "")}</strong>${c.concept ? ": " : ""}${escapeHtml(c.explanation || c.definition || "")}</li>`;
+      }).join("");
+      sections.push(`<h2>Key Concepts</h2><ul>${items}</ul>`);
+    }
+    const defs = s.important_definitions ?? s.definitions ?? [];
+    if (defs.length) {
+      const items = defs.map((d) => `<li><strong>${escapeHtml(d.term)}</strong>: ${escapeHtml(d.definition || d.meaning || "")}</li>`).join("");
+      sections.push(`<h2>Important Definitions</h2><ul>${items}</ul>`);
+    }
+    const formulas = s.key_formulas_or_rules ?? s.formulas ?? [];
+    if (formulas.length) {
+      const items = formulas.map((f) => `<li style="font-family: 'Courier New', monospace;">${escapeHtml(typeof f === "string" ? f : f.formula || "")}</li>`).join("");
+      sections.push(`<h2>Formulas &amp; Rules</h2><ul>${items}</ul>`);
+    }
+    const secs = s.section_breakdown ?? s.sections ?? [];
+    if (secs.length) {
+      const items = secs.map((sec) => {
+        const points = (sec.points || []).map((p) => `<li>${escapeHtml(p)}</li>`).join("");
+        return `<h3>${escapeHtml(sec.section || sec.title || "Section")}</h3>${points ? `<ul>${points}</ul>` : ""}`;
+      }).join("");
+      sections.push(`<h2>Section Breakdown</h2>${items}`);
+    }
+    const exam = s.exam_important_points ?? s.exam_points ?? [];
+    if (exam.length) {
+      const items = exam.map((p) => `<li>${escapeHtml(typeof p === "string" ? p : p.point || p.text || "")}</li>`).join("");
+      sections.push(`<h2>Exam Important Points</h2><ul>${items}</ul>`);
+    }
+    const revise = s.quick_revision ?? s.revision_points ?? [];
+    if (revise.length) {
+      const items = revise.map((p) => `<li>${escapeHtml(typeof p === "string" ? p : p.point || p.text || "")}</li>`).join("");
+      sections.push(`<h2>Quick Revision</h2><ul>${items}</ul>`);
+    }
+
+    return `<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset='utf-8'>
+<title>${title}</title>
+<style>
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; color: #1f2937; line-height: 1.55; padding: 40px; }
+  h1 { font-size: 24pt; color: #001040; margin: 0 0 4pt; border-bottom: 2pt solid #0055FF; padding-bottom: 6pt; }
+  .subtitle { font-size: 10pt; color: #5070B0; margin: 0 0 18pt; font-style: italic; }
+  h2 { font-size: 14pt; color: #0055FF; margin: 18pt 0 6pt; }
+  h3 { font-size: 12pt; color: #002080; margin: 12pt 0 4pt; }
+  p { font-size: 11pt; margin: 6pt 0; }
+  ul { margin: 4pt 0 8pt 22pt; padding: 0; }
+  li { font-size: 11pt; margin-bottom: 3pt; }
+  strong { color: #001040; }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ""}
+  ${sections.join("\n")}
+</body>
+</html>`;
+  };
+
+  const handleExportWord = () => {
+    if (!summary) return;
+    try {
+      const html = summaryToHtml(summary, file?.name);
+      // application/msword + .doc extension is the most-compatible combo:
+      // Word, Google Docs, Pages, LibreOffice all open this with the
+      // styled HTML rendered as a document.
+      const blob = new Blob(["﻿", html], { type: "application/msword" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const baseName = (file?.name || "summary").replace(/\.pdf$/i, "");
+      a.href = url;
+      a.download = `${baseName}_summary.doc`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Word document downloaded.");
+    } catch (e) {
+      console.error("[SummarizeLesson] export failed", e);
+      toast.error("Export failed.");
+    }
+  };
+
+  // P1-3 Cmd/Ctrl+Enter triggers Generate from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !loading && !extracting && file) {
+        e.preventDefault();
+        handleGenerate();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // handleGenerate captures via closure; binding it would re-bind on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, extracting, file]);
+
   // ── Render ──────────────────────────────────────────────────────────────
-  const showResult = summary && !loading;
+  // forceShowForm overrides — when teacher clicks Back from result, show form
+  // even though `summary` is still in memory.
+  const showResult = !!summary && !loading && !forceShowForm;
 
   return (
     <>
+
+    {/* P1-6 history-listener failure banner with one-tap retry */}
+    {historyError && (
+      <div style={{
+        margin: "10px 16px",
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 12px", borderRadius: 12,
+        background: "#FFF5F5", border: "0.5px solid #FFD8D8",
+      }}>
+        <div style={{ flex: 1, fontSize: 12, color: "#C92A2A", fontWeight: 500, lineHeight: 1.45 }}>
+          {historyError}
+        </div>
+        <button
+          type="button"
+          onClick={() => { setHistoryError(null); setRefreshKey(k => k + 1); }}
+          style={{
+            padding: "6px 12px", borderRadius: 9, border: "none", cursor: "pointer",
+            background: "#C92A2A", color: "#fff", fontSize: 11, fontWeight: 700,
+            fontFamily: "inherit",
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    )}
+
+    {/* P0-1 cache-result badge — shows above result view */}
+    {showResult && cachedAt != null && (
+      <div className="exam-no-print" style={{
+        margin: "8px 16px 0",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 10, padding: "10px 12px", borderRadius: 12,
+        background: "rgba(123,63,244,0.07)", border: "0.5px solid rgba(123,63,244,0.20)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, color: "#7B3FF4", letterSpacing: "0.4px", textTransform: "uppercase" }}>
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 1L7.5 4H10L8 6L8.8 9L6 7.5L3.2 9L4 6L2 4H4.5Z" />
+          </svg>
+          Cached · {formatAge(cachedAt)} · No new AI billed
+        </div>
+        <button type="button"
+          onClick={() => handleGenerate(true)}
+          disabled={loading}
+          style={{
+            fontSize: 11, fontWeight: 700, color: "#7B3FF4",
+            background: "none", border: "none", padding: 0,
+            cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+          }}>
+          Regenerate fresh
+        </button>
+      </div>
+    )}
+
+    {/* P1-1, P1-2, P0-5 result-view toolbar — Back / Save / Copy / Print */}
+    {showResult && (
+      <div className="exam-no-print" style={{
+        margin: "8px 16px 0", display: "flex", flexWrap: "wrap", gap: 8,
+      }}>
+        <button type="button"
+          onClick={() => setForceShowForm(true)}
+          aria-label="Back to form"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "8px 12px", borderRadius: 11, border: "0.5px solid rgba(0,85,255,.18)",
+            background: "#fff", color: "#001040", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back
+        </button>
+        <button type="button"
+          onClick={handleSave}
+          disabled={saving || saved}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "8px 14px", borderRadius: 11, border: "none",
+            background: saved ? "rgba(0,200,83,.10)" : "#0055FF",
+            color: saved ? "#00C853" : "#fff",
+            fontSize: 12, fontWeight: 700, cursor: saving || saved ? "default" : "pointer",
+            fontFamily: "inherit", letterSpacing: "-0.1px",
+            boxShadow: saved ? "none" : "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)",
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          {saving ? <Loader2 className="animate-spin" style={{ width: 13, height: 13 }} /> : (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              {saved
+                ? <polyline points="20 6 9 17 4 12"/>
+                : <><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>}
+            </svg>
+          )}
+          {saved ? "Saved" : saving ? "Saving…" : "Save"}
+        </button>
+        <button type="button"
+          onClick={handleCopySummary}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "8px 12px", borderRadius: 11, border: "0.5px solid rgba(0,85,255,.18)",
+            background: "#fff", color: "#001040", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          Copy
+        </button>
+        <button type="button"
+          onClick={handleExportWord}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "8px 12px", borderRadius: 11, border: "0.5px solid rgba(0,85,255,.18)",
+            background: "#fff", color: "#001040", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Word
+        </button>
+        <button type="button"
+          onClick={handlePrintSummary}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "8px 12px", borderRadius: 11, border: "0.5px solid rgba(0,85,255,.18)",
+            background: "#fff", color: "#001040", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", letterSpacing: "-0.1px",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print / PDF
+        </button>
+      </div>
+    )}
+
+    {/* "View summary" banner — compact one-line chip when teacher hit Back.
+        Smaller footprint than before so it doesn't dominate the form view. */}
+    {!showResult && summary && forceShowForm && (
+      <button
+        type="button"
+        onClick={() => setForceShowForm(false)}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          margin: "8px 16px 0", padding: "7px 11px 7px 8px",
+          borderRadius: 10, border: "0.5px solid rgba(0,85,255,.18)",
+          background: "rgba(0,85,255,.05)",
+          cursor: "pointer", fontFamily: "inherit", width: "calc(100% - 32px)",
+          textAlign: "left",
+        }}
+      >
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: "#0055FF",
+          letterSpacing: "1.2px", textTransform: "uppercase",
+          padding: "2px 7px", borderRadius: 6,
+          background: "rgba(0,85,255,.10)",
+          flexShrink: 0,
+        }}>
+          Summary ready
+        </span>
+        <span style={{
+          fontSize: 12, fontWeight: 700, color: "#001040",
+          letterSpacing: "-0.15px", flex: 1, minWidth: 0,
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>
+          {summary.title || file?.name || "Tap to view"}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0055FF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    )}
+
+    {/* Saved-summaries flyout removed from top per user feedback —
+     * data still persists to Firestore via Save button + listener so the
+     * history is preserved for a future side-panel surfacing. handleSave,
+     * handleDeleteHistory, loadFromHistory, history state all retained
+     * for that future use. */}
 
     {/* ═══════════════════ MOBILE VIEW (new mockup) ═══════════════════ */}
     <MobileSummarizeLesson
@@ -166,14 +700,16 @@ const SummarizeLesson = () => {
       pageCount={pageCount}
       extracting={extracting}
       loading={loading}
-      summary={summary}
+      summary={forceShowForm ? null : summary}
       error={error}
       dragging={dragging}
       setDragging={setDragging}
       onDrop={handleDrop}
       onPickFile={handleFile}
       onReset={handleReset}
-      onGenerate={handleGenerate}
+      onGenerate={() => handleGenerate()}
+      onExportWord={handleExportWord}
+      onCopy={handleCopySummary}
       fileInputRef={fileInputRef}
     />
 
@@ -183,390 +719,26 @@ const SummarizeLesson = () => {
       pageCount={pageCount}
       extracting={extracting}
       loading={loading}
-      summary={summary}
+      summary={forceShowForm ? null : summary}
       error={error}
       dragging={dragging}
       setDragging={setDragging}
       onDrop={handleDrop}
       onPickFile={handleFile}
       onReset={handleReset}
-      onGenerate={handleGenerate}
+      onGenerate={() => handleGenerate()}
+      onExportWord={handleExportWord}
+      onCopy={handleCopySummary}
       fileInputRef={fileInputRef}
     />
-    {/* Legacy desktop wrapper — kept but never rendered; result view falls through */}
-    <div className="hidden" style={{ minHeight: "100vh", background: "#EEF4FF", paddingBottom: 0 }}>
 
-      {/* ═══ DARK HERO (form view only) ══════════════════════════════════ */}
-      {!showResult && (
-        <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 bg-[#001A66] md:bg-[#08090C]" style={{ padding: "18px 22px 22px" }}>
-          {/* AI badge */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, background: "rgba(103,65,217,0.25)", border: "1px solid rgba(103,65,217,0.4)", marginBottom: 10 }}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke={T.plBdr} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 1L6.5 4H9L7 6L7.8 9L5 7.5L2.2 9L3 6L1 4H3.5Z" />
-            </svg>
-            <span style={{ fontSize: 9, fontWeight: 500, color: T.plBdr, letterSpacing: "0.05em", textTransform: "uppercase" }}>AI powered</span>
-          </div>
-
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px", lineHeight: 1.1, marginBottom: 5 }}>
-            Summarize<br />lesson
-          </h1>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em", lineHeight: 1.5 }}>
-            Upload any PDF — AI reads &<br />summarizes it instantly
-          </p>
-
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 12, padding: "5px 10px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)" }}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="1" width="8" height="8" rx="1.5" /><line x1="3" y1="4" x2="7" y2="4" /><line x1="3" y1="6" x2="5.5" y2="6" />
-            </svg>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{teacherData?.schoolName || "Edullent"} engine</span>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ PURPLE GRADIENT HERO (result view) ══════════════════════════ */}
-      {showResult && (
-        <div className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8" style={{ background: "linear-gradient(145deg, #4A2FD6 0%, #6741D9 100%)", padding: "18px 18px 20px" }}>
-          {/* File chip */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "7px 10px" }}>
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="1" width="9" height="11" rx="1.5" /><line x1="4.5" y1="5" x2="8.5" y2="5" /><line x1="4.5" y1="7.5" x2="7" y2="7.5" />
-            </svg>
-            <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)", flex: 1 }}>{file?.name}</span>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{file ? `${(file.size / 1024).toFixed(0)} KB` : ""}</span>
-          </div>
-
-          <h2 style={{ fontSize: 18, fontWeight: 500, color: "#fff", letterSpacing: "-0.3px", lineHeight: 1.15, marginBottom: 6 }}>
-            {summary.title || file?.name?.replace(".pdf", "")} —<br />Complete Summary
-          </h2>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>
-            AI has analysed your PDF and extracted key information across multiple categories.
-          </p>
-
-          {/* Chips */}
-          <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
-            <RHChip icon="check" text="Summarised" />
-            <RHChip icon="doc" text={`${pageCount} pages`} />
-            {summary.estimated_study_time && <RHChip icon="clock" text={summary.estimated_study_time} />}
-          </div>
-        </div>
-      )}
-
-      {/* ═══ BODY ════════════════════════════════════════════════════════ */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: showResult ? 14 : 14 }}>
-
-        {/* ── FORM VIEW ──────────────────────────────────────────────── */}
-        {!showResult && !loading && (
-          <>
-            {/* Upload card */}
-            <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: "hidden" }}>
-              <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.s2}`, display: "flex", alignItems: "center", gap: 9 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 9, background: T.plBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.pur} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6.5,2 6.5,9" /><polyline points="3.5,5 6.5,2 9.5,5" /><line x1="2" y1="11" x2="11" y2="11" />
-                  </svg>
-                </div>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1, margin: 0 }}>Upload PDF</p>
-                  <p style={{ fontSize: 10, color: T.ink3, marginTop: 1 }}>Max 20 MB · Text-based PDF only</p>
-                </div>
-              </div>
-
-              <div style={{ padding: "13px 14px" }}>
-                {!file ? (
-                  /* Dropzone */
-                  <div
-                    onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      border: `1.5px dashed ${dragging ? T.pur : T.plBdr}`,
-                      borderRadius: 14, padding: "28px 14px",
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                      cursor: "pointer", position: "relative",
-                      background: dragging ? `${T.pur}18` : T.plBg,
-                      transition: "background 80ms, border-color 80ms",
-                    }}
-                  >
-                    <span style={{ position: "absolute", top: 10, right: 10, fontSize: 9, fontWeight: 500, color: T.pur, opacity: 0.5, background: `${T.pur}18`, padding: "3px 7px", borderRadius: 20 }}>
-                      Max 20 MB
-                    </span>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: `${T.pur}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={T.pur} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="2" width="14" height="16" rx="2" /><line x1="6.5" y1="7" x2="13.5" y2="7" /><line x1="6.5" y1="10" x2="13.5" y2="10" /><line x1="6.5" y1="13" x2="10" y2="13" />
-                      </svg>
-                    </div>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: T.pur }}>Drop PDF here</p>
-                    <p style={{ fontSize: 11, color: T.pur, opacity: 0.55 }}>or tap to browse files</p>
-                    <input ref={fileInputRef} type="file" accept="application/pdf" style={{ display: "none" }}
-                      onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
-                    />
-                  </div>
-                ) : (
-                  /* File selected */
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: T.plBg, border: `1px solid ${T.plBdr}`, borderRadius: 14 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 11, background: T.white, border: `1px solid ${T.plBdr}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {extracting ? (
-                        <Loader2 style={{ width: 16, height: 16, color: T.pur }} className="animate-spin" />
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 13 13" fill="none" stroke={T.pur} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="1" width="9" height="11" rx="1.5" /><line x1="4.5" y1="5" x2="8.5" y2="5" /><line x1="4.5" y1="7.5" x2="7" y2="7.5" />
-                        </svg>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
-                      <p style={{ fontSize: 10, fontWeight: 500, color: T.pur, marginTop: 2 }}>
-                        {extracting ? "Reading PDF..." : `${pageCount} pages · ${(file.size / 1024).toFixed(0)} KB`}
-                      </p>
-                    </div>
-                    <button type="button" onClick={handleReset} style={{ width: 28, height: 28, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.8" strokeLinecap="round">
-                        <line x1="3" y1="3" x2="11" y2="11" /><line x1="11" y1="3" x2="3" y2="11" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* What you'll get */}
-            <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: "hidden" }}>
-              <div style={{ padding: "11px 14px", borderBottom: `1px solid ${T.s2}`, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 8, background: T.plBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.pur} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 1L7.2 4.2H10L7.8 6L8.5 9L6 7.5L3.5 9L4.2 6L2 4.2H4.8Z" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: T.ink1 }}>What you'll get</span>
-              </div>
-              <div style={{ padding: "0 14px" }}>
-                {WYG_ITEMS.map(item => (
-                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: `1px solid ${T.s2}` }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 8, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={item.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        {item.icon}
-                      </svg>
-                    </div>
-                    <span style={{ fontSize: 12, color: T.ink2 }}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 13px", background: T.rlBg, border: `1px solid #FFC9C9`, borderRadius: 13 }}>
-                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.red} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="7" cy="7" r="5.5" /><line x1="7" y1="4.5" x2="7" y2="7.5" /><circle cx="7" cy="9.5" r=".7" fill={T.red} stroke="none" />
-                </svg>
-                <p style={{ fontSize: 11, fontWeight: 500, color: T.red, margin: 0 }}>{error}</p>
-              </div>
-            )}
-
-            {/* Summarize button */}
-            <button type="button"
-              onClick={handleGenerate}
-              disabled={!file || extracting || loading}
-              style={{
-                width: "100%", padding: 13, borderRadius: 13,
-                background: T.pur, border: "none", color: "#fff",
-                fontSize: 13, fontWeight: 500, cursor: !file || extracting ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                opacity: !file || extracting ? 0.5 : 1,
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 1L8.5 5H12L9.5 7.5L10.5 11.5L7 9.5L3.5 11.5L4.5 7.5L2 5H5.5Z" />
-              </svg>
-              Summarize PDF
-            </button>
-
-            {/* Empty result state */}
-            <div style={{
-              background: T.white, border: `1.5px dashed ${T.bdr}`, borderRadius: 18,
-              padding: "32px 14px",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center",
-            }}>
-              <div style={{ width: 48, height: 48, borderRadius: 15, background: T.s2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke={T.ink3} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="2" width="14" height="16" rx="2" /><line x1="6.5" y1="7" x2="13.5" y2="7" /><line x1="6.5" y1="10" x2="13.5" y2="10" /><line x1="6.5" y1="13" x2="10" y2="13" />
-                </svg>
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 500, color: T.ink2 }}>Your summary will appear here</p>
-              <p style={{ fontSize: 11, color: T.ink3, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 }}>Upload a PDF and click summarize</p>
-            </div>
-          </>
-        )}
-
-        {/* ── LOADING ────────────────────────────────────────────────── */}
-        {loading && (
-          <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: `${T.pur}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Loader2 style={{ width: 28, height: 28, color: T.pur }} className="animate-spin" />
-            </div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1 }}>AI is reading and summarizing...</p>
-            <p style={{ fontSize: 10, color: T.ink3, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.07em" }}>This may take 15-30 seconds</p>
-            <div style={{ width: "100%", maxWidth: 220, display: "flex", flexDirection: "column", gap: 6 }}>
-              {[90, 60, 80, 45, 70].map((w, i) => (
-                <div key={i} style={{ height: 3, background: T.s2, borderRadius: 2, width: `${w}%` }} className="animate-pulse" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── RESULT VIEW ────────────────────────────────────────────── */}
-        {showResult && (
-          <>
-            {/* Brief summary */}
-            {summary.brief_summary && (
-              <SumSec title="Brief summary" bg={T.plBg} color={T.pur}
-                icon={<path d="M6 1L7.2 4.2H10L7.8 6L8.5 9L6 7.5L3.5 9L4.2 6L2 4.2H4.8Z" />}
-              >
-                <p style={{ fontSize: 12, color: T.ink2, lineHeight: 1.6, margin: 0 }}>{summary.brief_summary}</p>
-              </SumSec>
-            )}
-
-            {/* Key concepts */}
-            {summary.key_concepts?.length > 0 && (
-              <SumSec title="Key concepts" bg={T.blBg} color={T.blue} count={summary.key_concepts.length}
-                icon={<><circle cx="6" cy="6" r="4.5" /><circle cx="6" cy="6" r="2" /></>}
-                noPad
-              >
-                {summary.key_concepts.map((kc: KeyConcept, i: number) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: i < summary.key_concepts.length - 1 ? `1px solid ${T.s2}` : "none" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: T.blBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: T.blue, flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
-                    <div>
-                      <p style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5, margin: 0 }}>{typeof kc === "string" ? kc : kc.explanation || kc.concept}</p>
-                      {typeof kc !== "string" && kc.concept && (
-                        <span style={{ fontSize: 10, fontWeight: 500, color: T.pur, background: T.plBg, padding: "2px 7px", borderRadius: 20, marginTop: 3, display: "inline-block" }}>{kc.concept}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </SumSec>
-            )}
-
-            {/* Important definitions */}
-            {summary.important_definitions?.length > 0 && (
-              <SumSec title="Important definitions" bg={T.alBg} color={T.amb} count={summary.important_definitions.length}
-                icon={<><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="7.5" y2="7" /></>}
-                noPad
-              >
-                {summary.important_definitions.map((d: Definition, i: number) => (
-                  <div key={i} style={{ padding: "9px 0", borderBottom: i < summary.important_definitions.length - 1 ? `1px solid ${T.s2}` : "none" }}>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: 0 }}>{d.term}</p>
-                    <p style={{ fontSize: 11, color: T.ink3, marginTop: 2, lineHeight: 1.4 }}>{d.definition}</p>
-                  </div>
-                ))}
-              </SumSec>
-            )}
-
-            {/* Exam important points */}
-            {summary.exam_important_points?.length > 0 && (
-              <SumSec title="Exam important points" bg={T.alBg} color={T.amb} count={summary.exam_important_points.length}
-                icon={<polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" fill={T.amb} stroke="none" />}
-                noPad
-              >
-                {summary.exam_important_points.map((pt: string, i: number) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "7px 0", borderBottom: i < summary.exam_important_points.length - 1 ? `1px solid ${T.s2}` : "none" }}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" style={{ flexShrink: 0, marginTop: 1 }}>
-                      <polygon points="8,1.5 10,6 15,6.5 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,6.5 6,6" fill={T.amb} />
-                    </svg>
-                    <p style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5, margin: 0 }}>{pt}</p>
-                  </div>
-                ))}
-              </SumSec>
-            )}
-
-            {/* Formulas & rules */}
-            {summary.key_formulas_or_rules?.length > 0 && (
-              <SumSec title="Formulas & rules" bg={T.rlBg} color={T.red}
-                icon={<><line x1="6" y1="1" x2="6" y2="9" /><line x1="3" y1="9" x2="9" y2="9" /><polyline points="3,4 6,1 9,4" /></>}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {summary.key_formulas_or_rules.map((f: string, i: number) => (
-                    <div key={i} style={{ padding: "8px 12px", background: T.rlBg, border: `1px solid #FFC9C9`, borderRadius: 10 }}>
-                      <p style={{ fontSize: 11, fontWeight: 500, color: T.red, fontFamily: "monospace", lineHeight: 1.5, margin: 0 }}>{f}</p>
-                    </div>
-                  ))}
-                </div>
-              </SumSec>
-            )}
-
-            {/* Quick revision */}
-            {summary.quick_revision?.length > 0 && (
-              <SumSec title="Quick revision points" bg={T.tlBg} color={T.tea} count={summary.quick_revision.length}
-                icon={<><polyline points="3,8.5 6,3 9,8.5" /><line x1="4" y1="6.5" x2="8" y2="6.5" /></>}
-                noPad
-              >
-                {summary.quick_revision.map((pt: string, i: number) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: i < summary.quick_revision.length - 1 ? `1px solid ${T.s2}` : "none" }}>
-                    <div style={{ width: 22, height: 22, borderRadius: 7, background: T.alBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="10" height="10" viewBox="0 0 11 11" fill="none" stroke={T.amb} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6.5,1 3.5,6 6,6 4.5,10 8,5 5.5,5Z" />
-                      </svg>
-                    </div>
-                    <p style={{ fontSize: 12, color: T.ink2, margin: 0 }}>{pt}</p>
-                  </div>
-                ))}
-              </SumSec>
-            )}
-
-            {/* Section breakdown */}
-            {summary.section_breakdown?.length > 0 && (
-              <SumSec title="Section breakdown" bg={T.glBg} color={T.grn}
-                icon={<><rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="6.5" y2="7" /></>}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {summary.section_breakdown.map((sec: SectionBreak, i: number) => (
-                    <div key={i} style={{ padding: "8px 10px", background: T.glBg, border: `1px solid ${T.bdr}`, borderRadius: 12 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: "0 0 4px" }}>{sec.section}</p>
-                      {sec.points?.map((pt: string, pi: number) => (
-                        <p key={pi} style={{ fontSize: 11, color: T.ink2, lineHeight: 1.5, margin: "2px 0", display: "flex", alignItems: "flex-start", gap: 5 }}>
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke={T.grn} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
-                            <polyline points="1.5,5.5 3.5,8 8.5,2" />
-                          </svg>
-                          {pt}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </SumSec>
-            )}
-
-            {/* Action buttons */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <button type="button" style={{ padding: 11, borderRadius: 12, background: T.pur, border: "none", color: "#fff", fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="2,8.5 6,4.5 8.5,7 10.5,4.5" /><line x1="3" y1="11" x2="11" y2="11" />
-                </svg>
-                Export PDF
-              </button>
-              <button type="button" style={{ padding: 11, borderRadius: 12, background: T.white, border: `1px solid ${T.bdr}`, color: T.ink2, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6,2 6,9" /><polyline points="3,7 6,10 9,7" />
-                </svg>
-                Save summary
-              </button>
-              <button type="button"
-                onClick={handleReset}
-                style={{ gridColumn: "span 2", padding: 11, borderRadius: 12, background: T.white, border: `1px solid ${T.bdr}`, color: T.ink2, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
-              >
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10,6 A4,4 0 1,1 8,3" /><polyline points="8,1 8,3 10,3" />
-                </svg>
-                Summarize another PDF
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-    </div>
-    {/* ═══════════════════ END DESKTOP VIEW ═══════════════════ */}
+    {/* P1-1 print stylesheet — strips UI chrome so the summary prints clean. */}
+    <style>{`
+      @media print {
+        html, body { background: #fff !important; }
+        aside, nav, header, .no-print, .exam-no-print { display: none !important; }
+      }
+    `}</style>
     </>
   );
 };
@@ -587,12 +759,16 @@ interface MobileSummarizeLessonProps {
   onPickFile: (f: File) => void;
   onReset: () => void;
   onGenerate: () => void;
+  /** Download a Word doc (.doc with styled HTML — opens in Word/Pages/Docs). */
+  onExportWord: () => void;
+  /** Copy formatted plain-text summary to clipboard. */
+  onCopy: () => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
 }
 
 const MobileSummarizeLesson = ({
   file, pageCount, extracting, loading, summary, error, dragging, setDragging,
-  onDrop, onPickFile, onReset, onGenerate, fileInputRef,
+  onDrop, onPickFile, onReset, onGenerate, onExportWord, onCopy, fileInputRef,
 }: MobileSummarizeLessonProps) => {
   const showResult = !!summary && !loading;
 
@@ -1244,17 +1420,9 @@ const MobileSummarizeLesson = ({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6, marginBottom: 8 }}>
               <button
                 type="button"
-                onClick={() => {
-                  const text = JSON.stringify(summary, null, 2);
-                  const blob = new Blob([text], { type: "text/plain" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${(file?.name || "summary").replace(/\.pdf$/i, "")}_summary.txt`;
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }}
+                onClick={onExportWord}
                 className="sl-press"
+                aria-label="Export as Word document"
                 style={{
                   padding: "11px 12px", borderRadius: 12,
                   background: "linear-gradient(135deg, #0055FF, #1166FF)",
@@ -1268,14 +1436,13 @@ const MobileSummarizeLesson = ({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Export
+                Export Word
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(JSON.stringify(summary, null, 2));
-                }}
+                onClick={onCopy}
                 className="sl-press"
+                aria-label="Copy summary to clipboard"
                 style={{
                   padding: "11px 12px", borderRadius: 12,
                   background: "#F4F7FE", color: "#002080",
@@ -1318,56 +1485,12 @@ const MobileSummarizeLesson = ({
   );
 };
 
-// ── Helper: Result hero chip ──────────────────────────────────────────────────
-const RHChip = ({ icon, text }: { icon: string; text: string }) => (
-  <div style={{
-    padding: "4px 10px", borderRadius: 20,
-    background: "rgba(255,255,255,0.14)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.8)",
-    display: "inline-flex", alignItems: "center", gap: 4,
-  }}>
-    <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      {icon === "check" && <polyline points="1.5,6.5 4,9 8.5,2" />}
-      {icon === "doc" && <><rect x="1" y="1" width="8" height="8" rx="1.5" /><line x1="3" y1="4" x2="7" y2="4" /><line x1="3" y1="6" x2="5.5" y2="6" /></>}
-      {icon === "clock" && <><circle cx="5" cy="5" r="3.5" /><polyline points="5,3 5,5 6.5,5" /></>}
-    </svg>
-    {text}
-  </div>
-);
-
-// ── Helper: Summary section card ──────────────────────────────────────────────
-const SumSec = ({ title, bg, color, icon, count, noPad, children }: {
-  title: string; bg: string; color: string;
-  icon: React.ReactNode; count?: number; noPad?: boolean;
-  children: React.ReactNode;
-}) => (
-  <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 16, overflow: "hidden" }}>
-    <div style={{ padding: "11px 13px", borderBottom: `1px solid ${T.s2}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 26, height: 26, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            {icon}
-          </svg>
-        </div>
-        <span style={{ fontSize: 10, fontWeight: 500, color: T.ink2, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>{title}</span>
-      </div>
-      {count != null && (
-        <span style={{ fontSize: 10, fontWeight: 500, background: bg, color, padding: "2px 7px", borderRadius: 20 }}>{count}</span>
-      )}
-    </div>
-    <div style={{ padding: noPad ? "0 13px" : "12px 13px" }}>
-      {children}
-    </div>
-  </div>
-);
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Desktop-only view — mirrors mobile design in widescreen grid
 // ─────────────────────────────────────────────────────────────────────────────
 const DesktopSummarizeLesson = ({
   file, pageCount, extracting, loading, summary, error, dragging, setDragging,
-  onDrop, onPickFile, onReset, onGenerate, fileInputRef,
+  onDrop, onPickFile, onReset, onGenerate, onExportWord, onCopy, fileInputRef,
 }: MobileSummarizeLessonProps) => {
   const showResult = !!summary && !loading;
 
@@ -2003,17 +2126,9 @@ const DesktopSummarizeLesson = ({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               <button
                 type="button"
-                onClick={() => {
-                  const text = JSON.stringify(summary, null, 2);
-                  const blob = new Blob([text], { type: "text/plain" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${(file?.name || "summary").replace(/\.pdf$/i, "")}_summary.txt`;
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }}
+                onClick={onExportWord}
                 className="sld-press"
+                aria-label="Export as Word document"
                 style={{
                   padding: "14px 16px", borderRadius: 14,
                   background: "linear-gradient(135deg, #0055FF, #1166FF)",
@@ -2027,14 +2142,13 @@ const DesktopSummarizeLesson = ({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Export
+                Export Word
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(JSON.stringify(summary, null, 2));
-                }}
+                onClick={onCopy}
                 className="sld-press"
+                aria-label="Copy summary to clipboard"
                 style={{
                   padding: "14px 16px", borderRadius: 14,
                   background: "#F4F7FE", color: "#002080",

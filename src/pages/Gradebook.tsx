@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
@@ -10,12 +10,93 @@ import { auditedSet, auditedDelete } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import EnterScores from "../components/EnterScores";
+import GradeAssignment from "../components/GradeAssignment";
 // xlsx loaded dynamically to reduce bundle size (~500KB)
 const loadXLSX = () => import("xlsx");
 
+// ── Cross-source row types — Tests + Assignments unified into one section ────
+// Rendered as one list under "Tests, Exams & Assignments" so a teacher can
+// jump straight from Gradebook into EnterScores (for tests) or GradeAssignment
+// (for assignments) without leaving the page. Both components are imported
+// and mounted inline as full-screen overlays via the `view` discriminator.
+interface TestDoc {
+  id: string;
+  testName?: string;
+  title?: string;
+  subject?: string;
+  topic?: string;
+  topics?: string[];
+  testDate?: string;
+  marks?: string | number;
+  category?: string;
+  classId?: string;
+  className?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+interface AssignmentDoc {
+  id: string;
+  title?: string;
+  description?: string;
+  subject?: string;
+  type?: string;
+  dueDate?: string;
+  maxMarks?: number | string;
+  classId?: string;
+  className?: string;
+  [key: string]: unknown;
+}
+
+// "Test" vs "Exam" tag derived from category — exams are mid-term / final / term.
+const isExamCategory = (cat: string | undefined): boolean => {
+  const c = (cat || "").toLowerCase();
+  return c.includes("exam") || c.includes("mid-term") || c.includes("midterm") || c.includes("final") || c.includes("term");
+};
+
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface ClassData { id: string; name: string; classId: string; [key: string]: any; }
+// Carries enough to rehydrate subject/className on writes — without this,
+// every score doc lands with empty `subject`/`topic` and the 22 cross-dashboard
+// readers fall back to "General topics" or skip the doc entirely (memory:
+// `bug_pattern_fallback_bucket_alone`).
+interface ClassData {
+  id: string;
+  name: string;
+  classId: string;
+  subject?: string;
+  className?: string;
+}
 interface CustomColumn { id: string; name: string; maxMarks: number; createdAt?: number; }
+
+// P2-3: explicit student row type — was `students: any[]`. Tightening this
+// catches typos in field access at compile time + documents the row shape
+// that EnterScores / GradeAssignment overlays both consume.
+interface StudentRow {
+  id: string;
+  realId: string;
+  email: string;
+  name: string;
+  rollNo: string;
+  initials: string;
+}
+
+// `${(stu.email || stu.id).toLowerCase()}_${col.id}` keyed map — values are
+// numbers from Firestore reads, strings from in-progress input edits.
+type ScoresMap = Record<string, number | string | null | undefined>;
+
+// ── Score input guard (P0-5) ──────────────────────────────────────────────────
+// Rejects input that would exceed `max` or fall below 0. Returns the same
+// string when valid, the previous value when not. Surfaces a toast so the
+// user knows why their keystroke was dropped.
+const validScoreInput = (raw: string, max: number): { ok: boolean; reason?: string } => {
+  if (raw === "") return { ok: true };
+  if (!/^\d+(\.\d+)?$/.test(raw)) return { ok: false, reason: "Numbers only." };
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) return { ok: false, reason: "Invalid number." };
+  if (n < 0) return { ok: false, reason: "Score cannot be negative." };
+  if (max > 0 && n > max) return { ok: false, reason: `Score cannot exceed ${max}.` };
+  return { ok: true };
+};
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -48,22 +129,25 @@ const getInitials = (name: string) => {
   return (p.length >= 2 ? p[0][0] + p[1][0] : (p[0]?.[0] || '?')).toUpperCase();
 };
 
-// ── Grade helpers ─────────────────────────────────────────────────────────────
-const simpleGrade = (pct: number) => {
-  if (pct >= 90) return { label: 'A', bg: T.greenL, color: T.green2 };
-  if (pct >= 70) return { label: 'B', bg: T.blueL, color: T.blue };
-  if (pct >= 50) return { label: 'C', bg: T.amberL, color: T.amber };
-  return { label: 'F', bg: T.redL, color: T.red };
-};
+// ── Grade helpers (P0-4 canonical 6-band scale) ───────────────────────────────
+// Single source of truth — replaces the three diverging scales (`simpleGrade`,
+// `getGrade`, `letterGrade`) that were giving the same student different
+// letters in different cards on the same page. Bands match the export format
+// + most Indian school boards.
+type GradeTone = 'a+' | 'a' | 'b' | 'c' | 'd' | 'f';
+interface GradeInfo { label: string; color: string; bg: string; tone: GradeTone }
 
-const getGrade = (pct: number) => {
-  if (pct >= 90) return "A+";
-  if (pct >= 80) return "A";
-  if (pct >= 70) return "B";
-  if (pct >= 60) return "C";
-  if (pct >= 50) return "D";
-  return "F";
+const getGradeInfo = (pct: number): GradeInfo => {
+  if (pct >= 90) return { label: 'A+', color: '#00C853', bg: T.greenL, tone: 'a+' };
+  if (pct >= 80) return { label: 'A',  color: '#00C853', bg: T.greenL, tone: 'a'  };
+  if (pct >= 70) return { label: 'B',  color: '#0055FF', bg: T.blueL,  tone: 'b'  };
+  if (pct >= 60) return { label: 'C',  color: '#FFAA00', bg: T.amberL, tone: 'c'  };
+  if (pct >= 50) return { label: 'D',  color: '#FF8800', bg: T.amberL, tone: 'd'  };
+  return { label: 'F', color: '#FF3355', bg: T.redL, tone: 'f' };
 };
+// Aliases for existing call sites — same shape, just back-compat.
+const simpleGrade = (pct: number): GradeInfo => getGradeInfo(pct);
+const getGrade = (pct: number): string => getGradeInfo(pct).label;
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 const IcoCheck = () => (
@@ -103,10 +187,10 @@ export default function Gradebook() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
 
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentRow[]>([]);
   const [columns, setColumns] = useState<CustomColumn[]>([]);
-  const [scores, setScores] = useState<Record<string, any>>({});
-  const [localScores, setLocalScores] = useState<Record<string, any>>({});
+  const [scores, setScores] = useState<ScoresMap>({});
+  const [localScores, setLocalScores] = useState<ScoresMap>({});
 
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
@@ -114,11 +198,31 @@ export default function Gradebook() {
   const [newColName, setNewColName] = useState("");
   const [newColMax, setNewColMax] = useState("100");
 
-  // View state
-  const [view, setView] = useState<'main' | 'enter-scores'>('main');
+  // View state — extended to host EnterScores + GradeAssignment as full-screen
+  // overlays so the teacher can jump from Gradebook into either flow without
+  // navigating to a different page.
+  const [view, setView] = useState<'main' | 'enter-scores' | 'enter-test' | 'grade-assignment'>('main');
   const [selectedColForEdit, setSelectedColForEdit] = useState<CustomColumn | null>(null);
+  const [activeTest, setActiveTest] = useState<TestDoc | null>(null);
+  const [activeAssignment, setActiveAssignment] = useState<AssignmentDoc | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Aggregated activities for the selected class — populated by the listeners
+  // below. Kept out of the main scores listener so changing class doesn't tear
+  // down the score grid mid-render.
+  const [classTests, setClassTests] = useState<TestDoc[]>([]);
+  const [classAssignments, setClassAssignments] = useState<AssignmentDoc[]>([]);
+  const [testScoreCounts, setTestScoreCounts] = useState<Map<string, number>>(new Map());
+  const [assignmentGradeCounts, setAssignmentGradeCounts] = useState<Map<string, number>>(new Map());
+
+  // P2-1: surface listener failures to the user with a retry banner instead
+  // of silently console.warn'ing. Bumping `refreshKey` forces every listener
+  // useEffect to re-subscribe (memory pattern from Dashboard.tsx).
+  const [listenerError, setListenerError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const onListenerErr = (label: string) => (err: { code?: string; message?: string }) => {
+    console.warn(`[Gradebook/${label}]`, err.code || err.message);
+    setListenerError(`Could not load ${label}. ${err.code === "permission-denied" ? "Permission issue — check access." : "Connection or data issue."}`);
+  };
 
   // ── Effects ────────────────────────────────────────────────────────────────
 
@@ -140,7 +244,16 @@ export default function Gradebook() {
       classSnap.docs.forEach(d => classMap.set(d.id, d.data()));
       const legacyOptions: ClassData[] = classSnap.docs
         .filter(d => d.data().teacherId === teacherData.id)
-        .map(d => ({ id: d.id, classId: d.id, name: d.data().name }));
+        .map(d => ({
+          id: d.id,
+          classId: d.id,
+          name: d.data().name,
+          // P0-2: snapshot subject + className for use in score writes —
+          // without these, the 22 cross-dashboard readers fall back to
+          // "General topics" (memory: bug_pattern_fallback_bucket_alone).
+          subject: d.data().subject || "",
+          className: d.data().name || "",
+        }));
 
       const q = query(collection(db, "teaching_assignments"), where("teacherId", "==", teacherData.id), ...SC);
       unsub = onSnapshot(q, (snap) => {
@@ -151,7 +264,12 @@ export default function Gradebook() {
         let options: ClassData[] = assignments.map(a => ({
           id: a.id,
           classId: a.classId,
-          name: `${classMap.get(a.classId)?.name || "Class"} — ${a.subjectName || a.subject || "Subject"}`
+          name: `${classMap.get(a.classId)?.name || "Class"} — ${a.subjectName || a.subject || "Subject"}`,
+          // P0-2: assignment-derived subject + class name. Subject from the
+          // teaching_assignment doc (source of truth for what this teacher
+          // is grading) + className from the underlying classes/{classId}.
+          subject: a.subjectName || a.subject || "",
+          className: classMap.get(a.classId)?.name || "",
         }));
 
         if (options.length === 0) options = legacyOptions;
@@ -177,14 +295,35 @@ export default function Gradebook() {
     if (!teacherData.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
+
+    // P0-1: split constraints by collection type per memory
+    // `bug_pattern_branch_filter_on_event_streams`. Resolution entities
+    // (enrollments, gradebook_columns) get the branchId filter; event-stream
+    // collections (gradebook_scores) MUST NOT — branchId is backfilled by an
+    // async trigger with 1-2s lag, so a strict where clause silently drops
+    // fresh writes. teacherId/classId/assignmentId already provide branch
+    // isolation downstream.
+    const SC_RES: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+    if (branchId) SC_RES.push(where("branchId", "==", branchId));
+    const SC_EVT: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+
+    // P1-5: race guard — when class switches mid-snapshot the older listener
+    // can resolve AFTER the newer one and clobber state. cancelled flag stops
+    // the stale callbacks from setting stale state.
+    let cancelled = false;
+
+    // P2-1: clear stale error when a fresh attempt starts
+    setListenerError(null);
 
     const u1 = onSnapshot(
-      query(collection(db, "enrollments"), ...SC, where("classId", "==", targetClassId)),
+      query(collection(db, "enrollments"), ...SC_RES, where("classId", "==", targetClassId)),
       (snap) => {
+        if (cancelled) return;
         const studs = snap.docs.map(d => {
           const e = d.data();
+          // P2-5: dedup tightened in the helper below — index by both email
+          // AND id so two students sharing one but missing the other don't
+          // collapse into a single row.
           return {
             id: e.studentId || e.studentEmail,
             realId: e.studentId,
@@ -194,45 +333,152 @@ export default function Gradebook() {
             initials: e.studentName?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "ST"
           };
         });
-        setStudents(
-          Array.from(new Map(studs.map(i => [i.email || i.id, i])).values())
-            .sort((a, b) => a.name.localeCompare(b.name))
-        );
-      }
+        // P2-5: dedup using composite key — id + lowercased email — so we
+        // only collapse when BOTH match. Old `email || id` lost students
+        // when one had an email but another only an id with the same value.
+        const seen = new Set<string>();
+        const dedup = studs.filter(s => {
+          const k = `${s.id || ""}::${(s.email || "").toLowerCase()}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        setStudents(dedup.sort((a, b) => (a.name || "").localeCompare(b.name || "")));
+      },
+      onListenerErr("class roster"),
     );
 
     const u2 = onSnapshot(
-      query(collection(db, "gradebook_columns"), ...SC, where("assignmentId", "==", selectedClassId)),
+      query(collection(db, "gradebook_columns"), ...SC_RES, where("assignmentId", "==", selectedClassId)),
       (snap) => {
+        if (cancelled) return;
         setColumns(
           snap.docs.map(d => ({ id: d.id, ...d.data() } as CustomColumn))
             .sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0))
         );
-      }
+      },
+      onListenerErr("custom units"),
     );
 
     const u3 = onSnapshot(
-      query(collection(db, "gradebook_scores"), ...SC, where("assignmentId", "==", selectedClassId)),
+      query(collection(db, "gradebook_scores"), ...SC_EVT, where("assignmentId", "==", selectedClassId)),
       (snap) => {
-        const fetched: any = {};
+        if (cancelled) return;
+        const fetched: Record<string, number | null> = {};
         snap.docs.forEach(d => {
           const data = d.data();
           const key = (data.studentEmail?.toLowerCase() || data.studentId);
-          fetched[`${key}_${data.columnId}`] = data.mark;
+          // Coerce to Number on read so the dirty-check (P0-3) compares
+          // like-with-like instead of "85" !== 85 always being true.
+          const markNum = data.mark != null ? Number(data.mark) : null;
+          fetched[`${key}_${data.columnId}`] = Number.isFinite(markNum as number) ? markNum : null;
         });
         setScores(fetched);
         setLocalScores(fetched);
         setLoading(false);
-      }
+      },
+      (err) => { onListenerErr("scores")(err); setLoading(false); },
     );
 
-    return () => { u1(); u2(); u3(); };
-  }, [teacherData?.id, selectedClassId, classes]);
+    return () => { cancelled = true; u1(); u2(); u3(); };
+  }, [teacherData?.id, selectedClassId, classes, refreshKey]);
+
+  // 3. Fetch class activities (tests + assignments) + their score counts.
+  // Same branchId discipline: SC_RES (resolution entities — tests, assignments)
+  // gets branchId; SC_EVT (event streams — test_scores, submissions) does NOT.
+  useEffect(() => {
+    if (!teacherData?.schoolId || !selectedClassId) return;
+    const sel = classes.find(c => c.id === selectedClassId);
+    const targetClassId = sel?.classId || selectedClassId;
+    const schoolId = teacherData.schoolId as string;
+    const branchId = teacherData.branchId as string | undefined;
+    const SC_RES: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+    if (branchId) SC_RES.push(where("branchId", "==", branchId));
+    const SC_EVT: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+
+    let cancelled = false;
+
+    const ut = onSnapshot(
+      query(collection(db, "tests"), ...SC_RES, where("classId", "==", targetClassId)),
+      (snap) => {
+        if (cancelled) return;
+        const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as TestDoc);
+        list.sort((a, b) => String(b.testDate || "").localeCompare(String(a.testDate || "")));
+        setClassTests(list);
+      },
+      onListenerErr("tests"),
+    );
+
+    const ua = onSnapshot(
+      query(collection(db, "assignments"), ...SC_RES, where("classId", "==", targetClassId)),
+      (snap) => {
+        if (cancelled) return;
+        const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as AssignmentDoc);
+        list.sort((a, b) => String(b.dueDate || "").localeCompare(String(a.dueDate || "")));
+        setClassAssignments(list);
+      },
+      onListenerErr("assignments"),
+    );
+
+    // test_scores by class — count per testId. Powers the "X of Y graded" chip
+    // on each test row + the activities-section progress.
+    const usc = onSnapshot(
+      query(collection(db, "test_scores"), ...SC_EVT, where("classId", "==", targetClassId)),
+      (snap) => {
+        if (cancelled) return;
+        const m = new Map<string, number>();
+        snap.docs.forEach(d => {
+          const data = d.data() as { testId?: unknown; score?: unknown };
+          if (typeof data.testId === "string" && data.score != null) {
+            m.set(data.testId, (m.get(data.testId) || 0) + 1);
+          }
+        });
+        setTestScoreCounts(m);
+      },
+      onListenerErr("test scores"),
+    );
+
+    // submissions by class — counts graded ones (where `score` is set OR
+    // status === "graded") per assignmentId. Submissions doc shape varies
+    // across CreateAssignment writers (some set `homeworkId` instead of
+    // `assignmentId`), so we tally both keys.
+    const usu = onSnapshot(
+      query(collection(db, "submissions"), ...SC_EVT, where("classId", "==", targetClassId)),
+      (snap) => {
+        if (cancelled) return;
+        const m = new Map<string, number>();
+        snap.docs.forEach(d => {
+          const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown; marks?: unknown; status?: unknown };
+          const isGraded =
+            data.score != null ||
+            data.marks != null ||
+            String(data.status || "").toLowerCase() === "graded";
+          if (!isGraded) return;
+          const aid = (typeof data.assignmentId === "string" ? data.assignmentId : "") ||
+                      (typeof data.homeworkId   === "string" ? data.homeworkId   : "");
+          if (aid) m.set(aid, (m.get(aid) || 0) + 1);
+        });
+        setAssignmentGradeCounts(m);
+      },
+      onListenerErr("submissions"),
+    );
+
+    return () => { cancelled = true; ut(); ua(); usc(); usu(); };
+  }, [teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes, refreshKey]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleAddColumn = async () => {
     if (!newColName.trim()) return toast.error("Column name required");
+    // Validate maxMarks — must be positive finite number. Old code silently
+    // fell back to 100 on garbage input (Number("0") || 100 = 100, Number("abc") || 100 = 100).
+    const maxN = parseFloat(newColMax);
+    if (!Number.isFinite(maxN) || maxN <= 0) {
+      return toast.error("Max marks must be a positive number.");
+    }
+    if (maxN > 1000) {
+      return toast.error("Max marks cannot exceed 1000.");
+    }
     const colId = `col_${Date.now()}`;
     await auditedSet(doc(db, "gradebook_columns", colId), {
       id: colId,
@@ -242,7 +488,7 @@ export default function Gradebook() {
       schoolId: teacherData.schoolId || "",
       branchId: teacherData.branchId || "",
       name: newColName.trim(),
-      maxMarks: Number(newColMax) || 100,
+      maxMarks: maxN,
       createdAt: Date.now()
     });
     setShowAddCol(false);
@@ -260,13 +506,45 @@ export default function Gradebook() {
 
   const handleSave = async () => {
     setSaving(true);
-    const batch = writeBatch(db);
-    let count = 0;
+    const sel = classes.find(c => c.id === selectedClassId);
+    const inheritedSubject = (sel?.subject || "").trim();
+    const inheritedClassName = (sel?.className || "").trim();
+    const inheritedTopic = inheritedSubject; // gradebook scores have no per-cell topic;
+    // subject doubles as the topic key downstream (cross-dashboard readers
+    // group by subject || topic). Cleaner than "General topics" fallback.
+
+    // P1-1: Firestore writeBatch caps at 500 ops. 30 students × 17 columns =
+    // 510 ops → bulk class fails. Chunk into ≤500-op batches and commit
+    // sequentially. Counter still shows total entries actually changed.
+    const MAX_BATCH = 500;
+    const pending: Array<{ ref: ReturnType<typeof doc>; payload: Record<string, unknown> }> = [];
+
     students.forEach(stu => {
       columns.forEach(col => {
         const key = `${(stu.email || stu.id).toLowerCase()}_${col.id}`;
-        if (localScores[key] !== scores[key]) {
-          batch.set(doc(db, "gradebook_scores", `${stu.id}_${col.id}`), {
+        const localRaw = localScores[key];
+        const remoteVal = scores[key];
+
+        // P0-3: coerce both sides to Number for the dirty-check. Storing
+        // input as string ("85") and reading from Firestore as number (85)
+        // made `localScores[key] !== scores[key]` ALWAYS true → save wrote
+        // every cell even when nothing changed.
+        const localNum = localRaw === "" || localRaw == null ? null : Number(localRaw);
+        const remoteNum = remoteVal == null ? null : Number(remoteVal);
+        const localIsValid = localNum == null || Number.isFinite(localNum);
+        if (!localIsValid) return; // skip garbage like "abc"
+        if (localNum === remoteNum) return; // unchanged
+        // Edge: both null (cell cleared, never had a value) — nothing to write
+        if (localNum == null && remoteNum == null) return;
+
+        // P0-5 defense in depth: clamp at write time too in case the input
+        // guard was bypassed (paste, programmatic injection, etc.)
+        const maxMarks = Number(col.maxMarks) || 100;
+        const finalMark = localNum == null ? null : Math.max(0, Math.min(maxMarks, localNum));
+
+        pending.push({
+          ref: doc(db, "gradebook_scores", `${stu.id}_${col.id}`),
+          payload: {
             id: `${stu.id}_${col.id}`,
             studentId: stu.realId || stu.id,
             studentEmail: stu.email?.toLowerCase() || "",
@@ -277,18 +555,35 @@ export default function Gradebook() {
             columnId: col.id,
             columnName: col.name,
             assignmentId: selectedClassId,
-            classId: classes.find(c => c.id === selectedClassId)?.classId || selectedClassId,
-            mark: Number(localScores[key]),
-            maxMarks: Number(col.maxMarks) || 100,
-            updatedAt: Date.now()
-          }, { merge: true });
-          count++;
-        }
+            classId: sel?.classId || selectedClassId,
+            // P0-2: cross-dashboard fields the 22 readers filter/group by.
+            // className lowercased to match EnterScores / TestsExams convention.
+            className: inheritedClassName.toLowerCase(),
+            subject: inheritedSubject,
+            topic: inheritedTopic,
+            mark: finalMark,
+            maxMarks,
+            updatedAt: Date.now(),
+          },
+        });
       });
     });
-    if (count > 0) await batch.commit();
-    setSaving(false);
-    toast.success(count > 0 ? `Saved ${count} entries` : "No changes to save");
+
+    try {
+      for (let i = 0; i < pending.length; i += MAX_BATCH) {
+        const slice = pending.slice(i, i + MAX_BATCH);
+        const batch = writeBatch(db);
+        slice.forEach(({ ref, payload }) => batch.set(ref, payload, { merge: true }));
+        await batch.commit();
+      }
+      toast.success(pending.length > 0 ? `Saved ${pending.length} entries` : "No changes to save");
+    } catch (e) {
+      console.error("[Gradebook] save failed", e);
+      const code = (e as { code?: string })?.code;
+      toast.error(code === "permission-denied" ? "Permission denied — check your access." : "Save failed. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveColumn = async () => {
@@ -338,10 +633,17 @@ export default function Gradebook() {
 
   const selectedClass = classes.find(c => c.id === selectedClassId);
 
+  // P1-2: include valid zero scores in the column average (a student who
+  // scored 0 IS a data point and should drag the average down). Old filter
+  // `v > 0` silently excluded zeros and over-stated class performance.
   const colAvgs = columns.map(col => {
     const vals = filtered
-      .map(stu => Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${col.id}`]))
-      .filter(v => !isNaN(v) && v > 0);
+      .map(stu => {
+        const raw = localScores[`${(stu.email || stu.id).toLowerCase()}_${col.id}`];
+        if (raw === "" || raw == null) return NaN;
+        return Number(raw);
+      })
+      .filter(v => Number.isFinite(v));
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   });
 
@@ -349,22 +651,66 @@ export default function Gradebook() {
   const totalMax = columns.reduce((a, c) => a + c.maxMarks, 0);
   const classAvgPct = totalMax > 0 ? (totalAvgEarned / totalMax) * 100 : 0;
   const avgGradeLabel = simpleGrade(classAvgPct);
-  const hasUnsaved = JSON.stringify(localScores) !== JSON.stringify(scores);
 
-  const gradeDist = useMemo(() => {
-    const dist = { A: 0, B: 0, C: 0, F: 0 };
-    filtered.forEach(stu => {
-      const earned = columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0);
-      const pct = totalMax > 0 ? (earned / totalMax) * 100 : 0;
-      if (pct >= 90) dist.A++;
-      else if (pct >= 70) dist.B++;
-      else if (pct >= 50) dist.C++;
-      else dist.F++;
-    });
-    return dist;
-  }, [filtered, columns, localScores, totalMax]);
+  // P0-3: dirty check uses Number-coerced comparison so the input field's
+  // string "85" matches the snapshot's Number 85. The old JSON.stringify
+  // diff was the root cause of "Save" always showing unsaved + every save
+  // re-writing every touched cell.
+  const hasUnsaved = useMemo(() => {
+    const allKeys = new Set([...Object.keys(localScores), ...Object.keys(scores)]);
+    for (const k of allKeys) {
+      const a = localScores[k];
+      const b = scores[k];
+      const an = a === "" || a == null ? null : Number(a);
+      const bn = b == null ? null : Number(b);
+      if (an !== bn && !(an == null && bn == null)) return true;
+    }
+    return false;
+  }, [localScores, scores]);
 
-  // ── Render: Enter Scores View ──────────────────────────────────────────────
+  // P2-4: beforeunload warning when teacher has unsaved score edits and tries
+  // to close tab / navigate away. Browsers ignore the custom message text and
+  // show their own confirm — but they DO honor the cancellation, which is the
+  // load-bearing part. Skipped while in overlay views (EnterScores /
+  // GradeAssignment manage their own dirty state).
+  useEffect(() => {
+    if (!hasUnsaved || view !== 'main') return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // required for Chrome
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsaved, view]);
+
+  // P1-4: removed dead `gradeDist` useMemo — computed an A/B/C/F histogram
+  // that was never rendered anywhere. The hero already shows passing/at-risk
+  // counts which cover the same intent more meaningfully.
+
+  // ── Render: EnterScores overlay (test/exam from this class) ────────────────
+  // The standalone EnterScores component has its own Blue Apple chrome — we
+  // just mount it and route onBack back to the main view. test_scores writes
+  // happen inside that component using the canonical writer pattern.
+  if (view === 'enter-test' && activeTest) {
+    return (
+      <EnterScores
+        test={activeTest}
+        onBack={() => { setView('main'); setActiveTest(null); }}
+      />
+    );
+  }
+
+  // ── Render: GradeAssignment overlay (assignment from this class) ───────────
+  if (view === 'grade-assignment' && activeAssignment) {
+    return (
+      <GradeAssignment
+        assignment={activeAssignment}
+        onBack={() => { setView('main'); setActiveAssignment(null); }}
+      />
+    );
+  }
+
+  // ── Render: Enter Scores View (custom Gradebook unit — existing flow) ──────
   if (view === 'enter-scores' && selectedColForEdit) {
     const col = selectedColForEdit;
 
@@ -494,10 +840,21 @@ export default function Gradebook() {
                       <input
                         type="number"
                         value={rawVal ?? ''}
-                        onChange={e => setLocalScores(prev => ({
-                          ...prev,
-                          [key]: e.target.value === '' ? undefined : e.target.value,
-                        }))}
+                        onChange={e => {
+                          const v = e.target.value;
+                          // P0-5: reject input that exceeds maxMarks or is
+                          // negative. HTML max= is ignored on programmatic
+                          // typing, so we guard explicitly + warn the user.
+                          const check = validScoreInput(v, col.maxMarks);
+                          if (!check.ok) {
+                            toast.error(check.reason || "Invalid score.");
+                            return;
+                          }
+                          setLocalScores(prev => ({
+                            ...prev,
+                            [key]: v === '' ? undefined : v,
+                          }));
+                        }}
                         placeholder="Enter score"
                         min={0}
                         max={col.maxMarks}
@@ -583,15 +940,10 @@ export default function Gradebook() {
   }
 
   // ── Render: Main View ──────────────────────────────────────────────────────
-  // Helpers for the mobile mockup design
-  const letterGrade = (pct: number) => {
-    if (pct >= 90) return { label: 'A', tone: 'a' as const, color: '#00C853' };
-    if (pct >= 80) return { label: 'A', tone: 'a' as const, color: '#00C853' };
-    if (pct >= 70) return { label: 'B', tone: 'b' as const, color: '#0055FF' };
-    if (pct >= 60) return { label: 'C', tone: 'c' as const, color: '#FFAA00' };
-    if (pct >= 50) return { label: 'D', tone: 'd' as const, color: '#FF8800' };
-    return { label: 'F', tone: 'f' as const, color: '#FF3355' };
-  };
+  // Helpers for the mobile mockup design — letterGrade now delegates to the
+  // module-scope canonical helper so a student's grade letter matches across
+  // every card on the page (audit P0-4).
+  const letterGrade = getGradeInfo;
   const band = (pct: number) => {
     if (pct >= 90) return { cls: 'excellent', label: 'Excellent' };
     if (pct >= 70) return { cls: 'good', label: 'Good' };
@@ -603,6 +955,371 @@ export default function Gradebook() {
     const sum = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     return palette[sum % palette.length];
   };
+  // Activities row component — renders one test or assignment as a clickable
+  // chip that opens the relevant overlay. Used in both mobile + desktop views.
+  const ActivityRow = ({ kind, name, sub, scoredCount, total, badge, badgeColor, onOpen }: {
+    kind: 'test' | 'exam' | 'assignment';
+    name: string;
+    sub: string;
+    scoredCount: number;
+    total: number;
+    badge: string;
+    badgeColor: string;
+    onOpen: () => void;
+  }) => {
+    const fullyDone = total > 0 && scoredCount >= total;
+    const inProgress = scoredCount > 0 && !fullyDone;
+    const stateColor = fullyDone ? '#00C853' : inProgress ? '#FF8800' : '#5070B0';
+    const stateLabel = fullyDone ? 'Completed' : inProgress ? `${scoredCount}/${total} graded` : (total > 0 ? `0/${total} graded` : 'No roster');
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+        className="gb-press"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 11,
+          padding: '12px 13px', background: '#fff', borderRadius: 13,
+          border: `0.5px solid ${badgeColor}22`, cursor: 'pointer',
+          marginBottom: 8,
+        }}
+      >
+        <div style={{
+          width: 38, height: 38, borderRadius: 11,
+          background: `${badgeColor}1A`, color: badgeColor,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.6px',
+          flexShrink: 0, textTransform: 'uppercase',
+        }}>
+          {badge}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {name || 'Untitled'}
+          </div>
+          <div style={{ fontSize: 11, color: '#5070B0', marginTop: 2, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: stateColor, flexShrink: 0 }} />
+            <span>{stateLabel}</span>
+            {sub && <span style={{ color: '#99AACC' }}>·</span>}
+            {sub && <span>{sub}</span>}
+          </div>
+        </div>
+        <div style={{
+          padding: '7px 13px', borderRadius: 9,
+          background: fullyDone ? '#EBFBEE' : '#0055FF',
+          color: fullyDone ? '#087F5B' : '#fff',
+          fontSize: 11, fontWeight: 700, letterSpacing: '-0.1px',
+          flexShrink: 0,
+        }}>
+          {fullyDone ? 'Edit' : (kind === 'assignment' ? 'Grade' : 'Enter scores')}
+        </div>
+      </div>
+    );
+  };
+
+  // Activities section — renders the unified list of class tests, exams, and
+  // assignments. Filters out anything without resolvable identity.
+  const ActivitiesSection = () => {
+    const totalEnrolled = students.length;
+    const items: Array<{ key: string; node: React.ReactNode; date: string }> = [];
+
+    classTests.forEach(t => {
+      const isExam = isExamCategory(t.category);
+      const badge = isExam ? 'EXAM' : (t.category || 'TEST');
+      const badgeColor = isExam ? '#7B3FF4' : '#0055FF';
+      const subParts = [
+        t.subject || '',
+        t.testDate || '',
+        t.marks ? `${t.marks}m` : '',
+      ].filter(Boolean);
+      items.push({
+        key: `t_${t.id}`,
+        date: String(t.testDate || ''),
+        node: (
+          <ActivityRow
+            key={`t_${t.id}`}
+            kind={isExam ? 'exam' : 'test'}
+            name={t.testName || t.title || 'Untitled test'}
+            sub={subParts.join(' · ')}
+            scoredCount={testScoreCounts.get(t.id) || 0}
+            total={totalEnrolled}
+            badge={badge.slice(0, 8)}
+            badgeColor={badgeColor}
+            onOpen={() => { setActiveTest(t); setView('enter-test'); }}
+          />
+        ),
+      });
+    });
+
+    classAssignments.forEach(a => {
+      const subParts = [
+        a.subject || '',
+        a.dueDate ? `Due ${a.dueDate}` : '',
+        a.maxMarks ? `${a.maxMarks}m` : '',
+      ].filter(Boolean);
+      items.push({
+        key: `a_${a.id}`,
+        date: String(a.dueDate || ''),
+        node: (
+          <ActivityRow
+            key={`a_${a.id}`}
+            kind="assignment"
+            name={a.title || 'Untitled assignment'}
+            sub={subParts.join(' · ')}
+            scoredCount={assignmentGradeCounts.get(a.id) || 0}
+            total={totalEnrolled}
+            badge="ASGN"
+            badgeColor="#FF8800"
+            onOpen={() => { setActiveAssignment(a); setView('grade-assignment'); }}
+          />
+        ),
+      });
+    });
+
+    // Newest first by date
+    items.sort((x, y) => y.date.localeCompare(x.date));
+
+    if (classTests.length === 0 && classAssignments.length === 0) {
+      return (
+        <div style={{
+          background: '#fff', borderRadius: 14, padding: '20px 14px', textAlign: 'center',
+          color: '#5070B0', fontSize: 12, fontWeight: 500,
+          boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10)',
+        }}>
+          No tests, exams, or assignments scheduled for this class yet.
+        </div>
+      );
+    }
+    return <div>{items.map(i => i.node)}</div>;
+  };
+
+  // ── Excel-style Custom Units table ────────────────────────────────────────
+  // Replaces the per-student card grid with a real spreadsheet:
+  //   rows = students, columns = custom units, cells = score inputs.
+  // First column (Student) + last 2 columns (Total + Grade) are sticky so
+  // they stay pinned during horizontal scroll on narrow screens.
+  // Used for both mobile + desktop main views — same render, different
+  // outer container handles overflow vs full-width.
+  const renderCustomUnitsTable = () => {
+    if (loading) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ height: 44, borderRadius: 10, background: '#F4F7FE', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ))}
+        </div>
+      );
+    }
+    if (filtered.length === 0) {
+      return (
+        <div style={{
+          background: '#fff', borderRadius: 14, padding: '22px 14px', textAlign: 'center',
+          color: '#5070B0', fontSize: 12, fontWeight: 500,
+          boxShadow: '0 0 0 0.5px rgba(0,85,255,.09)',
+        }}>
+          {search ? 'No students match your search.' : 'No students enrolled yet.'}
+        </div>
+      );
+    }
+    if (columns.length === 0) {
+      return (
+        <div style={{
+          background: '#fff', borderRadius: 14, padding: '22px 14px', textAlign: 'center',
+          color: '#5070B0', fontSize: 12, fontWeight: 500,
+          boxShadow: '0 0 0 0.5px rgba(0,85,255,.09)',
+        }}>
+          No units yet — click <strong style={{ color: '#0055FF' }}>+ Unit</strong> above to add one.
+        </div>
+      );
+    }
+
+    return (
+      <div className="gb-table-wrap" style={{
+        background: '#fff', borderRadius: 16, overflow: 'auto',
+        boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
+        maxWidth: '100%',
+      }}>
+        <style>{`
+          .gb-table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+          .gb-table thead th {
+            position: sticky; top: 0;
+            background: #F4F7FE; color: #002080;
+            font-size: 11px; font-weight: 700; letter-spacing: -0.1px;
+            padding: 12px 10px; text-align: left; white-space: nowrap;
+            border-bottom: 0.5px solid rgba(9,87,247,.15);
+            z-index: 2;
+          }
+          .gb-table thead th.col-edit { cursor: pointer; }
+          .gb-table thead th.col-edit:hover { background: #EAF0FB; }
+          .gb-table thead th .col-max { font-size: 10px; color: #5070B0; font-weight: 600; margin-top: 2px; }
+          .gb-table tbody td {
+            padding: 8px 10px;
+            font-size: 12px; color: #001040;
+            border-bottom: 0.5px solid rgba(9,87,247,.06);
+            vertical-align: middle;
+          }
+          .gb-table tbody tr:last-child td { border-bottom: none; }
+          .gb-table tbody tr:hover td { background: rgba(9,87,247,.03); }
+          .gb-table tfoot td {
+            padding: 11px 10px;
+            font-size: 12px; font-weight: 700; color: #002080;
+            background: linear-gradient(90deg, rgba(9,87,247,.06), rgba(9,87,247,.03));
+            border-top: 0.5px solid rgba(9,87,247,.12);
+          }
+          .gb-table .col-sticky-left {
+            position: sticky; left: 0;
+            background: #fff; z-index: 1;
+            box-shadow: 1px 0 0 rgba(9,87,247,.08);
+            min-width: 180px;
+          }
+          .gb-table thead th.col-sticky-left { background: #F4F7FE; z-index: 3; }
+          .gb-table tfoot td.col-sticky-left { background: #EAF0FB; z-index: 1; }
+          .gb-table .col-sticky-right {
+            position: sticky; right: 0;
+            background: #fff; z-index: 1;
+            box-shadow: -1px 0 0 rgba(9,87,247,.08);
+            text-align: center; white-space: nowrap;
+          }
+          .gb-table thead th.col-sticky-right { background: #F4F7FE; z-index: 3; }
+          .gb-table tfoot td.col-sticky-right { background: #EAF0FB; z-index: 1; }
+          .gb-table .stu-cell { display: flex; align-items: center; gap: 9px; }
+          .gb-table .stu-cell .stu-name { font-weight: 700; font-size: 12.5px; color: #001040; letter-spacing: -0.15px; line-height: 1.2; white-space: nowrap; }
+          .gb-table .stu-cell .stu-roll { font-size: 10px; color: #5070B0; font-weight: 500; margin-top: 1px; }
+          .gb-table .score-cell { padding: 6px 8px; }
+          .gb-table .score-cell input {
+            width: 64px; padding: 7px 9px; border-radius: 8px;
+            border: 0.5px solid rgba(9,87,247,.12); background: #F4F7FE;
+            font-size: 12.5px; font-weight: 700; color: #001040;
+            font-family: inherit; outline: none; text-align: center; letter-spacing: -0.1px;
+            transition: all .2s ease;
+          }
+          .gb-table .score-cell input:focus { background: #fff; border-color: #0055FF; box-shadow: 0 0 0 3px rgba(9,87,247,.14); }
+          .gb-table .total-num { font-size: 13.5px; font-weight: 700; letter-spacing: -0.2px; }
+          .gb-table .grade-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 24px; border-radius: 7px;
+            font-size: 12px; font-weight: 700; color: #fff;
+          }
+        `}</style>
+        <table className="gb-table">
+          <thead>
+            <tr>
+              <th className="col-sticky-left">Student</th>
+              {columns.map(col => (
+                <th
+                  key={col.id}
+                  className="col-edit"
+                  onClick={() => { setSelectedColForEdit(col); setView('enter-scores'); }}
+                  title={`Edit ${col.name} scores`}
+                >
+                  {col.name}
+                  <div className="col-max">/ {col.maxMarks}</div>
+                </th>
+              ))}
+              <th className="col-sticky-right">Total</th>
+              <th className="col-sticky-right" style={{ right: 0, paddingLeft: 0 }}>Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(stu => {
+              const key = (stu.email || stu.id).toLowerCase();
+              let touchedAny = false;
+              const earned = columns.reduce((acc, c) => {
+                const v = localScores[`${key}_${c.id}`];
+                if (v === "" || v == null) return acc;
+                const n = Number(v);
+                if (!Number.isFinite(n)) return acc;
+                touchedAny = true;
+                return acc + n;
+              }, 0);
+              const pct = totalMax > 0 && touchedAny ? (earned / totalMax) * 100 : 0;
+              const grd = letterGrade(pct);
+              const av = avatarBg(stu.name || '');
+              return (
+                <tr key={stu.email || stu.id}>
+                  <td className="col-sticky-left">
+                    <div className="stu-cell">
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 10,
+                        background: av, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, flexShrink: 0,
+                      }}>
+                        {getInitials(stu.name || '')}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="stu-name">{stu.name}</div>
+                        {stu.rollNo && <div className="stu-roll">Roll {stu.rollNo}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  {columns.map(col => {
+                    const scoreKey = `${key}_${col.id}`;
+                    const val = localScores[scoreKey];
+                    return (
+                      <td key={col.id} className="score-cell">
+                        <input
+                          type="number"
+                          value={val ?? ''}
+                          min={0}
+                          max={col.maxMarks}
+                          placeholder="—"
+                          onChange={e => {
+                            const v = e.target.value;
+                            const check = validScoreInput(v, col.maxMarks);
+                            if (!check.ok) { toast.error(check.reason || "Invalid score."); return; }
+                            setLocalScores(p => ({ ...p, [scoreKey]: v }));
+                          }}
+                        />
+                      </td>
+                    );
+                  })}
+                  <td className="col-sticky-right">
+                    <span className="total-num" style={{ color: touchedAny ? grd.color : '#99AACC' }}>
+                      {touchedAny ? earned : '—'}
+                      <span style={{ fontSize: 10.5, color: '#99AACC', fontWeight: 700, marginLeft: 2 }}>
+                        / {totalMax}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="col-sticky-right" style={{ right: 0, paddingLeft: 0 }}>
+                    <span className="grade-badge" style={{ background: touchedAny ? grd.color : '#E2E5EE', color: touchedAny ? '#fff' : '#99AACC' }}>
+                      {touchedAny ? grd.label : '—'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td className="col-sticky-left">Class Avg</td>
+              {colAvgs.map((avg, i) => (
+                <td key={i} style={{ textAlign: 'center', color: '#FF8800' }}>
+                  {avg > 0 ? avg.toFixed(1) : '—'}
+                </td>
+              ))}
+              <td className="col-sticky-right">
+                <span className="total-num" style={{ color: avgLetter.color }}>
+                  {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                  <span style={{ fontSize: 10.5, color: '#99AACC', fontWeight: 700, marginLeft: 2 }}>
+                    / 100
+                  </span>
+                </span>
+              </td>
+              <td className="col-sticky-right" style={{ right: 0, paddingLeft: 0 }}>
+                <span className="grade-badge" style={{ background: avgLetter.color, color: '#fff' }}>
+                  {avgLetter.label}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  };
+
   const lowest = filtered.length && columns.length ? Math.min(...filtered.map(stu => columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0))) : 0;
   const highest = filtered.length && columns.length ? Math.max(...filtered.map(stu => columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0))) : 0;
   const avgBand = band(classAvgPct);
@@ -666,6 +1383,30 @@ export default function Gradebook() {
               {selectedClass ? `Complete academic record for ${selectedClass.name}.` : 'Select a class to view gradebook.'}
             </div>
           </div>
+
+          {/* P2-1: listener-failure banner with one-tap retry */}
+          {listenerError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+              padding: '10px 12px', borderRadius: 12,
+              background: '#FFF5F5', border: '0.5px solid #FFD8D8',
+            }}>
+              <div style={{ flex: 1, fontSize: 12, color: '#C92A2A', fontWeight: 500, lineHeight: 1.45 }}>
+                {listenerError}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setListenerError(null); setRefreshKey(k => k + 1); }}
+                style={{
+                  padding: '6px 12px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                  background: '#C92A2A', color: '#fff', fontSize: 11, fontWeight: 700,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Class picker */}
           <div style={{ position: 'relative', marginBottom: 14 }}>
@@ -868,6 +1609,30 @@ export default function Gradebook() {
             </button>
           </div>
 
+          {/* Activities section — Tests, Exams & Assignments for this class */}
+          {selectedClassId && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '4px 4px 8px', marginTop: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px' }}>
+                  Tests, Exams &amp; Assignments
+                </span>
+                <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px' }}>
+                  {classTests.length + classAssignments.length} item{(classTests.length + classAssignments.length) === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <ActivitiesSection />
+              </div>
+              <div style={{ height: 1, background: 'rgba(9,87,247,.08)', margin: '4px 0 16px' }} />
+              <div style={{ padding: '4px 4px 10px' }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px' }}>Custom Units</span>
+                <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px', marginLeft: 8 }}>
+                  Gradebook columns you create yourself
+                </span>
+              </div>
+            </>
+          )}
+
           {/* Add column panel */}
           {showAddCol && (
             <div style={{
@@ -934,174 +1699,12 @@ export default function Gradebook() {
             </div>
           )}
 
-          {/* Loading / empty states */}
-          {loading ? (
-            <div className="gb-card3d" style={{
-              background: '#fff', borderRadius: 20, padding: '40px 14px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#5070B0' }} />
-              <span style={{ fontSize: 12, color: '#5070B0' }}>Loading gradebook...</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="gb-card3d" style={{
-              background: '#fff', borderRadius: 20, padding: '40px 14px', textAlign: 'center',
-              color: '#5070B0', fontSize: 12,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              {search ? 'No students match your search.' : 'No students enrolled yet.'}
-            </div>
-          ) : columns.length === 0 ? (
-            <div className="gb-card3d" style={{
-              background: '#fff', borderRadius: 20, padding: '40px 14px', textAlign: 'center',
-              color: '#5070B0', fontSize: 12,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              No units yet — tap <strong style={{ color: '#0055FF' }}>+ Unit</strong> above to add one.
-            </div>
-          ) : filtered.map(stu => {
-            const key = (stu.email || stu.id).toLowerCase();
-            const earned = columns.reduce((acc, c) => acc + (Number(localScores[`${key}_${c.id}`]) || 0), 0);
-            const pct = totalMax > 0 ? (earned / totalMax) * 100 : 0;
-            const grd = letterGrade(pct);
-            const bnd = band(pct);
-            const avBg = avatarBg(stu.name || '');
-
-            const totalToneColor = grd.tone === 'a' ? '#00C853' : grd.tone === 'b' ? '#0055FF' : grd.tone === 'c' ? '#FFAA00' : grd.tone === 'd' ? '#FF8800' : '#FF3355';
-
-            return (
-              <div
-                key={stu.email || stu.id}
-                className="gb-card3d"
-                style={{
-                  background: '#fff', borderRadius: 20, padding: 16, marginBottom: 12,
-                  position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-                }}
-              >
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: totalToneColor }} />
-
-                {/* Head — clickable: opens Students page */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View ${stu.name}`}
-                  onClick={() => navigate('/students')}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/students'); } }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, cursor: 'pointer' }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 13,
-                    background: avBg, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
-                  }}>
-                    {getInitials(stu.name || '')}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001040', letterSpacing: '-0.35px', lineHeight: 1.2 }}>{stu.name}</div>
-                    <div style={{ fontSize: 11, color: '#5070B0', marginTop: 3, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      {stu.rollNo && (
-                        <span style={{ background: '#F4F7FE', color: '#002080', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>Roll {stu.rollNo}</span>
-                      )}
-                      {stu.rollNo && <span style={{ color: '#99AACC' }}>·</span>}
-                      <span>{bnd.label}</span>
-                    </div>
-                  </div>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 15,
-                    background: grd.color, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 24, fontWeight: 700, letterSpacing: '-0.8px', flexShrink: 0,
-                    boxShadow: `0 1px 2px ${grd.color}40, 0 6px 14px ${grd.color}55`,
-                    position: 'relative',
-                  }}>
-                    <span style={{ position: 'absolute', inset: 0, borderRadius: 15, background: 'linear-gradient(145deg, rgba(255,255,255,.25), transparent 50%)', pointerEvents: 'none' }} />
-                    {grd.label}
-                  </div>
-                </div>
-
-                {/* Unit rows */}
-                <div style={{ background: '#F4F7FE', borderRadius: 14, padding: 1, marginBottom: 12 }}>
-                  {columns.map((col, idx) => {
-                    const scoreKey = `${key}_${col.id}`;
-                    const val = localScores[scoreKey];
-                    return (
-                      <div
-                        key={col.id}
-                        style={{
-                          display: 'flex', alignItems: 'center', padding: '11px 12px', gap: 11,
-                          background: '#fff', borderRadius: 13,
-                          marginTop: idx > 0 ? 1 : 0,
-                          borderTop: idx > 0 ? '0.5px solid rgba(9,87,247,.07)' : 'none',
-                          position: 'relative',
-                        }}
-                      >
-                        <div
-                          onClick={() => { setSelectedColForEdit(col); setView('enter-scores'); }}
-                          role="button"
-                          tabIndex={0}
-                          className="gb-press"
-                          style={{
-                            width: 28, height: 28, borderRadius: 9,
-                            background: 'rgba(9,87,247,.1)', color: '#0055FF',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0, fontSize: 11, fontWeight: 700, letterSpacing: '-0.2px',
-                            cursor: 'pointer',
-                          }}
-                          aria-label={`Edit ${col.name} scores`}
-                        >
-                          {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div
-                          onClick={() => { setSelectedColForEdit(col); setView('enter-scores'); }}
-                          style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px', cursor: 'pointer' }}
-                        >
-                          {col.name}
-                        </div>
-                        <input
-                          type="number"
-                          value={val ?? ''}
-                          min={0}
-                          max={col.maxMarks}
-                          onChange={e => setLocalScores(p => ({ ...p, [scoreKey]: e.target.value }))}
-                          placeholder="—"
-                          className="gb-score-input"
-                          style={{
-                            background: '#F4F7FE',
-                            border: '0.5px solid rgba(9,87,247,.1)',
-                            borderRadius: 10,
-                            padding: '7px 12px', width: 68,
-                            textAlign: 'center',
-                            fontSize: 13, fontWeight: 700, color: '#001040',
-                            fontFamily: 'inherit', letterSpacing: '-0.2px', outline: 'none',
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Total */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  background: 'linear-gradient(90deg, rgba(9,87,247,.06), rgba(9,87,247,.03))',
-                  borderRadius: 12,
-                  border: '0.5px solid rgba(9,87,247,.12)',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0055FF' }} />
-                    Total Score
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: totalToneColor }}>
-                    {earned}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ {totalMax}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {/* Custom Units — Excel-style row-per-student spreadsheet table.
+           * Replaces the per-student card grid with a single horizontally-
+           * scrollable table where rows are students and columns are units.
+           * Same renderer is used by the desktop view below. */}
+          {renderCustomUnitsTable()}
+          <div style={{ height: 14 }} />
 
           {/* Class Avg Card */}
           {!loading && filtered.length > 0 && columns.length > 0 && (
@@ -1226,7 +1829,6 @@ export default function Gradebook() {
             </div>
           )}
 
-          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls" />
 
         </div>
       </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
@@ -1250,6 +1852,30 @@ export default function Gradebook() {
         `}</style>
 
         <div style={{ maxWidth: 1600, margin: '0 auto', padding: '32px 32px 48px' }}>
+
+          {/* P2-1: listener-failure banner with one-tap retry */}
+          {listenerError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+              padding: '12px 16px', borderRadius: 14,
+              background: '#FFF5F5', border: '0.5px solid #FFD8D8',
+            }}>
+              <div style={{ flex: 1, fontSize: 13, color: '#C92A2A', fontWeight: 500, lineHeight: 1.5 }}>
+                {listenerError}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setListenerError(null); setRefreshKey(k => k + 1); }}
+                style={{
+                  padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  background: '#C92A2A', color: '#fff', fontSize: 12, fontWeight: 700,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Header row: title + class picker */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -1467,6 +2093,30 @@ export default function Gradebook() {
             </div>
           </div>
 
+          {/* Activities section — Tests, Exams & Assignments for this class */}
+          {selectedClassId && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px' }}>
+                  Tests, Exams &amp; Assignments
+                </span>
+                <span style={{ fontSize: 13, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px' }}>
+                  {classTests.length + classAssignments.length} item{(classTests.length + classAssignments.length) === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div style={{ marginBottom: 22, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                <ActivitiesSection />
+              </div>
+              <div style={{ height: 1, background: 'rgba(9,87,247,.08)', margin: '4px 0 18px' }} />
+              <div style={{ marginBottom: 14 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px' }}>Custom Units</span>
+                <span style={{ fontSize: 13, color: '#5070B0', fontWeight: 600, letterSpacing: '-0.1px', marginLeft: 10 }}>
+                  Gradebook columns you create yourself
+                </span>
+              </div>
+            </>
+          )}
+
           {/* Add column panel */}
           {showAddCol && (
             <div style={{
@@ -1530,178 +2180,12 @@ export default function Gradebook() {
             </div>
           )}
 
-          {/* Loading / empty / student cards */}
-          {loading ? (
-            <div className="gbd-card3d" style={{
-              background: '#fff', borderRadius: 22, padding: '60px 24px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              <Loader2 className="w-7 h-7 animate-spin" style={{ color: '#5070B0' }} />
-              <span style={{ fontSize: 13, color: '#5070B0' }}>Loading gradebook...</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="gbd-card3d" style={{
-              background: '#fff', borderRadius: 22, padding: '60px 24px', textAlign: 'center',
-              color: '#5070B0', fontSize: 14,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              {search ? 'No students match your search.' : 'No students enrolled yet.'}
-            </div>
-          ) : columns.length === 0 ? (
-            <div className="gbd-card3d" style={{
-              background: '#fff', borderRadius: 22, padding: '60px 24px', textAlign: 'center',
-              color: '#5070B0', fontSize: 14,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-            }}>
-              No units yet — click <strong style={{ color: '#0055FF' }}>+ Add Unit</strong> above to add one.
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 18 }}>
-              {filtered.map(stu => {
-                const key = (stu.email || stu.id).toLowerCase();
-                const earned = columns.reduce((acc, c) => acc + (Number(localScores[`${key}_${c.id}`]) || 0), 0);
-                const pct = totalMax > 0 ? (earned / totalMax) * 100 : 0;
-                const grd = letterGrade(pct);
-                const bnd = band(pct);
-                const avBg = avatarBg(stu.name || '');
-
-                const totalToneColor = grd.tone === 'a' ? '#00C853' : grd.tone === 'b' ? '#0055FF' : grd.tone === 'c' ? '#FFAA00' : grd.tone === 'd' ? '#FF8800' : '#FF3355';
-
-                return (
-                  <div
-                    key={stu.email || stu.id}
-                    className="gbd-card3d"
-                    style={{
-                      background: '#fff', borderRadius: 22, padding: 22,
-                      position: 'relative', overflow: 'hidden',
-                      boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-                    }}
-                  >
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: totalToneColor }} />
-
-                    {/* Head — clickable: opens Students page */}
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`View ${stu.name}`}
-                      onClick={() => navigate('/students')}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/students'); } }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, cursor: 'pointer' }}>
-                      <div style={{
-                        width: 50, height: 50, borderRadius: 15,
-                        background: avBg, color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, fontWeight: 700, letterSpacing: '0.3px', flexShrink: 0,
-                      }}>
-                        {getInitials(stu.name || '')}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: '#001040', letterSpacing: '-0.4px', lineHeight: 1.2 }}>{stu.name}</div>
-                        <div style={{ fontSize: 12, color: '#5070B0', marginTop: 4, fontWeight: 500, letterSpacing: '-0.1px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {stu.rollNo && (
-                            <span style={{ background: '#F4F7FE', color: '#002080', padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700 }}>Roll {stu.rollNo}</span>
-                          )}
-                          {stu.rollNo && <span style={{ color: '#99AACC' }}>·</span>}
-                          <span>{bnd.label}</span>
-                        </div>
-                      </div>
-                      <div style={{
-                        width: 56, height: 56, borderRadius: 17,
-                        background: grd.color, color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 28, fontWeight: 700, letterSpacing: '-0.9px', flexShrink: 0,
-                        boxShadow: `0 1px 2px ${grd.color}40, 0 8px 18px ${grd.color}55`,
-                        position: 'relative',
-                      }}>
-                        <span style={{ position: 'absolute', inset: 0, borderRadius: 17, background: 'linear-gradient(145deg, rgba(255,255,255,.25), transparent 50%)', pointerEvents: 'none' }} />
-                        {grd.label}
-                      </div>
-                    </div>
-
-                    {/* Unit rows */}
-                    <div style={{ background: '#F4F7FE', borderRadius: 15, padding: 1, marginBottom: 14 }}>
-                      {columns.map((col, idx) => {
-                        const scoreKey = `${key}_${col.id}`;
-                        const val = localScores[scoreKey];
-                        return (
-                          <div
-                            key={col.id}
-                            style={{
-                              display: 'flex', alignItems: 'center', padding: '12px 14px', gap: 12,
-                              background: '#fff', borderRadius: 14,
-                              marginTop: idx > 0 ? 1 : 0,
-                              borderTop: idx > 0 ? '0.5px solid rgba(9,87,247,.07)' : 'none',
-                              position: 'relative',
-                            }}
-                          >
-                            <div
-                              onClick={() => { setSelectedColForEdit(col); setView('enter-scores'); }}
-                              role="button"
-                              tabIndex={0}
-                              className="gbd-press"
-                              style={{
-                                width: 32, height: 32, borderRadius: 10,
-                                background: 'rgba(9,87,247,.1)', color: '#0055FF',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, fontSize: 12, fontWeight: 700, letterSpacing: '-0.2px',
-                                cursor: 'pointer',
-                              }}
-                              aria-label={`Edit ${col.name} scores`}
-                            >
-                              {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div
-                              onClick={() => { setSelectedColForEdit(col); setView('enter-scores'); }}
-                              style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px', cursor: 'pointer' }}
-                            >
-                              {col.name}
-                            </div>
-                            <input
-                              type="number"
-                              value={val ?? ''}
-                              min={0}
-                              max={col.maxMarks}
-                              onChange={e => setLocalScores(p => ({ ...p, [scoreKey]: e.target.value }))}
-                              placeholder="—"
-                              className="gbd-score-input"
-                              style={{
-                                background: '#F4F7FE',
-                                border: '0.5px solid rgba(9,87,247,.1)',
-                                borderRadius: 11,
-                                padding: '8px 14px', width: 80,
-                                textAlign: 'center',
-                                fontSize: 14, fontWeight: 700, color: '#001040',
-                                fontFamily: 'inherit', letterSpacing: '-0.2px', outline: 'none',
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Total */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 14px',
-                      background: 'linear-gradient(90deg, rgba(9,87,247,.06), rgba(9,87,247,.03))',
-                      borderRadius: 13,
-                      border: '0.5px solid rgba(9,87,247,.12)',
-                    }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0055FF' }} />
-                        Total Score
-                      </div>
-                      <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: totalToneColor }}>
-                        {earned}
-                        <span style={{ fontSize: 14, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ {totalMax}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* Custom Units — same Excel-style table as the mobile view above.
+           * Desktop has more horizontal room so the table renders in full
+           * width without scroll most of the time. */}
+          <div style={{ marginBottom: 18 }}>
+            {renderCustomUnitsTable()}
+          </div>
 
           {/* 2-column: Class Avg + AI Intelligence */}
           {!loading && filtered.length > 0 && columns.length > 0 && (
@@ -1829,7 +2313,6 @@ export default function Gradebook() {
             </div>
           )}
 
-          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls" />
 
         </div>
       </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}

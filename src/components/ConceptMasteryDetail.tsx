@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { generateConceptRemedial } from "../ai/system/concept-remedial";
@@ -13,32 +13,36 @@ const buildStudentHandoff = (student: any) => ({
   autoOpenStudentName:  student?.name || "",
 });
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── Blue Apple design tokens (matches all other teacher pages) ───────────────
+// Was slate-based. Now harmonized with the app-wide Blue Apple palette so the
+// detail view matches Dashboard/MyClasses/Gradebook/etc visual language.
 const T = {
-  bg:    "#f8fafc",
-  white: "#ffffff",
-  hero:  "#08090C",
-  blue:  "#1e3272",
-  blue2: "#2563EB",
-  s1:    "#f1f5f9",
-  s2:    "#e2e8f0",
-  ink1:  "#0f172a",
-  ink2:  "#64748b",
-  ink3:  "#94a3b8",
-  green: "#10b981",
-  amber: "#f59e0b",
-  rose:  "#f43f5e",
+  bg:    "#EEF4FF",   // page background — Blue Apple soft
+  white: "#FFFFFF",
+  hero:  "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
+  blue:  "#001040",   // dark ink
+  blue2: "#0055FF",   // primary action
+  s1:    "#F4F7FE",   // surface
+  s2:    "rgba(0,85,255,0.10)", // separator
+  ink1:  "#001040",   // primary text
+  ink2:  "#5070B0",   // secondary text
+  ink3:  "#99AACC",   // muted text
+  green: "#00C853",   // mastered
+  amber: "#FF8800",   // developing
+  rose:  "#FF3355",   // weak
+  // Card shadow stack — same Blue Apple halo used elsewhere.
+  SH:    "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
 };
 
-// ── Avatar palette (same hash as rest of app) ─────────────────────────────────
+// ── Avatar palette — Blue Apple harmonized ────────────────────────────────────
 const AV_PALETTES = [
-  { bg: "#1e3272", text: "#fff" },
-  { bg: "#0ea5e9", text: "#fff" },
-  { bg: "#10b981", text: "#fff" },
-  { bg: "#f59e0b", text: "#fff" },
-  { bg: "#8b5cf6", text: "#fff" },
-  { bg: "#f43f5e", text: "#fff" },
-  { bg: "#06b6d4", text: "#fff" },
+  { bg: "#7B3FF4", text: "#fff" },
+  { bg: "#00C853", text: "#fff" },
+  { bg: "#0055FF", text: "#fff" },
+  { bg: "#FF8800", text: "#fff" },
+  { bg: "#00B8D4", text: "#fff" },
+  { bg: "#C2255C", text: "#fff" },
+  { bg: "#6741D9", text: "#fff" },
 ];
 const avStyle = (name: string) => {
   let h = 0;
@@ -62,16 +66,160 @@ const formatTitle = (h: string) =>
   h.charAt(0).toUpperCase() + h.slice(1).toLowerCase().replace(/_/g, " ");
 
 // ── Props ─────────────────────────────────────────────────────────────────────
+type DetailSource = 'test' | 'exam' | 'assignment' | 'custom';
 interface ConceptMasteryDetailProps {
   student: any;
   concepts: string[];
   scores: number[];
+  /** Optional source tag per concept (parallel to `concepts` array). When
+   *  provided, each concept item carries a small color-coded chip showing
+   *  whether it came from a Test / Exam / Assignment / Custom Unit. */
+  conceptSources?: DetailSource[];
   className?: string;
   onBack: () => void;
 }
 
+const DETAIL_SOURCE_LABEL: Record<DetailSource, string> = {
+  test: 'Test', exam: 'Exam', assignment: 'Assignment', custom: 'Unit',
+};
+const DETAIL_SOURCE_COLOR: Record<DetailSource, { fg: string; bg: string }> = {
+  test:       { fg: '#0055FF', bg: 'rgba(0,85,255,.10)'   },
+  exam:       { fg: '#7B3FF4', bg: 'rgba(123,63,244,.10)' },
+  assignment: { fg: '#FF8800', bg: 'rgba(255,136,0,.10)'  },
+  custom:     { fg: '#00C853', bg: 'rgba(0,200,83,.10)'   },
+};
+
+// ── Hoisted ConceptCard (P2-6) ────────────────────────────────────────────────
+// Was defined inside the parent — recreated on every render which broke React's
+// reconciliation identity (children re-mounted instead of updating). Hoisted to
+// module scope so it stays stable across renders. All bucket-specific behavior
+// flows through props.
+type ConceptItem = { title: string; score: number; source?: DetailSource };
+interface ConceptCardProps {
+  type: keyof typeof STATUS;
+  items: ConceptItem[];
+  selectedRemedial: string | null;
+  isGenerating: boolean;
+  onRemedial: (concept: string) => void;
+}
+
+const ConceptCard: React.FC<ConceptCardProps> = ({ type, items, selectedRemedial, isGenerating, onRemedial }) => {
+  const s = STATUS[type];
+  return (
+    <div className="cmd-card3d" style={{
+      background: T.white,
+      border: `0.5px solid rgba(0,85,255,0.07)`,
+      borderRadius: 20,
+      overflow: "hidden",
+      boxShadow: T.SH,
+    }}>
+      {/* Card header */}
+      <div style={{ background: s.bg, padding: "16px 20px", borderBottom: `1px solid ${T.s2}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{
+            width: 10, height: 10, borderRadius: "50%",
+            background: s.dot, flexShrink: 0,
+          }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: T.ink1 }}>{s.label}</span>
+          <span style={{
+            marginLeft: "auto",
+            background: s.tagBg, color: s.tagColor,
+            fontSize: 12, fontWeight: 700, borderRadius: 20,
+            padding: "2px 10px",
+          }}>
+            {items.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Concept tags list */}
+      <div style={{ padding: 16 }}>
+        {items.length === 0 ? (
+          <p style={{ fontSize: 13, color: T.ink3, textAlign: "center", padding: "16px 0" }}>
+            {type === "mastered"   ? "No mastered concepts yet."        :
+             type === "developing" ? "No developing concepts."           :
+                                     "No weak areas. Great work!"}
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {items.map((c, i) => {
+              const sourceMeta = c.source ? DETAIL_SOURCE_COLOR[c.source] : null;
+              return (
+                <div key={`${c.title}_${c.source ?? "x"}_${i}`} style={{
+                  background: s.tagBg,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                }}>
+                  {/* Name + score */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, flex: 1 }}>
+                      {sourceMeta && c.source && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 5,
+                          background: sourceMeta.bg, color: sourceMeta.fg,
+                          letterSpacing: "0.5px", textTransform: "uppercase",
+                          flexShrink: 0,
+                        }}>
+                          {DETAIL_SOURCE_LABEL[c.source]}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.ink1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {formatTitle(c.title)}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: s.tagColor, flexShrink: 0 }}>
+                      {c.score}%
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div style={{ height: 5, background: `${s.dot}33`, borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", width: `${c.score}%`,
+                      background: s.dot, borderRadius: 99,
+                      transition: "width 0.6s ease",
+                    }} />
+                  </div>
+                  {/* AI remedial button for weak concepts */}
+                  {type === "weak" && (
+                    <button type="button"
+                      onClick={() => onRemedial(c.title)}
+                      disabled={isGenerating && selectedRemedial === c.title}
+                      style={{
+                        marginTop: 10,
+                        width: "100%", padding: "7px 0",
+                        background: isGenerating && selectedRemedial === c.title ? T.rose + "99" : T.rose,
+                        color: "#fff", border: "none", borderRadius: 10,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        transition: "opacity 0.2s",
+                        boxShadow: "0 1px 2px rgba(255,51,85,.2), 0 3px 8px rgba(255,51,85,.25)",
+                      }}
+                    >
+                      {isGenerating && selectedRemedial === c.title ? (
+                        <>
+                          <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles style={{ width: 13, height: 13 }} />
+                          Assign Remedial
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
-const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: ConceptMasteryDetailProps) => {
+const ConceptMasteryDetail = ({ student, concepts, scores, conceptSources, className, onBack }: ConceptMasteryDetailProps) => {
   const navigate = useNavigate();
   const [selectedRemedial, setSelectedRemedial] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -83,10 +231,12 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
   const handleContactParent = () =>
     navigate("/parent-notes", { state: buildStudentHandoff(student) });
 
-  // Build concept objects
+  // Build concept objects, carrying the source tag through to render so
+  // each item can show a color chip indicating its origin (Test/Exam/etc).
   const mappedConcepts = concepts.map((c, i) => {
     const score = scores[i] ?? 0;
-    return { title: c, score };
+    const source = conceptSources?.[i];
+    return { title: c, score, source };
   }).filter(c => c.score > 0);
 
   const mastered   = mappedConcepts.filter(c => c.score >= 80);
@@ -134,107 +284,15 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
 
   const hasRisk = weak.length > 0;
 
-  // ── Shared concept tag component (inline) ───────────────────────────────────
-  const ConceptCard = ({
-    type, items,
-  }: { type: keyof typeof STATUS; items: typeof mappedConcepts }) => {
-    const s = STATUS[type];
-    return (
-      <div className="cmd-card3d" style={{
-        background: T.white,
-        border: `0.5px solid rgba(0,85,255,0.07)`,
-        borderRadius: 20,
-        overflow: "hidden",
-        boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
-      }}>
-        {/* Card header */}
-        <div style={{ background: s.bg, padding: "16px 20px", borderBottom: `1px solid ${T.s2}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{
-              width: 10, height: 10, borderRadius: "50%",
-              background: s.dot, flexShrink: 0,
-            }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: T.ink1 }}>{s.label}</span>
-            <span style={{
-              marginLeft: "auto",
-              background: s.tagBg, color: s.tagColor,
-              fontSize: 12, fontWeight: 700, borderRadius: 20,
-              padding: "2px 10px",
-            }}>
-              {items.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Concept tags list */}
-        <div style={{ padding: 16 }}>
-          {items.length === 0 ? (
-            <p style={{ fontSize: 13, color: T.ink3, textAlign: "center", padding: "16px 0" }}>
-              {type === "mastered"   ? "No mastered concepts yet."        :
-               type === "developing" ? "No developing concepts."           :
-                                       "No weak areas. Great work!"}
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {items.map((c, i) => (
-                <div key={i} style={{
-                  background: s.tagBg,
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                }}>
-                  {/* Name + score */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.ink1 }}>
-                      {formatTitle(c.title)}
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: s.tagColor }}>
-                      {c.score}%
-                    </span>
-                  </div>
-                  {/* Progress bar */}
-                  <div style={{ height: 5, background: `${s.dot}33`, borderRadius: 99, overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", width: `${c.score}%`,
-                      background: s.dot, borderRadius: 99,
-                      transition: "width 0.6s ease",
-                    }} />
-                  </div>
-                  {/* AI remedial button for weak concepts */}
-                  {type === "weak" && (
-                    <button type="button"
-                      onClick={() => handleRemedial(c.title)}
-                      disabled={isGenerating && selectedRemedial === c.title}
-                      style={{
-                        marginTop: 10,
-                        width: "100%", padding: "7px 0",
-                        background: isGenerating && selectedRemedial === c.title ? T.rose + "99" : T.rose,
-                        color: "#fff", border: "none", borderRadius: 10,
-                        fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        transition: "opacity 0.2s",
-                      }}
-                    >
-                      {isGenerating && selectedRemedial === c.title ? (
-                        <>
-                          <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles style={{ width: 13, height: 13 }} />
-                          Assign Remedial
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // P3-3: Esc closes the detail view. Skipped while AI is generating (so the
+  // teacher doesn't accidentally drop a remedial run mid-compute).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isGenerating) onBack();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack, isGenerating]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -263,26 +321,34 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
       {/* ═══════════════════ DESKTOP VIEW ═══════════════════ */}
       <div className="hidden md:block">
 
-      {/* ── Dark hero ────────────────────────────────────────────────────────── */}
+      {/* ── Blue Apple hero (matches Dashboard / MyClasses / Gradebook) ────── */}
       <div
-        className="bg-[#001A66] md:bg-[#08090C] md:rounded-2xl"
-        style={{ margin: "0 -22px", position: "relative" }}
+        style={{
+          background: T.hero,
+          borderRadius: 26,
+          margin: "0 -22px",
+          position: "relative",
+          overflow: "hidden",
+          boxShadow: "0 1px 2px rgba(0,8,60,.15), 0 12px 32px rgba(0,8,60,.28)",
+        }}
       >
-        <div className="max-w-[1200px] md:mx-auto" style={{ padding: "0 22px 28px" }}>
+        {/* Glass highlight overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
+        <div className="max-w-[1200px] md:mx-auto" style={{ padding: "0 22px 28px", position: "relative", zIndex: 2 }}>
           {/* Back button row */}
           <div style={{ paddingTop: 20, marginBottom: 22 }}>
             <button type="button"
               onClick={onBack}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                background: "rgba(255,255,255,0.08)",
-                border: "1.5px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.10)",
+                backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                border: "0.5px solid rgba(255,255,255,0.18)",
                 borderRadius: 10, padding: "7px 14px",
-                color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600,
-                cursor: "pointer",
+                color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600,
+                cursor: "pointer", letterSpacing: "-0.1px",
               }}
             >
-              {/* left arrow */}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
@@ -291,7 +357,7 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
           </div>
 
           {/* Eyebrow */}
-          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.72)", letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 14 }}>
             Concept Mastery Analysis
           </p>
 
@@ -300,21 +366,21 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
             {/* Avatar + name row */}
             <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }} className="md:!mb-0">
               <div style={{
-                width: 52, height: 52, borderRadius: 14,
+                width: 56, height: 56, borderRadius: 16,
                 background: av.bg, color: av.text,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, fontWeight: 700, flexShrink: 0,
-                boxShadow: `0 0 0 3px ${av.bg}55`,
+                fontSize: 18, fontWeight: 700, flexShrink: 0, letterSpacing: "0.5px",
+                boxShadow: `0 1px 2px ${av.bg}4D, 0 8px 16px ${av.bg}55, inset 0 1px 0 rgba(255,255,255,.25)`,
               }}>
                 {student.initials || getInitials(student.name || "S")}
               </div>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1.2 }}>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1.15, letterSpacing: "-0.6px" }}>
                   {student.name}
                 </h1>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", margin: "4px 0 0" }}>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "4px 0 0", fontWeight: 500, letterSpacing: "-0.1px" }}>
                   {className ? `${className}` : ""}
-                  {student.roll ? ` · Roll ${student.roll}` : ""}
+                  {student.rollNo ? ` · Roll ${student.rollNo}` : ""}
                 </p>
               </div>
             </div>
@@ -323,11 +389,12 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
             <div className="flex gap-2.5 md:shrink-0">
               <button type="button" onClick={handleViewProfile} className="md:px-6" style={{
                 flex: 1, padding: "10px 16px",
-                background: "rgba(255,255,255,0.08)",
-                border: "1.5px solid rgba(255,255,255,0.15)",
-                borderRadius: 12, color: "rgba(255,255,255,0.85)",
+                background: "rgba(255,255,255,0.12)",
+                backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                border: "0.5px solid rgba(255,255,255,0.20)",
+                borderRadius: 12, color: "#fff",
                 fontSize: 13, fontWeight: 700, cursor: "pointer",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap", letterSpacing: "-0.2px",
               }}>
                 View Profile
               </button>
@@ -336,7 +403,8 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
                 background: T.blue2,
                 border: "none", borderRadius: 12,
                 color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap", letterSpacing: "-0.2px",
+                boxShadow: "0 1px 2px rgba(9,87,247,.25), 0 6px 14px rgba(9,87,247,.35)",
               }}>
                 Contact Parent
               </button>
@@ -348,23 +416,24 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
       <div className="max-w-[1200px] md:mx-auto" style={{ paddingTop: 24 }}>
 
-        {/* 3-stat row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 22 }} className="md:!gap-4">
+        {/* 3-stat row — Blue Apple cards with status pastel backgrounds */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 22 }} className="md:!gap-4">
           {[
-            { label: "Mastered",   count: mastered.length,   color: T.green, bg: "#f0fdf4" },
-            { label: "Developing", count: developing.length, color: T.amber, bg: "#fffbeb" },
-            { label: "Weak Areas", count: weak.length,       color: T.rose,  bg: "#fff1f2" },
+            { label: "Mastered",   count: mastered.length,   color: T.green, bg: "linear-gradient(160deg, rgba(0,232,102,.12), rgba(0,200,83,.04))",  border: "rgba(0,200,83,.22)" },
+            { label: "Developing", count: developing.length, color: T.amber, bg: "linear-gradient(160deg, rgba(255,170,0,.14), rgba(255,136,0,.04))", border: "rgba(255,136,0,.25)" },
+            { label: "Weak Areas", count: weak.length,       color: T.rose,  bg: "linear-gradient(160deg, rgba(255,51,85,.10), rgba(255,51,85,.02))", border: "rgba(255,51,85,.22)" },
           ].map(stat => (
-            <div key={stat.label} className="md:!py-6" style={{
+            <div key={stat.label} className="md:!py-7" style={{
               background: stat.bg,
-              border: `1.5px solid ${stat.color}22`,
-              borderRadius: 16, padding: "14px 0",
+              border: `0.5px solid ${stat.border}`,
+              borderRadius: 18, padding: "16px 0",
               textAlign: "center",
+              boxShadow: "0 1px 2px rgba(0,8,60,.04), 0 4px 14px rgba(0,8,60,.06)",
             }}>
-              <p className="md:!text-4xl" style={{ fontSize: 26, fontWeight: 700, color: stat.color, margin: 0, lineHeight: 1 }}>
+              <p className="md:!text-4xl" style={{ fontSize: 30, fontWeight: 700, color: stat.color, margin: 0, lineHeight: 1, letterSpacing: "-1px" }}>
                 {stat.count}
               </p>
-              <p className="md:!text-sm" style={{ fontSize: 11, fontWeight: 600, color: T.ink2, margin: "4px 0 0" }}>
+              <p className="md:!text-sm" style={{ fontSize: 11, fontWeight: 700, color: T.ink2, margin: "6px 0 0", letterSpacing: "1.1px", textTransform: "uppercase" }}>
                 {stat.label}
               </p>
             </div>
@@ -373,9 +442,9 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
 
         {/* 3 concept status cards — stacked on mobile, 3-col grid on desktop */}
         <div className="flex flex-col gap-3.5 md:grid md:grid-cols-3 md:gap-4 mb-6">
-          <ConceptCard type="mastered"   items={mastered} />
-          <ConceptCard type="developing" items={developing} />
-          <ConceptCard type="weak"       items={weak} />
+          <ConceptCard type="mastered"   items={mastered}   selectedRemedial={selectedRemedial} isGenerating={isGenerating} onRemedial={handleRemedial} />
+          <ConceptCard type="developing" items={developing} selectedRemedial={selectedRemedial} isGenerating={isGenerating} onRemedial={handleRemedial} />
+          <ConceptCard type="weak"       items={weak}       selectedRemedial={selectedRemedial} isGenerating={isGenerating} onRemedial={handleRemedial} />
         </div>
 
         {/* AI Remedial Output */}
@@ -435,79 +504,93 @@ const ConceptMasteryDetail = ({ student, concepts, scores, className, onBack }: 
           padding: "20px",
           boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
         }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: T.ink1, margin: "0 0 14px" }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: T.ink1, margin: "0 0 14px", letterSpacing: "-0.3px" }}>
             Recommended Actions
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {recommendedActions.map((action, i) => (
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <span style={{
-                  width: 26, height: 26, borderRadius: 8,
-                  background: "#eff6ff", color: T.blue2,
+                  width: 28, height: 28, borderRadius: 9,
+                  background: "rgba(0,85,255,0.10)", color: T.blue2,
                   fontSize: 12, fontWeight: 700,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
+                  flexShrink: 0, letterSpacing: "-0.2px",
                 }}>
                   {i + 1}
                 </span>
-                <p style={{ fontSize: 13, color: T.ink2, margin: 0, paddingTop: 4 }}>{action}</p>
+                <p style={{ fontSize: 13, color: T.ink2, margin: 0, paddingTop: 5, fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>{action}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Risk / no-risk banner */}
+        {/* Risk / no-risk banner — Blue Apple harmonized */}
         {hasRisk ? (
           <div style={{
-            background: "#fff1f2",
-            border: "1.5px solid #fecdd3",
-            borderRadius: 16,
-            padding: "14px 18px",
+            background: "linear-gradient(140deg, #FF3355 0%, #C92A2A 100%)",
+            borderRadius: 20, padding: "16px 20px",
             display: "flex", alignItems: "flex-start", gap: 12,
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(255,51,85,.20), 0 10px 26px rgba(255,51,85,.28)",
           }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.18) 0%, transparent 45%)", pointerEvents: "none" }} />
             <span style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: T.rose, flexShrink: 0,
+              width: 38, height: 38, borderRadius: 12,
+              background: "rgba(255,255,255,0.22)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              border: "0.5px solid rgba(255,255,255,0.28)",
+              flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
+              position: "relative", zIndex: 2,
             }}>
-              {/* warning icon */}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
             </span>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#9f1239", margin: "0 0 3px" }}>
+            <div style={{ position: "relative", zIndex: 2 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.85)", margin: "0 0 3px", letterSpacing: "1.4px", textTransform: "uppercase" }}>
+                Status
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: "0 0 6px", letterSpacing: "-0.4px" }}>
                 Intervention Required
               </p>
-              <p style={{ fontSize: 12, color: "#be123c", margin: 0 }}>
-                {student.name} has {weak.length} weak area{weak.length > 1 ? "s" : ""} that need{weak.length === 1 ? "s" : ""} immediate support. Consider scheduling a parent meeting.
+              <p style={{ fontSize: 12.5, color: "rgba(255,255,255,.92)", margin: 0, fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
+                <strong style={{ color: "#fff", fontWeight: 700 }}>{student.name}</strong> has {weak.length} weak area{weak.length > 1 ? "s" : ""} that need{weak.length === 1 ? "s" : ""} immediate support. Consider scheduling a parent meeting.
               </p>
             </div>
           </div>
         ) : (
           <div style={{
-            background: "#f0fdf4",
-            border: "1.5px solid #bbf7d0",
-            borderRadius: 16,
-            padding: "14px 18px",
+            background: "linear-gradient(140deg, #00C853 0%, #00E866 100%)",
+            borderRadius: 20, padding: "16px 20px",
             display: "flex", alignItems: "flex-start", gap: 12,
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(0,200,83,.20), 0 10px 26px rgba(0,200,83,.28)",
           }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.18) 0%, transparent 45%)", pointerEvents: "none" }} />
             <span style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: T.green, flexShrink: 0,
+              width: 38, height: 38, borderRadius: 12,
+              background: "rgba(255,255,255,0.22)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              border: "0.5px solid rgba(255,255,255,0.28)",
+              flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
+              position: "relative", zIndex: 2,
             }}>
-              {/* check icon */}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </span>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#166534", margin: "0 0 3px" }}>
+            <div style={{ position: "relative", zIndex: 2 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.85)", margin: "0 0 3px", letterSpacing: "1.4px", textTransform: "uppercase" }}>
+                Status
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: "0 0 6px", letterSpacing: "-0.4px" }}>
                 On Track
               </p>
-              <p style={{ fontSize: 12, color: "#15803d", margin: 0 }}>
-                {student.name} is performing well across all assessed concepts. Keep up the great work!
+              <p style={{ fontSize: 12.5, color: "rgba(255,255,255,.92)", margin: 0, fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5 }}>
+                <strong style={{ color: "#fff", fontWeight: 700 }}>{student.name}</strong> is performing well across all assessed concepts. Keep up the great work!
               </p>
             </div>
           </div>
@@ -630,7 +713,7 @@ const MobileConceptMasteryDetail = ({
               <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.8px', lineHeight: 1.1 }}>{student.name}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.1px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 {className && <span style={{ background: 'rgba(255,255,255,.14)', border: '0.5px solid rgba(255,255,255,.2)', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '-0.1px' }}>{className}</span>}
-                {student.roll && <><span>·</span><span>Roll {student.roll}</span></>}
+                {student.rollNo && <><span>·</span><span>Roll {student.rollNo}</span></>}
               </div>
             </div>
           </div>

@@ -156,13 +156,16 @@ const ParentNotes = () => {
     return () => { unsub1(); unsub2(); };
   }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
-  // Auto-open recipient when navigated here from ConceptMasteryDetail's
-  // "Contact Parent" button. Runs once roster has populated; matches by
-  // studentId then falls back to studentEmail.
+  // Auto-open recipient when navigated here from ConceptMasteryDetail or
+  // RisksAlerts "Contact Parent" buttons. Runs once roster has populated;
+  // matches by studentId then falls back to studentEmail. If `autoMessage`
+  // is also passed, prefill the chat composer so the teacher can review
+  // and edit before sending.
   useEffect(() => {
     const st = (location.state ?? {}) as {
       autoOpenStudentId?: string;
       autoOpenStudentEmail?: string;
+      autoMessage?: string;
     };
     const wantedId = st.autoOpenStudentId?.toLowerCase();
     const wantedEmail = st.autoOpenStudentEmail?.toLowerCase();
@@ -173,7 +176,10 @@ const ParentNotes = () => {
       const remail = (r.studentEmail || "").toLowerCase();
       return (wantedId && rid === wantedId) || (wantedEmail && remail === wantedEmail);
     });
-    if (match) setSelectedStudent(match);
+    if (match) {
+      setSelectedStudent(match);
+      if (st.autoMessage) setMessageContent(st.autoMessage);
+    }
     navigate(location.pathname, { replace: true, state: null });
   }, [location.state, location.pathname, navigate, roster, selectedStudent]);
 

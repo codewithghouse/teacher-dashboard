@@ -3,37 +3,52 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
 import { db } from "../lib/firebase";
-import { collection, serverTimestamp, query, where, onSnapshot } from "firebase/firestore";
-import { auditedAdd } from "../lib/auditedWrites";
+import { collection, serverTimestamp, query, where, onSnapshot, doc } from "firebase/firestore";
+import { auditedAdd, auditedDelete } from "../lib/auditedWrites";
 import { toast } from "sonner";
+import {
+  lessonPlanCacheKey,
+  getInflight,
+  setInflight,
+  lsRead,
+  lsWrite,
+  formatAge,
+  type LessonPlanFormFields,
+} from "../lib/lessonPlanCache";
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── Blue Apple design tokens (matches all other teacher pages) ───────────────
+// Was slate-based. Now harmonized with the app-wide Blue Apple palette so the
+// result view + history list use the same visual language as Dashboard,
+// MyClasses, Gradebook, ConceptMastery, Exam Generator, etc.
+const HERO_GRAD = "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)";
 const T = {
-  hero:  "#08090C",
-  bg:    "#F5F6F9",
-  white: "#ffffff",
-  ink1:  "#08090C",
-  ink2:  "#42475A",
-  ink3:  "#8C92A4",
-  s1:    "#F5F6F9",
-  s2:    "#ECEEF4",
-  bdr:   "#E2E5EE",
-  blue:  "#3B5BDB",
-  blBg:  "#EDF2FF",
-  blBdr: "#BAC8FF",
-  pur:   "#6741D9",
-  plBg:  "#F3F0FF",
-  plBdr: "#D0BFFF",
-  grn:   "#087F5B",
-  grn2:  "#2F9E44",
-  glBg:  "#EBFBEE",
-  glBdr: "#8CE99A",
-  red:   "#C92A2A",
-  rlBg:  "#FFF5F5",
-  rlBdr: "#FFC9C9",
-  amb:   "#C87014",
-  alBg:  "#FFF9DB",
-  alBdr: "#FFE066",
+  hero:  HERO_GRAD,                   // result-view dark hero now Blue Apple
+  bg:    "#EEF4FF",                   // page background
+  white: "#FFFFFF",
+  ink1:  "#001040",                   // primary text
+  ink2:  "#5070B0",                   // secondary text
+  ink3:  "#99AACC",                   // muted text
+  s1:    "#F4F7FE",                   // surface
+  s2:    "#EAF0FB",                   // separator
+  bdr:   "rgba(0,85,255,0.10)",       // 0.5px Blue Apple border
+  blue:  "#0055FF",                   // primary action
+  blBg:  "rgba(0,85,255,0.10)",
+  blBdr: "rgba(0,85,255,0.22)",
+  pur:   "#7B3FF4",                   // AI accent — Blue Apple violet
+  plBg:  "rgba(123,63,244,0.10)",
+  plBdr: "rgba(123,63,244,0.25)",
+  grn:   "#00C853",                   // success / mastered
+  grn2:  "#00C853",
+  glBg:  "rgba(0,200,83,0.10)",
+  glBdr: "rgba(0,200,83,0.22)",
+  red:   "#FF3355",                   // error / weak
+  rlBg:  "rgba(255,51,85,0.10)",
+  rlBdr: "rgba(255,51,85,0.22)",
+  amb:   "#FF8800",                   // warning / developing
+  alBg:  "rgba(255,136,0,0.10)",
+  alBdr: "rgba(255,136,0,0.25)",
+  // Card shadow stack — same Blue Apple halo used elsewhere.
+  SH:    "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)",
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -73,7 +88,16 @@ interface FormData {
   special_considerations: string;
 }
 
+// P0-4: extended every field actually rendered in the result view so the
+// previous `as any` casts can be dropped. AI may omit any optional field —
+// every render site already null-checks via `?.` chaining.
 interface LessonSection {
+  name?: string;             // phase name (e.g. "Introduction", "Guided Practice")
+  duration?: string;
+  teacher_activity?: string;
+  student_activity?: string;
+  key_questions?: string[];
+  // legacy fields kept for back-compat with older saved plans
   heading?: string;
   phase?: string;
   content?: string;
@@ -82,14 +106,25 @@ interface LessonSection {
 }
 
 interface Lesson {
+  lesson_number?: number;
   title?: string;
   duration?: string;
+  learning_focus?: string;
   objectives?: string[];
   sections?: LessonSection[];
   [key: string]: unknown;
 }
 
 interface LessonPlanResult {
+  plan_title?: string;
+  overview?: string;
+  subject?: string;
+  grade?: string;
+  board?: string;
+  total_duration?: string;
+  learning_objectives?: string[];
+  materials_needed?: string[];
+  prior_knowledge?: string;
   lessons?: Lesson[];
   [key: string]: unknown;
 }
@@ -123,10 +158,29 @@ const LessonPlanGenerator = () => {
   const [history, setHistory]             = useState<HistoryItem[]>([]);
   const [expandedLesson, setExpandedLesson] = useState<number>(0);
   const [activeTab, setActiveTab]         = useState<"generate" | "history">("generate");
+  const [savedId, setSavedId]             = useState<string | null>(null); // P1-5
+  // P0-2: when the displayed plan came from cache, track its age so we can
+  // show a "Cached · 2h ago" badge + offer a "Regenerate fresh" override.
+  const [cachedAt, setCachedAt]           = useState<number | null>(null);
+  // Back-to-form override: when teacher clicks "Back" on result hero, force
+  // the form view even though `plan` is still in memory. Cleared on next
+  // Generate (so a fresh result returns the user to the result view).
+  const [forceShowForm, setForceShowForm] = useState(false);
+
+  // P1-6: surface listener failures + retry pattern (mirrors Gradebook +
+  // ConceptMastery). Bumping refreshKey forces the history useEffect to
+  // re-subscribe — without this, a network blip / permission-denied silently
+  // freezes the history list.
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // ── Firebase: lesson plan history ───────────────────────────────────────
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
+    setHistoryError(null);
+    // P0-5: race guard — when teacherData.id changes (login flip / school
+    // switch) the old listener can resolve AFTER cleanup and clobber state.
+    let cancelled = false;
     // Scope by schoolId + teacherId so a misconfigured Firestore rule can't
     // leak another teacher's plans into this list.
     const q = query(
@@ -137,47 +191,130 @@ const LessonPlanGenerator = () => {
     const unsub = onSnapshot(
       q,
       snap => {
+        if (cancelled) return;
         const docs = snap.docs.map(d => ({ ...d.data(), id: d.id } as HistoryItem));
         docs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
         setHistory(docs);
       },
-      e => console.error("[LessonPlanGenerator] history subscription failed", e),
+      (e) => {
+        console.error("[LessonPlanGenerator] history subscription failed", e);
+        const code = (e as { code?: string })?.code;
+        setHistoryError(
+          code === "permission-denied"
+            ? "Permission denied — check your access."
+            : "Could not load lesson plan history."
+        );
+      },
     );
-    return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId]);
+    return () => { cancelled = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const handleGenerate = async () => {
+  const handleGenerate = async (forceFresh = false) => {
     if (!form.subject.trim() || !form.topic.trim()) {
-      setError("Subject aur Topic required hain.");
+      setError("Subject and Topic are required.");
       return;
     }
-    setLoading(true); setError(null); setPlan(null); setSaved(false);
-    try {
+
+    // P0-2: form snapshot captured at click time so the cache key stays
+    // consistent even if the form is edited mid-request.
+    const cacheableForm: LessonPlanFormFields = {
+      subject: form.subject.trim(),
+      grade: form.grade,
+      topic: form.topic.trim(),
+      duration_per_lesson: form.duration_per_lesson,
+      num_lessons: form.num_lessons,
+      board: form.board,
+      learning_goals: form.learning_goals.trim(),
+      special_considerations: form.special_considerations.trim(),
+    };
+    const key = lessonPlanCacheKey(cacheableForm);
+
+    // Tier 1+2 lookup unless explicitly forcing a fresh AI call.
+    if (!forceFresh) {
+      const cached = lsRead(key);
+      if (cached) {
+        setPlan(cached.plan as LessonPlanResult);
+        setCachedAt(cached.cachedAt);
+        setExpandedLesson(0);
+        setSaved(false);
+        setError(null);
+        setForceShowForm(false);
+        toast.success(`Loaded cached plan (${formatAge(cached.cachedAt)}).`);
+        return;
+      }
+      const inflightP = getInflight(key);
+      if (inflightP) {
+        setLoading(true);
+        setError(null);
+        setForceShowForm(false);
+        try {
+          const p = await inflightP;
+          setPlan(p as LessonPlanResult);
+          setCachedAt(null);
+          setExpandedLesson(0);
+          toast.success("Lesson plan ready.");
+        } catch (e) {
+          console.error("[LessonPlanGenerator] inflight failed", e);
+          setError("Something went wrong. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+    }
+
+    setLoading(true); setError(null); setPlan(null); setSaved(false); setCachedAt(null); setForceShowForm(false);
+
+    const aiCall: Promise<LessonPlanResult> = (async () => {
       const result = await AIController.getLessonPlan({
-        ...form,
+        ...cacheableForm,
         teacher_name: teacherData?.name || "",
         school_name: teacherData?.schoolName || "",
       });
-      if (result.status === "success" && result.data) {
-        setPlan(result.data as LessonPlanResult);
-        setExpandedLesson(0);
-      } else {
-        setError((result as { message?: string }).message || "AI could not generate the plan. Please try again.");
+      if (result.status !== "success" || !result.data) {
+        throw new Error((result as { message?: string }).message || "AI could not generate the plan. Please try again.");
       }
-    } catch (e) {
+      return result.data as LessonPlanResult;
+    })();
+
+    // Register inflight even on forceFresh so a double-tap doesn't bill twice.
+    setInflight(key, aiCall as Promise<Record<string, unknown>>);
+
+    try {
+      const generated = await aiCall;
+      setPlan(generated);
+      setExpandedLesson(0);
+      lsWrite(key, generated as Record<string, unknown>);
+      if (forceFresh) toast.success("Plan regenerated.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Something went wrong. Please try again.";
       console.error("[LessonPlanGenerator] generate failed", e);
-      setError("Something went wrong. Please try again.");
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // P1-1: Cmd/Ctrl+Enter triggers Generate from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !loading && activeTab === "generate") {
+        e.preventDefault();
+        handleGenerate();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // handleGenerate captures form via closure; binding it would re-bind every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, activeTab]);
+
   const handleSave = async () => {
     if (!plan || !teacherData?.id) return;
     setSaving(true);
     try {
-      await auditedAdd(collection(db, "lessonPlans"), {
+      const docRef = await auditedAdd(collection(db, "lessonPlans"), {
         teacherId: teacherData.id,
         schoolId: teacherData.schoolId || "",
         schoolName: teacherData.schoolName || "",
@@ -187,6 +324,9 @@ const LessonPlanGenerator = () => {
         plan, createdAt: serverTimestamp(),
       });
       setSaved(true);
+      // P1-5: track the new doc id so future features (delete, link-share,
+      // sync status) can act on this specific record without re-querying.
+      setSavedId(docRef.id);
       toast.success("Lesson plan saved!");
     } catch (e) {
       console.error("[LessonPlanGenerator] save failed", e);
@@ -196,8 +336,113 @@ const LessonPlanGenerator = () => {
   };
 
   const handleReset = () => {
-    setPlan(null); setError(null); setSaved(false);
+    setPlan(null); setError(null); setSaved(false); setSavedId(null); setCachedAt(null);
+    setForceShowForm(false);
     setForm({ ...defaultForm, subject: teacherData?.subject || "" });
+  };
+
+  // P1-4: resilient text-to-clipboard helper. Async API first, falls back to
+  // execCommand for HTTP / Android in-app browsers (WhatsApp WebView etc).
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch { /* fall through */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // Convert the structured plan into copy-paste-ready plain text. Keeps the
+  // sections in order so a teacher can paste into Word / WhatsApp / email
+  // and immediately have a readable lesson plan.
+  const planToText = (p: LessonPlanResult | null): string => {
+    if (!p) return "";
+    const lines: string[] = [];
+    if (p.plan_title) lines.push(p.plan_title);
+    const meta = [p.subject, p.grade, p.board, p.total_duration].filter(Boolean).join(" · ");
+    if (meta) lines.push(meta);
+    if (p.overview) { lines.push(""); lines.push(p.overview); }
+    if (p.learning_objectives?.length) {
+      lines.push("\nLearning Objectives:");
+      p.learning_objectives.forEach((o, i) => lines.push(`${i + 1}. ${o}`));
+    }
+    if (p.materials_needed?.length) {
+      lines.push("\nMaterials Needed:");
+      p.materials_needed.forEach(m => lines.push(`· ${m}`));
+    }
+    if (p.prior_knowledge) {
+      lines.push("\nPrior Knowledge: " + p.prior_knowledge);
+    }
+    p.lessons?.forEach((lesson, li) => {
+      lines.push(`\n${"=".repeat(50)}`);
+      lines.push(`Lesson ${lesson.lesson_number || li + 1}: ${lesson.title || "Untitled"}`);
+      if (lesson.duration) lines.push(`Duration: ${lesson.duration}`);
+      if (lesson.learning_focus) lines.push(`Focus: ${lesson.learning_focus}`);
+      lesson.sections?.forEach(section => {
+        lines.push(`\n[${section.name || section.phase || "Phase"}${section.duration ? ` · ${section.duration}` : ""}]`);
+        if (section.teacher_activity) lines.push(`Teacher: ${section.teacher_activity}`);
+        if (section.student_activity) lines.push(`Students: ${section.student_activity}`);
+        if (section.key_questions?.length) {
+          lines.push("Key Questions:");
+          section.key_questions.forEach(q => lines.push(`  › ${q}`));
+        }
+      });
+    });
+    return lines.join("\n");
+  };
+
+  const handleCopyPlan = async () => {
+    if (!plan) return;
+    const ok = await copyToClipboard(planToText(plan));
+    if (ok) toast.success("Lesson plan copied to clipboard.");
+    else toast.error("Copy failed — your browser blocked clipboard access.");
+  };
+
+  const handlePrintPlan = () => window.print();
+
+  // P2-3: drift detection — does the AI's lessons.length match what the
+  // teacher asked for? Surface as amber banner so they spot it before sharing.
+  const drift = (() => {
+    if (!plan?.lessons) return null;
+    const got = plan.lessons.length;
+    const asked = form.num_lessons;
+    if (asked > 0 && got !== asked) return { asked, got };
+    return null;
+  })();
+
+  // P1-7: delete a saved plan from history. Confirm before write since this
+  // is irreversible. If the deleted plan happens to be the one currently
+  // open in the result view, also clear the result so we don't show a stale
+  // copy.
+  const handleDeleteHistory = async (h: HistoryItem) => {
+    const label = h.plan?.plan_title || h.topic || "this plan";
+    const ok = window.confirm(`Delete "${label}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await auditedDelete(doc(db, "lessonPlans", h.id));
+      toast.success("Plan deleted.");
+      if (savedId === h.id) {
+        setSaved(false); setSavedId(null);
+      }
+    } catch (e) {
+      console.error("[LessonPlanGenerator] delete failed", e);
+      toast.error("Failed to delete plan.");
+    }
   };
 
   const loadFromHistory = (h: HistoryItem) => {
@@ -210,7 +455,9 @@ const LessonPlanGenerator = () => {
       board: h.board || "CBSE",
       learning_goals: "", special_considerations: "",
     });
-    setSaved(true); setExpandedLesson(0); setActiveTab("generate");
+    setSaved(true); setSavedId(h.id); setCachedAt(null);
+    setForceShowForm(false);
+    setExpandedLesson(0); setActiveTab("generate");
   };
 
   const upd = <K extends keyof FormData>(key: K, val: FormData[K]) => setForm(f => ({ ...f, [key]: val }));
@@ -240,10 +487,75 @@ const LessonPlanGenerator = () => {
 
   // ── Render ──────────────────────────────────────────────────────────────
   // If plan generated and in generate tab → show result view
-  const showResult = activeTab === "generate" && plan && !loading;
+  // (unless teacher hit the "Back" button on the result hero — then we
+  // force the form view back into focus while the plan stays in memory.)
+  const showResult = activeTab === "generate" && plan && !loading && !forceShowForm;
 
   return (
     <div style={{ minHeight: "100vh", background: "#EEF4FF" }}>
+
+      {/* "View generated plan" — compact one-line chip when teacher hit
+          Back. Smaller footprint so it doesn't dominate the form view. */}
+      {!showResult && plan && forceShowForm && activeTab === "generate" && (
+        <button
+          type="button"
+          onClick={() => setForceShowForm(false)}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            margin: "8px 16px 0", padding: "7px 11px 7px 8px",
+            borderRadius: 10, border: "0.5px solid rgba(0,85,255,.18)",
+            background: "rgba(0,85,255,.05)",
+            cursor: "pointer", fontFamily: "inherit", width: "calc(100% - 32px)",
+            textAlign: "left",
+          }}
+        >
+          <span style={{
+            fontSize: 9, fontWeight: 700, color: "#0055FF",
+            letterSpacing: "1.2px", textTransform: "uppercase",
+            padding: "2px 7px", borderRadius: 6,
+            background: "rgba(0,85,255,.10)",
+            flexShrink: 0,
+          }}>
+            Plan ready
+          </span>
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: "#001040",
+            letterSpacing: "-0.15px", flex: 1, minWidth: 0,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {plan.plan_title || form.topic || "Tap to view"}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0055FF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      )}
+
+      {/* P1-6: history-listener failure banner with one-tap retry. Floats at
+          top of every view so the user knows their history list is stale. */}
+      {historyError && activeTab === "history" && (
+        <div style={{
+          margin: "10px 16px",
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 12px", borderRadius: 12,
+          background: "#FFF5F5", border: "0.5px solid #FFD8D8",
+        }}>
+          <div style={{ flex: 1, fontSize: 12, color: "#C92A2A", fontWeight: 500, lineHeight: 1.45 }}>
+            {historyError}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setHistoryError(null); setRefreshKey(k => k + 1); }}
+            style={{
+              padding: "6px 12px", borderRadius: 9, border: "none", cursor: "pointer",
+              background: "#C92A2A", color: "#fff", fontSize: 11, fontWeight: 700,
+              fontFamily: "inherit",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ═══════════════════ MOBILE VIEW (new mockup) ═══════════════════ */}
       {!showResult && (
@@ -255,8 +567,9 @@ const LessonPlanGenerator = () => {
           history={history}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          onGenerate={handleGenerate}
+          onGenerate={() => handleGenerate()}
           onLoadHistory={loadFromHistory}
+          onDeleteHistory={handleDeleteHistory}
           onReset={handleReset}
         />
       )}
@@ -271,8 +584,9 @@ const LessonPlanGenerator = () => {
           history={history}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          onGenerate={handleGenerate}
+          onGenerate={() => handleGenerate()}
           onLoadHistory={loadFromHistory}
+          onDeleteHistory={handleDeleteHistory}
           onReset={handleReset}
         />
       )}
@@ -475,7 +789,7 @@ const LessonPlanGenerator = () => {
             {/* Generate + Reset buttons */}
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button"
-                onClick={handleGenerate}
+                onClick={() => handleGenerate()}
                 disabled={loading}
                 style={{
                   flex: 1, padding: 13, borderRadius: 13,
@@ -508,33 +822,119 @@ const LessonPlanGenerator = () => {
           </>
         )}
 
-        {/* ── GENERATE TAB: LOADING ──────────────────────────────────── */}
+        {/* ── GENERATE TAB: LOADING — P1-3 skeleton matches result shape ── */}
         {activeTab === "generate" && loading && (
-          <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: `${T.pur}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Loader2 style={{ width: 28, height: 28, color: T.pur }} className="animate-spin" />
+          <>
+            <style>{`@keyframes lpPulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }`}</style>
+            {/* Hero skeleton (matches Blue Apple gradient hero in result view) */}
+            <div style={{
+              background: HERO_GRAD,
+              borderRadius: 18, padding: "20px 18px",
+              boxShadow: "0 1px 2px rgba(0,8,60,.15), 0 12px 32px rgba(0,8,60,.28)",
+              marginBottom: 12,
+            }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {[60, 80, 70, 50].map((w, i) => (
+                  <div key={i} style={{ width: w, height: 18, borderRadius: 20, background: "rgba(255,255,255,.12)", animation: "lpPulse 1.5s ease-in-out infinite" }} />
+                ))}
+              </div>
+              <div style={{ height: 22, borderRadius: 5, background: "rgba(255,255,255,.18)", width: "70%", marginBottom: 8, animation: "lpPulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 11, borderRadius: 4, background: "rgba(255,255,255,.10)", width: "90%", marginBottom: 4, animation: "lpPulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 11, borderRadius: 4, background: "rgba(255,255,255,.10)", width: "60%", animation: "lpPulse 1.5s ease-in-out infinite" }} />
             </div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1 }}>AI is crafting your lesson plan...</p>
-            <p style={{ fontSize: 10, color: T.ink3, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.07em" }}>This may take 10-20 seconds</p>
-            <div style={{ width: "100%", maxWidth: 220, display: "flex", flexDirection: "column", gap: 6 }}>
-              {[80, 55, 90, 45].map((w, i) => (
-                <div key={i} style={{ height: 3, background: T.s2, borderRadius: 2, width: `${w}%` }} className="animate-pulse" />
-              ))}
+            {/* Lesson card skeletons */}
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} style={{
+                background: T.white, borderRadius: 16, padding: 16,
+                boxShadow: T.SH, marginBottom: 10,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 9, background: T.s2, animation: "lpPulse 1.5s ease-in-out infinite" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ height: 13, borderRadius: 4, background: T.s2, width: "65%", marginBottom: 5, animation: "lpPulse 1.5s ease-in-out infinite" }} />
+                    <div style={{ height: 10, borderRadius: 4, background: T.s1, width: "40%", animation: "lpPulse 1.5s ease-in-out infinite" }} />
+                  </div>
+                </div>
+                <div style={{ height: 60, borderRadius: 10, background: T.s1, animation: "lpPulse 1.5s ease-in-out infinite" }} />
+              </div>
+            ))}
+            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 11, color: T.ink3, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              <Loader2 className="animate-spin" style={{ width: 12, height: 12, color: T.pur, display: "inline", verticalAlign: "middle", marginRight: 6 }} />
+              AI is crafting your lesson plan · 10-20 seconds
             </div>
-          </div>
+          </>
         )}
 
         {/* ── GENERATE TAB: RESULT ───────────────────────────────────── */}
         {showResult && (
           <>
-            {/* Purple gradient hero */}
+            {/* P0-2: cached-result badge with one-tap "Regenerate fresh" */}
+            {cachedAt != null && (
+              <div className="exam-no-print" style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 10, padding: "10px 12px", borderRadius: 12,
+                background: "rgba(123,63,244,0.07)",
+                border: "0.5px solid rgba(123,63,244,0.20)",
+                marginBottom: 8,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, color: T.pur, letterSpacing: "0.4px", textTransform: "uppercase" }}>
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 1L7.5 4H10L8 6L8.8 9L6 7.5L3.2 9L4 6L2 4H4.5Z" />
+                  </svg>
+                  Cached · {formatAge(cachedAt)} · No new AI billed
+                </div>
+                <button type="button"
+                  onClick={() => handleGenerate(true)}
+                  disabled={loading}
+                  style={{
+                    fontSize: 11, fontWeight: 700, color: T.pur,
+                    background: "none", border: "none", padding: 0,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    fontFamily: "inherit",
+                  }}>
+                  Regenerate fresh
+                </button>
+              </div>
+            )}
+
+            {/* Blue Apple hero — was purple gradient (#2D46C8 → #5834C6) */}
             <div
+              data-lp-hero=""
               className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8"
               style={{
-                background: "linear-gradient(145deg, #2D46C8 0%, #5834C6 100%)",
+                background: HERO_GRAD,
                 padding: "20px 18px",
+                position: "relative",
+                overflow: "hidden",
+                boxShadow: "0 1px 2px rgba(0,8,60,.15), 0 12px 32px rgba(0,8,60,.28)",
               }}
             >
+              {/* Glass highlight overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.09) 0%, transparent 45%)", pointerEvents: "none" }} />
+              <div style={{ position: "relative", zIndex: 2 }}>
+              {/* Back button — returns to form view, plan stays in memory.
+               * Hidden in print so the hardcopy doesn't carry a meaningless
+               * navigation control. */}
+              <button type="button"
+                onClick={() => setForceShowForm(true)}
+                aria-label="Back to form"
+                className="exam-no-print"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  background: "rgba(255,255,255,0.10)",
+                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                  border: "0.5px solid rgba(255,255,255,0.18)",
+                  borderRadius: 10, padding: "6px 12px",
+                  color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", letterSpacing: "-0.1px",
+                  fontFamily: "inherit", marginBottom: 12,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Back to form
+              </button>
               {/* Chips */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
                 {[plan.board, plan.grade, plan.total_duration, plan.subject].filter(Boolean).map((c: string, i: number) => (
@@ -579,13 +979,13 @@ const LessonPlanGenerator = () => {
                     <div style={{
                       display: "flex", alignItems: "center", gap: 4,
                       padding: "5px 10px", borderRadius: 20,
-                      background: "rgba(47,158,68,0.25)",
-                      border: "1px solid rgba(47,158,68,0.4)",
+                      background: "rgba(0,200,83,0.25)",
+                      border: "1px solid rgba(0,200,83,0.45)",
                     }}>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#4CC9A4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#6FFFAA" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="1.5,5.5 3.5,8 8.5,2" />
                       </svg>
-                      <span style={{ fontSize: 10, color: "#4CC9A4", fontWeight: 500 }}>Saved</span>
+                      <span style={{ fontSize: 10, color: "#6FFFAA", fontWeight: 500 }}>Saved</span>
                     </div>
                   ) : (
                     <button type="button"
@@ -611,6 +1011,7 @@ const LessonPlanGenerator = () => {
                   )}
                 </div>
               </div>
+              </div>{/* end relative-z2 wrapper */}
             </div>
 
             {/* Learning objectives */}
@@ -671,11 +1072,21 @@ const LessonPlanGenerator = () => {
             {/* Lesson breakdown */}
             <p style={{ fontSize: 10, fontWeight: 500, color: T.ink3, letterSpacing: "0.07em", textTransform: "uppercase", padding: "0 2px" }}>Lesson breakdown</p>
 
-            {plan.lessons?.map((lesson: any, li: number) => (
-              <div key={li} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {/* Lesson number header */}
+            {plan.lessons?.map((lesson, li) => (
+              <div key={li} data-lp-lesson="" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Lesson number header — P2-6 a11y: keyboard-accessible toggle */}
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={expandedLesson === li}
+                  aria-label={`${expandedLesson === li ? "Collapse" : "Expand"} ${lesson.title || `lesson ${li + 1}`}`}
                   onClick={() => setExpandedLesson(expandedLesson === li ? -1 : li)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpandedLesson(expandedLesson === li ? -1 : li);
+                    }
+                  }}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "11px 13px",
@@ -703,7 +1114,7 @@ const LessonPlanGenerator = () => {
                 </div>
 
                 {/* Phase cards */}
-                {expandedLesson === li && lesson.sections?.map((section: any, si: number) => {
+                {expandedLesson === li && lesson.sections?.map((section, si) => {
                   const ps = getPhaseStyle(section.name);
                   return (
                     <div key={si} style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${ps.bdr}`, background: ps.bg }}>
@@ -751,18 +1162,39 @@ const LessonPlanGenerator = () => {
               </div>
             ))}
 
-            {/* Export + Regenerate buttons */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {/* P2-3: drift banner — AI returned different number of lessons */}
+            {drift && (
+              <div className="exam-no-print" style={{
+                background: "rgba(255,170,0,.10)", border: "0.5px solid rgba(255,170,0,.32)",
+                borderRadius: 12, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C87014" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12" y2="16.01"/>
+                </svg>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#C87014", letterSpacing: "0.6px", textTransform: "uppercase" }}>
+                    Heads up — plan does not match your request
+                  </div>
+                  <div style={{ fontSize: 12, color: "#7A4310", marginTop: 2, lineHeight: 1.4 }}>
+                    AI generated {drift.got} lesson{drift.got === 1 ? "" : "s"} instead of {drift.asked}.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons — Save / Copy / Print / Regenerate */}
+            <div className="exam-no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button type="button"
                 onClick={handleSave}
                 disabled={saving || saved}
                 style={{
                   padding: 11, borderRadius: 12,
                   background: T.pur, border: "none", color: "#fff",
-                  fontSize: 12, fontWeight: 500, cursor: "pointer",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
                   fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   opacity: saved ? 0.6 : 1,
+                  letterSpacing: "-0.1px",
                 }}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -774,16 +1206,49 @@ const LessonPlanGenerator = () => {
                 onClick={handleReset}
                 style={{
                   padding: 11, borderRadius: 12,
-                  background: T.white, border: `1px solid ${T.bdr}`,
+                  background: T.white, border: `0.5px solid ${T.bdr}`,
                   color: T.ink2, fontSize: 12, cursor: "pointer",
-                  fontFamily: "inherit",
+                  fontFamily: "inherit", fontWeight: 600,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                  letterSpacing: "-0.1px",
                 }}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10,6 A4,4 0 1,1 8,3" /><polyline points="8,1 8,3 10,3" />
                 </svg>
                 Regenerate
+              </button>
+              <button type="button"
+                onClick={handleCopyPlan}
+                style={{
+                  padding: 11, borderRadius: 12,
+                  background: T.s1, border: `0.5px solid ${T.bdr}`,
+                  color: T.ink2, fontSize: 12, cursor: "pointer",
+                  fontFamily: "inherit", fontWeight: 600,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                  letterSpacing: "-0.1px",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3.5" y="3.5" width="6.5" height="7" rx="1" /><path d="M7 3.5V2.5a1 1 0 00-1-1H3a1 1 0 00-1 1V8a1 1 0 001 1h0.5"/>
+                </svg>
+                Copy
+              </button>
+              <button type="button"
+                onClick={handlePrintPlan}
+                style={{
+                  padding: 11, borderRadius: 12,
+                  background: T.s1, border: `0.5px solid ${T.bdr}`,
+                  color: T.ink2, fontSize: 12, cursor: "pointer",
+                  fontFamily: "inherit", fontWeight: 600,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                  letterSpacing: "-0.1px",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={T.ink2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 4 3 1.5 9 1.5 9 4"/><rect x="2" y="4" width="8" height="5" rx="1"/><polyline points="3.5 8 3.5 10.5 8.5 10.5 8.5 8"/>
+                </svg>
+                Print / PDF
               </button>
             </div>
           </>
@@ -832,6 +1297,22 @@ const LessonPlanGenerator = () => {
                       {h.createdAt?.toDate?.().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
+                  {/* P1-7 delete button — stopPropagation prevents the parent's
+                      onClick (loadFromHistory) from also firing on this tap. */}
+                  <button type="button"
+                    aria-label="Delete plan"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteHistory(h); }}
+                    style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: T.rlBg, border: "none",
+                      color: T.red, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="2,3 10,3"/><path d="M3.5,3 L4,10 A1,1 0 0,0 5,11 H7 A1,1 0 0,0 8,10 L8.5,3"/><line x1="5" y1="5" x2="5" y2="9"/><line x1="7" y1="5" x2="7" y2="9"/>
+                    </svg>
+                  </button>
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="5,3 9,6.5 5,10" />
                   </svg>
@@ -843,6 +1324,23 @@ const LessonPlanGenerator = () => {
       </div>
 
       </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}
+
+      {/* P1-2 Print stylesheet — strips UI chrome so the lesson plan prints
+       * (or saves as PDF) clean. .exam-no-print marks anything that should
+       * NOT appear on print (cache badge, action buttons, drift banner).
+       * Hero gradient is flattened to plain B&W so cheap printers don't
+       * solidify into illegible ink-heavy blocks. */}
+      <style>{`
+        @media print {
+          html, body { background: #fff !important; }
+          aside, nav, header, .no-print, .exam-no-print { display: none !important; }
+          /* Flatten hero gradient + AI Tip card on print */
+          [data-lp-hero] { background: #fff !important; color: #000 !important; }
+          [data-lp-hero] * { color: #000 !important; }
+          /* Page-break hints so a multi-lesson plan splits cleanly */
+          [data-lp-lesson] { page-break-inside: avoid; }
+        }
+      `}</style>
 
     </div>
   );
@@ -861,6 +1359,7 @@ interface MobileLessonPlannerProps {
   setActiveTab: (t: "generate" | "history") => void;
   onGenerate: () => void;
   onLoadHistory: (h: HistoryItem) => void;
+  onDeleteHistory: (h: HistoryItem) => void;
   onReset: () => void;
 }
 
@@ -895,7 +1394,7 @@ const minToDuration = (n: number): string => `${n} minutes`;
 
 const MobileLessonPlanner = ({
   form, upd, loading, error, history,
-  activeTab, setActiveTab, onGenerate, onLoadHistory, onReset,
+  activeTab, setActiveTab, onGenerate, onLoadHistory, onDeleteHistory, onReset,
 }: MobileLessonPlannerProps) => {
   const [inclusions, setInclusions] = useState<Set<string>>(new Set(["objectives", "activities", "quiz"]));
   const selectedClass = parseClassLabel(form.grade);
@@ -1583,6 +2082,25 @@ const MobileLessonPlanner = ({
                     </svg>
                     Regenerate
                   </button>
+                  {/* P1-7 delete */}
+                  <button
+                    type="button"
+                    aria-label="Delete plan"
+                    onClick={e => { e.stopPropagation(); onDeleteHistory(h); }}
+                    className="lp-press"
+                    style={{
+                      width: 36, height: 36, borderRadius: 11,
+                      background: "rgba(255,51,85,.10)",
+                      border: "0.5px solid rgba(255,51,85,.22)",
+                      color: "#FF3355", cursor: "pointer", fontFamily: "inherit",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1599,7 +2117,7 @@ const MobileLessonPlanner = ({
 // ─────────────────────────────────────────────────────────────────────────────
 const DesktopLessonPlanner = ({
   form, upd, loading, error, history,
-  activeTab, setActiveTab, onGenerate, onLoadHistory, onReset,
+  activeTab, setActiveTab, onGenerate, onLoadHistory, onDeleteHistory, onReset,
 }: MobileLessonPlannerProps) => {
   const [inclusions, setInclusions] = useState<Set<string>>(new Set(["objectives", "activities", "quiz"]));
   const selectedClass = parseClassLabel(form.grade);
@@ -2302,6 +2820,25 @@ const DesktopLessonPlanner = ({
                           <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
                         </svg>
                         Regenerate
+                      </button>
+                      {/* P1-7 delete */}
+                      <button
+                        type="button"
+                        aria-label="Delete plan"
+                        onClick={e => { e.stopPropagation(); onDeleteHistory(h); }}
+                        className="lpd-press"
+                        style={{
+                          width: 42, height: 42, borderRadius: 12,
+                          background: "rgba(255,51,85,.10)",
+                          border: "0.5px solid rgba(255,51,85,.22)",
+                          color: "#FF3355", cursor: "pointer", fontFamily: "inherit",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
                       </button>
                     </div>
                   </div>

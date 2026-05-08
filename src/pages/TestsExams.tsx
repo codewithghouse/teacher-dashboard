@@ -79,6 +79,67 @@ const daysLabel = (dateStr: string) => {
 const perfColor = (avg: number) =>
   avg >= 75 ? T.blue : avg >= 60 ? T.amber : T.red;
 
+// Canonical score normalizer — matches Dashboard / MyClasses / ClassDetail /
+// Students / StudentProfile / Attendance. Reads from 5 raw fields × 4 max
+// fields. Returns null for genuinely missing data so callers can skip the
+// doc instead of zero-defaulting (which used to drag every average down).
+const pctOfDoc = (d: any): number | null => {
+  if (!d) return null;
+  const pctField = [d.percentage, d.pct].find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof pctField === "number") return Math.max(0, Math.min(100, pctField));
+  // Some legacy/CSV writers store percentage as a string — accept that.
+  const pctStr = [d.percentage, d.pct].find(v => typeof v === "string" && v.trim() !== "");
+  if (typeof pctStr === "string") {
+    const n = parseFloat(pctStr);
+    if (!Number.isNaN(n)) return Math.max(0, Math.min(100, n));
+  }
+  const rawCandidates = [d.score, d.mark, d.marks, d.obtainedMarks, d.marksObtained];
+  let rawNum: number | null = null;
+  for (const v of rawCandidates) {
+    if (typeof v === "number" && !Number.isNaN(v)) { rawNum = v; break; }
+    if (typeof v === "string" && v.trim() !== "") {
+      const n = parseFloat(v);
+      if (!Number.isNaN(n)) { rawNum = n; break; }
+    }
+  }
+  if (rawNum === null) return null;
+  const maxCandidates = [d.maxScore, d.totalMarks, d.maxMarks, d.outOf];
+  let maxNum: number | null = null;
+  for (const v of maxCandidates) {
+    if (typeof v === "number" && !Number.isNaN(v) && v > 0) { maxNum = v; break; }
+    if (typeof v === "string" && v.trim() !== "") {
+      const n = parseFloat(v);
+      if (!Number.isNaN(n) && n > 0) { maxNum = n; break; }
+    }
+  }
+  if (typeof maxNum === "number") return Math.max(0, Math.min(100, (rawNum / maxNum) * 100));
+  if (rawNum >= 0 && rawNum <= 100) return rawNum;
+  return null;
+};
+
+// Recency window — last 90 days. Matches the project-wide convention so
+// "class average" reflects recent performance, not 9-month-old scores
+// dragging the number down.
+const SCORE_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
+const writerTimeMs = (d: any): number => {
+  const candidates = [d?.timestamp, d?.updatedAt, d?.createdAt, d?.date, d?.submittedAt];
+  for (const f of candidates) {
+    if (typeof f === "number") return f;
+    if (f && typeof f.toMillis === "function") return f.toMillis();
+    if (typeof f === "string" && f.length > 0) {
+      const t = new Date(f.includes("T") ? f : `${f}T00:00:00`).getTime();
+      if (!Number.isNaN(t)) return t;
+    }
+  }
+  return 0;
+};
+
+// Honour OS-level reduced-motion preference for the 3D tilt cards.
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+};
+
 type FilterKey = "All" | "Upcoming" | "Completed" | "Pending";
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -109,136 +170,240 @@ export default function TestsExams() {
     scrollToTests();
   };
 
-  // Fetch tests
+  // ── Fetch tests + bulk-fetch enrollment counts ─────────────────────────
+  // tests is a teacher-owned resource; teacherId already enforces branch
+  // boundary. Keeping branchId off keeps reads consistent with event streams.
+  // enrollments is fetched ONCE per snapshot via chunked `in` query — was
+  // an N+1 round-trip per test before, now ~1 (or ceil(N/30)).
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
-    const branchId = teacherData.branchId as string | undefined;
-    let ignore = false;
-    const tenant = branchId
-      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
-      : [where("schoolId", "==", schoolId)];
+    let cancelled = false;
     const unsub = onSnapshot(
       query(
         collection(db, "tests"),
-        ...tenant,
+        where("schoolId", "==", schoolId),
         where("teacherId", "==", teacherData.id),
       ),
       async (snap) => {
-        const raw = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; classId?: string; testDate?: string; createdAt?: { toDate?: () => Date } }));
-        raw.sort((a, b) => {
-          const dA = a.testDate ? new Date(a.testDate).getTime() : (a.createdAt?.toDate?.()?.getTime?.() || 0);
-          const dB = b.testDate ? new Date(b.testDate).getTime() : (b.createdAt?.toDate?.()?.getTime?.() || 0);
-          return dA - dB;
-        });
-        const enriched = await Promise.all(raw.map(async t => {
-          if (!t.classId) return { ...t, studentsCount: 0 };
-          const enSnap = await getDocs(query(
-            collection(db, "enrollments"),
-            ...tenant,
-            where("classId", "==", t.classId),
-          ));
-          return { ...t, studentsCount: enSnap.size };
-        }));
-        if (ignore) return;
-        setTests(enriched);
-        setLoading(false);
+        try {
+          const raw = snap.docs.map(d => ({ ...d.data(), id: d.id } as Record<string, unknown> & { id: string; classId?: string; testDate?: string; createdAt?: { toDate?: () => Date } }));
+          raw.sort((a, b) => {
+            const dA = a.testDate ? new Date(a.testDate).getTime() : (a.createdAt?.toDate?.()?.getTime?.() || 0);
+            const dB = b.testDate ? new Date(b.testDate).getTime() : (b.createdAt?.toDate?.()?.getTime?.() || 0);
+            return dA - dB;
+          });
+          const classIds = Array.from(new Set(raw.map(t => t.classId).filter((c): c is string => !!c)));
+          const enrollCount = new Map<string, number>();
+          if (classIds.length > 0) {
+            const chunks: string[][] = [];
+            for (let i = 0; i < classIds.length; i += 30) chunks.push(classIds.slice(i, i + 30));
+            const snaps = await Promise.all(chunks.map(ch => getDocs(query(
+              collection(db, "enrollments"),
+              where("schoolId", "==", schoolId),
+              where("classId", "in", ch),
+            ))));
+            if (cancelled) return;
+            snaps.forEach(s => s.docs.forEach(d => {
+              const cid = (d.data() as { classId?: string }).classId;
+              if (!cid) return;
+              enrollCount.set(cid, (enrollCount.get(cid) || 0) + 1);
+            }));
+          }
+          if (cancelled) return;
+          const enriched = raw.map(t => ({ ...t, studentsCount: t.classId ? (enrollCount.get(t.classId) || 0) : 0 }));
+          setTests(enriched);
+          setLoading(false);
+        } catch (err) {
+          if (cancelled) return;
+          console.error("[TestsExams] tests load failed", err);
+          setLoading(false);
+        }
       }
     );
-    return () => { ignore = true; unsub(); };
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+    return () => { cancelled = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId]);
 
-  // Fetch scores
+  // ── Fetch scores ────────────────────────────────────────────────────────
+  // schoolId-only filter (NO branchId) — test_scores is an event stream and
+  // branchId on event streams is the documented silent-killer pattern (writes
+  // lag the enforceBranchId trigger by 1-2s; a branchId where-clause would
+  // drop fresh records). teacherId enforces branch boundary.
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-    const branchId = teacherData.branchId as string | undefined;
-    const tenant = branchId
-      ? [where("schoolId", "==", schoolId), where("branchId", "==", branchId)]
-      : [where("schoolId", "==", schoolId)];
     const unsub = onSnapshot(
       query(
         collection(db, "test_scores"),
-        ...tenant,
+        where("schoolId", "==", teacherData.schoolId),
         where("teacherId", "==", teacherData.id),
       ),
-      snap => setScores(snap.docs.map(d => d.data()))
+      snap => setScores(snap.docs.map(d => d.data())),
+      err => console.warn("[TestsExams/test_scores]", err.code),
     );
     return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+  }, [teacherData?.id, teacherData?.schoolId]);
 
-  // Fetch classes
+  // ── Live classes listener (was one-shot) — picks up new classes mid-session ──
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
-    const schoolId = teacherData.schoolId;
-    getDocs(query(
-      collection(db, "classes"),
-      where("schoolId", "==", schoolId),
-      where("teacherId", "==", teacherData.id),
-    ))
-      .then(snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+    const unsub = onSnapshot(
+      query(
+        collection(db, "classes"),
+        where("schoolId", "==", teacherData.schoolId),
+        where("teacherId", "==", teacherData.id),
+      ),
+      snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.warn("[TestsExams/classes]", err.code),
+    );
+    return () => unsub();
+  }, [teacherData?.id, teacherData?.schoolId]);
 
-  // Stats
+  // ── Derived status per test ─────────────────────────────────────────────
+  // tests docs don't carry an authoritative `status` field — we compute it
+  // from real signals (scores presence + studentsCount + testDate). Was:
+  // checking `t.status === "Completed"` which was always false → filter
+  // chips lied (everything counted as Upcoming). Map indexed by testId for
+  // O(1) lookups during filter chip computation.
+  const scoreCountByTest = useMemo(() => {
+    const m = new Map<string, number>();
+    scores.forEach(s => {
+      const tid = (s as { testId?: string }).testId;
+      if (!tid) return;
+      m.set(tid, (m.get(tid) || 0) + 1);
+    });
+    return m;
+  }, [scores]);
+
+  type DerivedStatus = "Upcoming" | "Completed" | "In Progress" | "Pending Scores";
+  const deriveStatus = (t: any): DerivedStatus => {
+    const scoresFor = scoreCountByTest.get(t.id) || 0;
+    const expected  = t.studentsCount || 0;
+    const testDate  = t.testDate ? new Date(t.testDate) : null;
+    const isPast    = testDate ? testDate.getTime() < Date.now() : false;
+    if (scoresFor > 0) {
+      // Fully scored → Completed (green). Partially scored → In Progress
+      // (amber). The old logic conflated both as "Pending Scores" with a
+      // red badge, which felt punitive after the teacher had already
+      // started entering. Now amber for "you've started, finish the rest"
+      // and red for "you haven't started yet on a past-due test".
+      if (expected > 0 && scoresFor >= expected) return "Completed";
+      return "In Progress";
+    }
+    if (isPast) return "Pending Scores"; // Past-due with zero scores → action needed
+    return "Upcoming";
+  };
+
+  // 90-day recency window — analytics pull from the last 90 days of scores
+  // so an old weak test from 9 months ago doesn't drag the average down.
+  const recentScores = useMemo(() => {
+    const cutoff = Date.now() - SCORE_WINDOW_MS;
+    return scores.filter(s => writerTimeMs(s) >= cutoff);
+  }, [scores]);
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const upcoming      = tests.filter(t => t.status !== "Completed" && t.status !== "Pending Scores").length;
-    const completed     = tests.filter(t => t.status === "Completed").length;
-    const pendingScores = tests.filter(t => t.status === "Pending Scores" || t.status === "Draft").length;
-    const total         = scores.length;
-    const sum           = scores.reduce((a, s) => a + parseFloat(s.percentage || s.score || 0), 0);
-    const classAvg      = total > 0 ? (sum / total) : null;
-    return { upcoming, completed, pendingScores, classAvg };
-  }, [tests, scores]);
+    let upcoming = 0, completed = 0, pendingScores = 0, inProgress = 0;
+    tests.forEach(t => {
+      const s = deriveStatus(t);
+      if (s === "Upcoming")             upcoming++;
+      else if (s === "Completed")       completed++;
+      else if (s === "In Progress")     inProgress++;
+      else if (s === "Pending Scores")  pendingScores++;
+    });
+    // pendingScores chip on the page combines both fully-unscored and
+    // partially-scored tests — both need action from the teacher.
+    const pendingTotal = pendingScores + inProgress;
+    // classAvg via canonical pctOfDoc — null entries skipped (was 0-default
+    // which dragged averages down for legacy gradebook docs).
+    const validPcts = recentScores.map(pctOfDoc).filter((v): v is number => v !== null);
+    const classAvg  = validPcts.length > 0
+      ? validPcts.reduce((a, b) => a + b, 0) / validPcts.length
+      : null;
+    return { upcoming, completed, pendingScores: pendingTotal, inProgress, fullyPending: pendingScores, classAvg };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tests, recentScores, scoreCountByTest]);
 
-  // Per-class performance
+  // Per-class performance — uses canonical pctOfDoc + 90d window. Classes
+  // without scores show "—" instead of hiding, so the teacher sees which
+  // classes haven't been assessed yet.
+  // Multi-path score-to-class matcher: a test_scores doc lands here through
+  // ANY of three signals (in priority order):
+  //   1. score.classId === cls.id          (direct write, canonical)
+  //   2. score.testId → test.classId match (link via parent test)
+  //   3. score.className === cls.name      (lenient legacy fallback)
+  // Old single-path logic only matched via #2, so any score written with
+  // classId-direct (EnterScores' modern path) silently fell off all class
+  // rows even though it showed up in the overall average.
   const classPerf = useMemo(() => {
     return classes.map(cls => {
-      const clsTests    = tests.filter(t => t.classId === cls.id).map(t => t.id);
-      const clsScoreArr = scores.filter(s => clsTests.includes(s.testId || ""));
-      const avg = clsScoreArr.length > 0
-        ? clsScoreArr.reduce((a, s) => a + parseFloat(s.percentage || s.score || 0), 0) / clsScoreArr.length
-        : null;
+      const clsTestIds = new Set(tests.filter(t => t.classId === cls.id).map(t => t.id));
+      const clsName    = (cls.name || "").toLowerCase().trim();
+      const clsScoreArr = recentScores.filter(s => {
+        const sa = s as { testId?: string; classId?: string; className?: string };
+        if (sa.classId && sa.classId === cls.id) return true;
+        if (sa.testId && clsTestIds.has(sa.testId)) return true;
+        if (sa.className && clsName && sa.className.toLowerCase().trim() === clsName) return true;
+        return false;
+      });
+      const pcts = clsScoreArr.map(pctOfDoc).filter((v): v is number => v !== null);
+      const avg = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null;
       return { name: cls.name, avg };
-    }).filter(c => c.avg !== null);
-  }, [classes, tests, scores]);
+    });
+  }, [classes, tests, recentScores]);
 
-  // Per-topic performance
+  // Per-topic performance — drops `testTitle` from the fallback chain so we
+  // don't end up grouping by individual test (which made "topic" meaningless).
+  // Uses canonical pctOfDoc + 90d window.
   const topicPerf = useMemo(() => {
     const map: Record<string, number[]> = {};
-    scores.forEach(s => {
-      const topic = s.topic || s.subject || s.testTitle || "General topics";
+    recentScores.forEach(s => {
+      const sa = s as { topic?: string; subject?: string };
+      const topic = sa.topic || sa.subject || "General topics";
+      const pct   = pctOfDoc(s);
+      if (pct === null) return;
       if (!map[topic]) map[topic] = [];
-      map[topic].push(parseFloat(s.percentage || s.score || 0));
+      map[topic].push(pct);
     });
     return Object.entries(map)
       .map(([name, arr]) => ({ name, avg: arr.reduce((a, b) => a + b, 0) / arr.length }))
       .sort((a, b) => b.avg - a.avg)
       .slice(0, 5);
-  }, [scores]);
+  }, [recentScores]);
 
   if (view === "create")       return <CreateTest onCancel={() => setView("list")} onCreate={() => setView("list")} />;
   if (view === "enter-scores") return <EnterScores test={selectedTest} onBack={() => setView("list")} />;
 
+  // Filter counts driven by derivedStatus — was checking the never-written
+  // `t.status` field which kept all chips at 0 for most teachers.
   const filterCounts = {
     All:       tests.length,
-    Upcoming:  tests.filter(t => t.status !== "Completed" && t.status !== "Pending Scores").length,
-    Completed: tests.filter(t => t.status === "Completed").length,
-    Pending:   tests.filter(t => t.status === "Pending Scores" || t.status === "Draft").length,
+    Upcoming:  stats.upcoming,
+    Completed: stats.completed,
+    Pending:   stats.pendingScores,
   };
 
   const filtered = tests.filter(t => {
     const text = ((t.title || "") + " " + (t.className || "")).toLowerCase();
     if (search && !text.includes(search.toLowerCase())) return false;
-    if (filter === "Upcoming")  return t.status !== "Completed" && t.status !== "Pending Scores";
-    if (filter === "Completed") return t.status === "Completed";
-    if (filter === "Pending")   return t.status === "Pending Scores" || t.status === "Draft";
+    if (filter === "All") return true;
+    const s = deriveStatus(t);
+    if (filter === "Upcoming")  return s === "Upcoming";
+    if (filter === "Completed") return s === "Completed";
+    // "Pending" chip groups both not-yet-started AND partially-entered tests
+    // — both need the teacher's action.
+    if (filter === "Pending")   return s === "Pending Scores" || s === "In Progress";
     return true;
   });
 
   const filterChips: FilterKey[] = ["All", "Upcoming", "Completed", "Pending"];
 
+  // Reduced-motion gate for tilt props (one-time read on mount).
+  const reducedMotion = prefersReducedMotion();
+  const tiltProps  = reducedMotion ? {} : tilt3D;
+  const tiltStyles = reducedMotion ? {} : tilt3DStyle;
+
   return (
-    <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
+    <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-[72px] md:pb-0 text-left">
 
       {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
       <div className="md:hidden" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
@@ -410,9 +575,9 @@ export default function TestsExams() {
             },
           ] as const).map(s => (
             <button key={s.key} type="button" onClick={s.onClick}
-              {...tilt3D}
+              {...tiltProps}
               className="rounded-[20px] p-4 relative flex flex-col text-left overflow-hidden active:scale-[0.96] transition-transform"
-              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tiltStyles }}>
               <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color: s.color, opacity: 0.22 }}>
                 {s.decor}
               </div>
@@ -534,17 +699,23 @@ export default function TestsExams() {
           ) : (
             <div className="flex flex-col gap-[10px]">
               {filtered.map(test => {
-                const isPast = test.testDate && new Date(test.testDate).getTime() < Date.now();
+                const isPast = !!(test.testDate && new Date(test.testDate).getTime() < Date.now());
+                const ds = deriveStatus(test);
+                const scoresFor = scoreCountByTest.get(test.id) || 0;
+                const expected  = test.studentsCount || 0;
                 const statusTone =
-                  test.status === "Completed"      ? { bg: "rgba(0,200,83,0.1)",  color: MA.GREEN,  text: "Completed" } :
-                  test.status === "Pending Scores" ? { bg: "rgba(255,51,85,0.1)", color: MA.RED,    text: "Pending" } :
-                                                     { bg: "rgba(9,87,247,0.08)", color: MA.P,      text: daysLabel(test.testDate) || "Scheduled" };
+                  ds === "Completed"       ? { bg: "rgba(0,200,83,0.1)",   color: MA.GREEN,  text: "Completed" } :
+                  ds === "In Progress"     ? { bg: "rgba(255,170,0,0.12)", color: MA.GOLD,   text: expected > 0 ? `${scoresFor}/${expected} scored` : "In progress" } :
+                  ds === "Pending Scores"  ? { bg: "rgba(255,51,85,0.1)",  color: MA.RED,    text: "Pending" } :
+                                             { bg: "rgba(9,87,247,0.08)",  color: MA.P,      text: daysLabel(test.testDate) || "Scheduled" };
+                // Dim only fully-completed tests so the active worklist stands out.
+                const dimmed = ds === "Completed";
                 return (
                   <div key={test.id}
                     onClick={() => { setSelectedTest(test); setView("enter-scores"); }}
                     role="button" tabIndex={0}
                     className="rounded-[16px] p-[13px] active:scale-[0.985] transition-transform cursor-pointer"
-                    style={{ background: MA.SURFACE }}>
+                    style={{ background: MA.SURFACE, opacity: dimmed ? 0.62 : 1, filter: dimmed ? "grayscale(0.4)" : "none" }}>
                     <div className="flex items-start gap-[10px] mb-[10px]">
                       <div className="w-9 h-9 rounded-[11px] flex items-center justify-center text-white flex-shrink-0" style={{ background: MA.VIOLET }}>
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
@@ -575,8 +746,12 @@ export default function TestsExams() {
                         boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 3px 10px rgba(9,87,247,0.25)",
                         fontFamily: MA.FONT, border: "none",
                       }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
-                      {isPast ? "View scores" : "Enter scores"}
+                      {scoresFor > 0 ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
+                      )}
+                      {scoresFor > 0 ? `Edit scores · ${scoresFor}/${expected || "—"}` : isPast ? "View scores" : "Enter scores"}
                     </button>
                   </div>
                 );
@@ -595,7 +770,11 @@ export default function TestsExams() {
               <div>
                 <div className="text-[15px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Performance Overview</div>
                 <div className="text-[11px] font-semibold mt-[1px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                  {scores.length > 0 ? `Based on ${scores.length} score${scores.length === 1 ? "" : "s"}` : "No scores recorded yet"}
+                  {recentScores.length > 0
+                    ? `Based on ${recentScores.length} score${recentScores.length === 1 ? "" : "s"} · last 90 days`
+                    : scores.length > 0
+                      ? `${scores.length} historical score${scores.length === 1 ? "" : "s"} (older than 90 days)`
+                      : "No scores recorded yet"}
                 </div>
               </div>
             </div>
@@ -647,40 +826,71 @@ export default function TestsExams() {
                 );
               })()}
 
-              {/* Topic performance list */}
-              {(classPerf.length > 0 || topicPerf.length > 0) && (
-                <>
-                  <div className="text-[12px] font-bold pt-[12px] pb-[10px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
-                    {classPerf.length > 0 ? "Class Performance" : "Topic Performance"}
-                  </div>
-                  {classPerf.map((c, i) => {
-                    const pct = Math.max(0, Math.min(100, c.avg!));
-                    const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
-                    return (
-                      <div key={`cls-${i}`} className="grid items-center gap-[10px] py-[9px]" style={{ gridTemplateColumns: "1fr 70px 48px" }}>
-                        <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
-                        <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
-                          <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+              {/* Topic performance list — show Class and Topic sections
+                  separately. Hide topic rows when the only bucket is the
+                  fallback "General topics" (means scores aren't tagged with
+                  real subject/topic — would just duplicate class avg). */}
+              {(() => {
+                const realTopicPerf = topicPerf.filter(t => t.name !== "General topics");
+                const showClass = classPerf.length > 0;
+                const showTopic = realTopicPerf.length > 0;
+                if (!showClass && !showTopic) return null;
+                return (
+                  <>
+                    {showClass && (
+                      <>
+                        <div className="text-[12px] font-bold pt-[12px] pb-[10px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
+                          Class Performance
                         </div>
-                        <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
-                      </div>
-                    );
-                  })}
-                  {topicPerf.map((t, i) => {
-                    const pct = Math.max(0, Math.min(100, t.avg));
-                    const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
-                    return (
-                      <div key={`top-${i}`} className="grid items-center gap-[10px] py-[9px]" style={{ gridTemplateColumns: "1fr 70px 48px" }}>
-                        <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{t.name}</div>
-                        <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
-                          <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                        {classPerf.map((c, i) => {
+                          if (c.avg === null) {
+                            return (
+                              <div key={`cls-${i}`} className="grid items-center gap-[10px] py-[9px]" style={{ gridTemplateColumns: "1fr 70px 48px" }}>
+                                <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
+                                <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                  <div className="h-full rounded-full" style={{ background: MA.SURFACE, width: 0 }} />
+                                </div>
+                                <div className="text-[12px] font-semibold text-right" style={{ color: MA.T4, letterSpacing: "-0.2px" }}>—</div>
+                              </div>
+                            );
+                          }
+                          const pct = Math.max(0, Math.min(100, c.avg));
+                          const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
+                          return (
+                            <div key={`cls-${i}`} className="grid items-center gap-[10px] py-[9px]" style={{ gridTemplateColumns: "1fr 70px 48px" }}>
+                              <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
+                              <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                              </div>
+                              <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg.toFixed(0)}%</div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                    {showTopic && (
+                      <>
+                        <div className="text-[12px] font-bold pt-[14px] pb-[10px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: showClass ? "0.5px solid rgba(9,87,247,0.08)" : "none" }}>
+                          Topic Performance
                         </div>
-                        <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
+                        {realTopicPerf.map((t, i) => {
+                          const pct = Math.max(0, Math.min(100, t.avg));
+                          const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
+                          return (
+                            <div key={`top-${i}`} className="grid items-center gap-[10px] py-[9px]" style={{ gridTemplateColumns: "1fr 70px 48px" }}>
+                              <div className="text-[13px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{t.name}</div>
+                              <div className="h-[7px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                              </div>
+                              <div className="text-[13px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </div>
@@ -711,19 +921,26 @@ export default function TestsExams() {
               </div>
             </div>
             {(() => {
+              // Multi-signal AI engine — picks the most actionable insight by
+              // priority: pending scores > weak class > weak topic > strong avg
+              // > default. Threshold 75/60 across the page for consistency.
               const avgLabel = stats.classAvg !== null ? `${stats.classAvg.toFixed(1)}%` : "—";
-              const weakest = topicPerf.length > 0 ? topicPerf[topicPerf.length - 1] : null;
+              const weakestTopic = topicPerf.length > 0 ? topicPerf[topicPerf.length - 1] : null;
               const topTopicLabel = topicPerf[0]?.name || "General";
               const topTopicVal = topicPerf[0] ? `${topicPerf[0].avg.toFixed(0)}%` : "—";
+              const classWithScores = classPerf.filter(c => c.avg !== null) as Array<{ name: string; avg: number }>;
+              const weakestClass = [...classWithScores].sort((a, b) => a.avg - b.avg)[0];
               return (
                 <>
                   <div className="text-[13px] leading-[1.6] mb-[14px]" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.15px" }}>
-                    {stats.pendingScores > 0 ? (
-                      <><strong className="text-white font-bold">{stats.pendingScores} test{stats.pendingScores === 1 ? "" : "s"}</strong> waiting for scores. Entering them unlocks performance insights for these classes.</>
-                    ) : tests.length === 0 ? (
+                    {tests.length === 0 ? (
                       <>No tests scheduled yet. <strong className="text-white font-bold">Create your first test</strong> to begin tracking performance across classes.</>
-                    ) : weakest && weakest.avg < 70 ? (
-                      <>Class average is <strong className="text-white font-bold">{avgLabel}</strong> — <strong className="text-white font-bold">{weakest.name}</strong> sits at {weakest.avg.toFixed(0)}%. Schedule a <strong className="text-white font-bold">formative test</strong> there to close the gap.</>
+                    ) : stats.pendingScores > 0 ? (
+                      <><strong className="text-white font-bold">{stats.pendingScores} test{stats.pendingScores === 1 ? "" : "s"}</strong> waiting for scores — enter them today to unlock per-class analytics and parent visibility.</>
+                    ) : weakestClass && weakestClass.avg < 60 ? (
+                      <><strong className="text-white font-bold">{weakestClass.name}</strong> at <strong className="text-white font-bold">{weakestClass.avg.toFixed(0)}%</strong> needs the most attention — schedule a <strong className="text-white font-bold">remedial test</strong> on the weakest topic for that class.</>
+                    ) : weakestTopic && weakestTopic.avg < 60 ? (
+                      <>Class average <strong className="text-white font-bold">{avgLabel}</strong> overall, but <strong className="text-white font-bold">{weakestTopic.name}</strong> sits at {weakestTopic.avg.toFixed(0)}%. Plan a <strong className="text-white font-bold">focused session</strong> on that topic.</>
                     ) : stats.classAvg !== null && stats.classAvg >= 75 ? (
                       <>Strong class average of <strong className="text-white font-bold">{avgLabel}</strong>. Consider a <strong className="text-white font-bold">stretch assessment</strong> to push top performers further.</>
                     ) : (
@@ -923,9 +1140,9 @@ export default function TestsExams() {
               },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
-                {...tilt3D}
+                {...tiltProps}
                 className="rounded-[22px] p-5 relative flex flex-col text-left overflow-hidden hover:scale-[1.02] active:scale-[0.98] transition-all"
-                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tiltStyles }}>
                 <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color: s.color, opacity: 0.22 }}>
                   {s.decor}
                 </div>
@@ -1048,17 +1265,22 @@ export default function TestsExams() {
               ) : (
                 <div className="flex flex-col gap-[10px] max-h-[640px] overflow-y-auto pr-1">
                   {filtered.map(test => {
-                    const isPast = test.testDate && new Date(test.testDate).getTime() < Date.now();
+                    const isPast = !!(test.testDate && new Date(test.testDate).getTime() < Date.now());
+                    const ds = deriveStatus(test);
+                    const scoresFor = scoreCountByTest.get(test.id) || 0;
+                    const expected  = test.studentsCount || 0;
                     const statusTone =
-                      test.status === "Completed"      ? { bg: "rgba(0,200,83,0.1)",  color: MA.GREEN,  text: "Completed" } :
-                      test.status === "Pending Scores" ? { bg: "rgba(255,51,85,0.1)", color: MA.RED,    text: "Pending" } :
-                                                         { bg: "rgba(9,87,247,0.08)", color: MA.P,      text: daysLabel(test.testDate) || "Scheduled" };
+                      ds === "Completed"       ? { bg: "rgba(0,200,83,0.1)",   color: MA.GREEN,  text: "Completed" } :
+                      ds === "In Progress"     ? { bg: "rgba(255,170,0,0.12)", color: MA.GOLD,   text: expected > 0 ? `${scoresFor}/${expected} scored` : "In progress" } :
+                      ds === "Pending Scores"  ? { bg: "rgba(255,51,85,0.1)",  color: MA.RED,    text: "Pending" } :
+                                                 { bg: "rgba(9,87,247,0.08)",  color: MA.P,      text: daysLabel(test.testDate) || "Scheduled" };
+                    const dimmed = ds === "Completed";
                     return (
                       <div key={test.id}
                         onClick={() => { setSelectedTest(test); setView("enter-scores"); }}
                         role="button" tabIndex={0}
                         className="rounded-[16px] p-[14px] hover:brightness-[0.98] active:scale-[0.99] transition cursor-pointer"
-                        style={{ background: MA.SURFACE }}>
+                        style={{ background: MA.SURFACE, opacity: dimmed ? 0.62 : 1, filter: dimmed ? "grayscale(0.4)" : "none" }}>
                         <div className="flex items-start gap-3 mb-3">
                           <div className="w-10 h-10 rounded-[12px] flex items-center justify-center text-white flex-shrink-0" style={{ background: MA.VIOLET }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
@@ -1089,8 +1311,12 @@ export default function TestsExams() {
                             boxShadow: "0 1px 2px rgba(9,87,247,0.2), 0 3px 10px rgba(9,87,247,0.25)",
                             fontFamily: MA.FONT, border: "none",
                           }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
-                          {isPast ? "View scores" : "Enter scores"}
+                          {scoresFor > 0 ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
+                          )}
+                          {scoresFor > 0 ? `Edit scores · ${scoresFor}/${expected || "—"}` : isPast ? "View scores" : "Enter scores"}
                         </button>
                       </div>
                     );
@@ -1109,7 +1335,11 @@ export default function TestsExams() {
                   <div>
                     <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.35px" }}>Performance Overview</div>
                     <div className="text-[12px] font-semibold mt-[2px]" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>
-                      {scores.length > 0 ? `Based on ${scores.length} score${scores.length === 1 ? "" : "s"}` : "No scores recorded yet"}
+                      {recentScores.length > 0
+                    ? `Based on ${recentScores.length} score${recentScores.length === 1 ? "" : "s"} · last 90 days`
+                    : scores.length > 0
+                      ? `${scores.length} historical score${scores.length === 1 ? "" : "s"} (older than 90 days)`
+                      : "No scores recorded yet"}
                     </div>
                   </div>
                 </div>
@@ -1161,40 +1391,69 @@ export default function TestsExams() {
                     );
                   })()}
 
-                  {/* Topic/Class performance list */}
-                  {(classPerf.length > 0 || topicPerf.length > 0) && (
-                    <>
-                      <div className="text-[13px] font-bold pt-[14px] pb-[12px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
-                        {classPerf.length > 0 ? "Class Performance" : "Topic Performance"}
-                      </div>
-                      {classPerf.map((c, i) => {
-                        const pct = Math.max(0, Math.min(100, c.avg!));
-                        const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
-                        return (
-                          <div key={`cls-${i}`} className="grid items-center gap-3 py-[10px]" style={{ gridTemplateColumns: "1fr 100px 56px" }}>
-                            <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
-                            <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
-                              <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                  {/* Class + Topic performance — separate sections, hide
+                      "General topics"-only fallback. */}
+                  {(() => {
+                    const realTopicPerf = topicPerf.filter(t => t.name !== "General topics");
+                    const showClass = classPerf.length > 0;
+                    const showTopic = realTopicPerf.length > 0;
+                    if (!showClass && !showTopic) return null;
+                    return (
+                      <>
+                        {showClass && (
+                          <>
+                            <div className="text-[13px] font-bold pt-[14px] pb-[12px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: "0.5px solid rgba(9,87,247,0.08)" }}>
+                              Class Performance
                             </div>
-                            <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg!.toFixed(0)}%</div>
-                          </div>
-                        );
-                      })}
-                      {topicPerf.map((t, i) => {
-                        const pct = Math.max(0, Math.min(100, t.avg));
-                        const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
-                        return (
-                          <div key={`top-${i}`} className="grid items-center gap-3 py-[10px]" style={{ gridTemplateColumns: "1fr 100px 56px" }}>
-                            <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{t.name}</div>
-                            <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
-                              <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                            {classPerf.map((c, i) => {
+                              if (c.avg === null) {
+                                return (
+                                  <div key={`cls-${i}`} className="grid items-center gap-3 py-[10px]" style={{ gridTemplateColumns: "1fr 100px 56px" }}>
+                                    <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
+                                    <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                      <div className="h-full rounded-full" style={{ background: MA.SURFACE, width: 0 }} />
+                                    </div>
+                                    <div className="text-[13px] font-semibold text-right" style={{ color: MA.T4, letterSpacing: "-0.2px" }}>—</div>
+                                  </div>
+                                );
+                              }
+                              const pct = Math.max(0, Math.min(100, c.avg));
+                              const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
+                              return (
+                                <div key={`cls-${i}`} className="grid items-center gap-3 py-[10px]" style={{ gridTemplateColumns: "1fr 100px 56px" }}>
+                                  <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{c.name}</div>
+                                  <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                    <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                                  </div>
+                                  <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{c.avg.toFixed(0)}%</div>
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
+                        {showTopic && (
+                          <>
+                            <div className="text-[13px] font-bold pt-[14px] pb-[12px] px-[2px]" style={{ color: MA.T1, letterSpacing: "-0.25px", borderTop: showClass ? "0.5px solid rgba(9,87,247,0.08)" : "none" }}>
+                              Topic Performance
                             </div>
-                            <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
-                          </div>
-                        );
-                      })}
-                    </>
-                  )}
+                            {realTopicPerf.map((t, i) => {
+                              const pct = Math.max(0, Math.min(100, t.avg));
+                              const tone = pct >= 75 ? MA.GREEN : pct >= 60 ? MA.GOLD : MA.RED;
+                              return (
+                                <div key={`top-${i}`} className="grid items-center gap-3 py-[10px]" style={{ gridTemplateColumns: "1fr 100px 56px" }}>
+                                  <div className="text-[14px] font-bold truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>{t.name}</div>
+                                  <div className="h-[8px] rounded-full overflow-hidden" style={{ background: MA.SURFACE }}>
+                                    <div className="h-full rounded-full" style={{ background: tone, width: `${pct}%`, transition: "width 1.2s cubic-bezier(.2,.9,.3,1)" }} />
+                                  </div>
+                                  <div className="text-[14px] font-bold text-right" style={{ color: tone, letterSpacing: "-0.3px" }}>{t.avg.toFixed(0)}%</div>
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>

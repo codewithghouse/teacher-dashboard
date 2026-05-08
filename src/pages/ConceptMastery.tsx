@@ -46,26 +46,112 @@ const mobAvatarColor = (name: string) => {
   return MOB_AV_PALETTE[sum % MOB_AV_PALETTE.length];
 };
 
-// Legacy avatar colors (kept for roster build — not used in render)
-const avatarColors = [
-  "bg-blue-600", "bg-indigo-600", "bg-violet-600", "bg-teal-600",
-  "bg-cyan-600", "bg-rose-500", "bg-amber-500", "bg-emerald-600",
-];
+// P1-4: removed dead `avatarColors` const + the `s.color` roster field.
+// Mobile uses `mobAvatarColor()`, desktop uses `avStyle()` — neither read
+// the deprecated tailwind class string.
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const getMasteryStatus = (pct: number | null) => {
-  if (pct === null) return { label: 'Not assessed', bg: T.s2, color: T.ink2 };
-  if (pct >= 80)    return { label: 'Mastered',     bg: T.greenL, color: T.green };
-  if (pct >= 50)    return { label: 'Developing',   bg: T.amberL, color: T.amber };
-  return              { label: 'Weak',             bg: T.redL,   color: T.red   };
+// ── Canonical helpers ─────────────────────────────────────────────────────────
+// Score normalization — mirrored from Dashboard.tsx pctOfDoc. Handles every
+// writer variant (test_scores, gradebook_scores `mark`, results, paper_corrections).
+// Returns null for no-data so we don't conflate untested with 0% (memory:
+// `bug_pattern_score_zero_no_data`).
+const pctOfDoc = (d: any): number | null => {
+  if (!d) return null;
+  const pctField = [d.percentage, d.pct].find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof pctField === "number") return Math.max(0, Math.min(100, pctField));
+  const rawCandidates = [d.score, d.mark, d.marks, d.obtainedMarks, d.marksObtained];
+  const rawNum = rawCandidates.find(v => typeof v === "number" && !Number.isNaN(v));
+  if (typeof rawNum !== "number") return null;
+  const maxCandidates = [d.maxScore, d.totalMarks, d.maxMarks, d.outOf];
+  const maxNum = maxCandidates.find(v => typeof v === "number" && !Number.isNaN(v) && v > 0);
+  if (typeof maxNum === "number") return Math.max(0, Math.min(100, (rawNum / maxNum) * 100));
+  if (rawNum >= 0 && rawNum <= 100) return rawNum;
+  return null;
 };
 
+// P1-1: single canonical mastery scale — replaces three diverging band schemes
+// scattered through the file. Same student percentage now shows the same band
+// label / color in every card on the page.
+type MasteryTone = 'mastered' | 'developing' | 'weak' | 'na';
+interface MasteryBand { label: string; tone: MasteryTone; color: string; bg: string }
+
+const getMasteryBand = (pct: number | null): MasteryBand => {
+  if (pct === null || !Number.isFinite(pct))
+    return { label: 'Not assessed', tone: 'na',         color: T.ink2,  bg: T.s2 };
+  if (pct >= 80)
+    return { label: 'Mastered',     tone: 'mastered',   color: T.green, bg: T.greenL };
+  if (pct >= 50)
+    return { label: 'Developing',   tone: 'developing', color: T.amber, bg: T.amberL };
+  return   { label: 'Weak',         tone: 'weak',       color: T.red,   bg: T.redL };
+};
+
+// Back-compat alias for older call sites — same shape now (label/bg/color).
+const getMasteryStatus = getMasteryBand;
+
+// P1-2: include valid 0 scores in student mastery average. A student who
+// scored 0 IS data — excluding them over-stated mastery (same root bug as
+// Gradebook P1-2). The `concepts` array stores only ASSESSED concept values
+// (zero filtered out at compute time on line 185), so this counts everything
+// the matrix builder kept.
 const getStudentMastery = (student: any): number | null => {
-  if (!student.concepts || student.concepts.length === 0) return null;
-  const nonZero = student.concepts.filter((c: number) => c > 0);
-  if (nonZero.length === 0) return null;
-  return Math.round(nonZero.reduce((a: number, b: number) => a + b, 0) / nonZero.length);
+  if (!student?.concepts || student.concepts.length === 0) return null;
+  const valid = (student.concepts as unknown[]).filter(
+    (c): c is number => typeof c === "number" && Number.isFinite(c),
+  );
+  if (valid.length === 0) return null;
+  return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
 };
+
+// ── Source-aware concept catalog (NEW) ────────────────────────────────────────
+// Concepts now carry a source tag so the page can group them by where the
+// score came from: Tests / Exams / Assignments / Custom Units. Same concept
+// name appearing in multiple sources gets multiple rows (one per source) so
+// teachers can compare e.g. "Algebra in formal exams" vs "Algebra in custom
+// practice" instead of conflating both into one average.
+type ConceptSource = 'test' | 'exam' | 'assignment' | 'custom';
+
+interface ConceptHeader {
+  name: string;          // Display name (uppercase)
+  source: ConceptSource; // Which collection produced it
+  refIds: string[];      // testIds / assignmentIds / columnIds that contributed
+}
+
+const SOURCE_LABELS: Record<ConceptSource, string> = {
+  test:       'Tests',
+  exam:       'Exams',
+  assignment: 'Assignments',
+  custom:     'Custom Units',
+};
+
+const SOURCE_COLORS: Record<ConceptSource, { fg: string; bg: string; ring: string }> = {
+  test:       { fg: '#0055FF', bg: 'rgba(0,85,255,.10)',   ring: 'rgba(0,85,255,.20)'   },
+  exam:       { fg: '#7B3FF4', bg: 'rgba(123,63,244,.10)', ring: 'rgba(123,63,244,.20)' },
+  assignment: { fg: '#FF8800', bg: 'rgba(255,136,0,.10)',  ring: 'rgba(255,136,0,.22)'  },
+  custom:     { fg: '#00C853', bg: 'rgba(0,200,83,.10)',   ring: 'rgba(0,200,83,.22)'   },
+};
+
+const isExamCategory = (cat: unknown): boolean => {
+  const c = String(cat || '').toLowerCase();
+  return /\b(exam|mid-?term|final|term)\b/.test(c);
+};
+
+// P2-1: explicit row types — was `students/scores/results: any[]` everywhere.
+// Tightening these catches typos at compile time + documents the shape every
+// downstream consumer (concept matcher, mastery card, detail view) expects.
+interface RosterRow {
+  id: string;
+  realId: string;
+  email: string;
+  name: string;
+  rollNo: string;
+  initials: string;
+  // Filled in by compute — score per concept, index-aligned with dynamicHeaders
+  concepts?: number[];
+}
+
+interface MasteryStudent extends RosterRow {
+  concepts: number[];
+}
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,8 +160,11 @@ const ConceptMastery = () => {
   const navigate = useNavigate();
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
-  const [dynamicHeaders, setDynamicHeaders] = useState<string[]>([]);
-  const [masteryData, setMasteryData] = useState<any[]>([]);
+  // ConceptHeader[] now carries source + refIds for source-aware grouping.
+  // The display walks this list and emits a section divider whenever
+  // `source` changes — the array is pre-sorted by source order in compute.
+  const [dynamicHeaders, setDynamicHeaders] = useState<ConceptHeader[]>([]);
+  const [masteryData, setMasteryData] = useState<MasteryStudent[]>([]);
   const [classAverages, setClassAverages] = useState<number[]>([]);
 
   const [classes, setClasses] = useState<any[]>([]);
@@ -83,6 +172,17 @@ const ConceptMastery = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+
+  // P0-4: surface listener failures + give the user a one-tap retry. Bumping
+  // refreshKey forces every onSnapshot useEffect to re-subscribe (memory
+  // pattern from Dashboard / Gradebook). Without this teachers see stale or
+  // half-loaded data with zero indication anything is wrong.
+  const [listenerError, setListenerError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const onListenerErr = (label: string) => (err: { code?: string; message?: string }) => {
+    console.warn(`[ConceptMastery/${label}]`, err.code || err.message);
+    setListenerError(`Could not load ${label}. ${err.code === "permission-denied" ? "Permission issue — check access." : "Connection or data issue."}`);
+  };
 
   // ── 1. Fetch Teacher's Active Assignments ─────────────────────────────────
   useEffect(() => {
@@ -134,6 +234,7 @@ const ConceptMastery = () => {
   useEffect(() => {
     if (!teacherData?.id || !selectedClassId) return;
     setLoading(true);
+    setListenerError(null);
 
     const selAssignment = classes.find(c => c.id === selectedClassId);
     const targetClassId = selAssignment?.classId || selectedClassId;
@@ -141,100 +242,173 @@ const ConceptMastery = () => {
     if (!teacherData.schoolId) return;
     const schoolId = teacherData.schoolId as string;
     const branchId = teacherData.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
 
-    let gbCols: any[] = [];
-    let classTests: any[] = [];
+    // P0-2: split SC by collection type (memory `bug_pattern_branch_filter_on_event_streams`).
+    // Resolution entities (gradebook_columns, tests, enrollments) carry branchId
+    // as a load-bearing field — safe to filter on. Event streams (test_scores,
+    // gradebook_scores, results) get branchId backfilled async with 1-2s lag —
+    // a strict where clause would silently drop fresh writes during that
+    // window. teacherId/classId already provide branch isolation downstream.
+    const SC_RES: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+    if (branchId) SC_RES.push(where("branchId", "==", branchId));
+    const SC_EVT: QueryConstraint[] = [where("schoolId", "==", schoolId)];
+
+    let gbCols: any[] = [];          // Custom unit columns
+    let classTests: any[] = [];      // Tests + Exams (split by category at compute time)
+    let classAssignments: any[] = []; // NEW: assignment docs
     let roster: any[] = [];
-    let s1: any[] = [];
-    let s2: any[] = [];
-    let s3: any[] = [];
+    let testScores: any[] = [];      // event stream — test_scores
+    let gbScores: any[] = [];        // event stream — gradebook_scores
+    let submissions: any[] = [];     // NEW: event stream — submissions (assignment scores)
     let computeTimer: ReturnType<typeof setTimeout> | null = null;
+    // P0-5: race guard — when class switches mid-snapshot the stale callback
+    // can otherwise compute against new state and clobber it.
+    let cancelled = false;
 
     const scheduleCompute = () => {
+      if (cancelled) return;
       if (computeTimer) clearTimeout(computeTimer);
-      computeTimer = setTimeout(runCompute, 30);
+      computeTimer = setTimeout(() => { if (!cancelled) runCompute(); }, 30);
     };
 
     const runCompute = () => {
-      const potentialTopicsSet = new Set<string>();
-      classTests.forEach(t => { if (t.topics && Array.isArray(t.topics)) t.topics.forEach((c: string) => potentialTopicsSet.add(c.toUpperCase())); });
-      gbCols.forEach(col => { if (col.name) potentialTopicsSet.add(col.name.toUpperCase()); });
-      const potentialTopics = Array.from(potentialTopicsSet).sort();
+      // ── 1. Build per-source concept catalog ─────────────────────────────
+      // For tests + exams: each test contributes its `topics` array as
+      // separate concepts (legacy single-test fallback uses test name when
+      // no topics). Tests and Exams split by category.
+      const testHeaders = new Map<string, Set<string>>();   // name → testIds
+      const examHeaders = new Map<string, Set<string>>();
+      classTests.forEach(t => {
+        const target = isExamCategory(t.category) ? examHeaders : testHeaders;
+        const topics: string[] = Array.isArray(t.topics) && t.topics.length > 0
+          ? t.topics.map((s: unknown) => String(s || '').trim().toUpperCase()).filter(Boolean)
+          : [String(t.testName || t.title || '').trim().toUpperCase()].filter(Boolean);
+        topics.forEach(name => {
+          if (!target.has(name)) target.set(name, new Set());
+          target.get(name)!.add(String(t.id));
+        });
+      });
 
-      const activeConceptsMap = new Map<string, boolean>();
+      // Assignments: each one's title becomes a concept.
+      const assignmentHeaders = new Map<string, Set<string>>();
+      classAssignments.forEach(a => {
+        const name = String(a.title || '').trim().toUpperCase();
+        if (!name) return;
+        if (!assignmentHeaders.has(name)) assignmentHeaders.set(name, new Set());
+        assignmentHeaders.get(name)!.add(String(a.id));
+      });
+
+      // Custom units: each gradebook_column name is a concept.
+      const customHeaders = new Map<string, Set<string>>();
+      gbCols.forEach(col => {
+        const name = String(col.name || '').trim().toUpperCase();
+        if (!name) return;
+        if (!customHeaders.has(name)) customHeaders.set(name, new Set());
+        customHeaders.get(name)!.add(String(col.id));
+      });
+
+      // ── 2. Build flat ConceptHeader[] sorted by source priority ─────────
+      // Source order: tests → exams → assignments → custom units.
+      // Render code emits section dividers when source changes.
+      const buildSection = (m: Map<string, Set<string>>, source: ConceptSource): ConceptHeader[] =>
+        Array.from(m.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([name, ids]) => ({ name, source, refIds: Array.from(ids) }));
+
+      const headers: ConceptHeader[] = [
+        ...buildSection(testHeaders,       'test'),
+        ...buildSection(examHeaders,       'exam'),
+        ...buildSection(assignmentHeaders, 'assignment'),
+        ...buildSection(customHeaders,     'custom'),
+      ];
+
+      // ── 3. Per-student per-concept score compute ────────────────────────
       const builtMatrix = roster.map((s: any) => {
-        const sEmail = s.email?.toLowerCase();
-        const sId = s.realId;
-        const filterByStudent = (arr: any[]) => arr.filter(item =>
-          (sId && (item.studentId === sId || item.id?.includes(sId))) ||
-          (sEmail && item.studentEmail?.toLowerCase() === sEmail)
-        );
+        const sEmail = String(s.email || '').toLowerCase();
+        const sId = String(s.realId || '');
 
-        const sSum = filterByStudent(s1);
-        const sFor = filterByStudent(s2);
-        const sRes = filterByStudent(s3);
+        // P0-3: 3-tier strict attribution (memory `pattern_3tier_attribution`).
+        // No substring matching anywhere.
+        const matchesStudent = (item: any) => {
+          const itemId = String(item.studentId || '').trim();
+          const itemEmail = String(item.studentEmail || '').toLowerCase().trim();
+          if (sId && itemId && itemId === sId) return true;
+          if (sEmail && itemEmail && itemEmail === sEmail) return true;
+          return false;
+        };
 
-        const conceptScores = potentialTopics.map(concept => {
-          const rSum = sSum.filter(sc => classTests.find(t => t.id === sc.testId)?.topics?.some((t: any) => t.trim().toUpperCase() === concept));
-          const rFor = sFor.filter(sc => sc.columnName?.trim().toUpperCase() === concept || sc.columnId === gbCols.find(c => c.name?.trim().toUpperCase() === concept)?.id);
-          const rRes = sRes.filter(sc => sc.testName?.trim().toUpperCase() === concept || sc.assignmentTitle?.trim().toUpperCase() === concept || sc.title?.trim().toUpperCase() === concept);
+        // Pre-filter event streams to this student once (avoids N×scores re-filter).
+        const stuTestScores = testScores.filter(matchesStudent);
+        const stuGbScores   = gbScores.filter(matchesStudent);
+        const stuSubs       = submissions.filter(matchesStudent);
 
-          const combined = [...rSum, ...rFor, ...rRes];
-          if (combined.length === 0) return 0;
-          activeConceptsMap.set(concept, true);
+        const conceptScores = headers.map(h => {
+          const refSet = new Set(h.refIds);
+          let pool: any[] = [];
+          if (h.source === 'test' || h.source === 'exam') {
+            pool = stuTestScores.filter(sc => refSet.has(String(sc.testId || '')));
+          } else if (h.source === 'assignment') {
+            pool = stuSubs.filter(sc =>
+              refSet.has(String(sc.assignmentId || '')) ||
+              refSet.has(String(sc.homeworkId || '')),
+            );
+          } else if (h.source === 'custom') {
+            pool = stuGbScores.filter(sc => refSet.has(String(sc.columnId || '')));
+          }
 
+          if (pool.length === 0) return 0;
+          // P1-5: canonical pctOfDoc — handles every score-field variant.
           let total = 0, count = 0;
-          combined.forEach(sc => {
-            let rawPct: number;
-            if (sc.percentage != null) rawPct = sc.percentage;
-            else if (sc.mark != null && sc.maxMarks) rawPct = sc.mark / sc.maxMarks * 100;
-            else if (sc.score != null && sc.maxScore) rawPct = sc.score / sc.maxScore * 100;
-            else if (sc.score != null) rawPct = sc.score;
-            else rawPct = 0;
-            const pct = Number(rawPct);
-            if (pct >= 0) { total += pct; count++; }
+          pool.forEach(sc => {
+            const pct = pctOfDoc(sc);
+            if (pct != null && pct >= 0) { total += pct; count++; }
           });
           return count > 0 ? Math.round(total / count) : 0;
         });
-        return { ...s, rawConcepts: conceptScores };
-      });
 
-      const filteredHeaders = potentialTopics.filter(h => activeConceptsMap.has(h));
-      setDynamicHeaders(filteredHeaders);
+        return { ...s, concepts: conceptScores };
+      }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-      const final = builtMatrix.map(s => ({
-        ...s,
-        concepts: potentialTopics
-          .map((h, i) => ({ h, v: s.rawConcepts[i] }))
-          .filter(it => activeConceptsMap.has(it.h))
-          .map(it => it.v),
-      })).sort((a, b) => a.name.localeCompare(b.name));
-
-      const avgs = filteredHeaders.map((_, idx) => {
+      // ── 4. Per-concept class averages (index-aligned with headers) ──────
+      const avgs = headers.map((_, idx) => {
         let sum = 0, count = 0;
-        final.forEach(st => { if (st.concepts[idx] > 0) { sum += st.concepts[idx]; count++; } });
+        builtMatrix.forEach(st => {
+          const v = st.concepts[idx];
+          if (typeof v === 'number' && v > 0) { sum += v; count++; }
+        });
         return count > 0 ? Math.round(sum / count) : 0;
       });
 
+      setDynamicHeaders(headers);
       setClassAverages(avgs);
-      setMasteryData(final);
+      setMasteryData(builtMatrix);
       setLoading(false);
     };
 
     const unsub1 = onSnapshot(
-      query(collection(db, "gradebook_columns"), ...SC, where("classId", "==", targetClassId)),
-      (snap) => { gbCols = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); }
+      query(collection(db, "gradebook_columns"), ...SC_RES, where("classId", "==", targetClassId)),
+      (snap) => { if (cancelled) return; gbCols = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); },
+      onListenerErr("custom units"),
     );
+    // P0-1: was `tests_registry` — phantom collection no writer touches.
+    // Canonical writer (CreateTest, SaveAsTestModal) writes to `tests`.
     const unsub2 = onSnapshot(
-      query(collection(db, "tests_registry"), ...SC, where("classId", "==", targetClassId)),
-      (snap) => { classTests = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); }
+      query(collection(db, "tests"), ...SC_RES, where("classId", "==", targetClassId)),
+      (snap) => { if (cancelled) return; classTests = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); },
+      onListenerErr("tests"),
+    );
+    // NEW: assignments — were missing entirely. Powers the "Assignments"
+    // source section + ties scores to assignment titles.
+    const unsubA = onSnapshot(
+      query(collection(db, "assignments"), ...SC_RES, where("classId", "==", targetClassId)),
+      (snap) => { if (cancelled) return; classAssignments = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)); scheduleCompute(); },
+      onListenerErr("assignments"),
     );
     const unsub3 = onSnapshot(
-      query(collection(db, "enrollments"), ...SC, where("classId", "==", targetClassId)),
+      query(collection(db, "enrollments"), ...SC_RES, where("classId", "==", targetClassId)),
       (snap) => {
-        roster = snap.docs.map((d, idx) => {
+        if (cancelled) return;
+        roster = snap.docs.map((d) => {
           const e = d.data();
           return {
             id: d.id,
@@ -243,30 +417,44 @@ const ConceptMastery = () => {
             name: e.studentName,
             rollNo: e.rollNo || "",
             initials: e.studentName?.substring(0, 2).toUpperCase() || "SC",
-            color: avatarColors[idx % avatarColors.length],
           };
         });
         scheduleCompute();
-      }
+      },
+      onListenerErr("class roster"),
     );
+    // P0-2: SC_EVT (no branchId) on event streams.
     const unsub4 = onSnapshot(
-      query(collection(db, "test_scores"), ...SC, where("classId", "==", targetClassId)),
-      (snap) => { s1 = snap.docs.map(d => d.data()); scheduleCompute(); }
+      query(collection(db, "test_scores"), ...SC_EVT, where("classId", "==", targetClassId)),
+      (snap) => { if (cancelled) return; testScores = snap.docs.map(d => d.data()); scheduleCompute(); },
+      onListenerErr("test scores"),
     );
     const unsub5 = onSnapshot(
-      query(collection(db, "gradebook_scores"), ...SC, where("classId", "==", targetClassId)),
-      (snap) => { s2 = snap.docs.map(d => d.data()); scheduleCompute(); }
+      query(collection(db, "gradebook_scores"), ...SC_EVT, where("classId", "==", targetClassId)),
+      (snap) => { if (cancelled) return; gbScores = snap.docs.map(d => d.data()); scheduleCompute(); },
+      onListenerErr("gradebook scores"),
     );
-    const unsub6 = onSnapshot(
-      query(collection(db, "results"), ...SC, where("classId", "==", targetClassId)),
-      (snap) => { s3 = snap.docs.map(d => d.data()); scheduleCompute(); }
+    // NEW: submissions — powers per-assignment scoring. Tally only graded
+    // submissions (where `score`/`marks`/`status:graded` is set). Handles
+    // both legacy `assignmentId` AND `homeworkId` field shapes.
+    const unsubS = onSnapshot(
+      query(collection(db, "submissions"), ...SC_EVT, where("classId", "==", targetClassId)),
+      (snap) => {
+        if (cancelled) return;
+        submissions = snap.docs
+          .map(d => d.data())
+          .filter(d => d.score != null || d.marks != null || String((d as any).status || "").toLowerCase() === "graded");
+        scheduleCompute();
+      },
+      onListenerErr("submissions"),
     );
 
     return () => {
+      cancelled = true;
       if (computeTimer) clearTimeout(computeTimer);
-      unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6();
+      unsub1(); unsub2(); unsubA(); unsub3(); unsub4(); unsub5(); unsubS();
     };
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes]);
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes, refreshKey]);
 
   // ── Export ────────────────────────────────────────────────────────────────
   // Defuse CSV injection: if a cell starts with `=`, `+`, `-`, `@`, or a
@@ -281,7 +469,10 @@ const ConceptMastery = () => {
 
   const exportCSV = () => {
     try {
-      const rows = [["Student", ...dynamicHeaders].map(csvEscape).join(",")];
+      // CSV header now includes source tag per concept so a downstream pivot
+      // (in Excel) can sort by Tests/Exams/Assignments/Custom Units.
+      const headerCells = ["Student", ...dynamicHeaders.map(h => `${h.name} (${SOURCE_LABELS[h.source]})`)];
+      const rows = [headerCells.map(csvEscape).join(",")];
       masteryData.forEach(s => rows.push(
         [csvEscape(s.name), ...s.concepts.map((c: number) => c > 0 ? `${c}%` : "")].join(",")
       ));
@@ -338,7 +529,8 @@ const ConceptMastery = () => {
     return (
       <ConceptMasteryDetail
         student={selectedStudent}
-        concepts={dynamicHeaders}
+        concepts={dynamicHeaders.map(h => h.name)}
+        conceptSources={dynamicHeaders.map(h => h.source)}
         scores={selectedStudent.concepts}
         className={selectedClass?.name || ""}
         onBack={() => setSelectedStudent(null)}
@@ -412,6 +604,30 @@ const ConceptMastery = () => {
             </div>
           </div>
 
+          {/* P0-4: listener-failure banner with one-tap retry */}
+          {listenerError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+              padding: '10px 12px', borderRadius: 12,
+              background: '#FFF5F5', border: '0.5px solid #FFD8D8',
+            }}>
+              <div style={{ flex: 1, fontSize: 12, color: '#C92A2A', fontWeight: 500, lineHeight: 1.45 }}>
+                {listenerError}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setListenerError(null); setRefreshKey(k => k + 1); }}
+                style={{
+                  padding: '6px 12px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                  background: '#C92A2A', color: '#fff', fontSize: 11, fontWeight: 700,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Class picker + Search */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
@@ -436,7 +652,7 @@ const ConceptMastery = () => {
               </div>
               <select
                 value={selectedClassId}
-                onChange={e => setSelectedClassId(e.target.value)}
+                onChange={e => { setSelectedClassId(e.target.value); setSelectedStudent(null); }}
                 aria-label="Select class"
                 style={{
                   position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -597,11 +813,25 @@ const ConceptMastery = () => {
             </div>
           </div>
 
-          {/* Student cards / loading / empty */}
+          {/* Student cards / loading / empty — P2-7 animated skeleton */}
           {loading ? (
-            <div className="cm-card3d" style={{ background: '#fff', borderRadius: 20, padding: '40px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)' }}>
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#5070B0' }} />
-              <span style={{ fontSize: 12, color: '#5070B0' }}>Loading concept data…</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{
+                  background: '#fff', borderRadius: 20, padding: 16,
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 13, background: '#EAF0FB', animation: 'cmPulse 1.5s ease-in-out infinite' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 14, borderRadius: 4, background: '#EAF0FB', width: '60%', marginBottom: 6, animation: 'cmPulse 1.5s ease-in-out infinite' }} />
+                      <div style={{ height: 10, borderRadius: 4, background: '#F4F7FE', width: '40%', animation: 'cmPulse 1.5s ease-in-out infinite' }} />
+                    </div>
+                    <div style={{ width: 64, height: 22, borderRadius: 100, background: '#EAF0FB', animation: 'cmPulse 1.5s ease-in-out infinite' }} />
+                  </div>
+                  <div style={{ height: 50, borderRadius: 14, background: '#F4F7FE', animation: 'cmPulse 1.5s ease-in-out infinite' }} />
+                </div>
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="cm-card3d" style={{ background: '#fff', borderRadius: 20, padding: '40px 14px', textAlign: 'center', color: '#5070B0', fontSize: 12, boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)' }}>
@@ -660,31 +890,54 @@ const ConceptMastery = () => {
                   <div style={{ fontSize: 11, color: '#99AACC', textAlign: 'center', padding: '8px 0', fontWeight: 600 }}>
                     No concepts tracked yet.
                   </div>
-                ) : dynamicHeaders.map((h, i) => {
-                  const pct = s.concepts[i] || 0;
-                  const cls = pct >= 80 ? 'good' : pct >= 50 ? 'warn' : pct > 0 ? 'bad' : 'na';
-                  const color = cls === 'good' ? '#00C853' : cls === 'warn' ? '#FF8800' : cls === 'bad' ? '#FF3355' : '#99AACC';
-                  const gradient = cls === 'good' ? 'linear-gradient(90deg, #00E866, #00C853)' : cls === 'warn' ? 'linear-gradient(90deg, #FFAA00, #FF8800)' : cls === 'bad' ? 'linear-gradient(90deg, #FF5577, #FF3355)' : '#EAF0FB';
-                  return (
-                    <div key={h} style={{
-                      background: '#F4F7FE', borderRadius: 14, padding: 12,
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      marginBottom: i < dynamicHeaders.length - 1 ? 8 : 0,
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h}</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color, letterSpacing: '-0.4px', lineHeight: 1, flexShrink: 0 }}>
-                            {pct > 0 ? `${pct}%` : '—'}
+                ) : (() => {
+                  // Walk headers + emit a SOURCE divider whenever the source
+                  // changes — concepts are pre-sorted by source in compute.
+                  let lastSource: ConceptSource | null = null;
+                  const out: React.ReactNode[] = [];
+                  dynamicHeaders.forEach((h, i) => {
+                    const pct = s.concepts[i] || 0;
+                    const cls = pct >= 80 ? 'good' : pct >= 50 ? 'warn' : pct > 0 ? 'bad' : 'na';
+                    const color = cls === 'good' ? '#00C853' : cls === 'warn' ? '#FF8800' : cls === 'bad' ? '#FF3355' : '#99AACC';
+                    const gradient = cls === 'good' ? 'linear-gradient(90deg, #00E866, #00C853)' : cls === 'warn' ? 'linear-gradient(90deg, #FFAA00, #FF8800)' : cls === 'bad' ? 'linear-gradient(90deg, #FF5577, #FF3355)' : '#EAF0FB';
+                    if (h.source !== lastSource) {
+                      const sc = SOURCE_COLORS[h.source];
+                      out.push(
+                        <div key={`hdr_${h.source}_${i}`} style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '6px 4px 4px',
+                          fontSize: 9, fontWeight: 700, color: sc.fg,
+                          letterSpacing: '1.4px', textTransform: 'uppercase',
+                          marginTop: lastSource ? 6 : 0,
+                        }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc.fg, flexShrink: 0 }} />
+                          {SOURCE_LABELS[h.source]}
+                        </div>
+                      );
+                      lastSource = h.source;
+                    }
+                    out.push(
+                      <div key={`${h.source}_${h.name}_${i}`} style={{
+                        background: '#F4F7FE', borderRadius: 14, padding: 12,
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        marginBottom: i < dynamicHeaders.length - 1 ? 8 : 0,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h.name}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color, letterSpacing: '-0.4px', lineHeight: 1, flexShrink: 0 }}>
+                              {pct > 0 ? `${pct}%` : '—'}
+                            </div>
+                          </div>
+                          <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
+                            <div className="cm-unit-fill" style={{ height: '100%', borderRadius: 100, background: gradient, width: `${Math.max(0, Math.min(100, pct))}%` }} />
                           </div>
                         </div>
-                        <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
-                          <div className="cm-unit-fill" style={{ height: '100%', borderRadius: 100, background: gradient, width: `${Math.max(0, Math.min(100, pct))}%` }} />
-                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                  return out;
+                })()}
               </div>
             );
           })}
@@ -721,36 +974,57 @@ const ConceptMastery = () => {
                   {classMasteryPct === null ? '—' : `${classMasteryPct}%`}
                 </div>
               </div>
-              {dynamicHeaders.map((h, i) => {
-                const avg = classAverages[i] || 0;
-                const cls = avg >= 80 ? 'good' : avg >= 50 ? 'warn' : avg > 0 ? 'bad' : 'na';
-                const color = cls === 'good' ? '#00C853' : cls === 'warn' ? '#FF8800' : cls === 'bad' ? '#FF3355' : '#99AACC';
-                const gradient = cls === 'good' ? 'linear-gradient(90deg, #00E866, #00C853)' : cls === 'warn' ? 'linear-gradient(90deg, #FFAA00, #FF8800)' : cls === 'bad' ? 'linear-gradient(90deg, #FF5577, #FF3355)' : '#EAF0FB';
-                return (
-                  <div key={h} style={{
-                    background: cls === 'warn' ? 'rgba(255,170,0,.06)' : '#F4F7FE', borderRadius: 14, padding: 12,
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    marginBottom: i < dynamicHeaders.length - 1 ? 8 : 0,
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h} overall</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color, letterSpacing: '-0.3px', flexShrink: 0 }}>{avg > 0 ? `${avg}%` : '—'}</div>
+              {(() => {
+                let lastSource: ConceptSource | null = null;
+                const out: React.ReactNode[] = [];
+                dynamicHeaders.forEach((h, i) => {
+                  const avg = classAverages[i] || 0;
+                  const cls = avg >= 80 ? 'good' : avg >= 50 ? 'warn' : avg > 0 ? 'bad' : 'na';
+                  const color = cls === 'good' ? '#00C853' : cls === 'warn' ? '#FF8800' : cls === 'bad' ? '#FF3355' : '#99AACC';
+                  const gradient = cls === 'good' ? 'linear-gradient(90deg, #00E866, #00C853)' : cls === 'warn' ? 'linear-gradient(90deg, #FFAA00, #FF8800)' : cls === 'bad' ? 'linear-gradient(90deg, #FF5577, #FF3355)' : '#EAF0FB';
+                  if (h.source !== lastSource) {
+                    const sc = SOURCE_COLORS[h.source];
+                    out.push(
+                      <div key={`avg_hdr_${h.source}_${i}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '6px 4px 4px',
+                        fontSize: 9, fontWeight: 700, color: sc.fg,
+                        letterSpacing: '1.4px', textTransform: 'uppercase',
+                        marginTop: lastSource ? 6 : 0,
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc.fg, flexShrink: 0 }} />
+                        {SOURCE_LABELS[h.source]}
                       </div>
-                      <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
-                        <div className="cm-unit-fill" style={{ height: '100%', borderRadius: 100, background: gradient, width: `${Math.max(0, Math.min(100, avg))}%` }} />
+                    );
+                    lastSource = h.source;
+                  }
+                  out.push(
+                    <div key={`avg_${h.source}_${h.name}_${i}`} style={{
+                      background: cls === 'warn' ? 'rgba(255,170,0,.06)' : '#F4F7FE', borderRadius: 14, padding: 12,
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      marginBottom: i < dynamicHeaders.length - 1 ? 8 : 0,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{h.name} overall</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color, letterSpacing: '-0.3px', flexShrink: 0 }}>{avg > 0 ? `${avg}%` : '—'}</div>
+                        </div>
+                        <div style={{ height: 6, background: '#EAF0FB', borderRadius: 100, overflow: 'hidden' }}>
+                          <div className="cm-unit-fill" style={{ height: '100%', borderRadius: 100, background: gradient, width: `${Math.max(0, Math.min(100, avg))}%` }} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+                return out;
+              })()}
             </div>
           )}
 
           {/* Weak Concepts Callout */}
           {!loading && dynamicHeaders.length > 0 && (() => {
             const weak = dynamicHeaders
-              .map((h, i) => ({ name: h, avg: classAverages[i] || 0 }))
+              .map((h, i) => ({ name: h.name, source: h.source, avg: classAverages[i] || 0 }))
               .filter(c => c.avg > 0 && c.avg < 75)
               .sort((a, b) => a.avg - b.avg);
             if (weak.length === 0) return null;
@@ -920,6 +1194,30 @@ const ConceptMastery = () => {
 
         <div className="cmd-enter max-w-[1600px] mx-auto">
 
+          {/* P0-4: listener-failure banner with one-tap retry */}
+          {listenerError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+              padding: '12px 16px', borderRadius: 14,
+              background: '#FFF5F5', border: '0.5px solid #FFD8D8',
+            }}>
+              <div style={{ flex: 1, fontSize: 13, color: '#C92A2A', fontWeight: 500, lineHeight: 1.5 }}>
+                {listenerError}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setListenerError(null); setRefreshKey(k => k + 1); }}
+                style={{
+                  padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  background: '#C92A2A', color: '#fff', fontSize: 12, fontWeight: 700,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* ═══ Page Head ═══ */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
             <div>
@@ -958,7 +1256,7 @@ const ConceptMastery = () => {
                 <span style={{ color: '#99AACC', fontSize: 20, fontWeight: 400, lineHeight: 1, marginTop: -3, flexShrink: 0 }}>›</span>
                 <select
                   value={selectedClassId}
-                  onChange={e => setSelectedClassId(e.target.value)}
+                  onChange={e => { setSelectedClassId(e.target.value); setSelectedStudent(null); }}
                   aria-label="Select class"
                   style={{
                     position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -1192,37 +1490,58 @@ const ConceptMastery = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {dynamicHeaders.map((h, i) => {
-                    const avg = classAverages[i] || 0;
-                    const status = getMasteryStatus(avg || null);
-                    const barGrad = avg >= 80
-                      ? 'linear-gradient(90deg,#00C853,#33DD77)'
-                      : avg >= 50
-                      ? 'linear-gradient(90deg,#FFAA00,#FFCC33)'
-                      : avg > 0
-                      ? 'linear-gradient(90deg,#FF3355,#FF6677)'
-                      : 'linear-gradient(90deg,#99AACC,#B0C0D8)';
-                    return (
-                      <div key={h} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 130, minWidth: 130, fontSize: 11, fontWeight: 700, color: '#001040', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {h}
+                  {(() => {
+                    let lastSource: ConceptSource | null = null;
+                    const out: React.ReactNode[] = [];
+                    dynamicHeaders.forEach((h, i) => {
+                      const avg = classAverages[i] || 0;
+                      const status = getMasteryStatus(avg || null);
+                      const barGrad = avg >= 80
+                        ? 'linear-gradient(90deg,#00C853,#33DD77)'
+                        : avg >= 50
+                        ? 'linear-gradient(90deg,#FFAA00,#FFCC33)'
+                        : avg > 0
+                        ? 'linear-gradient(90deg,#FF3355,#FF6677)'
+                        : 'linear-gradient(90deg,#99AACC,#B0C0D8)';
+                      if (h.source !== lastSource) {
+                        const sc = SOURCE_COLORS[h.source];
+                        out.push(
+                          <div key={`d_avg_hdr_${h.source}_${i}`} style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            padding: '4px 0',
+                            fontSize: 10, fontWeight: 700, color: sc.fg,
+                            letterSpacing: '0.1em', textTransform: 'uppercase',
+                            marginTop: lastSource ? 8 : 0,
+                          }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc.fg, flexShrink: 0 }} />
+                            {SOURCE_LABELS[h.source]}
+                          </div>
+                        );
+                        lastSource = h.source;
+                      }
+                      out.push(
+                        <div key={`d_avg_${h.source}_${h.name}_${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 130, minWidth: 130, fontSize: 11, fontWeight: 700, color: '#001040', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {h.name}
+                          </div>
+                          <div style={{ flex: 1, height: 10, borderRadius: 999, background: '#EEF4FF', overflow: 'hidden' }}>
+                            <div
+                              className="cm-unit-fill"
+                              style={{
+                                width: `${Math.max(avg, 0)}%`,
+                                height: '100%', borderRadius: 999, background: barGrad,
+                                transition: 'width 1s cubic-bezier(.2,.9,.3,1)',
+                              }}
+                            />
+                          </div>
+                          <div style={{ width: 60, textAlign: 'right', fontSize: 13, fontWeight: 700, color: status.color }}>
+                            {avg > 0 ? `${avg}%` : '—'}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, height: 10, borderRadius: 999, background: '#EEF4FF', overflow: 'hidden' }}>
-                          <div
-                            className="cm-unit-fill"
-                            style={{
-                              width: `${Math.max(avg, 0)}%`,
-                              height: '100%', borderRadius: 999, background: barGrad,
-                              transition: 'width 1s cubic-bezier(.2,.9,.3,1)',
-                            }}
-                          />
-                        </div>
-                        <div style={{ width: 60, textAlign: 'right', fontSize: 13, fontWeight: 700, color: status.color }}>
-                          {avg > 0 ? `${avg}%` : '—'}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                    return out;
+                  })()}
                 </div>
               </div>
             </div>
@@ -1305,13 +1624,25 @@ const ConceptMastery = () => {
                         position: 'sticky', left: 0, background: 'rgba(0,85,255,.03)', zIndex: 2,
                         borderBottom: '0.5px solid rgba(0,85,255,.08)',
                       }}>Student</th>
-                      {dynamicHeaders.map(h => (
-                        <th key={h} style={{
-                          textAlign: 'center', padding: '12px 14px', fontSize: 10, fontWeight: 700,
-                          color: '#5070B0', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                          borderBottom: '0.5px solid rgba(0,85,255,.08)',
-                        }}>{h}</th>
-                      ))}
+                      {dynamicHeaders.map((h, i) => {
+                        const sc = SOURCE_COLORS[h.source];
+                        // Source-color top accent + small SOURCE label above
+                        // the concept name so columns visually group by source.
+                        return (
+                          <th key={`${h.source}_${h.name}_${i}`} style={{
+                            textAlign: 'center', padding: '8px 14px 12px', fontSize: 10, fontWeight: 700,
+                            color: '#5070B0', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                            borderBottom: '0.5px solid rgba(0,85,255,.08)',
+                            borderTop: `3px solid ${sc.fg}`,
+                            background: sc.bg,
+                          }}>
+                            <div style={{ fontSize: 8, color: sc.fg, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 4 }}>
+                              {SOURCE_LABELS[h.source]}
+                            </div>
+                            <div style={{ color: '#001040', fontSize: 11 }}>{h.name}</div>
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -1414,7 +1745,7 @@ const ConceptMastery = () => {
           {/* ═══ Weak Concepts Hero (red gradient card) ═══ */}
           {classAverages.length > 0 && (() => {
             const weakList = dynamicHeaders
-              .map((h, i) => ({ name: h, avg: classAverages[i] }))
+              .map((h, i) => ({ name: h.name, source: h.source, avg: classAverages[i] }))
               .filter(c => c.avg > 0 && c.avg < 75)
               .sort((a, b) => a.avg - b.avg);
             const hasWeak = weakList.length > 0;

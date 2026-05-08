@@ -3,14 +3,12 @@ import { db } from "../lib/firebase";
 import {
   collection, query, onSnapshot, getDocs,
   doc, where, Timestamp, serverTimestamp,
-  type QueryConstraint,
 } from "firebase/firestore";
-import { auditedUpdate } from "../lib/auditedWrites";
+import { auditedUpdate, auditedAdd } from "../lib/auditedWrites";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
-import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 
 const HALO_SH = "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.12), 0 18px 44px rgba(0,85,255,0.15)";
 const HALO_BDR = "0.5px solid rgba(0,85,255,0.07)";
@@ -21,7 +19,6 @@ interface Alert {
   studentId: string;
   name: string;
   initials: string;
-  avatarColor: string;
   severity: "Critical" | "High Priority" | "Medium Priority";
   type: "Attendance" | "Grades" | "Submissions" | "Behavior";
   issue: string;
@@ -57,134 +54,58 @@ const T = {
 };
 
 // ── Avatar helpers ────────────────────────────────────────────────────────────
-const AV_HEX = ["#3B5BDB","#0ea5e9","#10b981","#f59e0b","#8b5cf6","#f43f5e","#06b6d4"];
+// Single Blue Apple palette used by both mobile and desktop avatars.
+// Deterministic djb2-style hash → same student → same colour everywhere.
+const AV_HEX = ["#7B3FF4", "#0055FF", "#00C853", "#FF8800", "#C2255C", "#00B8D4", "#6741D9"];
 const avBg = (name: string) => {
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AV_HEX[h % AV_HEX.length];
 };
 const getInitials = (name: string) => {
-  const p = name.trim().split(/\s+/);
+  const p = (name || "").trim().split(/\s+/);
   return (p.length >= 2 ? p[0][0] + p[p.length - 1][0] : p[0].slice(0, 2)).toUpperCase();
 };
 
-// ── Legacy color kept for alert obj field compat ──────────────────────────────
-const AVATAR_COLORS = ["bg-rose-500","bg-amber-500","bg-emerald-600","bg-blue-600","bg-violet-600","bg-indigo-600"];
-const getAvatarColor = (name: string) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
-
-// ── Severity style map ────────────────────────────────────────────────────────
-const SEV: Record<string, { color: string; bg: string; bdr: string; pillBg: string; pillColor: string }> = {
-  Critical:          { color: T.red,  bg: T.rlBg, bdr: T.rlBdr, pillBg: "rgba(201,42,42,0.1)",  pillColor: T.red  },
-  "High Priority":   { color: T.amb,  bg: T.alBg, bdr: T.alBdr, pillBg: "rgba(200,112,20,0.1)", pillColor: T.amb  },
-  "Medium Priority": { color: T.blue, bg: T.blBg, bdr: T.blBdr, pillBg: "rgba(59,91,219,0.1)",  pillColor: T.blue },
-};
-
 // ── getPct ────────────────────────────────────────────────────────────────────
-const getPct = (sc: any): number => {
-  if (sc.percentage != null) return Number(sc.percentage);
-  if (sc.mark != null && sc.maxMarks) return sc.mark / sc.maxMarks * 100;
-  if (sc.score != null && sc.maxScore) return sc.score / sc.maxScore * 100;
-  if (sc.score != null) return Number(sc.score);
-  return 0;
+// Returns a percentage in [0,100] when the doc carries enough info to compute
+// one, or `null` when no usable shape is present. Returning null (not 0) is
+// intentional — score=0 with no data must NOT cascade into "Critical" alerts
+// (memory: bug_pattern_score_zero_no_data).
+//
+// Field shape coverage (memory: bug_pattern_score_field_singular_mark):
+//   - explicit `percentage` always wins
+//   - `mark` (singular, gradebook writer) + `maxMarks`
+//   - `marks` (plural, test_scores writer) + `maxMarks`
+//   - `score` + `maxScore`
+// Raw `score`/`mark`/`marks` without a max is rejected — we cannot tell whether
+// it's already a percentage or raw points.
+const getPct = (sc: any): number | null => {
+  const num = (v: any): number | null => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const pct = num(sc?.percentage);
+  if (pct !== null) return Math.max(0, Math.min(100, pct));
+
+  const maxMarks = num(sc?.maxMarks);
+  const markSing = num(sc?.mark);
+  if (markSing !== null && maxMarks && maxMarks > 0) {
+    return Math.max(0, Math.min(100, (markSing / maxMarks) * 100));
+  }
+  const marksPlural = num(sc?.marks);
+  if (marksPlural !== null && maxMarks && maxMarks > 0) {
+    return Math.max(0, Math.min(100, (marksPlural / maxMarks) * 100));
+  }
+  const score = num(sc?.score);
+  const maxScore = num(sc?.maxScore);
+  if (score !== null && maxScore && maxScore > 0) {
+    return Math.max(0, Math.min(100, (score / maxScore) * 100));
+  }
+  return null;
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const Chip = ({ icon, text }: { icon?: string; text: string }) => (
-  <div style={{
-    padding: "5px 10px", borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.06)",
-    fontSize: 10, color: "rgba(255,255,255,0.6)",
-    display: "inline-flex", alignItems: "center", gap: 4,
-  }}>
-    {icon === "check" && (
-      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="1.5,6.5 4,9 8.5,2" />
-      </svg>
-    )}
-    {icon === "clock" && (
-      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="5" cy="5" r="3.5" /><polyline points="5,3 5,5.5 7,5.5" />
-      </svg>
-    )}
-    {icon === "att" && (
-      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="1.5,8.5 6,7 3,4 7,2.5" />
-      </svg>
-    )}
-    {icon === "grades" && (
-      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="1.5,7 4,5 6,6.5 8.5,3" />
-      </svg>
-    )}
-    {text}
-  </div>
-);
-
-interface MetricCardProps {
-  label: string; value: number; badge: string;
-  color: string; bg: string; bdr: string;
-  fillW: number; icon: React.ReactNode;
-}
-const MetricCard = ({ label, value, badge, color, bg, bdr, fillW, icon }: MetricCardProps) => (
-  <div style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: 16, padding: 14 }}>
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}1E`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {icon}
-      </div>
-      <span style={{ padding: "3px 8px", borderRadius: 20, background: `${color}1A`, color, fontSize: 10, fontWeight: 500 }}>
-        {badge}
-      </span>
-    </div>
-    <div style={{ fontSize: 22, fontWeight: 500, color, letterSpacing: "-0.5px", lineHeight: 1 }}>{value}</div>
-    <div style={{ fontSize: 11, color, opacity: 0.7, marginTop: 3 }}>{label}</div>
-    <div style={{ height: 3, borderRadius: 2, background: "rgba(0,0,0,0.08)", marginTop: 10, overflow: "hidden" }}>
-      <div style={{ height: "100%", borderRadius: 2, background: color, width: `${Math.min(fillW, 100)}%`, transition: "width 0.5s ease" }} />
-    </div>
-  </div>
-);
-
-const ThresholdCard = ({ title, sub, rows }: { title: string; sub: string; rows: { label: string; value: string; color: string }[] }) => (
-  <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 16, overflow: "hidden" }}>
-    <div style={{ padding: "11px 13px", borderBottom: `1px solid ${T.s2}` }}>
-      <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: 0 }}>{title}</p>
-      <p style={{ fontSize: 10, color: T.ink3, marginTop: 2, marginBottom: 0 }}>{sub}</p>
-    </div>
-    {rows.map((row, i) => (
-      <div key={i} style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 13px",
-        borderBottom: i < rows.length - 1 ? `1px solid ${T.s2}` : "none",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: T.ink2 }}>{row.label}</span>
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 500, color: row.color }}>{row.value}</span>
-      </div>
-    ))}
-  </div>
-);
-
-// ── Inline icon components ────────────────────────────────────────────────────
-const TriAlertIco = ({ c }: { c: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7 1.5L13 12.5H1L7 1.5z" /><line x1="7" y1="5.5" x2="7" y2="8.5" />
-    <circle cx="7" cy="10.2" r=".7" fill={c} stroke="none" />
-  </svg>
-);
-const CircleInfoIco = ({ c }: { c: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="7" cy="7" r="5.5" /><line x1="7" y1="4.5" x2="7" y2="7.5" />
-    <circle cx="7" cy="9.5" r=".7" fill={c} stroke="none" />
-  </svg>
-);
-const CheckIco = ({ c }: { c: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="1.5,7.5 5.5,11 12.5,3.5" />
-  </svg>
-);
-
 const TabIcon = ({ type, active }: { type: string; active: boolean }) => {
   const c = active ? T.red : T.ink3;
   const p = { width: 19, height: 19, viewBox: "0 0 18 18", fill: "none", stroke: c, strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -212,10 +133,8 @@ const RisksAlerts = () => {
   const [resolvedCount, setResolvedCount]   = useState(0);
   const [activeTab, setActiveTab]           = useState("All");
   const [resolving, setResolving]           = useState<string | null>(null);
-  const [selectedContact, setSelectedContact] = useState<any | null>(null);
-  const [fetchingContact, setFetchingContact] = useState(false);
-  const [subjectHealth, setSubjectHealth]   = useState<{ name: string; avg: number }[]>([]);
   const [refreshKey, setRefreshKey]         = useState(0);
+  const [listenerError, setListenerError]   = useState<string | null>(null);
 
   // ── Firebase listener ───────────────────────────────────────────────────────
   // Fixed: removed SC (schoolId/branchId) from queries that may not have those
@@ -238,17 +157,23 @@ const RisksAlerts = () => {
       where("teacherId", "==", tid),
     );
     let ignore = false;
+    setListenerError(null);
     const unsubscribe = onSnapshot(qClasses, async (classSnap) => {
       try {
-        // Also pick up teaching_assignments
+        if (ignore) return;
+        // Also pick up teaching_assignments. Guarded — a transient failure here
+        // shouldn't abort the whole computation, just degrade to class-snap only.
         const taSnap = await getDocs(query(
           collection(db, "teaching_assignments"),
           where("schoolId", "==", schoolId),
           where("teacherId", "==", tid),
-        ));
+        )).catch(err => {
+          console.warn("[RisksAlerts] teaching_assignments read failed:", err);
+          return { docs: [] as any[] };
+        });
         const classIdSet = new Set<string>([
           ...classSnap.docs.map(d => d.id),
-          ...taSnap.docs.map(d => d.data().classId).filter(Boolean),
+          ...taSnap.docs.map((d: any) => d.data().classId).filter(Boolean),
         ]);
         if (ignore) return;
         const classIds = Array.from(classIdSet);
@@ -257,7 +182,7 @@ const RisksAlerts = () => {
 
         // Enrollments — scoped by school + classId
         const enrollSnaps = await Promise.all(
-          chunkArr(classIds, 10).map(ch => getDocs(query(
+          chunkArr(classIds, 30).map(ch => getDocs(query(
             collection(db, "enrollments"),
             where("schoolId", "==", schoolId),
             where("classId", "in", ch),
@@ -267,25 +192,46 @@ const RisksAlerts = () => {
 
         if (enrolls.length === 0) { setAlerts([]); setLoading(false); return; }
 
+        // Roster dedup. Prefer studentId — the canonical primary key. Fall back
+        // to email then name only when id is absent. Whitespace-normalize the
+        // key so " John Doe " and "John Doe" don't bucket separately. We
+        // intentionally KEEP one row per (student, classId) combo — alerts are
+        // class-scoped (memory: bug_pattern_enrollment_row_dedup), so a student
+        // in two classes legitimately needs two enrollments through.
+        const normKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
         const rosterMap = new Map();
         enrolls.forEach(e => {
-          const key = (e.studentId || e.studentEmail || e.studentName || "").toLowerCase();
+          const idPart = e.studentId
+            ? `id:${normKey(String(e.studentId))}`
+            : e.studentEmail
+              ? `em:${normKey(String(e.studentEmail))}`
+              : `nm:${normKey(String(e.studentName || ""))}`;
+          const key = `${idPart}|cls:${e.classId || ""}`;
           if (!rosterMap.has(key)) rosterMap.set(key, e);
         });
         const uniqueRoster = Array.from(rosterMap.values());
 
-        // Gradebook scores — scoped by school + classId
+        // Gradebook scores — scoped by school + classId. Failure logged, returns empty.
         const gbSnapPromise = Promise.all(
-          chunkArr(classIds, 10).map(ch => getDocs(query(
+          chunkArr(classIds, 30).map(ch => getDocs(query(
             collection(db, "gradebook_scores"),
             where("schoolId", "==", schoolId),
             where("classId", "in", ch),
           )))
-        ).then(snaps => ({ docs: snaps.flatMap(s => s.docs) })).catch(() => ({ docs: [] as any[] }));
+        ).then(snaps => ({ docs: snaps.flatMap(s => s.docs) }))
+         .catch(err => {
+           console.warn("[RisksAlerts] gradebook_scores read failed:", err);
+           return { docs: [] as any[] };
+         });
 
-        // All other queries — schoolId + teacherId scoped
+        // All other queries — schoolId + teacherId scoped. Per-collection failures
+        // log a warning instead of failing silently so issues are diagnosable.
         const safeGet = (col: string, ...filters: any[]) =>
-          getDocs(query(collection(db, col), where("schoolId", "==", schoolId), ...filters)).catch(() => ({ docs: [] as any[] }));
+          getDocs(query(collection(db, col), where("schoolId", "==", schoolId), ...filters))
+            .catch(err => {
+              console.warn(`[RisksAlerts] ${col} read failed:`, err);
+              return { docs: [] as any[] };
+            });
 
         const [attSnap, tsSnap, gbSnap, assignSnap, subsSnap, manualSnap, resultsSnap, notesSnap] = await Promise.all([
           safeGet("attendance",    where("teacherId", "==", tid)),
@@ -321,23 +267,6 @@ const RisksAlerts = () => {
         }).length;
         setResolvedCount(resolvedThisWeek);
 
-        // Subject health computation
-        const subMap = new Map<string, { total: number; count: number }>();
-        [...allTS, ...allResults].forEach((sc: any) => {
-          const subj = sc.subject || sc.testName || "General";
-          if (!subj) return;
-          const p = getPct(sc);
-          if (!subMap.has(subj)) subMap.set(subj, { total: 0, count: 0 });
-          subMap.get(subj)!.total += p;
-          subMap.get(subj)!.count += 1;
-        });
-        setSubjectHealth(
-          Array.from(subMap.entries())
-            .map(([name, { total, count }]) => ({ name, avg: Math.round(total / count) }))
-            .sort((a, b) => b.avg - a.avg)
-            .slice(0, 5)
-        );
-
         const generated: Alert[] = [];
         const now = Date.now();
         const threeWeeksAgo = now - 21 * 24 * 60 * 60 * 1000;
@@ -355,13 +284,29 @@ const RisksAlerts = () => {
           const sEmail = e.studentEmail?.toLowerCase();
           const sName  = (e.studentName || "").toLowerCase();
           const name   = e.studentName || "Student";
+          // Suffix scopes alert id by class — same student in two classes gets
+          // two distinct keys, preventing React key collisions and accidental
+          // dedup of one class's signal by another.
+          const cidSfx = e.classId ? `_${e.classId}` : "";
 
-          // Improved student filter — also matches by studentName
-          const sf = (arr: any[]) => arr.filter(item =>
-            (sId && (item.studentId === sId || item.id?.includes?.(sId))) ||
-            (sEmail && item.studentEmail?.toLowerCase() === sEmail) ||
-            (sName && item.studentName?.toLowerCase() === sName)
-          );
+          // Strict 3-tier student attribution (memory: pattern_3tier_attribution).
+          // Substring `id?.includes(sId)` removed — was leaking cross-student
+          // matches (e.g. `s1` matching `s10`, `s100`, `s_xyz_1`). Tier 3 (name)
+          // is a defensive fallback for legacy docs that have neither studentId
+          // nor studentEmail; it never overrides a doc that DOES have id/email
+          // pointing at a different student.
+          const sf = (arr: any[]) => arr.filter(item => {
+            // Tier 1: canonical id
+            if (sId && item.studentId && item.studentId === sId) return true;
+            // Tier 2: email (case-insensitive)
+            if (sEmail && typeof item.studentEmail === "string" &&
+                item.studentEmail.toLowerCase() === sEmail) return true;
+            // Tier 3: name fallback — only when doc has no id/email at all
+            if (sName && typeof item.studentName === "string" &&
+                item.studentName.toLowerCase() === sName &&
+                !item.studentId && !item.studentEmail) return true;
+            return false;
+          });
 
           // 1. ATTENDANCE — filter by date client-side (avoids composite index)
           const sAtt = sf(allAtt);
@@ -380,8 +325,8 @@ const RisksAlerts = () => {
             // Fixed: only flag if 2+ absences OR rate below 75% (was too aggressive at 1 absence)
             if (rate < 75 || absences >= 2) {
               generated.push({
-                id: `att_${sId}`, studentId: sId, name,
-                initials: getInitials(name), avatarColor: getAvatarColor(name),
+                id: `att_${sId}${cidSfx}`, studentId: sId, name,
+                initials: getInitials(name),
                 severity: rate < 60 ? "Critical" : rate < 75 ? "High Priority" : "Medium Priority",
                 type: "Attendance",
                 issue: `Attendance at ${rate.toFixed(0)}% — ${absences} absence${absences > 1 ? "s" : ""} in last 3 weeks`,
@@ -391,30 +336,57 @@ const RisksAlerts = () => {
             }
           }
 
-          // 2. GRADES
+          // 2. GRADES — short-circuit on no-data BEFORE classifying severity.
+          // Memory: bug_pattern_score_zero_no_data — `recentAvg = 0` from an
+          // empty score window must NOT trigger "Critical". Only flag when
+          // there's at least one usable score in the recent window.
           const sScores = [...sf(allTS), ...sf(allGB), ...sf(allResults)];
           if (sScores.length >= 1) {
-            const sorted    = [...sScores].sort((a, b) =>
-              (a.timestamp?.toMillis?.() || a.date?.toMillis?.() || 0) -
-              (b.timestamp?.toMillis?.() || b.date?.toMillis?.() || 0)
-            );
-            const recent3   = sorted.slice(-3).map(getPct).filter(v => v >= 0);
-            const past3     = sorted.slice(-6, -3).map(getPct).filter(v => v >= 0);
-            const recentAvg = recent3.length > 0 ? recent3.reduce((a, b) => a + b, 0) / recent3.length : 0;
-            const pastAvg   = past3.length > 0   ? past3.reduce((a, b) => a + b, 0) / past3.length : recentAvg;
-            const drop      = pastAvg - recentAvg;
-            if (recentAvg < 60 || drop > 10) {
-              generated.push({
-                id: `grd_${sId}`, studentId: sId, name,
-                initials: getInitials(name), avatarColor: getAvatarColor(name),
-                severity: drop > 20 || recentAvg < 40 ? "Critical" : "High Priority",
-                type: "Grades",
-                issue: drop > 10
-                  ? `Grade avg dropped ${drop.toFixed(0)}% — from ${pastAvg.toFixed(0)}% to ${recentAvg.toFixed(0)}%`
-                  : `Grade avg at ${recentAvg.toFixed(0)}% — below passing benchmark`,
-                details: [`Trend: ${drop > 0 ? "Declining" : "Stable"}`, `Based on ${sScores.length} score${sScores.length > 1 ? "s" : ""}`],
-                cls: e.className || "Class", isSystem: true,
-              });
+            // Each writer uses a different timestamp field (memory:
+            // bug_pattern_filterbytime_field_drift). Walk the full list to
+            // avoid silently sorting ~40% of recent docs to position 0.
+            const tsOf = (sc: any): number => {
+              const cands = [sc?.timestamp, sc?.date, sc?.updatedAt, sc?.uploadedAt, sc?.createdAt, sc?.gradedAt];
+              for (const c of cands) {
+                if (!c) continue;
+                if (c?.toMillis) return c.toMillis();
+                if (c?.toDate)   return c.toDate().getTime();
+                if (typeof c === "string") { const n = new Date(c).getTime(); if (!isNaN(n)) return n; }
+                if (typeof c === "number") return c;
+              }
+              return 0;
+            };
+            const sorted = [...sScores].sort((a, b) => tsOf(a) - tsOf(b));
+            const recent3   = sorted.slice(-3).map(getPct).filter((v): v is number => v !== null);
+            const past3     = sorted.slice(-6, -3).map(getPct).filter((v): v is number => v !== null);
+            // No usable recent scores → no signal → no alert. Skip silently.
+            if (recent3.length === 0) {
+              // intentionally no alert — protects empty rosters from false Critical
+            } else {
+              const recentAvg = recent3.reduce((a, b) => a + b, 0) / recent3.length;
+              const pastAvg   = past3.length > 0
+                ? past3.reduce((a, b) => a + b, 0) / past3.length
+                : recentAvg;
+              // Drop only meaningful when we have a real pastAvg to compare against
+              const drop      = past3.length > 0 ? pastAvg - recentAvg : 0;
+              if (recentAvg < 60 || drop > 10) {
+                generated.push({
+                  id: `grd_${sId}${cidSfx}`, studentId: sId, name,
+                  initials: getInitials(name),
+                  severity: drop > 20 || recentAvg < 40 ? "Critical" : "High Priority",
+                  type: "Grades",
+                  issue: drop > 10
+                    ? `Grade avg dropped ${drop.toFixed(0)}% — from ${pastAvg.toFixed(0)}% to ${recentAvg.toFixed(0)}%`
+                    : `Grade avg at ${recentAvg.toFixed(0)}% — below passing benchmark`,
+                  details: [
+                    past3.length > 0
+                      ? `Trend: ${drop > 0 ? "Declining" : "Stable"}`
+                      : `Trend: Insufficient history`,
+                    `Based on ${recent3.length} recent score${recent3.length > 1 ? "s" : ""}`,
+                  ],
+                  cls: e.className || "Class", isSystem: true,
+                });
+              }
             }
           }
 
@@ -433,8 +405,8 @@ const RisksAlerts = () => {
           });
           if (missed.length >= 2) {
             generated.push({
-              id: `sub_${sId}`, studentId: sId, name,
-              initials: getInitials(name), avatarColor: getAvatarColor(name),
+              id: `sub_${sId}${cidSfx}`, studentId: sId, name,
+              initials: getInitials(name),
               severity: missed.length >= 4 ? "Critical" : "High Priority",
               type: "Submissions",
               issue: `Missing ${missed.length} assignment${missed.length > 1 ? "s" : ""} — overdue`,
@@ -443,18 +415,22 @@ const RisksAlerts = () => {
             });
           }
 
-          // 4. BEHAVIOR
+          // 4. BEHAVIOR — only trigger on concrete negative-behaviour signals.
+          // Word-boundary regex prevents false positives ("no distraction",
+          // "got sick" from a sick-leave note, "no trouble at all"). Dropped
+          // "sick"/"trouble" entirely — too generic. "Distraction" tightened
+          // to "distracting"/"disruption"/"disruptive" which only appear in
+          // negative contexts.
+          const BEHAVIOR_RE = /\b(aggressive|aggression|bully|bullied|bullying|disruptive|disruption|distracting|refused|fight|fought|misbehav|insubordinat)\b/;
           const sNotes    = sf(allNotes);
           const negSignals = sNotes.filter((n: any) => {
             const text = (n.content || n.message || "").toLowerCase();
-            return text.includes("aggressive") || text.includes("bully") ||
-              text.includes("distraction") || text.includes("refused") ||
-              text.includes("sick") || text.includes("trouble");
+            return BEHAVIOR_RE.test(text);
           });
           if (negSignals.length > 0) {
             generated.push({
-              id: `beh_${sId}`, studentId: sId, name,
-              initials: getInitials(name), avatarColor: getAvatarColor(name),
+              id: `beh_${sId}${cidSfx}`, studentId: sId, name,
+              initials: getInitials(name),
               severity: negSignals.length >= 3 ? "Critical" : "High Priority",
               type: "Behavior",
               issue: `${negSignals.length} concerning behaviour note${negSignals.length > 1 ? "s" : ""} logged`,
@@ -464,37 +440,49 @@ const RisksAlerts = () => {
           }
         });
 
-        // MANUAL alerts (risks collection)
+        // MANUAL alerts (risks collection). Namespace the id to avoid colliding
+        // with system-generated ids (which use att_/grd_/sub_/beh_ prefixes).
+        // Dedup is then a real check against duplicate manual docs.
+        const seenIds = new Set(generated.map(a => a.id));
         manuals.filter((r: any) => !r.resolved).forEach((r: any) => {
-          if (!generated.find(a => a.id === r.id)) {
-            generated.push({
-              id: r.id, studentId: r.studentId,
-              name: r.studentName || "Student",
-              initials: getInitials(r.studentName || "Student"),
-              avatarColor: getAvatarColor(r.studentName),
-              severity: r.severity || "Medium Priority",
-              type: r.type || "Behavior",
-              issue: r.issue || r.details || "Manual alert flagged by teacher",
-              details: r.details ? [r.details] : ["Flagged for review"],
-              cls: r.className || "Class", isSystem: false,
-            });
-          }
+          const mid = `manual_${r.id}`;
+          if (seenIds.has(mid)) return;
+          seenIds.add(mid);
+          generated.push({
+            id: mid, studentId: r.studentId,
+            name: r.studentName || "Student",
+            initials: getInitials(r.studentName || "Student"),
+            severity: r.severity || "Medium Priority",
+            type: r.type || "Behavior",
+            issue: r.issue || r.details || "Manual alert flagged by teacher",
+            details: r.details ? [r.details] : ["Flagged for review"],
+            cls: r.className || "Class", isSystem: false,
+          });
         });
 
+        // Severity bucket — unknown values fall through to medium so the sort
+        // never produces NaN (which would scramble the list silently).
         const ORDER: Record<string, number> = { Critical: 0, "High Priority": 1, "Medium Priority": 2 };
-        generated.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
+        const orderOf = (s: string) => (s in ORDER ? ORDER[s] : 2);
+        generated.sort((a, b) => orderOf(a.severity) - orderOf(b.severity));
         if (ignore) return;
         setAlerts(generated);
       } catch (err) {
         if (ignore) return;
         console.error("[RisksAlerts] Error:", err);
+        setListenerError(err instanceof Error ? err.message : "Failed to load alerts.");
         toast.error("Failed to load alerts.");
       } finally {
         if (!ignore) setLoading(false);
       }
+    }, (err) => {
+      if (ignore) return;
+      console.error("[RisksAlerts] classes listener error:", err);
+      setListenerError(err.message || "Live updates disrupted.");
+      setLoading(false);
     });
     return () => { ignore = true; unsubscribe(); };
-  }, [teacherData?.id, refreshKey]);
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleResolve = async (a: Alert) => {
@@ -502,85 +490,126 @@ const RisksAlerts = () => {
       toast.info("System alerts resolve automatically when the issue improves.");
       return;
     }
+    // Manual-alert ids are namespaced `manual_${docId}` to avoid collision with
+    // system ids — strip the prefix when writing to the `risks` collection.
+    const docId = a.id.startsWith("manual_") ? a.id.slice(7) : a.id;
     setResolving(a.id);
+    // Snapshot prev state for rollback (memory: optimistic-update safety).
+    const prevAlerts = alerts;
+    setAlerts(prev => prev.filter(x => x.id !== a.id));
+    setResolvedCount(c => c + 1);
     try {
-      await auditedUpdate(doc(db, "risks", a.id), {
+      await auditedUpdate(doc(db, "risks", docId), {
         resolved: true,
         resolvedAt: serverTimestamp(),
       });
-      setAlerts(prev => prev.filter(x => x.id !== a.id));
-      setResolvedCount(c => c + 1);
       toast.success("Alert marked as resolved.");
     } catch (e) {
       console.error("[RisksAlerts] resolve failed", e);
+      // Rollback optimistic state.
+      setAlerts(prevAlerts);
+      setResolvedCount(c => Math.max(0, c - 1));
       toast.error("Failed to update. Try again.");
     } finally {
       setResolving(null);
     }
   };
 
-  const fetchContact = async (sId: string, sName: string) => {
-    if (!teacherData?.schoolId) return;
-    setFetchingContact(true);
-    const schoolId = teacherData.schoolId as string;
-    const branchId = teacherData?.branchId as string | undefined;
-    const SC: QueryConstraint[] = [where("schoolId", "==", schoolId)];
-    if (branchId) SC.push(where("branchId", "==", branchId));
-    try {
-      // Try enrollments first, then fall back to students collection by studentId
-      let phone: string | null = null;
-      let parent: string | null = null;
-
-      const q = query(collection(db, "enrollments"), ...SC, where("studentId", "==", sId));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const d = snap.docs[0].data();
-        phone  = d.parentPhone || d.phone || null;
-        parent = d.parentName || null;
-      }
-      if (!phone) {
-        // Fallback: look up the student doc directly
-        const sSnap = await getDocs(query(collection(db, "students"), ...SC, where("studentId", "==", sId))).catch(() => null);
-        if (sSnap && !sSnap.empty) {
-          const d = sSnap.docs[0].data();
-          phone  = phone  || d.parentPhone || d.phone || d.guardianPhone || null;
-          parent = parent || d.parentName  || d.guardianName             || null;
-        }
-      }
-      setSelectedContact({
-        name:   sName,
-        parent: parent || `Parent of ${sName}`,
-        phone:  phone,  // null when not available — UI shows "Not available"
-      });
-    } catch (e) {
-      console.error("[RisksAlerts] fetchContact failed", e);
-      toast.error("Could not fetch contact details.");
-    } finally {
-      setFetchingContact(false);
+  // ── Outreach message builders ────────────────────────────────────────────
+  // Pre-fills the parent-communication composer with a context-aware draft.
+  // Teachers can edit before sending; reminder messages auto-send because the
+  // copy is purely informational ("you have N pending").
+  const buildContactMessage = (a: Alert): string => {
+    const first = (a.name || "").split(" ")[0] || a.name;
+    switch (a.type) {
+      case "Attendance":
+        return `Hello, this is a quick note about ${a.name}'s attendance in ${a.cls}. ${a.issue}. Could we have a brief conversation about what's keeping ${first} away from class? Please share a time that works for you.`;
+      case "Grades":
+        return `Hello, I wanted to share an update on ${a.name}'s recent academic performance in ${a.cls}. ${a.issue}. I'd like to set up a short meeting so we can plan some support. Please let me know when you're available.`;
+      case "Submissions":
+        return `Hi, just a reminder that ${a.name} has pending assignments in ${a.cls}. ${a.issue}. Please ensure ${first} completes and submits them at the earliest. Happy to help if any clarification is needed.`;
+      case "Behavior":
+        return `Hello, I wanted to discuss ${a.name}'s recent behaviour in ${a.cls}. ${a.issue}. A short conversation would help us support ${first} together — please let me know a convenient time.`;
+      default:
+        return `Hello, an update on ${a.name} from ${a.cls}: ${a.issue}. Please let me know if we can schedule a quick chat.`;
     }
   };
 
-  const getActions = (a: Alert): { label: string; primary: boolean; color?: string; onClick: () => void }[] => {
-    if (a.type === "Attendance") return [
-      { label: "Contact Parent", primary: true, color: T.red,  onClick: () => fetchContact(a.studentId, a.name) },
-      { label: "Mark Resolved",  primary: false,               onClick: () => handleResolve(a) },
-    ];
-    if (a.type === "Grades") return [
-      { label: "Schedule Meeting", primary: true, color: T.blue, onClick: () => fetchContact(a.studentId, a.name) },
-      { label: "View Profile",     primary: false,               onClick: () => {} },
-    ];
-    if (a.type === "Submissions") return [
-      { label: "Send Reminder",  primary: true, color: T.amb, onClick: () => fetchContact(a.studentId, a.name) },
-      { label: "Mark Resolved",  primary: false,               onClick: () => handleResolve(a) },
-    ];
-    if (a.type === "Behavior") return [
-      { label: "Notify Parent",  primary: true, color: T.blue, onClick: () => fetchContact(a.studentId, a.name) },
-      { label: "Mark Resolved",  primary: false,               onClick: () => handleResolve(a) },
-    ];
-    return [
-      { label: "View Details",  primary: true, color: T.blue, onClick: () => {} },
-      { label: "Mark Resolved", primary: false,               onClick: () => handleResolve(a) },
-    ];
+  const handleContactParent = (a: Alert) => {
+    navigate("/parent-notes", {
+      state: {
+        autoOpenStudentId:    a.studentId || "",
+        autoOpenStudentEmail: "", // alerts carry id only; ParentNotes will resolve from roster
+        autoMessage:          buildContactMessage(a),
+      },
+    });
+  };
+
+  // Auto-send reminder for Submissions alerts. No modal, no navigation —
+  // the copy is informational and routine, so friction is unwelcome.
+  const [sending, setSending] = useState<string | null>(null);
+  const handleSendReminder = async (a: Alert) => {
+    if (!teacherData?.schoolId || !teacherData?.id) {
+      toast.error("Missing school context — please refresh.");
+      return;
+    }
+    setSending(a.id);
+    try {
+      // Resolve studentEmail from enrollments so the parent-side reader can
+      // dual-query (memory: dual_query_pattern_studentid_email).
+      let studentEmail = "";
+      if (a.studentId) {
+        const eSnap = await getDocs(query(
+          collection(db, "enrollments"),
+          where("schoolId", "==", teacherData.schoolId),
+          where("studentId", "==", a.studentId),
+        )).catch(() => null);
+        if (eSnap && !eSnap.empty) {
+          studentEmail = (eSnap.docs[0].data() as any).studentEmail?.toLowerCase() || "";
+        }
+      }
+      await auditedAdd(collection(db, "parent_notes"), {
+        schoolId:     teacherData.schoolId,
+        branchId:     teacherData.branchId || "",
+        teacherId:    teacherData.id,
+        teacherName:  teacherData.name || "Teacher",
+        studentId:    a.studentId || "",
+        studentEmail,
+        studentName:  a.name,
+        parentName:   `Parent of ${a.name}`,
+        content:      buildContactMessage(a),
+        from:         "teacher",
+        status:       "Sent",
+        read:         false,
+        autoSent:     true,
+        sourceAlertId: a.id,
+        createdAt:    serverTimestamp(),
+      });
+      toast.success(`Reminder sent to ${a.name}'s parent.`);
+    } catch (err) {
+      console.error("[RisksAlerts] reminder send failed", err);
+      toast.error("Failed to send reminder. Try again.");
+    } finally {
+      setSending(null);
+    }
+  };
+
+  // Single source of truth for the primary outreach button per alert type.
+  // Submissions auto-send (routine reminder); everything else navigates to
+  // ParentNotes with a prefilled message so the teacher can edit before send.
+  const getPrimaryAction = (a: Alert): { label: string; auto: boolean; handler: () => void } => {
+    switch (a.type) {
+      case "Submissions":
+        return { label: "Send Reminder",    auto: true,  handler: () => handleSendReminder(a) };
+      case "Attendance":
+        return { label: "Contact Parent",   auto: false, handler: () => handleContactParent(a) };
+      case "Grades":
+        return { label: "Schedule Meeting", auto: false, handler: () => handleContactParent(a) };
+      case "Behavior":
+        return { label: "Notify Parent",    auto: false, handler: () => handleContactParent(a) };
+      default:
+        return { label: "Contact Parent",   auto: false, handler: () => handleContactParent(a) };
+    }
   };
 
   // ── Computed values ───────────────────────────────────────────────────────
@@ -589,32 +618,51 @@ const RisksAlerts = () => {
   const mediumCount   = alerts.filter(a => a.severity === "Medium Priority").length;
   const attCount      = alerts.filter(a => a.type === "Attendance").length;
   const gradesCount   = alerts.filter(a => a.type === "Grades").length;
+  const subsCount     = alerts.filter(a => a.type === "Submissions").length;
+  const behaviorCount = alerts.filter(a => a.type === "Behavior").length;
   const totalCount    = alerts.length;
   const maxBar        = Math.max(totalCount, 1);
 
   const visible = useMemo(() => {
-    if (activeTab === "Attendance") return alerts.filter(a => a.type === "Attendance");
-    if (activeTab === "Grades")     return alerts.filter(a => a.type === "Grades");
+    if (activeTab === "Attendance")  return alerts.filter(a => a.type === "Attendance");
+    if (activeTab === "Grades")      return alerts.filter(a => a.type === "Grades");
+    if (activeTab === "Submissions") return alerts.filter(a => a.type === "Submissions");
+    if (activeTab === "Behavior")    return alerts.filter(a => a.type === "Behavior");
     return alerts;
   }, [alerts, activeTab]);
 
+  // Class-wise grouping. Preserves the severity order within each class
+  // (alerts already arrive sorted Critical → High → Medium). Map iteration
+  // order is insertion order, so the first class to appear in `visible` wins
+  // the top section. Class with most-severe alert is naturally first.
+  const groupedByClass = useMemo(() => {
+    const map = new Map<string, Alert[]>();
+    visible.forEach(a => {
+      const key = a.cls || "Class";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    });
+    return map;
+  }, [visible]);
+
   // Hero content changes per tab
   const HERO: Record<string, { eyebrow: string; line1: string; line2: string; sub: string }> = {
-    All:        { eyebrow: "Monitoring",            line1: "Risks &",    line2: "alerts",  sub: "Monitor and respond to student concerns." },
-    Attendance: { eyebrow: "Attendance monitoring", line1: "Attendance", line2: "alerts",  sub: "Students with attendance concerns appear here." },
-    Grades:     { eyebrow: "Grade monitoring",      line1: "Grade",      line2: "alerts",  sub: "Students with grade concerns appear here." },
+    All:         { eyebrow: "Monitoring",             line1: "Risks &",    line2: "alerts",      sub: "Monitor and respond to student concerns." },
+    Attendance:  { eyebrow: "Attendance monitoring",  line1: "Attendance", line2: "alerts",      sub: "Students with attendance concerns appear here." },
+    Grades:      { eyebrow: "Grade monitoring",       line1: "Grade",      line2: "alerts",      sub: "Students with grade concerns appear here." },
+    Submissions: { eyebrow: "Submission monitoring",  line1: "Submission", line2: "reminders",   sub: "Students with overdue assignments appear here." },
+    Behavior:    { eyebrow: "Behaviour monitoring",   line1: "Behaviour",  line2: "alerts",      sub: "Students flagged for behaviour concerns appear here." },
   };
   const hc = HERO[activeTab] || HERO.All;
 
-  // Subject health bar color
-  const subjColor = (avg: number) =>
-    avg >= 80 ? T.grn2 : avg >= 60 ? T.blue : avg >= 40 ? T.amb : T.red;
-
-  // Filter tabs config
+  // Filter tabs config — covers all four alert types so nothing stays hidden
+  // behind an unselectable filter.
   const FILTER_TABS = [
-    { id: "All",        label: `All (${totalCount})` },
-    { id: "Attendance", label: "Attendance"           },
-    { id: "Grades",     label: "Grades"               },
+    { id: "All",         label: "All",         count: totalCount    },
+    { id: "Attendance",  label: "Attendance",  count: attCount      },
+    { id: "Grades",      label: "Grades",      count: gradesCount   },
+    { id: "Submissions", label: "Submissions", count: subsCount     },
+    { id: "Behavior",    label: "Behaviour",   count: behaviorCount },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -638,6 +686,8 @@ const RisksAlerts = () => {
           .ra-press:hover { transform: translateY(-1px); filter: brightness(1.05); }
           .ra-press:active { transform: scale(.94); }
           @keyframes raFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes raShimmer { 0% { opacity: 0.55; } 50% { opacity: 1; } 100% { opacity: 0.55; } }
+          .ra-skeleton { animation: raShimmer 1.4s ease-in-out infinite; }
           @keyframes raPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.25); } }
           .ra-pulse { animation: raPulse 1.6s ease-in-out infinite; }
           .ra-enter > * { animation: raFadeUp .5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -654,6 +704,9 @@ const RisksAlerts = () => {
           // ── derived colours / helpers used in mobile JSX ───────────────────
           const tabColorFor = (type: Alert["type"]) => type === "Attendance" ? "#FF8800" : "#FF3355";
           const tagClsFor   = (type: Alert["type"]) => type === "Attendance" ? "attendance" : "grade";
+          // No fabricated fallback — system-generated alerts have no real
+          // timestamp, so we show a neutral indicator rather than invent
+          // "2h"/"5h"/"1d" by severity (memory: bug_pattern_fabricated_fallback).
           const timeAgo = (a: Alert): string => {
             const anyA = a as any;
             const raw = anyA.createdAt || anyA.timestamp || anyA.resolvedAt;
@@ -662,27 +715,33 @@ const RisksAlerts = () => {
             else if (raw?.toDate) ms = raw.toDate().getTime();
             else if (typeof raw === "string") ms = new Date(raw).getTime();
             else if (typeof raw === "number") ms = raw;
-            if (!ms) {
-              if (a.severity === "Critical") return "2h";
-              if (a.severity === "High Priority") return "5h";
-              return "1d";
-            }
+            if (!ms) return a.isSystem ? "Live" : "—";
             const diff = Date.now() - ms;
             const mins = Math.floor(diff / 60000);
-            if (mins < 60) return `${Math.max(1, mins)}m`;
+            if (mins < 1) return "now";
+            if (mins < 60) return `${mins}m`;
             const hrs = Math.floor(mins / 60);
             if (hrs < 24) return `${hrs}h`;
             return `${Math.floor(hrs / 24)}d`;
           };
-          const MOB_AV = ["#7B3FF4", "#0055FF", "#00C853", "#FF8800", "#C2255C", "#00B8D4", "#6741D9"];
-          const mobAvBg = (name: string) => {
-            const sum = (name || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-            return MOB_AV[sum % MOB_AV.length];
-          };
+          // Mobile uses the shared avBg for palette consistency with desktop.
+          const mobAvBg = (name: string) => avBg(name);
+          // Deterministic class-chip palette derived from class name hash —
+          // no hardcoded student/class identifiers. Same class → same colour
+          // every render.
+          const MOB_CLASS_CHIP_PALETTE = [
+            { bg: "rgba(9,87,247,.08)",  color: "#0055FF" },
+            { bg: "rgba(123,63,244,.12)", color: "#7B3FF4" },
+            { bg: "rgba(0,184,212,.10)", color: "#00B8D4" },
+            { bg: "rgba(0,200,83,.10)",  color: "#00A746" },
+            { bg: "rgba(255,136,0,.10)", color: "#C25400" },
+            { bg: "rgba(194,37,92,.10)", color: "#C2255C" },
+          ];
           const mobClassChipColor = (name: string) => {
-            const lower = (name || "").toLowerCase();
-            if (lower.includes("shaik")) return { bg: "rgba(123,63,244,.12)", color: "#7B3FF4" };
-            return { bg: "rgba(9,87,247,.08)", color: "#0055FF" };
+            const src = (name || "").toLowerCase();
+            let h = 0;
+            for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) >>> 0;
+            return MOB_CLASS_CHIP_PALETTE[h % MOB_CLASS_CHIP_PALETTE.length];
           };
           const mobParseCls = (cls: string) => {
             const parts = (cls || "").split(" — ");
@@ -691,6 +750,41 @@ const RisksAlerts = () => {
 
           return (
             <div className="ra-enter" style={{ display: "flex", flexDirection: "column" }}>
+
+              {/* Listener error banner */}
+              {listenerError && (
+                <div
+                  role="alert"
+                  style={{
+                    background: "linear-gradient(135deg, #FFF1F1 0%, #FFE3E3 100%)",
+                    border: "0.5px solid rgba(255,51,85,.25)",
+                    borderRadius: 14, padding: "10px 14px", marginBottom: 12,
+                    display: "flex", alignItems: "center", gap: 10,
+                    boxShadow: "0 4px 12px rgba(255,51,85,.10)",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF3355" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>Live updates disrupted</div>
+                    <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 2 }}>{listenerError}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setListenerError(null); setLoading(true); setRefreshKey(k => k + 1); }}
+                    style={{
+                      padding: "6px 12px", borderRadius: 10,
+                      background: "#FF3355", color: "#fff",
+                      fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+                      border: "none", cursor: "pointer", flexShrink: 0,
+                      boxShadow: "0 4px 10px rgba(255,51,85,.28)",
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
 
               {/* Page Header */}
               <div style={{ padding: "8px 2px 14px" }}>
@@ -827,20 +921,18 @@ const RisksAlerts = () => {
                 ))}
               </div>
 
-              {/* Filter Tabs */}
+              {/* Filter Tabs — horizontally scrollable on mobile to fit all 5 */}
               <div
                 className="ra-card3d"
                 style={{
                   display: "flex", gap: 6, background: "#fff",
                   padding: 5, borderRadius: 14, marginBottom: 12,
                   boxShadow: "0 0.5px 1px rgba(9,87,247,.04), 0 2px 10px rgba(9,87,247,.06)",
+                  overflowX: "auto", WebkitOverflowScrolling: "touch",
+                  scrollbarWidth: "none",
                 }}
               >
-                {[
-                  { id: "All", label: "All", count: totalCount },
-                  { id: "Attendance", label: "Attendance", count: attCount },
-                  { id: "Grades", label: "Grades", count: gradesCount },
-                ].map(tab => {
+                {FILTER_TABS.map(tab => {
                   const active = activeTab === tab.id;
                   return (
                     <button
@@ -850,7 +942,7 @@ const RisksAlerts = () => {
                       aria-pressed={active}
                       className="ra-press"
                       style={{
-                        flex: 1, padding: "9px 8px", borderRadius: 10,
+                        flexShrink: 0, padding: "9px 12px", borderRadius: 10,
                         background: active ? "#0055FF" : "transparent",
                         color: active ? "#fff" : "#5070B0",
                         fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
@@ -858,6 +950,7 @@ const RisksAlerts = () => {
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                         transition: "all .22s cubic-bezier(.2,.9,.3,1)",
                         boxShadow: active ? "0 1px 2px rgba(9,87,247,.2), 0 3px 10px rgba(9,87,247,.25)" : "none",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {tab.label}
@@ -873,9 +966,26 @@ const RisksAlerts = () => {
 
               {/* Alerts list */}
               {loading ? (
-                <div className="ra-card3d" style={{ background: "#fff", borderRadius: 20, padding: "40px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)" }}>
-                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5070B0" }} />
-                  <span style={{ fontSize: 12, color: "#5070B0" }}>Loading alerts…</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="ra-skeleton" style={{
+                      background: "#fff", borderRadius: 20, padding: 14, position: "relative", overflow: "hidden",
+                      boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.10)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 13, background: "#E4ECFF" }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ width: "55%", height: 12, borderRadius: 6, background: "#E4ECFF", marginBottom: 6 }} />
+                          <div style={{ width: "30%", height: 9, borderRadius: 5, background: "#EEF4FF" }} />
+                        </div>
+                      </div>
+                      <div style={{ height: 60, borderRadius: 12, background: "#F4F7FE", marginBottom: 12 }} />
+                      <div style={{ display: "flex", gap: 7 }}>
+                        <div style={{ flex: 1, height: 40, borderRadius: 12, background: "#E4ECFF" }} />
+                        <div style={{ flex: 1, height: 40, borderRadius: 12, background: "#EEF4FF" }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : visible.length === 0 ? (
                 <div className="ra-card3d" style={{
@@ -904,7 +1014,26 @@ const RisksAlerts = () => {
                       : "All students are performing within acceptable grade ranges."}
                   </div>
                 </div>
-              ) : visible.map(a => {
+              ) : Array.from(groupedByClass.entries()).flatMap(([clsLabel, classAlerts]) => {
+                const sectionHeader = (
+                  <div
+                    key={`hdr_${clsLabel}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "10px 4px 6px", marginTop: 4,
+                    }}
+                  >
+                    <div style={{ width: 4, height: 14, borderRadius: 2, background: "#0055FF", flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#001040", letterSpacing: "1.4px", textTransform: "uppercase" }}>
+                      {clsLabel}
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#0055FF", background: "rgba(0,85,255,.08)", padding: "2px 8px", borderRadius: 999 }}>
+                      {classAlerts.length}
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "rgba(0,85,255,.08)" }} />
+                  </div>
+                );
+                const cards = classAlerts.map(a => {
                 const isAttendance = a.type === "Attendance";
                 const accentColor = tabColorFor(a.type);
                 const tagCls = tagClsFor(a.type);
@@ -912,11 +1041,12 @@ const RisksAlerts = () => {
                 const { className: clsName, subject } = mobParseCls(a.cls);
                 const classChip = mobClassChipColor(clsName);
                 const time = timeAgo(a);
-                const contactAction = isAttendance
-                  ? { label: "Contact Parent", color: "#FF8800" }
-                  : a.type === "Grades"
-                  ? { label: "Contact Parent", color: "#FF3355" }
-                  : { label: "Contact Parent", color: accentColor };
+                const primary = getPrimaryAction(a);
+                const isSending = sending === a.id;
+                const contactAction = {
+                  label: primary.label,
+                  color: isAttendance ? "#FF8800" : a.type === "Grades" ? "#FF3355" : accentColor,
+                };
 
                 return (
                   <div
@@ -1051,21 +1181,36 @@ const RisksAlerts = () => {
                     <div style={{ display: "flex", gap: 7 }}>
                       <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); fetchContact(a.studentId, a.name); }}
+                        onClick={e => { e.stopPropagation(); primary.handler(); }}
+                        disabled={isSending}
                         className="ra-press"
                         style={{
                           flex: 1, height: 40, borderRadius: 12,
                           background: contactAction.color, color: "#fff",
                           fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
-                          border: "none", cursor: "pointer", fontFamily: "inherit",
+                          border: "none", cursor: isSending ? "wait" : "pointer", fontFamily: "inherit",
                           display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                           boxShadow: `0 1px 2px ${contactAction.color}40, 0 4px 12px ${contactAction.color}4D`,
+                          opacity: isSending ? 0.7 : 1,
                         }}
                       >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
-                        </svg>
-                        Contact Parent
+                        {isSending ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" />Sending…</>
+                        ) : primary.auto ? (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            {contactAction.label}
+                          </>
+                        ) : (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                            </svg>
+                            {contactAction.label}
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -1096,6 +1241,8 @@ const RisksAlerts = () => {
                     </div>
                   </div>
                 );
+                });
+                return [sectionHeader, ...cards];
               })}
 
               {/* AI Risk Intelligence */}
@@ -1165,450 +1312,6 @@ const RisksAlerts = () => {
           );
         })()}
 
-      {/* ── Contact modal (rendered on mobile; pre-existing desktop behaviour preserved) ── */}
-      {(selectedContact || fetchingContact) && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
-          onClick={() => setSelectedContact(null)}
-        >
-          <div
-            style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.s2}` }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#001040", margin: 0, letterSpacing: "-0.3px" }}>Contact Parent</h3>
-              <button
-                type="button"
-                aria-label="Close contact panel"
-                onClick={() => setSelectedContact(null)}
-                style={{ width: 28, height: 28, border: "none", background: "#F4F7FE", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#5070B0" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <line x1="2" y1="2" x2="12" y2="12" /><line x1="12" y1="2" x2="2" y2="12" />
-                </svg>
-              </button>
-            </div>
-            {fetchingContact ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-                <Loader2 style={{ width: 24, height: 24, color: "#5070B0" }} className="animate-spin" />
-              </div>
-            ) : selectedContact && (
-              <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: avBg(selectedContact.name), display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>
-                    {getInitials(selectedContact.name)}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#001040", margin: 0 }}>{selectedContact.name}</p>
-                    <p style={{ fontSize: 11, color: "#5070B0", margin: "3px 0 0" }}>{selectedContact.parent}</p>
-                  </div>
-                </div>
-                <div style={{ background: "#F4F7FE", borderRadius: 12, padding: "12px 14px" }}>
-                  <p style={{ fontSize: 10, color: "#5070B0", margin: "0 0 4px", fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" }}>Contact Number</p>
-                  {selectedContact.phone ? (
-                    <p style={{ fontSize: 17, fontWeight: 700, color: "#0055FF", margin: 0, letterSpacing: "-0.3px" }}>{selectedContact.phone}</p>
-                  ) : (
-                    <p style={{ fontSize: 13, fontWeight: 500, color: "#99AACC", margin: 0, fontStyle: "italic" }}>
-                      Not available — add parent phone in Students
-                    </p>
-                  )}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {(() => {
-                    const p = (selectedContact.phone || "").trim();
-                    const sanitized = p.replace(/[^+\d]/g, "");
-                    const waNum = sanitized.replace(/^\+/, "");
-                    const disabled = !p;
-                    return (
-                      <>
-                        <a
-                          href={disabled ? undefined : `tel:${sanitized}`}
-                          onClick={(e) => { if (disabled) { e.preventDefault(); toast.error("No phone number on file."); } }}
-                          style={{
-                            padding: "12px 0", background: disabled ? "#EAF0FB" : "#0055FF", color: disabled ? "#99AACC" : "#fff",
-                            borderRadius: 12, fontSize: 13, fontWeight: 700,
-                            textDecoration: "none", cursor: disabled ? "not-allowed" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                            boxShadow: disabled ? "none" : "0 1px 2px rgba(9,87,247,.2), 0 4px 10px rgba(9,87,247,.25)",
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#99AACC" : "#fff"} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
-                          </svg>
-                          Call
-                        </a>
-                        <a
-                          href={disabled ? undefined : `https://wa.me/${waNum}`}
-                          target="_blank" rel="noopener noreferrer"
-                          onClick={(e) => { if (disabled) { e.preventDefault(); toast.error("No phone number on file."); } }}
-                          style={{
-                            padding: "12px 0", background: disabled ? "#EAF0FB" : "#25D366", color: disabled ? "#99AACC" : "#fff",
-                            borderRadius: 12, fontSize: 13, fontWeight: 700,
-                            textDecoration: "none", cursor: disabled ? "not-allowed" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                            boxShadow: disabled ? "none" : "0 1px 2px rgba(37,211,102,.2), 0 4px 10px rgba(37,211,102,.25)",
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#99AACC" : "#fff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
-                          </svg>
-                          WhatsApp
-                        </a>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Hidden stub — kept for JSX balance; legacy content removed */}
-      <div style={{ display: "none" }}>
-        <div style={{ paddingTop: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 500, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-            {hc.eyebrow}
-          </p>
-          <h1 style={{ fontSize: 26, fontWeight: 500, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 6 }}>
-            {hc.line1}<br />{hc.line2}
-          </h1>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", lineHeight: 1.5, marginBottom: 16 }}>{hc.sub}</p>
-
-          {/* Chips */}
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-            {activeTab === "All" && (
-              <>
-                <Chip icon="check" text={`${criticalCount} Critical`} />
-                <Chip icon="check" text={totalCount === 0 ? "All on track" : `${totalCount} active`} />
-                <Chip icon="clock" text="Live" />
-              </>
-            )}
-            {activeTab === "Attendance" && (
-              <>
-                <Chip icon="att" text={`${attCount} Absence alerts`} />
-                {attCount === 0 && <Chip icon="check" text="All clear" />}
-              </>
-            )}
-            {activeTab === "Grades" && (
-              <>
-                <Chip icon="grades" text={`${gradesCount} Grade alerts`} />
-                {gradesCount === 0 && <Chip icon="check" text="All passing" />}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 16 }}>
-
-        {/* 4-metric grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <MetricCard label="Critical"          value={criticalCount} badge="Urgent"   color={T.red}  bg={T.rlBg} bdr={T.rlBdr} fillW={criticalCount / maxBar * 100} icon={<TriAlertIco c={T.red} />}   />
-          <MetricCard label="High priority"     value={highCount}     badge="High"     color={T.amb}  bg={T.alBg} bdr={T.alBdr} fillW={highCount     / maxBar * 100} icon={<CircleInfoIco c={T.amb} />} />
-          <MetricCard label="Medium priority"   value={mediumCount}   badge="Medium"   color={T.blue} bg={T.blBg} bdr={T.blBdr} fillW={mediumCount   / maxBar * 100} icon={<CircleInfoIco c={T.blue} />}/>
-          <MetricCard label="Resolved this week" value={resolvedCount} badge="Resolved" color={T.grn2} bg={T.glBg} bdr={T.glBdr} fillW={resolvedCount / maxBar * 100} icon={<CheckIco c={T.grn2} />}    />
-        </div>
-
-        {/* Filter tab strip */}
-        <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 14, padding: 4, display: "flex", gap: 3 }}>
-          {FILTER_TABS.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              aria-pressed={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1, padding: "8px 6px", borderRadius: 11,
-                background: activeTab === tab.id ? T.ink1 : "transparent",
-                color: activeTab === tab.id ? "#fff" : T.ink3,
-                fontSize: 11, fontWeight: activeTab === tab.id ? 500 : 400,
-                border: "none", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                transition: "background 0.15s",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Alert panel */}
-        <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 18, overflow: "hidden" }}>
-
-          {/* Panel header */}
-          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.s2}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: T.ink1, display: "flex", alignItems: "center", gap: 7 }}>
-              {activeTab === "All" && (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="1.5" y="2" width="11" height="10.5" rx="1.5" /><line x1="4" y1="1" x2="4" y2="3.5" />
-                    <line x1="10" y1="1" x2="10" y2="3.5" /><line x1="1.5" y1="5.5" x2="12.5" y2="5.5" />
-                  </svg>
-                  All alerts
-                </>
-              )}
-              {activeTab === "Attendance" && (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="2,8.5 6,7 3.5,4 7.5,2.5" />
-                  </svg>
-                  Attendance alerts
-                </>
-              )}
-              {activeTab === "Grades" && (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#6741D9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="2,10 5.5,6.5 8.5,8.5 12.5,3.5" /><polyline points="10.5,3.5 12.5,3.5 12.5,5.5" />
-                  </svg>
-                  Grade alerts
-                </>
-              )}
-            </div>
-            {activeTab === "All" ? (
-              <button
-                type="button"
-                onClick={() => { setLoading(true); setRefreshKey(k => k + 1); }}
-                style={{ fontSize: 11, color: T.blue, background: "none", border: "none", cursor: "pointer" }}
-              >
-                Refresh
-              </button>
-            ) : (
-              <span style={{ padding: "3px 8px", borderRadius: 20, background: T.glBg, color: T.grn2, fontSize: 10, fontWeight: 500 }}>
-                {visible.length} active
-              </span>
-            )}
-          </div>
-
-          {/* Panel content */}
-          {loading ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-              <Loader2 style={{ width: 28, height: 28, color: T.ink3 }} className="animate-spin" />
-            </div>
-          ) : visible.length === 0 ? (
-            /* Empty state */
-            <div style={{ padding: "32px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 16, background: T.glBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke={T.grn} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3,11 8,16 19,5" />
-                </svg>
-              </div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: T.ink1, margin: 0 }}>
-                {activeTab === "All" ? "All students on track" : activeTab === "Attendance" ? "No attendance concerns" : "No grade concerns"}
-              </p>
-              <p style={{ fontSize: 11, color: T.ink3, textAlign: "center", lineHeight: 1.5, maxWidth: 200, margin: 0 }}>
-                {activeTab === "All"
-                  ? "No alerts in any category. Keep up the great work!"
-                  : activeTab === "Attendance"
-                  ? "All students have good attendance records this week."
-                  : "All students are performing within acceptable grade ranges."}
-              </p>
-              <span style={{ padding: "3px 8px", borderRadius: 20, background: T.glBg, color: T.grn2, fontSize: 10, fontWeight: 500, marginTop: 4 }}>
-                {activeTab === "All" ? "0 active alerts" : activeTab === "Attendance" ? "Attendance all clear" : "Grades all clear"}
-              </span>
-            </div>
-          ) : (
-            /* Alert list */
-            <div>
-              {visible.map((a, idx) => {
-                const s = SEV[a.severity] || SEV["Medium Priority"];
-                const actions = getActions(a);
-                return (
-                  <div
-                    key={a.id}
-                    onClick={() => navigate(`/students?studentId=${a.studentId || ''}`)}
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer hover:bg-slate-50 transition-colors"
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 10,
-                      padding: "12px 14px",
-                      borderBottom: idx < visible.length - 1 ? `1px solid ${T.s2}` : "none",
-                      borderLeft: `3px solid ${s.color}`,
-                    }}
-                  >
-                    {/* Avatar */}
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 10,
-                      background: avBg(a.name), color: "#fff",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 11, fontWeight: 700, flexShrink: 0,
-                    }}>
-                      {getInitials(a.name)}
-                    </div>
-
-                    {/* Content */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 3 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: T.ink1 }}>{a.name}</span>
-                        <span style={{ padding: "2px 7px", borderRadius: 20, background: s.pillBg, color: s.pillColor, fontSize: 10, fontWeight: 500 }}>
-                          {a.severity}
-                        </span>
-                        <span style={{ fontSize: 10, color: T.ink3 }}>{a.cls}</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: T.ink2, marginBottom: 5, lineHeight: 1.4 }}>{a.issue}</p>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                        {a.details.map((d, i) => (
-                          <span key={i} style={{ fontSize: 10, color: T.ink3 }}>{d}</span>
-                        ))}
-                      </div>
-                      {/* Action buttons */}
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {actions.map((action, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={action.onClick}
-                            disabled={resolving === a.id}
-                            style={{
-                              padding: "5px 10px", borderRadius: 8,
-                              background: action.primary ? (action.color || T.blue) : "transparent",
-                              color: action.primary ? "#fff" : T.ink3,
-                              border: action.primary ? "none" : `1px solid ${T.bdr}`,
-                              fontSize: 10, fontWeight: 600, cursor: "pointer",
-                              display: "flex", alignItems: "center", gap: 4,
-                              opacity: resolving === a.id ? 0.6 : 1,
-                            }}
-                          >
-                            {resolving === a.id && !action.primary
-                              ? <Loader2 style={{ width: 10, height: 10 }} className="animate-spin" />
-                              : action.label
-                            }
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ── Tab-specific supplementary cards ──────────────────────────────── */}
-
-        {/* All tab — status banner + quick actions (only when empty) */}
-        {activeTab === "All" && visible.length === 0 && (
-          <>
-            <div style={{ background: T.glBg, border: `1px solid ${T.glBdr}`, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 11 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 11, background: "rgba(47,158,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={T.grn} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="2.5,8.5 6,12 13.5,4" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500, color: T.grn, margin: "0 0 2px" }}>System all clear</p>
-                <p style={{ fontSize: 10, color: T.grn, opacity: 0.75, margin: 0, lineHeight: 1.4 }}>
-                  No critical or high priority alerts active. All students performing within expected ranges.
-                </p>
-              </div>
-            </div>
-
-            <p style={{ fontSize: 10, fontWeight: 500, color: T.ink3, letterSpacing: "0.07em", textTransform: "uppercase", margin: "4px 2px 0" }}>
-              Quick actions
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {([
-                { label: "View at-risk",  sub: "See students needing help", iconBg: T.rlBg, ic: T.red,  svgD: "M6.5 1.5L12 11.5H1L6.5 1.5z", onClick: () => navigate("/students?filter=at-risk") },
-                { label: "Go to reports", sub: "Generate alert report",     iconBg: T.blBg, ic: T.blue, svgD: null,                           onClick: () => navigate("/reports") },
-                { label: "Refresh data",  sub: "Re-sync latest alerts",     iconBg: T.glBg, ic: T.grn2, svgD: "M1.5,7 5,10.5 11.5,3",         onClick: () => { setLoading(true); setRefreshKey(k => k + 1); } },
-                { label: "Export JSON",   sub: "Download alert log",        iconBg: T.alBg, ic: T.amb,  svgD: null,                           onClick: () => {
-                  const blob = new Blob([JSON.stringify(alerts, null, 2)], { type: "application/json" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url; a.download = `alerts_${new Date().toISOString().slice(0,10)}.json`;
-                  a.click(); URL.revokeObjectURL(url);
-                } },
-              ] as const).map((qa) => (
-                <button
-                  key={qa.label}
-                  type="button"
-                  onClick={qa.onClick}
-                  style={{
-                    padding: "11px 10px", borderRadius: 13,
-                    border: `1px solid ${T.bdr}`, background: T.white,
-                    display: "flex", flexDirection: "column", gap: 6,
-                    cursor: "pointer", textAlign: "left",
-                  }}
-                >
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: qa.iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {qa.label === "Go to reports" ? (
-                      <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke={qa.ic} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2,9.5 L11,9.5 L9,6 L11,2.5 L2,2.5 L4,6 Z" />
-                      </svg>
-                    ) : qa.label === "Export JSON" ? (
-                      <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke={qa.ic} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="1.5" width="9" height="10" rx="1.5" /><line x1="4.5" y1="5" x2="8.5" y2="5" /><line x1="4.5" y1="7.5" x2="7" y2="7.5" />
-                      </svg>
-                    ) : (
-                      <svg width="12" height="12" viewBox="0 0 13 13" fill="none" stroke={qa.ic} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points={qa.svgD || ""} />
-                        {qa.label === "View at-risk" && <path d="M6.5 1.5L12 11.5H1L6.5 1.5z" />}
-                      </svg>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 11, fontWeight: 500, color: T.ink1, margin: 0 }}>{qa.label}</p>
-                  <p style={{ fontSize: 10, color: T.ink3, margin: 0 }}>{qa.sub}</p>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Attendance tab — thresholds */}
-        {activeTab === "Attendance" && (
-          <ThresholdCard
-            title="Alert thresholds"
-            sub="Alerts trigger when students cross these limits"
-            rows={[
-              { label: "Critical absence rate", value: "< 60%",  color: T.red  },
-              { label: "High priority",          value: "60–74%", color: T.amb  },
-              { label: "Medium priority",        value: "75–79%", color: T.blue },
-            ]}
-          />
-        )}
-
-        {/* Grades tab — thresholds + subject health */}
-        {activeTab === "Grades" && (
-          <>
-            <ThresholdCard
-              title="Grade alert thresholds"
-              sub="Alerts trigger when scores fall below"
-              rows={[
-                { label: "Critical (F grade)", value: "< 40%",  color: T.red  },
-                { label: "High priority",      value: "40–49%", color: T.amb  },
-                { label: "Medium priority",    value: "50–59%", color: T.blue },
-              ]}
-            />
-            {subjectHealth.length > 0 && (
-              <div style={{ background: T.white, border: `1px solid ${T.bdr}`, borderRadius: 16, padding: "12px 13px" }}>
-                <p style={{ fontSize: 12, fontWeight: 500, color: T.ink1, margin: "0 0 10px" }}>Subject health check</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {subjectHealth.map(s => (
-                    <div key={s.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: 7, background: T.blBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="1.5" y="1" width="9" height="10" rx="1.5" /><line x1="3.5" y1="4.5" x2="8.5" y2="4.5" /><line x1="3.5" y1="7" x2="6" y2="7" />
-                          </svg>
-                        </div>
-                        <span style={{ fontSize: 12, color: T.ink2 }}>{s.name}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div style={{ width: 60, height: 4, borderRadius: 2, background: T.s2, overflow: "hidden" }}>
-                          <div style={{ width: `${Math.min(s.avg, 100)}%`, height: "100%", background: subjColor(s.avg), borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 500, color: subjColor(s.avg) }}>{s.avg}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
 
       {/* ── Mobile bottom tab bar ────────────────────────────────────────────── */}
       <div
@@ -1624,7 +1327,7 @@ const RisksAlerts = () => {
         {([
           { label: "Dashboard", type: "grid",     active: false, path: "/dashboard" },
           { label: "Students",  type: "students", active: false, path: "/students" },
-          { label: "Alerts",    type: "alert",    active: true,  path: "/risks"    },
+          { label: "Alerts",    type: "alert",    active: true,  path: "/risks-alerts" },
           { label: "Profile",   type: "user",     active: false, path: "/settings" },
         ] as const).map(ti => (
           <div
@@ -1640,106 +1343,6 @@ const RisksAlerts = () => {
           </div>
         ))}
       </div>
-
-      {/* ── Contact modal ─────────────────────────────────────────────────────── */}
-      {(selectedContact || fetchingContact) && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
-          onClick={() => setSelectedContact(null)}
-        >
-          <div
-            style={{ background: T.white, borderRadius: 20, width: "100%", maxWidth: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.s2}` }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.ink1, margin: 0 }}>Contact Parent</h3>
-              <button
-                type="button"
-                aria-label="Close contact panel"
-                onClick={() => setSelectedContact(null)}
-                style={{ width: 28, height: 28, border: "none", background: T.s1, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={T.ink3} strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <line x1="2" y1="2" x2="12" y2="12" /><line x1="12" y1="2" x2="2" y2="12" />
-                </svg>
-              </button>
-            </div>
-
-            {fetchingContact ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-                <Loader2 style={{ width: 24, height: 24, color: T.ink3 }} className="animate-spin" />
-              </div>
-            ) : selectedContact && (
-              <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: avBg(selectedContact.name), display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>
-                    {getInitials(selectedContact.name)}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: T.ink1, margin: 0 }}>{selectedContact.name}</p>
-                    <p style={{ fontSize: 11, color: T.ink3, margin: "3px 0 0" }}>{selectedContact.parent}</p>
-                  </div>
-                </div>
-                <div style={{ background: T.s1, borderRadius: 12, padding: "12px 14px" }}>
-                  <p style={{ fontSize: 10, color: T.ink3, margin: "0 0 4px" }}>Contact Number</p>
-                  {selectedContact.phone ? (
-                    <p style={{ fontSize: 17, fontWeight: 700, color: T.blue, margin: 0 }}>{selectedContact.phone}</p>
-                  ) : (
-                    <p style={{ fontSize: 13, fontWeight: 500, color: T.ink3, margin: 0, fontStyle: "italic" }}>
-                      Not available — add parent phone in Students
-                    </p>
-                  )}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {(() => {
-                    const p   = (selectedContact.phone || "").trim();
-                    const sanitized = p.replace(/[^+\d]/g, ""); // strip spaces/dashes for tel: / wa.me
-                    const waNum     = sanitized.replace(/^\+/, ""); // wa.me wants no leading +
-                    const disabled  = !p;
-                    return (
-                      <>
-                        <a
-                          href={disabled ? undefined : `tel:${sanitized}`}
-                          onClick={(e) => { if (disabled) { e.preventDefault(); toast.error("No phone number on file."); } }}
-                          style={{
-                            padding: "12px 0", background: disabled ? T.s2 : T.blue, color: disabled ? T.ink3 : "#fff",
-                            borderRadius: 12, fontSize: 13, fontWeight: 600,
-                            textDecoration: "none", cursor: disabled ? "not-allowed" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={disabled ? T.ink3 : "#fff"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12.5 9.5c0 .4-.1.8-.3 1.1-.2.3-.5.6-.8.8-.5.5-1 .7-1.6.7-.4 0-.9-.1-1.4-.4-1.4-.7-2.6-1.7-3.7-2.8C3.6 7.8 2.6 6.6 1.9 5.3 1.6 4.8 1.5 4.3 1.5 3.9c0-.6.2-1.1.7-1.6.3-.3.6-.5 1-.6C3.5 1.6 3.7 1.5 4 1.5c.1 0 .2 0 .3.1.1 0 .2.1.3.2L6.4 4c.1.1.2.3.2.4 0 .2-.1.3-.2.5l-.6.7c0 .1-.1.2-.1.3 0 .1.1.2.1.3.1.2.7.9 1.4 1.6.7.7 1.4 1.3 1.6 1.4.1.1.2.1.3.1s.2 0 .3-.1l.7-.6c.1-.1.3-.2.5-.2.1 0 .3 0 .4.1l2.2 1.8c.1.1.2.2.2.3.1.1.1.2.1.3z" />
-                          </svg>
-                          Call
-                        </a>
-                        <a
-                          href={disabled ? undefined : `https://wa.me/${waNum}`}
-                          target="_blank" rel="noopener noreferrer"
-                          onClick={(e) => { if (disabled) { e.preventDefault(); toast.error("No phone number on file."); } }}
-                          style={{
-                            padding: "12px 0", background: disabled ? T.s2 : "#25D366", color: disabled ? T.ink3 : "#fff",
-                            borderRadius: 12, fontSize: 13, fontWeight: 600,
-                            textDecoration: "none", cursor: disabled ? "not-allowed" : "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={disabled ? T.ink3 : "#fff"} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M7 1.5C3.96 1.5 1.5 3.96 1.5 7c0 .97.25 1.88.7 2.67L1.5 12.5l2.83-.69C5.12 12.26 6.03 12.5 7 12.5c3.04 0 5.5-2.46 5.5-5.5S10.04 1.5 7 1.5z" />
-                            <path d="M5 5.5c.5 1.2 1.4 2.2 2.5 2.5" />
-                          </svg>
-                          WhatsApp
-                        </a>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       </div>{/* ═══════════ END MOBILE VIEW ═══════════ */}
 
@@ -1784,6 +1387,42 @@ const RisksAlerts = () => {
         `}</style>
 
         <div className="rad-enter max-w-[1600px] mx-auto">
+
+          {/* Listener error banner */}
+          {listenerError && (
+            <div
+              role="alert"
+              style={{
+                background: "linear-gradient(135deg, #FFF1F1 0%, #FFE3E3 100%)",
+                border: "0.5px solid rgba(255,51,85,.25)",
+                borderRadius: 16, padding: "14px 18px", marginBottom: 18,
+                display: "flex", alignItems: "center", gap: 14,
+                boxShadow: "0 6px 18px rgba(255,51,85,.10)",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF3355" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>Live updates disrupted</div>
+                <div style={{ fontSize: 11, color: "#5070B0", fontWeight: 500, marginTop: 2 }}>{listenerError}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setListenerError(null); setLoading(true); setRefreshKey(k => k + 1); }}
+                className="rad-btn"
+                style={{
+                  padding: "9px 16px", borderRadius: 12,
+                  background: "linear-gradient(135deg,#FF3355 0%,#FF6677 100%)", color: "#fff",
+                  fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                  border: "none", cursor: "pointer", flexShrink: 0,
+                  boxShadow: "0 6px 16px rgba(255,51,85,.30)",
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* ═══ Page Head ═══ */}
           <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
@@ -1992,8 +1631,11 @@ const RisksAlerts = () => {
                 ? 'linear-gradient(135deg,#FF8800 0%,#FFAA44 100%)'
                 : tab.id === 'Grades'
                 ? 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)'
+                : tab.id === 'Submissions'
+                ? 'linear-gradient(135deg,#7B3FF4 0%,#9B5FFF 100%)'
+                : tab.id === 'Behavior'
+                ? 'linear-gradient(135deg,#C2255C 0%,#D6477A 100%)'
                 : 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)';
-              const tabCount = tab.id === 'All' ? totalCount : tab.id === 'Attendance' ? attCount : gradesCount;
               return (
                 <button
                   key={tab.id}
@@ -2012,12 +1654,12 @@ const RisksAlerts = () => {
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
-                  {tab.id}
+                  {tab.label}
                   <span style={{
                     padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700,
                     background: active ? 'rgba(255,255,255,.28)' : 'rgba(0,85,255,.08)',
                     color: active ? '#fff' : '#0055FF',
-                  }}>{tabCount}</span>
+                  }}>{tab.count}</span>
                 </button>
               );
             })}
@@ -2051,7 +1693,25 @@ const RisksAlerts = () => {
             </div>
 
             <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {visible.length === 0 ? (
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="ra-skeleton" style={{
+                      background: '#F8FAFE', borderRadius: 16,
+                      padding: '14px 16px 14px 20px', display: 'flex', alignItems: 'center', gap: 14,
+                      border: '0.5px solid rgba(0,85,255,.06)',
+                    }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E4ECFF', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ width: '50%', height: 12, borderRadius: 6, background: '#E4ECFF', marginBottom: 8 }} />
+                        <div style={{ width: '85%', height: 10, borderRadius: 5, background: '#EEF4FF' }} />
+                      </div>
+                      <div style={{ width: 110, height: 32, borderRadius: 11, background: '#E4ECFF' }} />
+                      <div style={{ width: 90, height: 32, borderRadius: 11, background: '#EEF4FF' }} />
+                    </div>
+                  ))}
+                </div>
+              ) : visible.length === 0 ? (
                 <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
                   <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg,#00C853 0%,#33DD77 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 24px rgba(0,200,83,.28)' }}>
                     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -2061,7 +1721,7 @@ const RisksAlerts = () => {
                   </div>
                   <div>
                     <p style={{ fontSize: 16, fontWeight: 700, color: '#001040', letterSpacing: '-0.3px', margin: 0 }}>
-                      {activeTab === 'All' ? 'All students on track' : activeTab === 'Attendance' ? 'No attendance concerns' : 'No grade concerns'}
+                      {activeTab === 'All' ? 'All students on track' : activeTab === 'Attendance' ? 'No attendance concerns' : activeTab === 'Grades' ? 'No grade concerns' : activeTab === 'Submissions' ? 'No overdue submissions' : 'No behaviour concerns'}
                     </p>
                     <p style={{ fontSize: 13, fontWeight: 500, color: '#5070B0', margin: '6px 0 0 0' }}>
                       Keep it up — no active alerts in this filter.
@@ -2069,7 +1729,26 @@ const RisksAlerts = () => {
                   </div>
                 </div>
               ) : (
-                visible.map(a => {
+                Array.from(groupedByClass.entries()).flatMap(([clsLabel, classAlerts]) => {
+                  const header = (
+                    <div
+                      key={`hdr_${clsLabel}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '6px 4px 4px',
+                      }}
+                    >
+                      <div style={{ width: 4, height: 18, borderRadius: 2, background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#001040', letterSpacing: '1.4px', textTransform: 'uppercase' }}>
+                        {clsLabel}
+                      </span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#0055FF', background: 'rgba(0,85,255,.08)', padding: '3px 9px', borderRadius: 999, letterSpacing: '0.04em' }}>
+                        {classAlerts.length} alert{classAlerts.length === 1 ? '' : 's'}
+                      </span>
+                      <div style={{ flex: 1, height: 1, background: 'rgba(0,85,255,.08)' }} />
+                    </div>
+                  );
+                  const cards = classAlerts.map(a => {
                   const sevColor = a.severity === 'Critical' ? '#FF3355' : a.severity === 'High Priority' ? '#FF8800' : '#0055FF';
                   const sevGrad = a.severity === 'Critical'
                     ? 'linear-gradient(135deg,#FF3355 0%,#FF6677 100%)'
@@ -2081,13 +1760,8 @@ const RisksAlerts = () => {
                     : a.severity === 'High Priority'
                     ? 'rgba(255,136,0,.05)'
                     : 'rgba(0,85,255,.035)';
-                  const actionLabel = a.severity === 'Critical'
-                    ? 'Contact Parent'
-                    : a.type === 'Attendance'
-                    ? 'Send Reminder'
-                    : a.type === 'Grades'
-                    ? 'Schedule Meeting'
-                    : 'Talk to Student';
+                  const primary = getPrimaryAction(a);
+                  const isSending = sending === a.id;
                   return (
                     <div
                       key={a.id}
@@ -2167,18 +1841,24 @@ const RisksAlerts = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, alignSelf: 'center' }}>
                         <button
                           type="button"
-                          onClick={e => { e.stopPropagation(); fetchContact(a.studentId, a.name); }}
+                          onClick={e => { e.stopPropagation(); primary.handler(); }}
+                          disabled={isSending}
                           className="rad-btn"
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '9px 14px', borderRadius: 11,
                             background: sevGrad, color: '#fff',
                             fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            border: 'none', cursor: isSending ? 'wait' : 'pointer', fontFamily: 'inherit',
                             boxShadow: `0 6px 18px ${sevColor}45, 0 2px 5px ${sevColor}22`,
+                            opacity: isSending ? 0.7 : 1,
                           }}
                         >
-                          {actionLabel}
+                          {isSending ? (
+                            <><Loader2 className="w-3 h-3 animate-spin" /> Sending</>
+                          ) : (
+                            primary.label
+                          )}
                         </button>
                         <button
                           type="button"
@@ -2214,6 +1894,8 @@ const RisksAlerts = () => {
                       </div>
                     </div>
                   );
+                  });
+                  return [header, ...cards];
                 })
               )}
             </div>

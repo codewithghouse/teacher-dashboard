@@ -79,7 +79,11 @@ const IcoPlus = () => (
 );
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const timeRemaining = (date: Date) => {
+// Returns "—" when the assignment has no due date — preferred over the old
+// `new Date()` fallback that would render "Due Today" / "0d ago" for any
+// dateless assignment, misleading teachers about a deadline that doesn't exist.
+const timeRemaining = (date: Date | null) => {
+  if (!date) return "—";
   const diff = Math.ceil((date.getTime() - Date.now()) / 86400000);
   if (diff === 0) return "Due Today";
   if (diff === 1) return "Tomorrow";
@@ -87,7 +91,7 @@ const timeRemaining = (date: Date) => {
   return `${diff}d left`;
 };
 
-const isDuePast = (date: Date) => date.getTime() < Date.now();
+const isDuePast = (date: Date | null) => !!date && date.getTime() < Date.now();
 
 const accentColor = (status: string) => {
   if (status.includes("To Grade")) return T.amber;
@@ -103,7 +107,26 @@ const statusBadge = (status: string) => {
   return { bg: T.s2, color: T.ink2, text: status };
 };
 
-type FilterKey = "All" | "To grade" | "Submitted" | "Draft";
+type FilterKey = "All" | "To grade" | "Submitted";
+
+// Firestore `in` operator caps at 30 values per query; chunk inputs to stay
+// under the limit. Returns [] when input is empty so we don't fire empty
+// queries.
+const chunked = <T,>(arr: T[], size = 30): T[][] => {
+  if (arr.length === 0) return [];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+// One-time read of the user's reduced-motion preference. The tilt3D helper
+// returns mouse-tilt handlers + a transform; for users who set OS-level
+// "reduce motion" we skip both. Checked once at component mount — most users
+// don't toggle this mid-session.
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const Assignments = () => {
@@ -118,118 +141,231 @@ const Assignments = () => {
   const [stats, setStats] = useState({
     totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0,
   });
+  // Styled delete-confirmation state — replaces native window.confirm() which
+  // was unstyled and jarring on mobile.
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Memoised once on mount. Tilt + tilt-style become no-ops when the user
+  // prefers reduced motion.
+  const reducedMotion = prefersReducedMotion();
+  const tiltProps  = reducedMotion ? {} : tilt3D;
+  const tiltStyles = reducedMotion ? {} : tilt3DStyle;
+
+  // Global Escape handler for the delete-confirm modal — window-level so it
+  // works regardless of which element inside the dialog is focused.
+  useEffect(() => {
+    if (!pendingDelete) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !deleting) setPendingDelete(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pendingDelete, deleting]);
 
   useEffect(() => {
     if (!teacherData?.id) return;
     const schoolId = teacherData.schoolId;
+    const branchId = teacherData.branchId as string | undefined;
     if (!schoolId) return;
     setLoading(true);
+
+    // cancelled flag — guards against state updates after unmount or after a
+    // subsequent snapshot fires while the previous batch is still in flight.
+    let cancelled = false;
+
+    // Branch scoping for RESOLUTION entities only (teaching_assignments,
+    // classes, assignments, enrollments). NEVER on event streams
+    // (submissions, results) — see bug_pattern_branch_filter_on_event_streams
+    // memory: writes lag the enforceBranchId trigger by 1-2s, and a
+    // branchId filter on events would silently drop fresh records.
+    const branchScope = branchId ? [where("branchId", "==", branchId)] : [];
 
     const unsub = onSnapshot(
       query(
         collection(db, "teaching_assignments"),
         where("schoolId", "==", schoolId),
+        ...branchScope,
         where("teacherId", "==", teacherData.id),
         where("status", "==", "active")
       ),
       async (assignSnap) => {
-        const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-        const assignedClassIds    = teachingAssignments.map((t: any) => t.classId).filter(Boolean);
-        const legacySnap          = await getDocs(query(
-          collection(db, "classes"),
-          where("schoolId", "==", schoolId),
-          where("teacherId", "==", teacherData.id),
-        ));
-        const legacyIds           = legacySnap.docs.map(d => d.id);
-        const allClassIds         = Array.from(new Set([...assignedClassIds, ...legacyIds]));
+        try {
+          const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+          const assignedClassIds    = teachingAssignments.map((t: any) => t.classId).filter(Boolean);
+          const legacySnap          = await getDocs(query(
+            collection(db, "classes"),
+            where("schoolId", "==", schoolId),
+            ...branchScope,
+            where("teacherId", "==", teacherData.id),
+          ));
+          if (cancelled) return;
+          const legacyIds           = legacySnap.docs.map(d => d.id);
+          const allClassIds         = Array.from(new Set([...assignedClassIds, ...legacyIds]));
 
-        if (!allClassIds.length) {
-          setAssignments([]);
-          setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
+          if (!allClassIds.length) {
+            setAssignments([]);
+            setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
+            setLoading(false);
+            return;
+          }
+
+          // Bulk-fetch assignments per classId. classIds capped at ~30 per `in`
+          // chunk; each teacher rarely has more so this is typically 1 chunk.
+          // assignments IS a resolution entity — branchId filter is allowed
+          // and tightens scope.
+          const classChunks = chunked(allClassIds, 30);
+          const aSnaps = await Promise.all(classChunks.map(ch => getDocs(query(
+            collection(db, "assignments"),
+            where("schoolId", "==", schoolId),
+            ...branchScope,
+            where("classId", "in", ch),
+            where("teacherId", "==", teacherData.id),
+          ))));
+          if (cancelled) return;
+          const map = new Map<string, any>();
+          aSnaps.forEach(s => s.docs.forEach(d => {
+            if (!map.has(d.id)) map.set(d.id, { id: d.id, ...d.data() });
+          }));
+          const raw = Array.from(map.values());
+
+          if (raw.length === 0) {
+            setAssignments([]);
+            setStats({ totalActive: 0, dueThisWeek: 0, pendingGrading: 0, avgSubmission: 0 });
+            setLoading(false);
+            return;
+          }
+
+          // Bulk-fetch all dependent collections in 4 chunked groups instead
+          // of per-assignment fetches. Was 4N round trips for N assignments
+          // (e.g., 80 for 20 assignments); now ~4 × ceil(N/30) — usually 4.
+          const aIds = raw.map(a => a.id);
+          const aChunks = chunked(aIds, 30);
+          const cChunks = chunked(allClassIds, 30);
+          // Event streams (submissions, results) deliberately stay schoolId-only
+          // — adding branchId would risk silent drops during the inference-lag
+          // window. Enrollments IS a resolution entity → branchId allowed.
+          const [
+            subsByAid, subsByHid,
+            resultsByAid,
+            enrollByCid,
+          ] = await Promise.all([
+            Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
+            Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("homeworkId",   "in", ch))))),
+            Promise.all(aChunks.map(ch => getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
+            Promise.all(cChunks.map(ch => getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), ...branchScope, where("classId", "in", ch))))),
+          ]);
+          if (cancelled) return;
+
+          // Bucket per assignment / class.
+          const subsMap = new Map<string, Map<string, true>>(); // assignmentId → Set<student-key>
+          const ingestSubs = (snap: any, idField: string) => snap.docs.forEach((d: any) => {
+            const data = d.data();
+            const aid = data[idField];
+            if (!aid) return;
+            const sid = data.studentId || data.studentEmail || d.id;
+            if (!subsMap.has(aid)) subsMap.set(aid, new Map());
+            subsMap.get(aid)!.set(sid, true);
+          });
+          subsByAid.forEach(snap => ingestSubs(snap, "assignmentId"));
+          subsByHid.forEach(snap => ingestSubs(snap, "homeworkId"));
+
+          const resultsCount = new Map<string, number>();
+          resultsByAid.forEach(snap => snap.docs.forEach(d => {
+            const aid = d.data().assignmentId;
+            if (!aid) return;
+            resultsCount.set(aid, (resultsCount.get(aid) || 0) + 1);
+          }));
+
+          const enrollCount = new Map<string, number>();
+          enrollByCid.forEach(snap => snap.docs.forEach(d => {
+            const cid = d.data().classId;
+            if (!cid) return;
+            enrollCount.set(cid, (enrollCount.get(cid) || 0) + 1);
+          }));
+
+          const now      = new Date();
+          const nextWeek = new Date(now.getTime() + 7 * 86400000);
+
+          const enriched = raw.map((a: any) => {
+            // dueDate parsing — explicit null when no field exists, so the UI
+            // can render "No due date" instead of fabricating "due now". Was:
+            // fallback to `new Date()` which made every dateless assignment
+            // look as if it was due RIGHT NOW.
+            let deadline: Date | null = null;
+            if      (a.dueDate?.toDate)   deadline = a.dueDate.toDate();
+            else if (a.dueDate)           { const d = new Date(a.dueDate); if (!isNaN(d.getTime())) deadline = d; }
+            else if (a.deadline)          { const d = new Date(a.deadline); if (!isNaN(d.getTime())) deadline = d; }
+            else if (a.createdAt?.toDate) deadline = new Date(a.createdAt.toDate().getTime() + 7 * 86400000);
+            const subCount = subsMap.get(a.id)?.size || 0;
+            // expected = real enrollment count; null when class has no roster
+            // yet (was: silently defaulted to 1, which made empty classes show
+            // "Fully Submitted" the moment any stray submission landed).
+            const expected = enrollCount.has(a.classId) ? enrollCount.get(a.classId)! : null;
+            const pendingGrading = Math.max(0, subCount - (resultsCount.get(a.id) || 0));
+
+            let status = "Active";
+            if (pendingGrading > 0) {
+              status = `${pendingGrading} To Grade`;
+            } else if (expected !== null && expected > 0 && subCount >= expected) {
+              status = "Fully Submitted";
+            } else if (deadline && deadline < now) {
+              status = "Completed";
+            } else if (expected === 0) {
+              status = "No Roster";
+            }
+
+            return { ...a, deadline, subCount, expected, pendingGrading, status };
+          });
+
+          // Sort: missing-deadline assignments at the bottom; otherwise nearest first.
+          enriched.sort((a, b) => {
+            const aT = a.deadline?.getTime() ?? Number.POSITIVE_INFINITY;
+            const bT = b.deadline?.getTime() ?? Number.POSITIVE_INFINITY;
+            return aT - bT;
+          });
+          setAssignments(enriched);
+
+          const active        = enriched.filter(a => a.deadline && a.deadline > now).length;
+          const dueSoon       = enriched.filter(a => a.deadline && a.deadline > now && a.deadline <= nextWeek).length;
+          const pending       = enriched.reduce((acc, a) => acc + a.pendingGrading, 0);
+          // Avg submission: only include classes with a real roster (expected > 0).
+          // Empty-roster classes used to bias the average toward 100% via
+          // expected||1, now they're excluded entirely.
+          const rosterAssignments = enriched.filter(a => a.expected !== null && a.expected > 0);
+          const totalStudents = rosterAssignments.reduce((acc, a) => acc + (a.expected as number), 0);
+          const totalSubs     = rosterAssignments.reduce((acc, a) => acc + a.subCount, 0);
+          setStats({
+            totalActive:    active,
+            dueThisWeek:    dueSoon,
+            pendingGrading: pending,
+            avgSubmission:  totalStudents > 0 ? Math.round((totalSubs / totalStudents) * 100) : 0,
+          });
           setLoading(false);
-          return;
+        } catch (err) {
+          if (cancelled) return;
+          console.error("[Assignments] load failed", err);
+          setLoading(false);
         }
-
-        const snaps = await Promise.all(
-          allClassIds.map(cid =>
-            getDocs(query(
-              collection(db, "assignments"),
-              where("schoolId", "==", schoolId),
-              where("classId", "==", cid),
-              where("teacherId", "==", teacherData.id),
-            ))
-          )
-        );
-        const map = new Map<string, any>();
-        snaps.forEach(s => s.docs.forEach(d => {
-          if (!map.has(d.id)) map.set(d.id, { id: d.id, ...d.data() });
-        }));
-        const raw = Array.from(map.values());
-
-        const now      = new Date();
-        const nextWeek = new Date(now.getTime() + 7 * 86400000);
-
-        const enriched = await Promise.all(raw.map(async (a: any) => {
-          let deadline: Date;
-          if      (a.dueDate?.toDate)   deadline = a.dueDate.toDate();
-          else if (a.dueDate)           deadline = new Date(a.dueDate);
-          else if (a.deadline)          deadline = new Date(a.deadline);
-          else if (a.createdAt?.toDate) deadline = new Date(a.createdAt.toDate().getTime() + 7 * 86400000);
-          else                          deadline = new Date();
-          if (isNaN(deadline.getTime())) deadline = new Date();
-
-          const [s1, s2] = await Promise.all([
-            getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("homeworkId",   "==", a.id))),
-            getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("assignmentId", "==", a.id))),
-          ]);
-          const subMap = new Map<string, any>();
-          s1.docs.forEach(d => subMap.set(d.data().studentId || d.data().studentEmail || d.id, d));
-          s2.docs.forEach(d => { const k = d.data().studentId || d.data().studentEmail || d.id; if (!subMap.has(k)) subMap.set(k, d); });
-          const subCount = subMap.size;
-
-          const [resSnap, enrollSnap] = await Promise.all([
-            getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("assignmentId", "==", a.id))),
-            getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("classId",      "==", a.classId))),
-          ]);
-          const expected       = enrollSnap.size || 1;
-          const pendingGrading = Math.max(0, subCount - resSnap.size);
-
-          let status = "Active";
-          if (pendingGrading > 0)                       status = `${pendingGrading} To Grade`;
-          else if (subCount >= expected && expected > 0) status = "Fully Submitted";
-          else if (deadline < now)                       status = "Completed";
-
-          return { ...a, deadline, subCount, expected, pendingGrading, status };
-        }));
-
-        enriched.sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
-        setAssignments(enriched);
-
-        const active        = enriched.filter(a => a.deadline > now).length;
-        const dueSoon       = enriched.filter(a => a.deadline > now && a.deadline <= nextWeek).length;
-        const pending       = enriched.reduce((acc, a) => acc + a.pendingGrading, 0);
-        const totalStudents = enriched.reduce((acc, a) => acc + a.expected, 0);
-        const totalSubs     = enriched.reduce((acc, a) => acc + a.subCount, 0);
-        setStats({
-          totalActive:    active,
-          dueThisWeek:    dueSoon,
-          pendingGrading: pending,
-          avgSubmission:  totalStudents > 0 ? Math.round((totalSubs / totalStudents) * 100) : 0,
-        });
-        setLoading(false);
       }
     );
-    return () => unsub();
+    return () => { cancelled = true; unsub(); };
   }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  // Delete flow: clicking the trash icon opens a styled confirm modal
+  // (replaces native window.confirm which was unstyled and jarring on mobile).
+  // The actual write happens on modal-confirm.
+  const requestDelete = (id: string, title: string) => setPendingDelete({ id, title });
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
     try {
-      await auditedDelete(doc(db, "assignments", id));
+      await auditedDelete(doc(db, "assignments", pendingDelete.id));
       toast.success("Assignment deleted.");
+      setPendingDelete(null);
     } catch (e) {
       console.error("[Assignments] delete failed", e);
       toast.error("Failed to delete assignment.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -237,17 +373,48 @@ const Assignments = () => {
   if (view === "create") return <CreateAssignment onCancel={() => setView("list")} onCreate={() => setView("list")} />;
   if (view === "grade")  return <GradeAssignment  assignment={selectedAssignment}  onBack={() => setView("list")} />;
 
-  // Filter
+  // Filter — "Submitted" now requires expected to be > 0 (not just truthy)
+  // since expected is now `number | null`, never the old `|| 1` default.
   const filtered = assignments.filter(a => {
     const matchSearch = a.title?.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
     if (filter === "To grade")  return a.pendingGrading > 0;
-    if (filter === "Submitted") return a.subCount >= a.expected && a.expected > 0;
-    if (filter === "Draft")     return a.status === "Draft";
+    if (filter === "Submitted") return a.expected !== null && a.expected > 0 && a.subCount >= a.expected;
     return true;
   });
 
-  const filterChips: FilterKey[] = ["All", "To grade", "Submitted", "Draft"];
+  // "Draft" chip removed — no writer ever sets a draft status field, so the
+  // tab was permanently empty (dead UI promising a feature that doesn't exist).
+  const filterChips: FilterKey[] = ["All", "To grade", "Submitted"];
+
+  // Class-wise grouping — teacher requested seeing assignments sectioned by
+  // class instead of a flat chronological list. Sections sorted alphabetically
+  // by class name; assignments within each section keep the existing
+  // deadline-asc ordering from the loader.
+  const groupedByClass = filtered.reduce<Array<{ classId: string; className: string; items: any[] }>>((acc, a) => {
+    const cid = a.classId || "__unassigned__";
+    const cn  = a.className || "Unassigned";
+    let g = acc.find(x => x.classId === cid);
+    if (!g) { g = { classId: cid, className: cn, items: [] }; acc.push(g); }
+    g.items.push(a);
+    return acc;
+  }, []).sort((a, b) => a.className.localeCompare(b.className));
+
+  // Per-class submission stats for the AI Insights panel. Drives the
+  // "lowest-engagement class" suggestion below.
+  const classStats = groupedByClass.map(g => {
+    const totalSub = g.items.reduce((acc, a) => acc + a.subCount, 0);
+    const totalExp = g.items.reduce((acc, a) => acc + (a.expected || 0), 0);
+    const pending  = g.items.reduce((acc, a) => acc + a.pendingGrading, 0);
+    const subRate  = totalExp > 0 ? Math.round((totalSub / totalExp) * 100) : null;
+    return { classId: g.classId, className: g.className, count: g.items.length, subRate, pending };
+  });
+  const weakestClass = [...classStats]
+    .filter(c => c.subRate !== null && c.count > 0)
+    .sort((a, b) => (a.subRate as number) - (b.subRate as number))[0];
+  const heaviestPendingClass = [...classStats]
+    .filter(c => c.pending > 0)
+    .sort((a, b) => b.pending - a.pending)[0];
 
   return (
     <div style={{ fontFamily: 'inherit' }} className="min-h-screen pb-28 md:pb-0 text-left">
@@ -392,9 +559,9 @@ const Assignments = () => {
             },
           ] as const).map(s => (
             <button key={s.key} type="button" onClick={s.onClick}
-              {...tilt3D}
+              {...tiltProps}
               className="rounded-[20px] p-4 relative flex flex-col text-left overflow-hidden active:scale-[0.96] transition-transform"
-              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+              style={{ background: s.tintBg, boxShadow: "0 6px 18px rgba(20,40,90,0.06), 0 1px 3px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tiltStyles }}>
               <div className="absolute pointer-events-none" style={{ right: 10, bottom: 8, color: s.color, opacity: 0.22 }}>
                 {s.decor}
               </div>
@@ -419,8 +586,7 @@ const Assignments = () => {
             const count =
               key === "All"       ? assignments.length :
               key === "To grade"  ? assignments.filter(a => a.pendingGrading > 0).length :
-              key === "Submitted" ? assignments.filter(a => a.subCount >= a.expected && a.expected > 0).length :
-              /* Draft */         assignments.filter(a => a.status === "Draft").length;
+              /* Submitted */     assignments.filter(a => a.expected !== null && a.expected > 0 && a.subCount >= a.expected).length;
             const isActive = filter === key;
             return (
               <button key={key} type="button" onClick={() => setFilter(key)}
@@ -485,10 +651,8 @@ const Assignments = () => {
                   <><b className="font-bold" style={{ color: MA.T1 }}>Create your first</b> assignment to track student progress.</>
                 ) : filter === "To grade" ? (
                   <><b className="font-bold" style={{ color: MA.T1 }}>All caught up!</b><br />Submissions will appear here once students upload their work.</>
-                ) : filter === "Submitted" ? (
-                  <>No fully-submitted assignments yet — check back as students turn in work.</>
                 ) : (
-                  <>No drafts right now. Every assignment you create is published live.</>
+                  <>No fully-submitted assignments yet — check back as students turn in work.</>
                 )}
               </div>
               <button type="button" onClick={() => setView("create")}
@@ -504,18 +668,28 @@ const Assignments = () => {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-[10px]">
-              {filtered.map(a => {
-                const accent = accentColor(a.status);
-                const pastDue = isDuePast(a.deadline);
-                const isActive = !pastDue && a.pendingGrading === 0;
-                return (
+            /* Class-wise grouped layout — section header per class, then the
+               cards. Past-due cards render dimmed so the teacher can scan
+               which assignments still need follow-up at a glance. */
+            <div className="flex flex-col gap-[14px]">
+              {groupedByClass.map(g => (
+                <div key={g.classId} className="flex flex-col gap-[8px]">
+                  <div className="flex items-center gap-[8px] px-[2px]">
+                    <span className="text-[10px] font-bold uppercase" style={{ color: MA.P, letterSpacing: "1.4px" }}>{g.className}</span>
+                    <span className="flex-1 h-[0.5px]" style={{ background: "rgba(0,85,255,0.10)" }} />
+                    <span className="text-[10px] font-bold" style={{ color: MA.T4 }}>{g.items.length}</span>
+                  </div>
+                  {g.items.map(a => {
+              const accent = accentColor(a.status);
+              const pastDue = isDuePast(a.deadline);
+              const isActive = !pastDue && a.pendingGrading === 0;
+              return (
                   <div key={a.id}
                     onClick={() => { setSelectedAssignment(a); setView("grade"); }}
                     role="button" tabIndex={0}
-                    {...tilt3D}
+                    {...tiltProps}
                     className="bg-white rounded-[18px] p-[14px] relative overflow-hidden active:scale-[0.985] transition-transform cursor-pointer"
-                    style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
+                    style={{ boxShadow: MA.SH, border: MA.BDR, opacity: pastDue ? 0.62 : 1, filter: pastDue ? "grayscale(0.45)" : "none", ...tiltStyles }}>
                     <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-[3px]" style={{ background: accent }} />
                     {/* Head */}
                     <div className="flex items-start gap-[11px] mb-[12px]">
@@ -565,13 +739,15 @@ const Assignments = () => {
                       </div>
                       <div className="py-[9px] px-[6px] text-center bg-white">
                         <div className="text-[13px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
-                          {a.subCount}/{a.expected}
+                          {a.subCount}/{a.expected ?? "—"}
                         </div>
                         <div className="text-[8px] font-bold uppercase mt-[3px]" style={{ color: MA.T3, letterSpacing: "1px" }}>Submitted</div>
                       </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions — "View" button removed; it had identical
+                        navigation to "Grade", just deceiving users with two
+                        buttons that did the same thing. */}
                     <div className="flex gap-[7px]">
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
@@ -583,20 +759,10 @@ const Assignments = () => {
                           fontFamily: MA.FONT, border: "none",
                         }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        Grade
+                        Grade {a.pendingGrading > 0 ? `· ${a.pendingGrading}` : ""}
                       </button>
                       <button type="button"
-                        onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
-                        className="flex-1 h-[38px] rounded-[11px] flex items-center justify-center active:scale-[0.96] transition-transform"
-                        style={{
-                          background: MA.SURFACE, color: MA.T1,
-                          fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
-                          fontFamily: MA.FONT, border: "none",
-                        }}>
-                        View
-                      </button>
-                      <button type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDelete(a.id, a.title); }}
+                        onClick={(e) => { e.stopPropagation(); requestDelete(a.id, a.title); }}
                         aria-label={`Delete ${a.title}`}
                         className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center active:scale-[0.92] transition-transform"
                         style={{
@@ -609,6 +775,8 @@ const Assignments = () => {
                   </div>
                 );
               })}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -640,19 +808,27 @@ const Assignments = () => {
                 </div>
               </div>
               {(() => {
-                const nextDue = assignments.filter(a => a.deadline > new Date()).sort((a, b) => a.deadline.getTime() - b.deadline.getTime())[0];
+                // Multi-signal analysis — picks the most actionable insight
+                // by priority order: pending grading → weak class → next due → all clear.
+                const now = new Date();
+                const nextDue = assignments.filter(a => a.deadline && a.deadline > now).sort((a, b) => (a.deadline as Date).getTime() - (b.deadline as Date).getTime())[0];
                 const nextDueLabel = nextDue ? timeRemaining(nextDue.deadline) : "—";
+                const overdueCount = assignments.filter(a => a.deadline && a.deadline < now && a.expected !== null && a.subCount < a.expected).length;
                 return (
                   <>
                     <div className="text-[13px] leading-[1.6] mb-[14px]" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.15px" }}>
-                      {stats.pendingGrading > 0 ? (
-                        <><strong className="text-white font-bold">{stats.pendingGrading}</strong> submission{stats.pendingGrading === 1 ? "" : "s"} waiting for your review. Grading today keeps students in the loop.</>
-                      ) : stats.totalActive === 0 ? (
+                      {stats.totalActive === 0 && assignments.length === 0 ? (
                         <>No active assignments yet. <strong className="text-white font-bold">Create your first</strong> to start tracking submissions and grades.</>
+                      ) : heaviestPendingClass && heaviestPendingClass.pending > 0 ? (
+                        <><strong className="text-white font-bold">{heaviestPendingClass.pending}</strong> submission{heaviestPendingClass.pending === 1 ? "" : "s"} from <strong className="text-white font-bold">{heaviestPendingClass.className}</strong> waiting for your review. Grade these first to keep students unblocked.</>
+                      ) : weakestClass && weakestClass.subRate !== null && weakestClass.subRate < 60 ? (
+                        <><strong className="text-white font-bold">{weakestClass.className}</strong> has the lowest submission rate at <strong className="text-white font-bold">{weakestClass.subRate}%</strong>. {nextDue ? <>Next deadline is <strong className="text-white font-bold">{nextDue.title}</strong> in {nextDueLabel.toLowerCase()} — </> : null}consider sending a class reminder.</>
+                      ) : overdueCount > 0 ? (
+                        <><strong className="text-white font-bold">{overdueCount} overdue</strong> assignment{overdueCount === 1 ? "" : "s"} with incomplete submissions. Follow up with parents or extend the deadline.</>
                       ) : nextDue ? (
-                        <><strong className="text-white font-bold">{stats.totalActive} active</strong> — <strong className="text-white font-bold">{nextDue.title}</strong> is due in {nextDueLabel.toLowerCase()}. Send a reminder to <strong className="text-white font-bold">{nextDue.className || "the class"}</strong> if submissions stall.</>
+                        <><strong className="text-white font-bold">{stats.totalActive} active</strong> — <strong className="text-white font-bold">{nextDue.title}</strong> ({nextDue.className || "—"}) due in {nextDueLabel.toLowerCase()}. {(nextDue.expected !== null && nextDue.subCount < nextDue.expected * 0.5) ? "Submissions still slow — a reminder may help." : "Submissions tracking on schedule."}</>
                       ) : (
-                        <>Nothing to grade right now — <strong className="text-white font-bold">great job</strong> staying on top of submissions.</>
+                        <>All caught up — <strong className="text-white font-bold">no pending grading</strong> and no upcoming deadlines. Use this gap to plan the next assignment.</>
                       )}
                     </div>
                     <div className="grid grid-cols-3 gap-[1px] rounded-[12px] overflow-hidden p-[1px]" style={{ background: "rgba(255,255,255,0.1)" }}>
@@ -819,9 +995,9 @@ const Assignments = () => {
               },
             ] as const).map(s => (
               <button key={s.key} type="button" onClick={s.onClick}
-                {...tilt3D}
+                {...tiltProps}
                 className="rounded-[22px] p-5 relative flex flex-col text-left overflow-hidden active:scale-[0.98] transition-all"
-                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tilt3DStyle }}>
+                style={{ background: s.tintBg, boxShadow: "0 8px 24px rgba(20,40,90,0.06), 0 2px 6px rgba(20,40,90,0.04)", border: `0.5px solid ${s.tintBorder}`, fontFamily: MA.FONT, ...tiltStyles }}>
                 <div className="absolute pointer-events-none" style={{ right: 14, bottom: 12, color: s.color, opacity: 0.22 }}>
                   {s.decor}
                 </div>
@@ -847,8 +1023,7 @@ const Assignments = () => {
                 const count =
                   key === "All"       ? assignments.length :
                   key === "To grade"  ? assignments.filter(a => a.pendingGrading > 0).length :
-                  key === "Submitted" ? assignments.filter(a => a.subCount >= a.expected && a.expected > 0).length :
-                  /* Draft */         assignments.filter(a => a.status === "Draft").length;
+                  /* Submitted */     assignments.filter(a => a.expected !== null && a.expected > 0 && a.subCount >= a.expected).length;
                 const isActive = filter === key;
                 return (
                   <button key={key} type="button" onClick={() => setFilter(key)}
@@ -912,10 +1087,8 @@ const Assignments = () => {
                     <><b className="font-bold" style={{ color: MA.T1 }}>Create your first</b> assignment to track student progress.</>
                   ) : filter === "To grade" ? (
                     <><b className="font-bold" style={{ color: MA.T1 }}>All caught up!</b> Submissions will appear here once students upload their work.</>
-                  ) : filter === "Submitted" ? (
-                    <>No fully-submitted assignments yet — check back as students turn in work.</>
                   ) : (
-                    <>No drafts right now. Every assignment you create is published live.</>
+                    <>No fully-submitted assignments yet — check back as students turn in work.</>
                   )}
                 </div>
                 <button type="button" onClick={() => setView("create")}
@@ -931,8 +1104,19 @@ const Assignments = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map(a => {
+              /* Class-wise grouped layout — each class is its own section
+                 spanning full width, with the cards rendered inside a sub-grid.
+                 Past-due cards dim via opacity + slight grayscale. */
+              <div className="flex flex-col gap-6">
+                {groupedByClass.map(g => (
+                  <div key={g.classId}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-[11px] font-bold uppercase" style={{ color: MA.P, letterSpacing: "1.5px" }}>{g.className}</span>
+                      <span className="flex-1 h-[0.5px]" style={{ background: "rgba(0,85,255,0.10)" }} />
+                      <span className="text-[11px] font-bold" style={{ color: MA.T4 }}>{g.items.length} {g.items.length === 1 ? "item" : "items"}</span>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {g.items.map(a => {
                   const accent = accentColor(a.status);
                   const pastDue = isDuePast(a.deadline);
                   const isActive = !pastDue && a.pendingGrading === 0;
@@ -940,9 +1124,9 @@ const Assignments = () => {
                     <div key={a.id}
                       onClick={() => { setSelectedAssignment(a); setView("grade"); }}
                       role="button" tabIndex={0}
-                      {...tilt3D}
+                      {...tiltProps}
                       className="bg-white rounded-[20px] p-5 relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer"
-                      style={{ boxShadow: MA.SH, border: MA.BDR, ...tilt3DStyle }}>
+                      style={{ boxShadow: MA.SH, border: MA.BDR, opacity: pastDue ? 0.62 : 1, filter: pastDue ? "grayscale(0.45)" : "none", ...tiltStyles }}>
                       <div className="absolute left-0 top-0 bottom-0 w-[4px] rounded-r-[3px]" style={{ background: accent }} />
                       {/* Head */}
                       <div className="flex items-start gap-3 mb-[14px]">
@@ -992,13 +1176,13 @@ const Assignments = () => {
                         </div>
                         <div className="py-[11px] px-[6px] text-center bg-white">
                           <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>
-                            {a.subCount}/{a.expected}
+                            {a.subCount}/{a.expected ?? "—"}
                           </div>
                           <div className="text-[9px] font-bold uppercase mt-[4px]" style={{ color: MA.T3, letterSpacing: "1px" }}>Submitted</div>
                         </div>
                       </div>
 
-                      {/* Actions */}
+                      {/* Actions — "View" removed (was identical to Grade). */}
                       <div className="flex gap-2">
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
@@ -1010,20 +1194,10 @@ const Assignments = () => {
                             fontFamily: MA.FONT, border: "none",
                           }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                          Grade
+                          Grade {a.pendingGrading > 0 ? `· ${a.pendingGrading}` : ""}
                         </button>
                         <button type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedAssignment(a); setView("grade"); }}
-                          className="flex-1 h-11 rounded-[12px] flex items-center justify-center hover:scale-[1.02] active:scale-[0.96] transition-transform"
-                          style={{
-                            background: MA.SURFACE, color: MA.T1,
-                            fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
-                            fontFamily: MA.FONT, border: "none",
-                          }}>
-                          View
-                        </button>
-                        <button type="button"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(a.id, a.title); }}
+                          onClick={(e) => { e.stopPropagation(); requestDelete(a.id, a.title); }}
                           aria-label={`Delete ${a.title}`}
                           className="w-11 h-11 rounded-[12px] flex items-center justify-center hover:scale-[1.04] active:scale-[0.92] transition-transform"
                           style={{
@@ -1036,6 +1210,9 @@ const Assignments = () => {
                     </div>
                   );
                 })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1105,6 +1282,43 @@ const Assignments = () => {
 
         </div>
       </div>{/* ═══════════ END DESKTOP VIEW ═══════════ */}
+
+      {/* ═══════════════════ DELETE CONFIRM MODAL ═══════════════════ */}
+      {pendingDelete && (
+        <div
+          role="dialog" aria-modal="true" aria-label={`Delete ${pendingDelete.title}`}
+          onClick={() => !deleting && setPendingDelete(null)}
+          onKeyDown={e => { if (e.key === "Escape" && !deleting) setPendingDelete(null); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,16,64,0.45)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16, fontFamily: MA.FONT }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: MA.CARD, borderRadius: 22, width: 420, maxWidth: "100%", padding: 24, boxShadow: "0 20px 60px rgba(0,8,40,0.3)" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(255,51,85,0.10)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MA.RED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[16px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Delete this assignment?</div>
+                <div className="text-[12px] mt-[2px] truncate" style={{ color: MA.T3 }}>"{pendingDelete.title}"</div>
+              </div>
+            </div>
+            <p className="text-[13px] mb-5" style={{ color: MA.T3, lineHeight: 1.5 }}>
+              All linked submissions and grading data will remain in the database, but this assignment will no longer appear in your list. <b style={{ color: MA.T1 }}>This cannot be undone.</b>
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPendingDelete(null)} disabled={deleting}
+                style={{ flex: "0 0 110px", height: 44, borderRadius: 12, background: MA.SURFACE, color: MA.T1, fontSize: 13, fontWeight: 700, border: "none", cursor: deleting ? "not-allowed" : "pointer", fontFamily: MA.FONT, opacity: deleting ? 0.55 : 1 }}>
+                Cancel
+              </button>
+              <button type="button" onClick={confirmDelete} disabled={deleting} autoFocus
+                style={{ flex: 1, height: 44, borderRadius: 12, background: MA.RED, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", border: "none", cursor: deleting ? "not-allowed" : "pointer", fontFamily: MA.FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: "0 1px 2px rgba(255,51,85,0.25), 0 6px 16px rgba(255,51,85,0.30)", opacity: deleting ? 0.7 : 1 }}>
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>}
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
