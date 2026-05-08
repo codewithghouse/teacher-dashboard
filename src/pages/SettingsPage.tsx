@@ -112,7 +112,8 @@ const SettingsPage = () => {
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!teacherData?.id) return;
+    if (!teacherData?.id) return toast.error("Session missing — please re-login.");
+    if (!formData.name.trim()) return toast.error("Name cannot be empty.");
     setIsSaving(true);
     try {
       await auditedUpdate(doc(db, "teachers", teacherData.id), {
@@ -122,9 +123,15 @@ const SettingsPage = () => {
         updatedAt: serverTimestamp(),
       });
       toast.success("Settings saved.");
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("[SettingsPage] save failed", e);
-      toast.error("Failed to save settings.");
+      const err = e as { code?: string; message?: string } | null;
+      const msg = err?.code === "permission-denied"
+        ? "Permission denied — check your school access."
+        : err?.code === "unavailable"
+          ? "Network unavailable — try again."
+          : err?.message || "Failed to save settings.";
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
@@ -132,9 +139,32 @@ const SettingsPage = () => {
 
   const handleReset = () => {
     if (!teacherData) return;
-    setFormData({ name: teacherData.name || "", email: teacherData.email || "", phone: teacherData.phone || "", subject: teacherData.subject || "" });
-    setNotifications({ assignments: true, grading: true, attendance: true, messages: true, risks: true });
-    toast.info("Form reset.");
+    // Restore profile fields, notifications AND preferences — full reset
+    // mirrors the "freshly loaded from auth" state.
+    setFormData({
+      name:    teacherData.name    || "",
+      email:   teacherData.email   || "",
+      phone:   teacherData.phone   || "",
+      subject: teacherData.subject || "",
+    });
+    const persistedN = (teacherData.notifications && typeof teacherData.notifications === "object")
+      ? (teacherData.notifications as Partial<NotificationSettings>) : {};
+    setNotifications({
+      assignments: typeof persistedN.assignments === "boolean" ? persistedN.assignments : true,
+      grading:     typeof persistedN.grading     === "boolean" ? persistedN.grading     : true,
+      attendance:  typeof persistedN.attendance  === "boolean" ? persistedN.attendance  : true,
+      messages:    typeof persistedN.messages    === "boolean" ? persistedN.messages    : true,
+      risks:       typeof persistedN.risks       === "boolean" ? persistedN.risks       : true,
+    });
+    const persistedP = (teacherData.preferences && typeof teacherData.preferences === "object")
+      ? (teacherData.preferences as Partial<typeof preferences>) : {};
+    setPreferences({
+      defaultView: typeof persistedP.defaultView === "string" ? persistedP.defaultView : "Grid",
+      gradeScale:  typeof persistedP.gradeScale  === "string" ? persistedP.gradeScale  : "Percentage",
+      dateFormat:  typeof persistedP.dateFormat  === "string" ? persistedP.dateFormat  : "DD/MM/YYYY",
+      language:    typeof persistedP.language    === "string" ? persistedP.language    : "English",
+    });
+    toast.info("Form reset to last saved state.");
   };
 
   const toggleNotif = (key: keyof NotificationSettings) =>

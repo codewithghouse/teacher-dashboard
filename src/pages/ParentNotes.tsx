@@ -109,6 +109,8 @@ const ParentNotes = () => {
   const [allNotes, setAllNotes]               = useState<any[]>([]);
   const [roster, setRoster]                   = useState<any[]>([]);
   const [loading, setLoading]                 = useState(true);
+  const [listenerError, setListenerError]     = useState<string | null>(null);
+  const [refreshKey, setRefreshKey]           = useState(0);
   const [searchQuery, setSearchQuery]         = useState("");
   const [messageContent, setMessageContent]   = useState("");
   const chatEndRef  = useRef<HTMLDivElement>(null);
@@ -125,6 +127,7 @@ const ParentNotes = () => {
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     const schoolId = teacherData.schoolId;
+    setListenerError(null);
 
     const q1 = query(
       collection(db, "enrollments"),
@@ -133,12 +136,23 @@ const ParentNotes = () => {
     );
     const unsub1 = onSnapshot(q1, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const map = new Map();
+      // Compound dedup key — single-key fallback could double-bucket students
+      // with partial fields (memory: bug_pattern_enrollment_row_dedup).
+      // Prefer canonical studentId, then email, then enrollment id.
+      const normKey = (s: string) => (s || "").trim().toLowerCase();
+      const map = new Map<string, any>();
       docs.forEach((d: any) => {
-        const key = (d.studentId || d.studentEmail || d.id).toLowerCase();
-        if (!map.has(key)) map.set(key, d);
+        const idPart = d.studentId
+          ? `id:${normKey(String(d.studentId))}`
+          : d.studentEmail
+            ? `em:${normKey(String(d.studentEmail))}`
+            : `enr:${normKey(String(d.id))}`;
+        if (!map.has(idPart)) map.set(idPart, d);
       });
       setRoster(Array.from(map.values()));
+    }, err => {
+      console.error("[ParentNotes] roster subscription failed:", err);
+      setListenerError(err.message || "Live updates disrupted.");
     });
 
     const q2 = query(
@@ -151,10 +165,14 @@ const ParentNotes = () => {
       data.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
       setAllNotes(data);
       setLoading(false);
+    }, err => {
+      console.error("[ParentNotes] notes subscription failed:", err);
+      setListenerError(err.message || "Live updates disrupted.");
+      setLoading(false);
     });
 
     return () => { unsub1(); unsub2(); };
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
 
   // Auto-open recipient when navigated here from ConceptMasteryDetail or
   // RisksAlerts "Contact Parent" buttons. Runs once roster has populated;
@@ -280,6 +298,7 @@ const ParentNotes = () => {
         studentName:  selectedStudent.studentName  || "",
         parentName:   `Parent of ${selectedStudent.studentName}`,
         content, from: "teacher", status: "Sent",
+        read: false,  // parent-side unread counter
         createdAt: serverTimestamp(),
       });
     } catch (e) {
@@ -357,6 +376,7 @@ const ParentNotes = () => {
         studentName:  recipient.studentName  || "",
         parentName:   `Parent of ${recipient.studentName}`,
         content, from: "teacher", status: "Sent",
+        read: false,  // parent-side unread counter
         createdAt: serverTimestamp(),
       });
       toast.success(`Message sent to parent of ${recipient.studentName}`);
@@ -381,6 +401,41 @@ const ParentNotes = () => {
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <>
+      {listenerError && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)",
+            zIndex: 60, maxWidth: 480, width: "92%",
+            background: "linear-gradient(135deg, #FFF1F1 0%, #FFE3E3 100%)",
+            border: "0.5px solid rgba(255,51,85,.25)",
+            borderRadius: 14, padding: "10px 14px",
+            display: "flex", alignItems: "center", gap: 10,
+            boxShadow: "0 6px 18px rgba(255,51,85,.12)",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF3355" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#001040" }}>Live updates disrupted</div>
+            <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 2 }}>{listenerError}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setListenerError(null); setLoading(true); setRefreshKey(k => k + 1); }}
+            style={{
+              padding: "6px 12px", borderRadius: 10,
+              background: "#FF3355", color: "#fff",
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+              border: "none", cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 4px 10px rgba(255,51,85,.28)",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {selectedStudent ? <ChatView /> : <ListView />}
       {showCompose && (
         <>

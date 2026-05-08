@@ -522,8 +522,8 @@ const MobileReports = ({
                 <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Generated</div>
               </div>
               <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>~6s</div>
-                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Avg Time</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>{generatedThisWeek}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>This Week</div>
               </div>
             </div>
           </div>
@@ -682,9 +682,9 @@ const MobileReports = ({
         <div style={{ padding: "12px 4px 10px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Intelligence output history</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#001040", letterSpacing: "-0.35px" }}>Recent reports</div>
               <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 4 }}>
-                {history.length === 0 ? "Audit trail" : `${history.length} report${history.length === 1 ? "" : "s"} on record`}
+                {history.length === 0 ? "History" : `${history.length} report${history.length === 1 ? "" : "s"} generated`}
               </div>
             </div>
             {history.length > 10 && (
@@ -971,8 +971,8 @@ const DesktopReports = ({
                   <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Generated</div>
                 </div>
                 <div style={{ background: "rgba(0,10,51,.7)", padding: "16px 20px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.7px" }}>~6s</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>Avg Time</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.7px" }}>{generatedThisWeek}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 4 }}>This Week</div>
                 </div>
               </div>
             </div>
@@ -1133,9 +1133,9 @@ const DesktopReports = ({
         {/* History section header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "8px 4px 12px" }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Intelligence output history</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#001040", letterSpacing: "-0.4px" }}>Recent reports</div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 5 }}>
-              {history.length === 0 ? "Audit trail" : `${history.length} report${history.length === 1 ? "" : "s"} on record`}
+              {history.length === 0 ? "History" : `${history.length} report${history.length === 1 ? "" : "s"} generated`}
             </div>
           </div>
           {history.length > 10 && (

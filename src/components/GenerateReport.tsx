@@ -15,22 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  FileText, Download, Loader2, Calendar, Sparkles, BrainCircuit, 
-  CheckCircle2, AlertTriangle, RefreshCw, Layers, UserCircle, Search, 
-  BarChart3, PieChart, TrendingUp, Presentation, Clock, Info, BookOpen, 
-  ShieldCheck, Activity, Target, ArrowUpRight, GraduationCap, ShieldAlert,
-  Bot, Table2 as TableIcon
+import {
+  FileText, Download, Loader2, Sparkles,
+  CheckCircle2, AlertTriangle, Layers, UserCircle,
+  BarChart3, TrendingUp, Clock,
+  ShieldCheck, ShieldAlert,
+  Table2 as TableIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AIController } from "../ai/controller/ai-controller";
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs, serverTimestamp, doc } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
+import { buildReport, openReportWindow, EDULLENT_NAME } from "../lib/reportTemplate";
 const loadXLSX = () => import("xlsx");
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import StudentProfile from "./StudentProfile";
 
 interface GenerateReportProps {
   isOpen: boolean;
@@ -51,7 +50,8 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
     classId: "",
     grade: "",
     studentId: "",
-    format: "pdf"
+    format: "pdf",
+    scope: "class" as "class" | "individual",
   });
 
   useEffect(() => {
@@ -59,41 +59,93 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
       setReportResult(null);
       setIsSent(false);
       setCurrentReportId(null);
+      // Reset per-modal-open: scope defaults to 'class' for the attendance
+      // toggle; clear student so the picker placeholder shows fresh.
+      setParams(p => ({ ...p, scope: "class", studentId: "" }));
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId || !isOpen) return;
     const schoolId = teacherData.schoolId;
-    const fetchInstitutionalData = async () => {
+    let cancelled = false;
+    const fetchClassesAndRoster = async () => {
        try {
          const q1 = query(collection(db, "teaching_assignments"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id));
          const q2 = query(collection(db, "classes"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id));
 
          const [asgnSnap, clsSnap] = await Promise.all([getDocs(q1), getDocs(q2)]);
+         if (cancelled) return;
          const combined = [...asgnSnap.docs.map(d => ({id: d.id, ...d.data()})), ...clsSnap.docs.map(d => ({id: d.id, ...d.data()}))];
 
-         const map = new Map();
-         combined.forEach((c:any) => {
-            const id = c.classId || c.id;
-            if(!map.has(id)) map.set(id, { id: c.id, classId: id, name: c.className || c.name, subject: c.subjectName || c.subject, grade: c.grade });
+         // Resolve a usable label for the class — writers across the codebase
+         // store the name field under different keys (`name`, `className`,
+         // `classTitle`, `title`). When ALL of them are empty, fall back to
+         // the subject + section/grade combo, then finally a classId snippet
+         // so a class is never rendered as a bare bullet/blank row.
+         const pickName = (c: any): string => {
+           const cands = [c.className, c.name, c.classTitle, c.title];
+           for (const v of cands) {
+             if (typeof v === "string" && v.trim()) return v.trim();
+           }
+           const subj = (c.subjectName || c.subject || "").toString().trim();
+           const sect = (c.grade || c.section || c.standard || "").toString().trim();
+           if (subj && sect) return `${subj} · ${sect}`;
+           if (subj)         return subj;
+           const cid = (c.classId || c.id || "").toString();
+           return cid ? `Class ${cid.slice(-6)}` : "Unnamed class";
+         };
+
+         // Dedupe by classId. When the same classId appears in BOTH
+         // teaching_assignments and classes, prefer the doc with a real
+         // name field over the placeholder one (e.g. teaching_assignment
+         // missing className but classes doc has it).
+         const map = new Map<string, any>();
+         combined.forEach((c: any) => {
+           const classId = c.classId || c.id;
+           const candidate = {
+             id: c.id,
+             classId,
+             name: pickName(c),
+             subject: c.subjectName || c.subject || "",
+             grade: c.grade || c.section || c.standard || "",
+           };
+           const existing = map.get(classId);
+           if (!existing) {
+             map.set(classId, candidate);
+             return;
+           }
+           // Upgrade: prefer the candidate with an actual class name (not a
+           // synthesised "Class ABCDEF" / "Subject · Section" fallback).
+           const existingHasRealName = !!(existing.name && !/^Class [A-Za-z0-9]{1,6}$/.test(existing.name));
+           const candidateHasRealName = !!(candidate.name && !/^Class [A-Za-z0-9]{1,6}$/.test(candidate.name));
+           if (!existingHasRealName && candidateHasRealName) {
+             map.set(classId, candidate);
+           }
          });
          setClasses(Array.from(map.values()));
 
          const qEnrol = query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id));
          const enrolSnap = await getDocs(qEnrol);
+         if (cancelled) return;
          setRoster(enrolSnap.docs.map(d => ({ id: d.id, ...d.data() })));
        } catch (error) {
-         console.error("Critical Registry Load Failure:", error);
+         if (cancelled) return;
+         console.error("[GenerateReport] classes/roster fetch failed:", error);
+         toast.error("Could not load classes. Please close and retry.");
        }
     };
-    fetchInstitutionalData();
+    fetchClassesAndRoster();
+    return () => { cancelled = true; };
   }, [teacherData?.id, teacherData?.schoolId, isOpen]);
 
   const handleGenerate = async () => {
-    if (!params.classId) return toast.error("Please identify a class subdivision.");
-    if (report?.id === "individual_progress" && !params.studentId) return toast.error("Please select a target student.");
-    if (!teacherData?.schoolId || !teacherData?.id) return toast.error("School identity missing — please re-login.");
+    if (!params.classId) return toast.error("Please select a class.");
+    if (report?.id === "individual_progress" && !params.studentId) return toast.error("Please select a student.");
+    if (report?.id === "attendance_summary" && params.scope === "individual" && !params.studentId) {
+      return toast.error("Please select a student.");
+    }
+    if (!teacherData?.schoolId || !teacherData?.id) return toast.error("School session missing — please re-login.");
 
     setIsGenerating(true);
     setReportResult(null);
@@ -105,41 +157,84 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        let filteredRoster = roster.filter(s => s.classId === targetClassId);
 
        if (filteredRoster.length === 0) throw new Error("No students enrolled in this class yet.");
-       const [allAtt, allScores, allResults, allNotes] = await Promise.all([
-          getDocs(query(collection(db, "attendance"), where("schoolId", "==", schoolId), where("classId", "==", targetClassId))),
-          getDocs(query(collection(db, "gradebook_scores"), where("schoolId", "==", schoolId), where("classId", "==", targetClassId))),
-          getDocs(query(collection(db, "results"), where("schoolId", "==", schoolId), where("classId", "==", targetClassId))),
-          getDocs(query(collection(db, "parent_notes"), where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id)))
+       // Scores live in TWO collections per memory `owner_dashboard_alternate_data_sources`:
+       // gradebook_scores (continuous assessment) + test_scores (test/exam writes).
+       // Reports must read both or it'll miss ~40% of records (typical split).
+       // results is a third co-canonical source for tabulated outputs.
+       const [allAtt, allScores, allTestScores, allResults, allNotes] = await Promise.all([
+          getDocs(query(collection(db, "attendance"),       where("schoolId", "==", schoolId), where("classId", "==", targetClassId))).catch(() => ({ docs: [] as any[] })),
+          getDocs(query(collection(db, "gradebook_scores"), where("schoolId", "==", schoolId), where("classId", "==", targetClassId))).catch(() => ({ docs: [] as any[] })),
+          getDocs(query(collection(db, "test_scores"),      where("schoolId", "==", schoolId), where("classId", "==", targetClassId))).catch(() => ({ docs: [] as any[] })),
+          getDocs(query(collection(db, "results"),          where("schoolId", "==", schoolId), where("classId", "==", targetClassId))).catch(() => ({ docs: [] as any[] })),
+          getDocs(query(collection(db, "parent_notes"),     where("schoolId", "==", schoolId), where("teacherId", "==", teacherData.id))).catch(() => ({ docs: [] as any[] })),
        ]);
 
-       const attDocs = allAtt.docs.map(d => d.data());
-       const gradeDocs = allScores.docs.map(d => d.data());
-       const resultDocs = allResults.docs.map(d => d.data());
-       const noteDocs = allNotes.docs.map(d => d.data());
+       const attDocs    = allAtt.docs.map((d: any) => d.data());
+       const gradeDocs  = [...allScores.docs.map((d: any) => d.data()), ...allTestScores.docs.map((d: any) => d.data())];
+       const resultDocs = allResults.docs.map((d: any) => d.data());
+       const noteDocs   = allNotes.docs.map((d: any) => d.data());
+
+       // Strict 3-tier student attribution (memory: pattern_3tier_attribution)
+       // Substring `id?.includes` REMOVED — was leaking cross-student matches.
+       const filterByStudent = (sId: string, sEmail: string | undefined) => (arr: any[]) => arr.filter(item => {
+         if (sId && item.studentId && item.studentId === sId) return true;
+         if (sEmail && typeof item.studentEmail === "string" && item.studentEmail.toLowerCase() === sEmail) return true;
+         return false;
+       });
+
+       // getPct returns null on no-data (memory: bug_pattern_score_zero_no_data
+       // + bug_pattern_score_field_singular_mark). Field shape coverage:
+       //   1. explicit `percentage` always wins
+       //   2. `mark`/`marks`/`score` paired with their max → compute %
+       //   3. raw `mark`/`marks`/`score` already in [0,100] AND no max set →
+       //      treat as percentage (covers writers who store percent directly)
+       const getPct = (sc: any): number | null => {
+         const num = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+         const pct = num(sc?.percentage);
+         if (pct !== null) return Math.max(0, Math.min(100, pct));
+
+         const maxMarks = num(sc?.maxMarks);
+         const ms = num(sc?.mark);
+         if (ms !== null && maxMarks && maxMarks > 0) return Math.max(0, Math.min(100, ms / maxMarks * 100));
+         const mp = num(sc?.marks);
+         if (mp !== null && maxMarks && maxMarks > 0) return Math.max(0, Math.min(100, mp / maxMarks * 100));
+         const score = num(sc?.score);
+         const maxScore = num(sc?.maxScore);
+         if (score !== null && maxScore && maxScore > 0) return Math.max(0, Math.min(100, score / maxScore * 100));
+
+         // Permissive fallback — raw value already looks like a percentage.
+         // Only triggers when no max field is present and value is in [0,100].
+         if (ms    !== null && !maxMarks && ms    >= 0 && ms    <= 100) return ms;
+         if (mp    !== null && !maxMarks && mp    >= 0 && mp    <= 100) return mp;
+         if (score !== null && !maxScore && score >= 0 && score <= 100) return score;
+         return null;
+       };
+
+       // Behaviour signals — word-boundary regex avoids false positives
+       // (e.g. "no distraction at all", "got better at trouble spots").
+       // Dropped "trouble"/"distraction"/"weak" — too generic.
+       const NEG_NOTE_RE = /\b(aggressive|aggression|bully|bullied|bullying|disruptive|disruption|distracting|refused|fight|fought|misbehav|insubordinat|incomplete|absent without)\b/;
 
        const enrichedPerformance = filteredRoster.map((student: any) => {
           const sId = student.studentId;
           const sEmail = student.studentEmail?.toLowerCase();
-          const filterByStudent = (arr: any[]) => arr.filter(item =>
-             (sId && (item.studentId === sId || item.id?.includes(sId))) || (sEmail && item.studentEmail?.toLowerCase() === sEmail)
-          );
+          const sf = filterByStudent(sId, sEmail);
 
-          const sAtt = filterByStudent(attDocs);
-          const sGrades = [...filterByStudent(gradeDocs), ...filterByStudent(resultDocs)];
-          const sNotes = filterByStudent(noteDocs);
+          const sAtt = sf(attDocs);
+          const sGrades = [...sf(gradeDocs), ...sf(resultDocs)];
+          const sNotes = sf(noteDocs);
 
           const hasAtt    = sAtt.length > 0;
           const present   = sAtt.filter(a => a.status === 'present' || a.status === 'late').length;
           const atndRate  = hasAtt ? (present / sAtt.length) * 100 : 0;
 
-          const getPct = (sc: any) => Number(sc.percentage || (sc.mark/sc.maxMarks*100) || (sc.score || 0));
-          const scores = sGrades.map(getPct).filter(v => v >= 0);
-          const hasScores = scores.length > 0;
-          const avgScore  = hasScores ? (scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
+          const scoreNums = sGrades.map(getPct).filter((v): v is number => v !== null);
+          const hasScores = scoreNums.length > 0;
+          const avgScore  = hasScores ? (scoreNums.reduce((a, b) => a + b, 0) / scoreNums.length) : 0;
 
-          const hasNegNote = sNotes.some((n:any) => {
-             const text = (n.content || "").toLowerCase();
-             return text.includes("issue") || text.includes("distraction") || text.includes("trouble") || text.includes("weak");
+          const hasNegNote = sNotes.some((n: any) => {
+             const text = (n.content || n.message || "").toLowerCase();
+             return NEG_NOTE_RE.test(text);
           });
 
           return {
@@ -167,25 +262,37 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           : 0;
 
        let resultData: any = {};
-       const contextStr = enrichedPerformance.map(s => `${s.name}: ${s.score}% (${s.attendance}% ATND)`).join(", ");
+
+       // Rule-based summary builder — composes the report's narrative from
+       // real numbers without any external AI call. Per memory
+       // teacher_dashboard_ai_strategy: Reports stays AI-free.
+       const buildClassSummary = (): string => {
+          if (studentsWithScores.length === 0 && studentsWithAtt.length === 0) {
+             return `No test scores or attendance records yet for this class. The report will populate once data is entered.`;
+          }
+          const parts: string[] = [];
+          const subjLabel = selectedClass?.subject || "this class";
+          if (studentsWithScores.length > 0) {
+             const tier = classAvg >= 80 ? "performing strongly" : classAvg >= 60 ? "performing steadily" : "below expected levels";
+             parts.push(`${subjLabel} is ${tier} with a class average of ${classAvg}%`);
+             const struggling = enrichedPerformance.filter(s => s.hasScores && s.score < 60);
+             if (struggling.length > 0) {
+                parts.push(`${struggling.length} student${struggling.length === 1 ? "" : "s"} ${struggling.length === 1 ? "is" : "are"} below 60% — focused remediation recommended`);
+             }
+          }
+          if (studentsWithAtt.length > 0) {
+             const attTier = classAtnd >= 90 ? "excellent" : classAtnd >= 80 ? "good" : classAtnd >= 70 ? "adequate" : "concerning";
+             parts.push(`attendance is ${attTier} at ${classAtnd}%`);
+          }
+          return parts.join(". ").replace(/\.+$/, "") + ".";
+       };
 
        if (report.id === "class_perf") {
-          const aiResponse = await AIController.getDetailedSubjectReport({
-             subject: selectedClass?.subject || "Curriculum",
-             grade: selectedClass?.grade || "N/A",
-             avg_score: classAvg,
-             struggles: enrichedPerformance.filter(s => s.score < 60).map(s => s.name),
-             mastery_level: classAvg > 80 ? "Proficient" : "Progressing",
-             context: contextStr
-          });
           resultData = {
               isClassReport: true,
               subject: selectedClass?.subject || "Subject",
               className: selectedClass?.name,
-              aiRemarks: aiResponse?.data?.report_content
-                 || (studentsWithScores.length > 0
-                    ? `Class engagement remains stable at ${classAvg}%.`
-                    : `No test scores recorded yet for this class — report will populate once grades are entered.`),
+              aiRemarks: buildClassSummary(),
               chartData: studentsWithScores.map(s => ({ name: s.name.split(' ')[0], score: s.score, atnd: s.attendance })),
               summary: {
                  avg:        studentsWithScores.length > 0 ? `${classAvg}%`  : "N/A",
@@ -197,9 +304,15 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
               studentsWithAttCount: studentsWithAtt.length,
               totalStudents: enrichedPerformance.length,
           };
-       } else if (report.id === "individual_progress") {
+       } else if (
+          report.id === "individual_progress"
+          || (report.id === "attendance_summary" && params.scope === "individual")
+       ) {
+          // Both report types resolve to a per-student profile view. The
+          // landing page (StudentProfile on /students) already surfaces
+          // attendance details, so attendance_summary individual scope
+          // routes through the same flow.
           const sel = enrichedPerformance.find(s => (s.studentId === params.studentId || s.email?.toLowerCase() === params.studentId?.toLowerCase())) || enrichedPerformance[0];
-          const aiResponse = await AIController.getIndividualProgressReport({ student_name: sel.name, subject: selectedClass?.subject || "General", score: sel.score, attendance: sel.attendance });
 
           // Extra fetches for rich individual card
           const [extraStudentSnap, feesSnap, incidentSnap, pfSnap] = await Promise.all([
@@ -249,13 +362,22 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
              content: (n.content || "").substring(0, 50),
           }));
 
-          // AI remark only mentions numbers we actually have
+          // Rule-based remark — only mentions numbers we actually have. No
+          // AI call (memory: teacher_dashboard_ai_strategy keeps reports AI-free).
           const remarkParts: string[] = [];
           if (sel.hasScores) remarkParts.push(`score of ${sel.score}%`);
           if (sel.hasAtt)    remarkParts.push(`attendance of ${sel.attendance}%`);
-          const defaultRemark = remarkParts.length > 0
-             ? `${sel.name} currently has ${remarkParts.join(" and ")}.`
-             : `No academic or attendance data recorded for ${sel.name} yet — report will populate once data is entered.`;
+          let studentRemark: string;
+          if (remarkParts.length === 0) {
+             studentRemark = `No academic or attendance data recorded for ${sel.name} yet — report will populate once data is entered.`;
+          } else {
+             const standing = sel.hasScores && sel.score >= 75 ? "performing strongly"
+                : sel.hasScores && sel.score >= 60 ? "performing steadily"
+                : sel.hasScores ? "needs academic support"
+                : "data partial";
+             studentRemark = `${sel.name} is ${standing} with ${remarkParts.join(" and ")}.`;
+             if (sel.hasNegNote) studentRemark += " Behaviour note logged this term — flag for follow-up.";
+          }
 
           // Risk level honest: only compute when we have data
           const riskLevel = (!sel.hasScores && !sel.hasAtt)
@@ -290,7 +412,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
              hasScores: sel.hasScores,
              hasAtt:    sel.hasAtt,
              standing: sel.standing,
-             ai_remark: aiResponse?.data?.report_content || defaultRemark,
+             ai_remark: studentRemark,
              gender, age,
              grade: studentDoc.grade || studentDoc.class || selectedClass?.grade || "—",
              rollNo: sel.rollNo || studentDoc.rollNo || studentDoc.studentId?.substring(0, 8) || "—",
@@ -315,9 +437,15 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
              lowAttendance: enrichedPerformance
                 .filter(s => s.hasAtt && s.attendance < 80)
                 .map(s => ({ name: s.name, rate: s.attendance })),
-             aiRemarks: studentsWithAtt.length > 0
-                ? `Attendance is sitting at ${classAtnd}%.`
-                : `No attendance records yet for this class — summary will populate once attendance is marked.`,
+             aiRemarks: studentsWithAtt.length === 0
+                ? `No attendance records yet for this class — summary will populate once attendance is marked.`
+                : (() => {
+                    const lowCount = enrichedPerformance.filter(s => s.hasAtt && s.attendance < 80).length;
+                    const tier = classAtnd >= 90 ? "excellent" : classAtnd >= 80 ? "good" : classAtnd >= 70 ? "adequate" : "concerning";
+                    let msg = `Class attendance is ${tier} at ${classAtnd}%.`;
+                    if (lowCount > 0) msg += ` ${lowCount} student${lowCount === 1 ? "" : "s"} below 80% — follow up with parents.`;
+                    return msg;
+                  })(),
              studentsWithAttCount: studentsWithAtt.length,
              totalStudents: enrichedPerformance.length,
           };
@@ -334,43 +462,118 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
              className: selectedClass?.name,
              atRiskList: atRisk,
              aiRemarks: atRisk.length > 0
-                ? `Intervention Protocol: ${atRisk.length} scholar${atRisk.length !== 1 ? "s" : ""} flagged based on scores, attendance, or teacher notes.`
+                ? `${atRisk.length} student${atRisk.length === 1 ? "" : "s"} flagged based on scores, attendance, or behaviour notes. Recommend parent outreach this week.`
                 : `No at-risk students detected in this class.`,
              studentsWithDataCount: enrichedPerformance.filter(s => s.hasScores || s.hasAtt).length,
              totalStudents: enrichedPerformance.length,
           };
        }
 
+       // Branding embedded on the doc itself so teacher/parent dashboards
+       // render the SAME WYSIWYG report (branch name, logo, theme) without
+       // an extra fetch on the school record. Snapshot semantics — if the
+       // school updates its logo later, NEW reports get the new logo, OLD
+       // reports keep the old (audit trail integrity).
+       // Mirrors the principal-dashboard GenerateReport pattern.
+       const td = teacherData as any;
+       const branchName = td.branchName || td.branch || td.branchTitle || "";
        const firestorePayload: any = {
           schoolId,
           teacherId: teacherData.id || "unknown",
-          teacherName: teacherData.name || "Faculty",
+          teacherName: teacherData.name || "Teacher",
           studentId: params.studentId || "all",
-          studentName: report.id === "individual_progress" ? (resultData.student_name || "Scholar") : "Class Registry",
+          studentName: report.id === "individual_progress" ? (resultData.student_name || "Student") : "Class",
           classId: targetClassId || params.classId || "unknown",
           type: report.id || "general",
           title: report.title || "Academic Report",
           grade: selectedClass?.grade || "N/A",
-          className: selectedClass?.name || "General Registry",
+          className: selectedClass?.name || "Class",
           createdAt: serverTimestamp(),
           status: "Draft",
           format: params.format || "pdf",
+          // Branding fields — empty strings fall back to Edullent defaults
+          // in reportTemplate.ts (logoUrl → EDULLENT_LOGO_URL, themeColor →
+          // EDULLENT_BRAND_COLOR, schoolName → "Edullent").
+          branchName,
+          schoolName: td.schoolName || "",
+          logoUrl:    td.logoUrl    || "",
+          themeColor: td.themeColor || "",
+          generatedBy: teacherData.name || "Teacher",
           data: JSON.parse(JSON.stringify(resultData)) // Deep-strip all undefineds
        };
        if (teacherData.branchId) firestorePayload.branchId = teacherData.branchId;
 
        const docRef = await auditedAdd(collection(db, "reports"), firestorePayload);
-
        setCurrentReportId(docRef.id);
        setIsSent(false);
+
+       // For per-student reports (individual_progress + attendance_summary
+       // with individual scope), the modal is the wrong surface — the rich
+       // student profile (academic, attendance, subject mastery, behaviour,
+       // fees, parent communication, skills) goes straight into the PDF.
+       // We open the PDF in a new tab immediately; for Excel we download
+       // the row data. Either way, the modal closes after.
+       const isIndividualScope =
+         report.id === "individual_progress"
+         || (report.id === "attendance_summary" && params.scope === "individual");
+       if (isIndividualScope) {
+         try {
+           if (params.format === "excel") {
+             const XLSX = await loadXLSX();
+             const td = teacherData as any;
+             const branchLabel = td?.branchName || td?.branch || td?.schoolName || EDULLENT_NAME;
+             const now = new Date().toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+             const r = resultData;
+             const headerRows: any[][] = [
+               [`${EDULLENT_NAME} — ${branchLabel}`],
+               [`${r.student_name || "Student"} — ${report.title || "Progress Report"}`],
+               [`Generated by ${teacherData?.name || "Teacher"}  ·  ${now}`],
+               [],
+               ["Field", "Value"],
+               ["Name",            r.student_name || "—"],
+               ["Roll No",         r.rollNo || "—"],
+               ["Class",           r.className || "—"],
+               ["Grade",           r.grade || "—"],
+               ["Subject",         r.subject || "—"],
+               ["Average Score",   r.hasScores ? `${r.score}%` : "—"],
+               ["Attendance",      r.hasAtt    ? `${r.atnd}%`  : "—"],
+               ["Risk Level",      r.riskLevel || "—"],
+               ["Predicted Score", r.predictedScore != null ? `${r.predictedScore}%` : "—"],
+               ["Warnings",        r.warnings ?? 0],
+               ["Detentions",      r.detentions ?? 0],
+               ["Positive Remarks", r.positiveRemarks ?? 0],
+               ["Total Fee",       r.totalFee != null ? `₹${r.totalFee}` : "—"],
+               ["Paid Fee",        r.paidFee  != null ? `₹${r.paidFee}`  : "—"],
+               ["Pending Fee",     r.pendingFee != null ? `₹${r.pendingFee}` : "—"],
+               ["Last Payment",    r.lastPayDate || "—"],
+             ];
+             const ws = XLSX.utils.aoa_to_sheet(headerRows);
+             const wb = XLSX.utils.book_new();
+             XLSX.utils.book_append_sheet(wb, ws, "Profile");
+             const safeName = String(r.student_name || "student").replace(/[^a-z0-9_-]/gi, "_");
+             XLSX.writeFile(wb, `Edullent_${safeName}_profile_${new Date().toISOString().slice(0,10)}.xlsx`);
+           } else {
+             const html = buildReport(buildIndividualPayload(resultData));
+             openReportWindow(html);
+           }
+           toast.success("Report saved. Opened in new tab.");
+         } catch (downloadErr) {
+           console.error("[GenerateReport] individual export failed", downloadErr);
+           toast.error("Could not open report. Try again.");
+         }
+         onOpenChange(false);
+         return;
+       }
+
+       // Class / attendance / at-risk: render result view inside the modal
        setReportResult(resultData);
-       toast.success("Intelligence Harvest Complete!");
+       toast.success("Report generated successfully.");
     } catch (e: unknown) {
        console.error("[GenerateReport] report generation failed", e);
        const err = e as { code?: string; message?: string } | null;
        const msg = err?.code === "permission-denied"
          ? "Permission denied — check your school access."
-         : err?.message || "Harvesting failure.";
+         : err?.message || "Failed to generate report.";
        toast.error(msg);
     } finally {
        setIsGenerating(false);
@@ -385,7 +588,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        const isToPrincipal = portal === "principal" || portal === "both";
 
        await auditedUpdate(doc(db, "reports", currentReportId), {
-          status: portal === "both" ? "Global Broadcast Complete" : (portal === "parent" ? "Synced to Parent" : "Reported to Principal"),
+          status: portal === "both" ? "Sent to Parent and Principal" : (portal === "parent" ? "Sent to Parent" : "Sent to Principal"),
           publishedToParent: isToParent,
           sentToPrincipal: isToPrincipal,
           sentAt: serverTimestamp()
@@ -395,12 +598,12 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           if (!teacherData?.schoolId) throw new Error("School identity missing — cannot route to principal.");
           const prPayload: Record<string, unknown> = {
              teacherId: teacherData.id || "unknown",
-             teacherName: teacherData.name || "Faculty",
+             teacherName: teacherData.name || "Teacher",
              schoolId: teacherData.schoolId,
              reportId: currentReportId,
              reportType: (report.id || "general").toUpperCase(),
              title: `${report.title || "Report"} - ${reportResult.className || "Class"}`,
-             content: reportResult.aiRemarks || reportResult.ai_remark || "Intelligence Manifest Attached.",
+             content: reportResult.aiRemarks || reportResult.ai_remark || "Report attached.",
              metrics: {
                 avgScore: reportResult.summary?.avg || reportResult.score || 0,
                 attendanceRate: reportResult.summary?.attendance || reportResult.atnd || 0,
@@ -413,204 +616,810 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
        }
 
        setIsSent(true);
-       toast.success(portal === "both" ? "Global Infrastructure Sync Complete!" : "Registry Mirror Updated.");
+       toast.success(portal === "both" ? "Sent to Parent and Principal." : portal === "parent" ? "Sent to Parent." : "Sent to Principal.");
     } catch (e: unknown) {
        console.error("[GenerateReport] portal sync failed", e);
-       toast.error("Mirror sync error.");
+       toast.error("Failed to send. Try again.");
     } finally {
        setIsSending(false);
     }
   };
 
-  const handleDownload = async () => {
-     if (params.format === 'excel') {
-        const XLSX = await loadXLSX();
+  // Builds the heroStats + sections that buildReport consumes. Mirrors the
+  // shape that Reports.tsx history-download builds for old reports.
+  // Build the rich student-profile PDF payload from resultData. Mirrors
+  // the StudentProfile UI's information density (academic, attendance,
+  // behaviour, fees, parent comms, skills, predicted score) so the PDF
+  // captures everything a teacher would see on the in-app profile.
+  const buildIndividualPayload = (r: any) => {
+    const td = teacherData as any;
+    const branchLabel = td?.branchName || td?.branch || td?.schoolName || EDULLENT_NAME;
 
-        const ws = XLSX.utils.json_to_sheet(reportResult.fullList || [reportResult]);
+    const heroStats: any[] = [
+      { label: "Average Score", value: r.hasScores ? `${r.score}%` : "—",
+        color: r.hasScores ? (r.score >= 75 ? "#4ade80" : r.score >= 50 ? "#fbbf24" : "#f87171") : undefined },
+      { label: "Attendance",    value: r.hasAtt    ? `${r.atnd}%`  : "—",
+        color: r.hasAtt    ? (r.atnd  >= 85 ? "#4ade80" : "#fbbf24") : undefined },
+      { label: "Risk Level",    value: r.riskLevel || "—",
+        color: r.riskLevel === "LOW" ? "#4ade80" : r.riskLevel === "HIGH" ? "#f87171" : "#fbbf24" },
+      { label: "Class",         value: r.className || "—" },
+    ];
+
+    const sections: any[] = [];
+
+    sections.push({
+      title: "Student Profile",
+      type: "stats",
+      stats: [
+        { label: "Name",     value: r.student_name || "—" },
+        { label: "Roll No",  value: r.rollNo       || "—" },
+        { label: "Grade",    value: r.grade        || "—" },
+        { label: "Subject",  value: r.subject      || "—" },
+      ],
+    });
+
+    const bars: any[] = [];
+    if (r.hasScores) bars.push({ label: "Average Score", value: r.score });
+    if (r.hasAtt)    bars.push({ label: "Attendance",    value: r.atnd });
+    if (r.predictedScore != null) bars.push({ label: "Predicted Score", value: r.predictedScore, color: "#7B3FF4" });
+    if (bars.length > 0) sections.push({ title: "Performance Outlook", type: "bars", bars });
+
+    if (r.ai_remark) {
+      sections.push({ title: "Teacher Remarks", type: "text", text: r.ai_remark });
+    }
+
+    if ((r.warnings ?? 0) > 0 || (r.detentions ?? 0) > 0 || (r.positiveRemarks ?? 0) > 0) {
+      sections.push({
+        title: "Behaviour Record",
+        type: "stats",
+        stats: [
+          { label: "Warnings",         value: r.warnings ?? 0,        color: (r.warnings ?? 0) > 0 ? "#dc2626" : undefined },
+          { label: "Detentions",       value: r.detentions ?? 0,      color: (r.detentions ?? 0) > 0 ? "#dc2626" : undefined },
+          { label: "Positive Remarks", value: r.positiveRemarks ?? 0, color: "#16a34a" },
+        ],
+      });
+    }
+
+    if (r.totalFee != null && r.totalFee > 0) {
+      sections.push({
+        title: "Fees",
+        type: "stats",
+        stats: [
+          { label: "Total Fee",    value: `₹${r.totalFee}` },
+          { label: "Paid",         value: `₹${r.paidFee || 0}`,    color: "#16a34a" },
+          { label: "Pending",      value: `₹${r.pendingFee || 0}`, color: r.pendingFee > 0 ? "#dc2626" : "#16a34a" },
+          { label: "Last Payment", value: r.lastPayDate || "—" },
+        ],
+      });
+    }
+
+    if (Array.isArray(r.parentContacts) && r.parentContacts.length > 0) {
+      sections.push({
+        title: "Parent Communication",
+        type: "table",
+        headers: ["Type", "Date", "Note"],
+        rows: r.parentContacts.map((p: any) => ({
+          cells: [p.label || "Note", p.date || "—", p.content || "—"],
+        })),
+      });
+    }
+
+    if (Array.isArray(r.skills) && r.skills.length > 0) {
+      sections.push({
+        title: "Skills & Activities",
+        type: "list",
+        items: r.skills,
+      });
+    }
+
+    return {
+      title: `${r.student_name || "Student"} — Progress Report`,
+      subtitle: `${r.className || "Class"} · Roll ${r.rollNo || "—"} · Generated by ${teacherData?.name || "Teacher"}`,
+      badge: r.riskLevel || "",
+      schoolName: branchLabel,
+      generatedBy: teacherData?.name || "Teacher",
+      logoUrl: td?.logoUrl || "",
+      themeColor: td?.themeColor || "",
+      heroStats,
+      sections,
+    };
+  };
+
+  const buildTemplatePayload = () => {
+    const r = reportResult || {};
+    const td = teacherData as any;
+    const branchLabel = td?.branchName || td?.branch || td?.schoolName || EDULLENT_NAME;
+
+    // Per-template hero stats + sections
+    let heroStats: any[] = [];
+    let sections: any[] = [];
+
+    if (r.isIndividual) {
+      heroStats = [
+        { label: "Average Score", value: r.hasScores ? `${r.score}%` : "—", color: r.hasScores ? (r.score >= 75 ? "#4ade80" : "#fbbf24") : undefined },
+        { label: "Attendance",    value: r.hasAtt    ? `${r.atnd}%`  : "—", color: r.hasAtt    ? (r.atnd  >= 85 ? "#4ade80" : "#fbbf24") : undefined },
+        { label: "Risk Level",    value: r.riskLevel || "—",                color: r.riskLevel === "LOW" ? "#4ade80" : r.riskLevel === "HIGH" ? "#f87171" : "#fbbf24" },
+        { label: "Class",         value: r.className || "—" },
+      ];
+      sections = [
+        { title: "Student Profile", type: "stats", stats: [
+          { label: "Name",       value: r.student_name || "—" },
+          { label: "Roll No",    value: r.rollNo       || "—" },
+          { label: "Grade",      value: r.grade        || "—" },
+          { label: "Subject",    value: r.subject      || "—" },
+        ]},
+        { title: "Performance", type: "bars", bars: [
+          { label: "Score",      value: r.hasScores ? r.score : 0 },
+          { label: "Attendance", value: r.hasAtt    ? r.atnd  : 0 },
+          ...(r.predictedScore != null ? [{ label: "Predicted Score", value: r.predictedScore }] : []),
+        ]},
+        ...(r.ai_remark ? [{ title: "Teacher Remarks", type: "text", text: r.ai_remark }] : []),
+        ...(r.totalFee != null && r.totalFee > 0 ? [{ title: "Fees", type: "stats", stats: [
+          { label: "Total Fee",   value: `₹${r.totalFee}` },
+          { label: "Paid",        value: `₹${r.paidFee || 0}`,    color: "#16a34a" },
+          { label: "Pending",     value: `₹${r.pendingFee || 0}`, color: r.pendingFee > 0 ? "#dc2626" : "#16a34a" },
+          { label: "Last Payment",value: r.lastPayDate || "—" },
+        ]}] : []),
+      ];
+    } else if (r.isAttendance) {
+      heroStats = [
+        { label: "Class Avg Attendance", value: r.summary?.attendance || "—" },
+        { label: "Mastery",              value: r.summary?.mastery     || "—" },
+        { label: "Total Students",       value: r.totalStudents        || 0   },
+        { label: "Low Attendance",       value: r.lowAttendance?.length || 0, color: r.lowAttendance?.length > 0 ? "#f87171" : "#4ade80" },
+      ];
+      sections = [
+        ...(r.aiRemarks ? [{ title: "Summary", type: "text", text: r.aiRemarks }] : []),
+        ...(r.lowAttendance?.length > 0 ? [{
+          title: "Low Attendance Students",
+          type: "table",
+          headers: ["Student", "Attendance %"],
+          rows: r.lowAttendance.map((s: any) => ({ cells: [s.name, `${s.rate}%`], highlight: s.rate < 60 })),
+        }] : []),
+        {
+          title: "Full Class Roster",
+          type: "table",
+          headers: ["Student", "Score", "Attendance", "Standing"],
+          rows: (r.fullList || []).map((s: any) => ({
+            cells: [s.name, s.hasScores ? `${s.score}%` : "—", s.hasAtt ? `${s.attendance}%` : "—", s.standing],
+          })),
+        },
+      ];
+    } else if (r.isAtRisk) {
+      heroStats = [
+        { label: "At-Risk Students", value: r.atRiskList?.length || 0, color: r.atRiskList?.length > 0 ? "#f87171" : "#4ade80" },
+        { label: "Total Students",   value: r.totalStudents          || 0 },
+        { label: "Reviewed",         value: r.studentsWithDataCount  || 0 },
+        { label: "Class",            value: r.className              || "—" },
+      ];
+      sections = [
+        ...(r.aiRemarks ? [{ title: "Intervention Summary", type: "text", text: r.aiRemarks }] : []),
+        ...(r.atRiskList?.length > 0 ? [{
+          title: "Students Needing Intervention",
+          type: "table",
+          headers: ["Student", "Score", "Attendance", "Standing"],
+          rows: r.atRiskList.map((s: any) => ({
+            cells: [s.name, s.hasScores ? `${s.score}%` : "—", s.hasAtt ? `${s.attendance}%` : "—", s.standing],
+            highlight: true,
+          })),
+        }] : [{ title: "All Clear", type: "text", text: "No at-risk students detected in this class." }]),
+      ];
+    } else {
+      // Class performance (default)
+      heroStats = [
+        { label: "Class Average",  value: r.summary?.avg        || "—" },
+        { label: "Attendance",     value: r.summary?.attendance || "—" },
+        { label: "Mastery Level",  value: r.summary?.mastery    || "—" },
+        { label: "Students",       value: r.totalStudents       || 0 },
+      ];
+      sections = [
+        ...(r.aiRemarks ? [{ title: "Class Summary", type: "text", text: r.aiRemarks }] : []),
+        {
+          title: "Student Breakdown",
+          type: "table",
+          headers: ["Student", "Score", "Attendance", "Standing"],
+          rows: (r.fullList || []).map((s: any) => ({
+            cells: [s.name, s.hasScores ? `${s.score}%` : "—", s.hasAtt ? `${s.attendance}%` : "—", s.standing],
+            highlight: s.standing === "Critical",
+          })),
+        },
+      ];
+    }
+
+    return {
+      title: report?.title || "Academic Report",
+      subtitle: `${reportResult?.className || ""}${reportResult?.subject ? ` · ${reportResult.subject}` : ""} · Generated by ${teacherData?.name || "Teacher"}`,
+      badge: reportResult?.standing || reportResult?.riskLevel || "",
+      schoolName: branchLabel,
+      generatedBy: teacherData?.name || "Teacher",
+      logoUrl: td?.logoUrl || "",      // empty string → reportTemplate uses EDULLENT_LOGO_URL
+      themeColor: td?.themeColor || "", // empty → EDULLENT_BRAND_COLOR
+      heroStats,
+      sections,
+    };
+  };
+
+  const handleDownload = async () => {
+    if (!reportResult) {
+      toast.error("Generate the report first.");
+      return;
+    }
+    try {
+      if (params.format === 'excel') {
+        const XLSX = await loadXLSX();
+        const td = teacherData as any;
+        const branchLabel = td?.branchName || td?.branch || td?.schoolName || EDULLENT_NAME;
+        const now = new Date().toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+        // Header rows above the data so the exported sheet carries the same
+        // branch identity as the PDF report.
+        const headerRows: any[][] = [
+          [`${EDULLENT_NAME} — ${branchLabel}`],
+          [report?.title || "Academic Report"],
+          [`Generated by ${teacherData?.name || "Teacher"}  ·  ${now}`],
+          [],
+        ];
+
+        const list = reportResult.fullList || reportResult.atRiskList || reportResult.lowAttendance || [reportResult];
+        const ws = XLSX.utils.aoa_to_sheet(headerRows);
+        XLSX.utils.sheet_add_json(ws, list, { origin: -1 });
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Institutional Merit");
-        XLSX.writeFile(wb, `Intellect_Report_${report.id}.xlsx`);
-     } else {
-        window.print();
-     }
+        XLSX.utils.book_append_sheet(wb, ws, "Report");
+        const safeReportId = String(report?.id || "report").replace(/[^a-z0-9_-]/gi, "_");
+        XLSX.writeFile(wb, `Edullent_${safeReportId}_${new Date().toISOString().slice(0,10)}.xlsx`);
+      } else {
+        // PDF flow — build the official report HTML and open in a new
+        // window. The user can then Print → Save as PDF (browsers don't
+        // expose a JS-only save-to-PDF that respects styling).
+        const html = buildReport(buildTemplatePayload());
+        openReportWindow(html);
+      }
+    } catch (e) {
+      console.error("[GenerateReport] download failed", e);
+      toast.error("Could not download report. Try again.");
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1150px] overflow-hidden p-0 rounded-[3rem] border-none shadow-2xl font-sans text-left print:shadow-none print:w-full">
-        <div className="bg-slate-50/50 p-12 max-h-[90vh] overflow-y-auto custom-scrollbar print:bg-white print:max-h-full print:p-0 print:overflow-visible">
-          
+      <DialogContent
+        className="sm:max-w-[720px] overflow-hidden p-0 border-none font-sans text-left print:shadow-none print:w-full"
+        style={{
+          borderRadius: 24,
+          background: "#fff",
+          boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 18px 44px rgba(0,85,255,.18), 0 6px 16px rgba(0,85,255,.10)",
+        }}
+      >
+        <div
+          className="max-h-[90vh] overflow-y-auto custom-scrollbar print:bg-white print:max-h-full print:p-0 print:overflow-visible"
+          style={{
+            padding: 28,
+            background: "#EEF4FF",
+          }}
+        >
+          {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="print:hidden">
-            <DialogHeader className="mb-8 text-left">
-                <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mb-10 shadow-2xl bg-white border border-slate-100`}>
-                    {report && <report.icon className="w-8 h-8 text-[#1e3272]" />}
-                </div>
-                <DialogTitle className="text-4xl font-bold text-slate-900 tracking-tighter uppercase italic leading-none group">
-                Intelligence <span className="text-[#1e3272]">Manifest</span>
-                </DialogTitle>
-                <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[11px] mt-4 flex items-center gap-3">
-                   <ShieldCheck className="w-4 h-4 text-emerald-500"/> Verified Registry Source • Neural Link Active
-                </DialogDescription>
+            <DialogHeader className="mb-6 text-left">
+              <div
+                style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)",
+                  marginBottom: 16,
+                }}
+              >
+                {report && <report.icon className="w-6 h-6" style={{ color: "#fff" }} />}
+              </div>
+              <DialogTitle
+                style={{
+                  fontSize: 24, fontWeight: 700, color: "#001040",
+                  letterSpacing: "-0.6px", lineHeight: 1.1, margin: 0,
+                }}
+              >
+                Generate Report
+              </DialogTitle>
+              <DialogDescription
+                style={{
+                  fontSize: 12, fontWeight: 600, color: "#5070B0",
+                  marginTop: 6, letterSpacing: "-0.1px",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#00C853" }} />
+                {report?.title || "Academic Report"}
+              </DialogDescription>
             </DialogHeader>
           </div>
 
           {!reportResult ? (
-             <div className="space-y-10 mt-14 print:hidden text-left animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                   <div className="space-y-4">
-                      <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-2 flex items-center gap-2"><Layers className="w-4 h-4" /> Subdivision Node</Label>
-                      <Select value={params.classId} onValueChange={(val) => setParams({ ...params, classId: val })}>
-                        <SelectTrigger className="rounded-[1.5rem] h-20 border border-slate-100 bg-white font-bold text-slate-800 flex items-center px-8 shadow-sm">
-                           <SelectValue placeholder="Identify Portal..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-[2rem] p-4 border-slate-100 shadow-2xl">
-                            {classes.map(c => (
-                              <SelectItem key={c.id} value={c.classId} className="rounded-2xl font-bold p-4 mb-2 hover:bg-slate-50">
-                                 <div className="flex flex-col text-left">
-                                    <span className="text-lg uppercase italic tracking-tighter">{c.name}</span>
-                                    <span className="text-[9px] text-slate-300 uppercase tracking-widest">{c.subject} • {c.grade} Registry</span>
-                                 </div>
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                   </div>
-                   {(report?.id === "individual_progress" || report?.id === "attendance_summary") && (
-                     <div className="space-y-4">
-                        <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-2 flex items-center gap-2"><UserCircle className="w-4 h-4" /> Scholar Target</Label>
-                        <Select value={params.studentId} onValueChange={(val) => setParams({ ...params, studentId: val })}>
-                          <SelectTrigger className="rounded-[1.5rem] h-20 border border-slate-100 bg-white font-bold text-slate-800 px-8 shadow-sm">
-                             <SelectValue placeholder="Locate Identity..." />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-[2rem] p-4 border-slate-100 shadow-2xl">
-                             <SelectItem value="all" className="rounded-2xl font-bold p-4 mb-2 italic text-indigo-500">Universal Class Manifest</SelectItem>
-                             {roster.filter(s => s.classId === params.classId || !params.classId).map(s => (
-                               <SelectItem key={s.id} value={s.studentId} className="rounded-2xl font-bold p-4 mb-2">{s.studentName}</SelectItem>
-                             ))}
-                          </SelectContent>
-                        </Select>
-                     </div>
-                   )}
-                </div>
-                <div className="space-y-4">
-                  <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-2">Export Foundation</Label>
-                  <div className="flex gap-6">
-                    {['pdf', 'excel'].map((f) => (
-                      <button type="button" key={f} onClick={() => setParams({ ...params, format: f })} className={`flex-1 h-20 rounded-[1.8rem] border-[3px] text-[12px] font-bold uppercase tracking-widest transition-all ${params.format === f ? 'bg-[#1e3272] text-white border-[#1e3272] shadow-2xl' : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200'}`}>
-                        {f === 'pdf' ? <div className="flex items-center justify-center gap-3"><FileText size={20}/> Print PDF</div> : <div className="flex items-center justify-center gap-3"><TableIcon size={20}/> Excel Ledger</div>}
-                      </button>
-                    ))}
+            <div className="print:hidden text-left" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Class select */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Label
+                  className="flex items-center gap-1.5"
+                  style={{
+                    fontSize: 10, fontWeight: 700, color: "#5070B0",
+                    letterSpacing: "1.4px", textTransform: "uppercase",
+                  }}
+                >
+                  <Layers className="w-3.5 h-3.5" /> Class
+                </Label>
+                <Select
+                  value={params.classId}
+                  onValueChange={(val) => setParams({ ...params, classId: val, studentId: "" })}
+                >
+                  <SelectTrigger
+                    className="border-0"
+                    style={{
+                      height: 52, borderRadius: 14, padding: "0 16px",
+                      background: "#fff",
+                      border: "0.5px solid rgba(0,85,255,.12)",
+                      boxShadow: "0 1px 2px rgba(0,85,255,.04), 0 2px 8px rgba(0,85,255,.06)",
+                      fontSize: 13, fontWeight: 600, color: "#001040",
+                    }}
+                  >
+                    <SelectValue placeholder="Select a class..." />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={{
+                      borderRadius: 14, padding: 6,
+                      border: "0.5px solid rgba(0,85,255,.12)",
+                      boxShadow: "0 8px 24px rgba(0,85,255,.16)",
+                    }}
+                  >
+                    {classes.length === 0 ? (
+                      <div style={{ padding: "16px 12px", fontSize: 12, color: "#5070B0", fontWeight: 600, textAlign: "center" }}>
+                        No classes assigned to you yet.
+                      </div>
+                    ) : classes.map(c => {
+                      // Compose a single-line label so the SelectTrigger
+                      // (which echoes the SelectItem children) renders
+                      // cleanly without stacked spans collapsing weirdly.
+                      // Subtitle parts only appended when distinct from title.
+                      const subjPart = (c.subject || "").trim();
+                      const gradePart = (c.grade || "").toString().trim();
+                      const tail: string[] = [];
+                      if (subjPart && subjPart !== c.name) tail.push(subjPart);
+                      if (gradePart) tail.push(`Grade ${gradePart}`);
+                      const fullLabel = tail.length > 0 ? `${c.name} — ${tail.join(" · ")}` : c.name;
+                      return (
+                        <SelectItem
+                          key={c.id}
+                          value={c.classId}
+                          className="hover:bg-[#EEF4FF]"
+                          style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 600, color: "#001040" }}
+                        >
+                          {fullLabel}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Scope toggle — only for attendance_summary, choose between
+                  class-wide aggregate or per-student detail. */}
+              {report?.id === "attendance_summary" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label
+                    style={{
+                      fontSize: 10, fontWeight: 700, color: "#5070B0",
+                      letterSpacing: "1.4px", textTransform: "uppercase",
+                    }}
+                  >
+                    Scope
+                  </Label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {(['class', 'individual'] as const).map((sc) => {
+                      const active = params.scope === sc;
+                      return (
+                        <button
+                          type="button"
+                          key={sc}
+                          onClick={() => setParams({ ...params, scope: sc, studentId: sc === "class" ? "" : params.studentId })}
+                          style={{
+                            height: 52, borderRadius: 14,
+                            background: active
+                              ? "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)"
+                              : "#fff",
+                            color: active ? "#fff" : "#5070B0",
+                            border: active ? "none" : "0.5px solid rgba(0,85,255,.12)",
+                            boxShadow: active
+                              ? "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)"
+                              : "0 1px 2px rgba(0,85,255,.04), 0 2px 8px rgba(0,85,255,.06)",
+                            fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                            cursor: "pointer", fontFamily: "inherit",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                            transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                          }}
+                        >
+                          {sc === "class" ? <Layers size={16} /> : <UserCircle size={16} />}
+                          {sc === "class" ? "Class-wise" : "Individual"}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <DialogFooter className="pt-10">
-                  <button type="button" onClick={handleGenerate} disabled={isGenerating} className="w-full h-24 rounded-[2.5rem] bg-[#1e3272] text-white text-[13px] font-bold uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 disabled:opacity-50">
-                    {isGenerating ? <><Loader2 className="w-6 h-6 animate-spin" /> Establishing Sync...</> : <><Sparkles className="w-6 h-6" /> Extract Institutional Merit</>}
-                  </button>
-                </DialogFooter>
-             </div>
+              )}
+
+              {/* Student select (conditional) — always for individual_progress;
+                  for attendance_summary only when scope === 'individual'. */}
+              {(report?.id === "individual_progress" || (report?.id === "attendance_summary" && params.scope === "individual")) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label
+                    className="flex items-center gap-1.5"
+                    style={{
+                      fontSize: 10, fontWeight: 700, color: "#5070B0",
+                      letterSpacing: "1.4px", textTransform: "uppercase",
+                    }}
+                  >
+                    <UserCircle className="w-3.5 h-3.5" /> Student
+                  </Label>
+                  <Select
+                    value={params.studentId}
+                    onValueChange={(val) => setParams({ ...params, studentId: val })}
+                    disabled={!params.classId}
+                  >
+                    <SelectTrigger
+                      className="border-0"
+                      disabled={!params.classId}
+                      style={{
+                        height: 52, borderRadius: 14, padding: "0 16px",
+                        background: !params.classId ? "#F4F7FE" : "#fff",
+                        border: "0.5px solid rgba(0,85,255,.12)",
+                        boxShadow: "0 1px 2px rgba(0,85,255,.04), 0 2px 8px rgba(0,85,255,.06)",
+                        fontSize: 13, fontWeight: 600, color: !params.classId ? "#99AACC" : "#001040",
+                        opacity: !params.classId ? 0.7 : 1,
+                        cursor: !params.classId ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <SelectValue placeholder={!params.classId ? "Select a class first…" : "Select a student..."} />
+                    </SelectTrigger>
+                    <SelectContent
+                      style={{
+                        borderRadius: 14, padding: 6,
+                        border: "0.5px solid rgba(0,85,255,.12)",
+                        boxShadow: "0 8px 24px rgba(0,85,255,.16)",
+                      }}
+                    >
+                      {(() => {
+                        // STRICT: only show students belonging to the
+                        // currently-selected class. No "show all when no
+                        // class is set" leak. Empty roster → friendly hint.
+                        if (!params.classId) {
+                          return (
+                            <div style={{ padding: "16px 12px", fontSize: 12, color: "#5070B0", fontWeight: 600, textAlign: "center" }}>
+                              Pick a class first to see its students.
+                            </div>
+                          );
+                        }
+                        const inClass = roster.filter(s => s.classId === params.classId);
+                        if (inClass.length === 0) {
+                          return (
+                            <div style={{ padding: "16px 12px", fontSize: 12, color: "#5070B0", fontWeight: 600, textAlign: "center" }}>
+                              No students enrolled in this class yet.
+                            </div>
+                          );
+                        }
+                        return (
+                          <>
+                            <SelectItem
+                              value="all"
+                              className="hover:bg-[#EEF4FF]"
+                              style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 700, color: "#0055FF" }}
+                            >
+                              All students in class
+                            </SelectItem>
+                            {inClass.map(s => (
+                              <SelectItem
+                                key={s.id}
+                                value={s.studentId}
+                                className="hover:bg-[#EEF4FF]"
+                                style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 600, color: "#001040" }}
+                              >
+                                {s.studentName || "Unnamed student"}
+                              </SelectItem>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Format toggle */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Label
+                  style={{
+                    fontSize: 10, fontWeight: 700, color: "#5070B0",
+                    letterSpacing: "1.4px", textTransform: "uppercase",
+                  }}
+                >
+                  Format
+                </Label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {(['pdf', 'excel'] as const).map((f) => {
+                    const active = params.format === f;
+                    return (
+                      <button
+                        type="button"
+                        key={f}
+                        onClick={() => setParams({ ...params, format: f })}
+                        style={{
+                          height: 52, borderRadius: 14,
+                          background: active
+                            ? "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)"
+                            : "#fff",
+                          color: active ? "#fff" : "#5070B0",
+                          border: active ? "none" : "0.5px solid rgba(0,85,255,.12)",
+                          boxShadow: active
+                            ? "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)"
+                            : "0 1px 2px rgba(0,85,255,.04), 0 2px 8px rgba(0,85,255,.06)",
+                          fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                          cursor: "pointer", fontFamily: "inherit",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                        }}
+                      >
+                        {f === 'pdf' ? <FileText size={16} /> : <TableIcon size={16} />}
+                        {f === 'pdf' ? 'PDF' : 'Excel'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Generate button — disabled when required fields missing */}
+              <DialogFooter style={{ marginTop: 6 }}>
+                {(() => {
+                  const needsStudent =
+                    report?.id === "individual_progress"
+                    || (report?.id === "attendance_summary" && params.scope === "individual");
+                  const isInvalid = !params.classId || (needsStudent && !params.studentId);
+                  const isDisabled = isGenerating || isInvalid;
+                  return (
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={isDisabled}
+                      style={{
+                        width: "100%", height: 52, borderRadius: 14,
+                        background: isDisabled
+                          ? "rgba(0,85,255,.35)"
+                          : "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)",
+                        color: "#fff",
+                        fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                        border: "none",
+                        boxShadow: isDisabled
+                          ? "none"
+                          : "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)",
+                        cursor: isGenerating ? "wait" : isInvalid ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                        opacity: isDisabled ? 0.7 : 1,
+                      }}
+                    >
+                      {isGenerating ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4" /> Generate Report</>
+                      )}
+                    </button>
+                  );
+                })()}
+              </DialogFooter>
+            </div>
           ) : (
-            <div className="space-y-12 animate-in slide-in-from-bottom-8 duration-700 mt-0 print:m-0 print:space-y-16 text-left">
-               <div className="hidden print:block border-b-8 border-[#1e3272] pb-16 mb-16">
-                  <h1 className="text-6xl font-bold text-slate-900 uppercase tracking-tighter italic">Registry Intelligence</h1>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-3">Institution: {teacherData?.schoolName || 'EDU-INTELLECT MAIN NODE'} • ID: {currentReportId?.substring(0,8)}</p>
+            <div className="text-left animate-in fade-in duration-300" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+               <div className="hidden print:block" style={{ borderBottom: "4px solid #0055FF", paddingBottom: 24, marginBottom: 24 }}>
+                  <h1 style={{ fontSize: 32, fontWeight: 700, color: "#001040", letterSpacing: "-0.8px", margin: 0 }}>{report?.title || "Academic Report"}</h1>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#5070B0", letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 8 }}>{(teacherData as any)?.branchName || (teacherData as any)?.branch || teacherData?.schoolName || 'Edullent'} · Report ID: {currentReportId?.substring(0,8)}</p>
                </div>
 
                {reportResult.isClassReport ? (
-                 <div className="space-y-12">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                       <StatCard label="Merit Index" val={reportResult.summary?.avg || "N/A"} icon={TrendingUp} color="text-indigo-600" />
-                       <StatCard label="Registry Presence" val={reportResult.summary?.attendance || "N/A"} icon={Clock} color="text-emerald-500" />
-                       <StatCard label="Manifest Status" val={reportResult.summary?.mastery || "Verified"} icon={ShieldCheck} color="text-indigo-400" />
-                    </div>
+                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                     <StatCard label="Class Average" val={reportResult.summary?.avg || "N/A"} icon={TrendingUp} color="text-[#0055FF]" />
+                     <StatCard label="Attendance"    val={reportResult.summary?.attendance || "N/A"} icon={Clock} color="text-[#00C853]" />
+                     <StatCard label="Mastery Level" val={reportResult.summary?.mastery || "—"} icon={ShieldCheck} color="text-[#7B3FF4]" />
+                   </div>
 
-                    {reportResult.isAttendance && (
-                       <div className="bg-white border border-slate-100 p-12 rounded-[4rem] shadow-sm">
-                          <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-10 flex items-center gap-3 italic"><AlertTriangle className="w-5 h-5 text-amber-500"/> Critical Absence Registry (&lt;80%)</p>
-                          <div className="space-y-4">
-                             {reportResult.lowAttendance?.length > 0 ? reportResult.lowAttendance.map((s:any, i:number) => (
-                                <div key={i} className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[2rem] border border-slate-50">
-                                   <div className="flex items-center gap-6">
-                                      <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center font-bold text-slate-400 border border-slate-100">{s.name[0]}</div>
-                                      <p className="text-xl font-bold text-slate-800 uppercase italic tracking-tighter">{s.name}</p>
-                                   </div>
-                                   <p className="text-2xl font-bold text-rose-500">{s.rate}%</p>
-                                </div>
-                             )) : <p className="text-sm font-bold text-emerald-500 uppercase tracking-widest text-center py-10 italic">Universal attendance manifest is stable.</p>}
-                          </div>
-                       </div>
-                    )}
-
-                    {reportResult.isAtRisk && (
-                       <div className="space-y-6">
-                          <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-3 italic"><ShieldAlert className="w-5 h-5 text-rose-500"/> Intervention Registry - {reportResult.atRiskList?.length || 0} scholars flagged</p>
-                          {reportResult.atRiskList?.map((s:any, i:number) => (
-                             <div key={i} className="bg-rose-50 border border-rose-100 p-10 rounded-[3.5rem] flex items-center justify-between group hover:bg-rose-100 transition-all shadow-sm">
-                                <div className="flex items-center gap-8">
-                                   <div className="w-20 h-20 rounded-[2rem] bg-white flex items-center justify-center font-bold text-rose-500 shadow-sm border border-rose-100 text-3xl font-serif italic">{s.name[0]}</div>
-                                   <div>
-                                      <h4 className="text-3xl font-bold text-slate-900 uppercase tracking-tighter italic leading-none mb-3">{s.name}</h4>
-                                      <div className="flex gap-4">
-                                         <span className="px-3 py-1 bg-white rounded-lg text-[9px] font-bold uppercase text-rose-400 tracking-widest border border-rose-100">Merit: {s.score}%</span>
-                                         <span className="px-3 py-1 bg-white rounded-lg text-[9px] font-bold uppercase text-rose-400 tracking-widest border border-rose-100">Atnd: {s.attendance}%</span>
-                                         {s.hasNegNote && <span className="px-3 py-1 bg-white rounded-lg text-[9px] font-bold uppercase text-rose-500 tracking-widest border border-rose-200">Behavior Signal</span>}
-                                      </div>
-                                   </div>
-                                </div>
-                                <div className="text-right">
-                                   <div className="px-6 py-3 bg-white rounded-[1.5rem] text-[10px] font-bold text-rose-600 uppercase tracking-widest shadow-sm border border-rose-100 group-hover:bg-rose-600 group-hover:text-white transition-all">Requires Priority Intervention</div>
-                                </div>
-                             </div>
-                          ))}
-                       </div>
-                    )}
-
-                    <div className="bg-white border border-slate-100 p-12 rounded-[4rem] shadow-sm print:border-slate-200">
-                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-12 flex items-center gap-3 italic"><BarChart3 className="w-5 h-5 text-[#1e3272]"/> Institutional Merit Distribution</p>
-                       <div className="h-[320px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={reportResult.chartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontStyle: 'italic', fontWeight: 700, fill: '#64748b' }} />
-                                <YAxis axisLine={false} tickLine={false} hide />
-                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 50px 100px -20px rgb(0 0 0 / 0.15)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}/>
-                                <Bar dataKey="score" radius={[16, 16, 16, 16]} barSize={40}>
-                                   {reportResult.chartData?.map((_:any, index:number) => (
-                                      <Cell key={`cell-${index}`} fill={['#1e3272', '#4f46e5', '#818cf8', '#c7d2fe', '#6366f1'][index % 5]} />
-                                   ))}
-                                </Bar>
-                             </BarChart>
-                          </ResponsiveContainer>
-                       </div>
-                    </div>
-
-                    <div className="bg-[#0f172a] p-12 rounded-[4rem] relative overflow-hidden group shadow-2xl print:bg-slate-50 print:text-slate-900 print:border-slate-200">
-                       <p className="text-[11px] font-bold text-indigo-300 uppercase tracking-[0.4em] flex items-center gap-4 mb-8 print:text-slate-400 italic">
-                          <Bot size={24} className="animate-pulse print:text-indigo-600"/> Neural Intelligence Synthesis
+                   {reportResult.isAttendance && (
+                     <div
+                       style={{
+                         background: "#fff", borderRadius: 16, padding: 16,
+                         border: "0.5px solid rgba(0,85,255,.10)",
+                         boxShadow: "0 1px 2px rgba(0,85,255,.06), 0 4px 12px rgba(0,85,255,.08)",
+                       }}
+                     >
+                       <p style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.4px", textTransform: "uppercase", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                         <AlertTriangle className="w-3.5 h-3.5" style={{ color: "#FF8800" }} /> Low Attendance (&lt;80%)
                        </p>
-                       <p className="text-xl font-bold text-white leading-relaxed italic relative z-10 print:text-slate-800">"{reportResult.aiRemarks}"</p>
-                    </div>
-                 </div>
-               ) : reportResult.isIndividual && reportResult.profileStudent ? (
-                 <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 shadow-sm -mx-4 print:mx-0 print:p-2 print:bg-white print:border-0 print:shadow-none">
-                   <StudentProfile embedded student={reportResult.profileStudent} />
+                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                         {reportResult.lowAttendance?.length > 0 ? reportResult.lowAttendance.map((s: any, i: number) => (
+                           <div
+                             key={i}
+                             style={{
+                               display: "flex", alignItems: "center", justifyContent: "space-between",
+                               padding: "10px 14px", borderRadius: 12,
+                               background: "rgba(255,51,85,.04)",
+                               border: "0.5px solid rgba(255,51,85,.15)",
+                             }}
+                           >
+                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                               <div style={{ width: 32, height: 32, borderRadius: 10, background: "#FF3355", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{s.name[0]}</div>
+                               <p style={{ fontSize: 13, fontWeight: 700, color: "#001040", margin: 0, letterSpacing: "-0.2px" }}>{s.name}</p>
+                             </div>
+                             <p style={{ fontSize: 14, fontWeight: 700, color: "#FF3355", margin: 0, letterSpacing: "-0.3px" }}>{s.rate}%</p>
+                           </div>
+                         )) : (
+                           <p style={{ fontSize: 12, fontWeight: 600, color: "#00C853", textAlign: "center", padding: "16px 0", margin: 0 }}>All students have stable attendance.</p>
+                         )}
+                       </div>
+                     </div>
+                   )}
+
+                   {reportResult.isAtRisk && (
+                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                       <p style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.4px", textTransform: "uppercase", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                         <ShieldAlert className="w-3.5 h-3.5" style={{ color: "#FF3355" }} /> At-Risk Students — {reportResult.atRiskList?.length || 0} flagged
+                       </p>
+                       {reportResult.atRiskList?.map((s: any, i: number) => (
+                         <div
+                           key={i}
+                           style={{
+                             background: "rgba(255,51,85,.04)", borderRadius: 14, padding: 14,
+                             border: "0.5px solid rgba(255,51,85,.18)",
+                             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                           }}
+                         >
+                           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                             <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#FF3355 0%,#FF6677 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{s.name[0]}</div>
+                             <div style={{ minWidth: 0 }}>
+                               <h4 style={{ fontSize: 14, fontWeight: 700, color: "#001040", margin: "0 0 6px", letterSpacing: "-0.2px" }}>{s.name}</h4>
+                               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                 <span style={{ padding: "2px 8px", background: "#fff", borderRadius: 6, fontSize: 10, fontWeight: 700, color: "#5070B0", border: "0.5px solid rgba(0,85,255,.10)" }}>Score: {s.score}%</span>
+                                 <span style={{ padding: "2px 8px", background: "#fff", borderRadius: 6, fontSize: 10, fontWeight: 700, color: "#5070B0", border: "0.5px solid rgba(0,85,255,.10)" }}>Att: {s.attendance}%</span>
+                                 {s.hasNegNote && <span style={{ padding: "2px 8px", background: "rgba(255,51,85,.08)", borderRadius: 6, fontSize: 10, fontWeight: 700, color: "#FF3355", border: "0.5px solid rgba(255,51,85,.20)" }}>Behaviour Note</span>}
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+
+                   {reportResult.chartData?.length > 0 && (
+                     <div
+                       style={{
+                         background: "#fff", borderRadius: 16, padding: 16,
+                         border: "0.5px solid rgba(0,85,255,.10)",
+                         boxShadow: "0 1px 2px rgba(0,85,255,.06), 0 4px 12px rgba(0,85,255,.08)",
+                       }}
+                     >
+                       <p style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.4px", textTransform: "uppercase", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                         <BarChart3 className="w-3.5 h-3.5" style={{ color: "#0055FF" }} /> Class Performance Distribution
+                       </p>
+                       <div style={{ height: 240, width: "100%" }}>
+                         <ResponsiveContainer width="100%" height="100%">
+                           <BarChart data={reportResult.chartData}>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF4FF" />
+                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: "#5070B0" }} />
+                             <YAxis axisLine={false} tickLine={false} hide />
+                             <Tooltip cursor={{ fill: "rgba(0,85,255,.05)" }} contentStyle={{ borderRadius: 12, border: "0.5px solid rgba(0,85,255,.12)", boxShadow: "0 8px 24px rgba(0,85,255,.16)", fontSize: 11, fontWeight: 700, color: "#001040" }} />
+                             <Bar dataKey="score" radius={[8, 8, 8, 8]} barSize={28}>
+                               {reportResult.chartData?.map((_: any, index: number) => (
+                                 <Cell key={`cell-${index}`} fill={["#0055FF", "#1166FF", "#7B3FF4", "#00B8D4", "#00C853"][index % 5]} />
+                               ))}
+                             </Bar>
+                           </BarChart>
+                         </ResponsiveContainer>
+                       </div>
+                     </div>
+                   )}
+
+                   {reportResult.aiRemarks && (
+                     <div
+                       style={{
+                         background: "linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)",
+                         borderRadius: 16, padding: 18, position: "relative", overflow: "hidden",
+                         boxShadow: "0 6px 18px rgba(0,16,64,.32), 0 2px 5px rgba(0,16,64,.18)",
+                       }}
+                     >
+                       <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.7)", letterSpacing: "1.4px", textTransform: "uppercase", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 }}>
+                         <Sparkles className="w-3.5 h-3.5" /> Summary
+                       </p>
+                       <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,.92)", lineHeight: 1.55, margin: 0, letterSpacing: "-0.1px" }}>"{reportResult.aiRemarks}"</p>
+                     </div>
+                   )}
                  </div>
                ) : null}
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
-                  {(report.id === "at_risk" || report.id === "attendance_summary") ? (
-                     <button type="button" onClick={()=>handleSendToPortal('both')} disabled={isSending || isSent} className="col-span-full h-28 bg-[#0f172a] text-white rounded-[2.8rem] text-[13px] font-bold uppercase tracking-[0.3em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group">
-                        {isSending ? <Loader2 className="w-8 h-8 animate-spin"/> : <><div className="flex items-center gap-3"><Sparkles className="w-7 h-7 group-hover:rotate-180 transition-all duration-700"/> Broadcast to Both Portals</div><span className="text-[9px] opacity-60 font-bold tracking-widest italic leading-none">Synchronize Parent & Principal Portals Simultaneously</span></>}
-                     </button>
-                  ) : null}
-                  <button type="button" onClick={()=>handleSendToPortal('parent')} disabled={isSending || isSent} className={`h-28 bg-emerald-600 text-white rounded-[2.8rem] text-[13px] font-bold uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group ${(report.id === "at_risk" || report.id === "attendance_summary") ? 'md:col-span-1' : 'col-span-full'}`}>
-                    {isSending ? <Loader2 className="w-8 h-8 animate-spin"/> : <><div className="flex items-center gap-3"><CheckCircle2 className="w-7 h-7 group-hover:scale-110 transition-all"/> Sync to Parent</div><span className="text-[9px] opacity-60 font-bold">Portal Manifest Update</span></>}
-                  </button>
-                  <button type="button" onClick={()=>handleSendToPortal('principal')} disabled={isSending || isSent} className={`h-28 bg-[#1e3272] text-white rounded-[2.8rem] text-[13px] font-bold uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-1 shadow-2xl hover:bg-black transition-all hover:translate-y-[-4px] active:scale-95 disabled:opacity-50 group ${(report.id === "at_risk" || report.id === "attendance_summary") ? 'md:col-span-1' : 'col-span-full'}`}>
-                    {isSending ? <Loader2 className="w-8 h-8 animate-spin"/> : <><div className="flex items-center gap-3"><ShieldCheck className="w-7 h-7 group-hover:rotate-12 transition-all"/> Transmit to Principal</div><span className="text-[9px] opacity-60 font-bold">Administrative Filing</span></>}
-                  </button>
-                  <button type="button" onClick={handleDownload} className="col-span-full h-24 bg-white border border-slate-100 text-[#1e3272] rounded-[2.8rem] text-[12px] font-bold uppercase tracking-widest flex items-center justify-center gap-4 shadow-xl hover:bg-slate-50 transition-all active:scale-95">
-                    <Download className="w-7 h-7"/> {params.format === 'pdf' ? 'Initiate Print Protocol' : 'Export Excel Data Registry'}
-                  </button>
+               {/* Action buttons — Blue Apple themed, compact */}
+               <div className="print:hidden" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                 {(report.id === "at_risk" || report.id === "attendance_summary") && (
+                   <button
+                     type="button"
+                     onClick={() => handleSendToPortal('both')}
+                     disabled={isSending || isSent}
+                     style={{
+                       gridColumn: "1 / -1",
+                       height: 52, borderRadius: 14,
+                       background: "linear-gradient(135deg,#001040 0%,#0033CC 70%,#0055FF 100%)",
+                       color: "#fff",
+                       fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                       border: "none",
+                       boxShadow: "0 6px 18px rgba(0,16,64,.32), 0 2px 5px rgba(0,16,64,.18)",
+                       cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
+                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                       transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                       opacity: (isSending || isSent) ? 0.6 : 1,
+                     }}
+                   >
+                     {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><Sparkles className="w-4 h-4" /> Send to Parent and Principal</>}
+                   </button>
+                 )}
+                 <button
+                   type="button"
+                   onClick={() => handleSendToPortal('parent')}
+                   disabled={isSending || isSent}
+                   style={{
+                     gridColumn: (report.id === "at_risk" || report.id === "attendance_summary") ? "1" : "1 / -1",
+                     height: 52, borderRadius: 14,
+                     background: "linear-gradient(135deg,#00A746 0%,#00C853 100%)",
+                     color: "#fff",
+                     fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                     border: "none",
+                     boxShadow: "0 6px 18px rgba(0,200,83,.32), 0 2px 5px rgba(0,200,83,.18)",
+                     cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
+                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                     transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                     opacity: (isSending || isSent) ? 0.6 : 1,
+                   }}
+                 >
+                   {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><CheckCircle2 className="w-4 h-4" /> Send to Parent</>}
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => handleSendToPortal('principal')}
+                   disabled={isSending || isSent}
+                   style={{
+                     gridColumn: (report.id === "at_risk" || report.id === "attendance_summary") ? "2" : "1 / -1",
+                     height: 52, borderRadius: 14,
+                     background: "linear-gradient(135deg,#0055FF 0%,#1166FF 100%)",
+                     color: "#fff",
+                     fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                     border: "none",
+                     boxShadow: "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)",
+                     cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
+                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                     transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                     opacity: (isSending || isSent) ? 0.6 : 1,
+                   }}
+                 >
+                   {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><ShieldCheck className="w-4 h-4" /> Send to Principal</>}
+                 </button>
+                 <button
+                   type="button"
+                   onClick={handleDownload}
+                   style={{
+                     gridColumn: "1 / -1",
+                     height: 52, borderRadius: 14,
+                     background: "#fff", color: "#0055FF",
+                     fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                     border: "0.5px solid rgba(0,85,255,.20)",
+                     boxShadow: "0 1px 2px rgba(0,85,255,.06), 0 2px 8px rgba(0,85,255,.08)",
+                     cursor: "pointer", fontFamily: "inherit",
+                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                     transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                   }}
+                 >
+                   <Download className="w-4 h-4" />
+                   {params.format === 'pdf' ? 'Open Printable Report' : 'Download Excel'}
+                 </button>
                </div>
             </div>
           )}
@@ -620,29 +1429,29 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
   );
 };
 
-const ReportPanel = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => {
-  const map: Record<string, string> = {
-    blue:    "border-blue-100 bg-blue-50/40",
-    emerald: "border-emerald-100 bg-emerald-50/40",
-    amber:   "border-amber-100 bg-amber-50/40",
-    rose:    "border-rose-100 bg-rose-50/40",
-    purple:  "border-purple-100 bg-purple-50/40",
-    teal:    "border-teal-100 bg-teal-50/40",
-  };
-  return (
-    <div className={`flex-1 rounded-xl border p-3 ${map[color] || "border-slate-100 bg-white"}`}>
-      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-2">{title}</p>
-      {children}
-    </div>
-  );
-};
-
 const StatCard = ({ label, val, icon: Icon, color }: any) => (
-   <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm text-center group hover:shadow-2xl transition-all print:border-slate-200">
-      <div className={`w-14 h-14 rounded-[1.8rem] bg-slate-50 flex items-center justify-center mx-auto mb-6 shadow-inner ${color}`}><Icon size={28}/></div>
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 italic">{label}</p>
-      <p className="text-5xl font-bold text-slate-900 tracking-tighter italic">{val}</p>
-   </div>
+  <div
+    style={{
+      background: "#fff", borderRadius: 16, padding: 18,
+      border: "0.5px solid rgba(0,85,255,.10)",
+      boxShadow: "0 1px 2px rgba(0,85,255,.06), 0 4px 12px rgba(0,85,255,.08)",
+      textAlign: "center",
+    }}
+  >
+    <div
+      className={color}
+      style={{
+        width: 38, height: 38, borderRadius: 12,
+        background: "rgba(0,85,255,.06)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        margin: "0 auto 10px",
+      }}
+    >
+      <Icon size={18} />
+    </div>
+    <p style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.2px", textTransform: "uppercase", margin: "0 0 6px" }}>{label}</p>
+    <p style={{ fontSize: 22, fontWeight: 700, color: "#001040", letterSpacing: "-0.6px", margin: 0 }}>{val}</p>
+  </div>
 );
 
 export default GenerateReport;

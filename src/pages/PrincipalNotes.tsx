@@ -81,6 +81,8 @@ const PrincipalNotes = () => {
   const [allMessages, setAllMessages]       = useState<PrincipalMessage[]>([]);
   const [loading, setLoading]               = useState(true);
   const [messageContent, setMessageContent] = useState("");
+  const [listenerError, setListenerError]   = useState<string | null>(null);
+  const [refreshKey, setRefreshKey]         = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   // Track whether user is near the bottom so we only auto-scroll if they are.
@@ -91,6 +93,7 @@ const PrincipalNotes = () => {
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
     setLoading(true);
+    setListenerError(null);
     // Scope by schoolId + teacherId for defense in depth.
     const unsub = onSnapshot(
       query(
@@ -112,10 +115,14 @@ const PrincipalNotes = () => {
           }
         }
       },
-      e => console.error("[PrincipalNotes] subscription failed", e),
+      err => {
+        console.error("[PrincipalNotes] subscription failed:", err);
+        setListenerError(err.message || "Live updates disrupted.");
+        setLoading(false);
+      },
     );
     return () => unsub();
-  }, [teacherData?.id, teacherData?.schoolId, teacherData?.branchId]);
+  }, [teacherData?.id, teacherData?.schoolId, refreshKey]);
 
   // Scroll the chat container to bottom only if user is already near the bottom.
   // This prevents the page from yanking down when the user has scrolled up to
@@ -177,8 +184,8 @@ const PrincipalNotes = () => {
   };
 
   const showChannelInfo = () => {
-    toast.success("End-to-end encrypted channel", {
-      description: "Only you and the principal can read these messages. Audit logs maintained for compliance.",
+    toast.success("Private channel", {
+      description: "Direct line between you and the principal. All exchanges are stored securely with audit logs for compliance.",
     });
   };
 
@@ -211,7 +218,17 @@ const PrincipalNotes = () => {
     return groups;
   }, [allMessages]);
 
-  const principalName = allMessages[0]?.principalName || "Principal";
+  // Resolve principal identity from the first principal-authored message —
+  // not just allMessages[0], which could be a teacher's outbound message
+  // and have empty principalId/principalName fields.
+  const principalIdentity = useMemo(() => {
+    const fromPrincipal = allMessages.find(m => m.from === "principal" && (m.principalId || m.principalName));
+    return {
+      id:   fromPrincipal?.principalId   || "",
+      name: fromPrincipal?.principalName || "Principal",
+    };
+  }, [allMessages]);
+  const principalName = principalIdentity.name;
 
   const lastPrincipalMsg = useMemo(() => {
     return [...allMessages].reverse().find(m => m.from === "principal");
@@ -224,8 +241,8 @@ const PrincipalNotes = () => {
     setMessageContent("");
     try {
       await auditedAdd(collection(db, "principal_to_teacher_notes"), {
-        principalId:   allMessages[0]?.principalId   || "",
-        principalName: allMessages[0]?.principalName || "Principal",
+        principalId:   principalIdentity.id,
+        principalName: principalIdentity.name,
         teacherId:     teacherData?.id   || "",
         teacherName:   teacherData?.name || "",
         className:     teacherData?.assignedClass || teacherData?.className || "",
@@ -251,24 +268,64 @@ const PrincipalNotes = () => {
   // ── Render ──────────────────────────────────────────────────────────────
   // Render only ONE view at a time based on viewport — prevents both
   // mobile and desktop content from mounting simultaneously.
+  const errorBanner = listenerError ? (
+    <div
+      role="alert"
+      style={{
+        position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)",
+        zIndex: 60, maxWidth: 480, width: "92%",
+        background: "linear-gradient(135deg, #FFF1F1 0%, #FFE3E3 100%)",
+        border: "0.5px solid rgba(255,51,85,.25)",
+        borderRadius: 14, padding: "10px 14px",
+        display: "flex", alignItems: "center", gap: 10,
+        boxShadow: "0 6px 18px rgba(255,51,85,.12)",
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF3355" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#001040" }}>Live updates disrupted</div>
+        <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 2 }}>{listenerError}</div>
+      </div>
+      <button
+        type="button"
+        onClick={() => { setListenerError(null); setLoading(true); setRefreshKey(k => k + 1); }}
+        style={{
+          padding: "6px 12px", borderRadius: 10,
+          background: "#FF3355", color: "#fff",
+          fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+          border: "none", cursor: "pointer", flexShrink: 0,
+          boxShadow: "0 4px 10px rgba(255,51,85,.28)",
+        }}
+      >
+        Retry
+      </button>
+    </div>
+  ) : null;
+
   if (isMobile) {
     return (
-      <MobilePrincipalChat
-        principalName={principalName}
-        stats={stats}
-        loading={loading}
-        groupedMessages={groupedMessages}
-        messageContent={messageContent}
-        setMessageContent={setMessageContent}
-        handleSend={handleSend}
-        fmtTime={fmtTime}
-        lastPrincipalMsg={lastPrincipalMsg}
-      />
+      <>
+        {errorBanner}
+        <MobilePrincipalChat
+          principalName={principalName}
+          stats={stats}
+          loading={loading}
+          groupedMessages={groupedMessages}
+          messageContent={messageContent}
+          setMessageContent={setMessageContent}
+          handleSend={handleSend}
+          fmtTime={fmtTime}
+          lastPrincipalMsg={lastPrincipalMsg}
+        />
+      </>
     );
   }
 
   return (
     <>
+    {errorBanner}
     {/* ═══════════════════ DESKTOP VIEW — Blue Apple DNA ═══════════════════ */}
     <div
       className="-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-4 pt-6 pb-10"
@@ -348,7 +405,7 @@ const PrincipalNotes = () => {
               type="button"
               onClick={showChannelInfo}
               className="pnot-btn-press"
-              aria-label="View encrypted channel info"
+              aria-label="View private channel info"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '10px 14px', borderRadius: 14,
@@ -452,7 +509,7 @@ const PrincipalNotes = () => {
               action: stats.unread > 0 ? scrollToFirstUnread : markAllAsRead,
             },
             {
-              label: 'Secure Channel', value: 'Active', sub: 'End-to-end encrypted · click for details',
+              label: 'Secure Channel', value: 'Active', sub: 'Private channel · click for details',
               color: '#7B3FF4',
               tintBg: 'linear-gradient(135deg, #F2EBFF 0%, #E8DEFC 100%)',
               tintBorder: 'rgba(123,63,244,0.12)',
@@ -498,7 +555,7 @@ const PrincipalNotes = () => {
           type="button"
           onClick={showChannelInfo}
           {...tilt3D}
-          aria-label="View encrypted channel info"
+          aria-label="View private channel info"
           style={{
             background: '#fff', borderRadius: 18, padding: '14px 18px',
             border: '0.5px solid rgba(0,85,255,0.07)',
@@ -521,7 +578,7 @@ const PrincipalNotes = () => {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>End-to-end encrypted channel</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', margin: 0 }}>Private direct channel</p>
             <p style={{ fontSize: 11, fontWeight: 500, color: '#5070B0', margin: '3px 0 0 0' }}>
               Messages are only visible to you and the principal. Audit logs maintained for compliance.
             </p>
@@ -1024,7 +1081,7 @@ const MobilePrincipalChat = ({
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>End-to-end encrypted</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#001040", letterSpacing: "-0.2px" }}>Private channel</div>
             <div style={{ fontSize: 10, color: "#5070B0", fontWeight: 500, marginTop: 1, letterSpacing: "-0.1px" }}>Only you and the principal can see these messages</div>
           </div>
           <div style={{ width: 22, height: 22, background: "#00C853", borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 5px rgba(0,200,83,.1)" }}>

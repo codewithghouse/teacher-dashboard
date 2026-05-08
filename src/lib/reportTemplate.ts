@@ -15,6 +15,18 @@
  *     CANNOT access the parent's Firebase Auth session storage.
  */
 
+// ── Edullent brand defaults ──────────────────────────────────────────────────
+// Used when a school has not uploaded its own logo / brand colour. Every
+// generated report carries the Edullent mark + the teacher's branch name so
+// the report is instantly identifiable.
+//
+// Logo path is served from `public/edullent-icon.png`. We intentionally use
+// the absolute origin URL so the popup window (which has its own opaque
+// origin via blob:) can still load the image.
+export const EDULLENT_LOGO_URL = `${typeof window !== "undefined" ? window.location.origin : ""}/edullent-icon.png`;
+export const EDULLENT_BRAND_COLOR = "#0055FF";
+export const EDULLENT_NAME = "Edullent";
+
 // ── HTML escaping ────────────────────────────────────────────────────────────
 const escapeHtml = (v: unknown): string =>
   String(v ?? "").replace(/[&<>"']/g, (c) => (
@@ -181,9 +193,12 @@ export function buildReport(config: ReportConfig): string {
   // tokens) and ramps to the brand color, matching the principal-dashboard
   // hero pattern. Memory hooked from sf_pro_global_rule + the app's overall
   // visual identity.
-  const themeColor = safeColor(config.themeColor, "#0055FF");
+  const themeColor = safeColor(config.themeColor, EDULLENT_BRAND_COLOR);
   const heroNavy   = "#001040";
-  const logoUrl    = safeImageUrl(config.logoUrl);
+  // Always render a logo at the top of the report — school's own if
+  // uploaded, otherwise the Edullent platform brand mark. The branch name
+  // sits to the right (rendered via heroHeaderHtml below).
+  const logoUrl    = safeImageUrl(config.logoUrl) || EDULLENT_LOGO_URL;
   const heroBg     = `linear-gradient(135deg, ${heroNavy} 0%, ${themeColor} 100%)`;
 
   const heroStatsHtml = heroStats?.length ? `
@@ -198,15 +213,18 @@ export function buildReport(config: ReportConfig): string {
 
   const badgeHtml = badge ? `<span class="badge">${escapeHtml(badge)}</span>` : "";
 
-  // Hero header row — logo (if uploaded) + school name. Sits ABOVE the
-  // report title so the school's branding is the first thing readers see
-  // (and stays legible on print since the hero gradient is above it).
-  const heroHeaderHtml = (logoUrl || schoolName) ? `
+  // Hero header row — Edullent logo (or school's uploaded logo) + branch
+  // name. Sits ABOVE the report title so branding is the first thing readers
+  // see, and stays legible on print since the hero gradient is above it.
+  // schoolName here is the BRANCH name (passed by the writer); falls back
+  // to the platform name so the row is always visible.
+  const headerLabel = schoolName || EDULLENT_NAME;
+  const heroHeaderHtml = `
     <div class="hero-header">
-      ${logoUrl ? `<img src="${logoUrl}" class="hero-logo" alt="${escapeHtml(schoolName || "School")} logo" />` : ""}
-      ${schoolName ? `<div class="hero-school-name">${escapeHtml(schoolName)}</div>` : ""}
+      <img src="${escapeHtml(logoUrl)}" class="hero-logo" alt="${escapeHtml(headerLabel)} logo" />
+      <div class="hero-school-name">${escapeHtml(headerLabel)}</div>
     </div>
-  ` : "";
+  `;
 
   const sectionsHtml = sections.map(sec => {
     let bodyHtml = "";
