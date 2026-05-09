@@ -194,7 +194,20 @@ Rules:
 - quick_revision: 8-12 ultra-short bullet points (max 10 words each)
 - Return ONLY the JSON, no markdown`;
     } else if (type === "class_action_plan") {
-      systemPrompt = "You are a senior school data analyst and teacher coach for Indian K-12 schools. Give honest, specific, data-driven recommendations to a class teacher. Use Hinglish (Hindi + English mixed naturally) in diagnosis and action reasons — keep action titles in English. Never shame or demoralize. Respond ONLY in valid JSON.";
+      systemPrompt = [
+        "You are a senior school data analyst and teacher coach for Indian K-12 schools.",
+        "Give honest, specific, data-driven recommendations to a class teacher.",
+        "Never shame or demoralize. Respond ONLY in valid JSON.",
+        "",
+        "CRITICAL LANGUAGE RULE — MUST FOLLOW:",
+        "Write EVERY text field in clear professional English ONLY.",
+        "DO NOT use Hindi, Urdu, Hinglish, transliteration, or any Devanagari script.",
+        "DO NOT use words like: hai, nahi, kar, karein, ke liye, achha, thoda, bhi, jo, ki, ka, ke, mein, par, se, ko, ya.",
+        "If you catch yourself writing Hinglish, restart the sentence in pure English.",
+        "",
+        "Example of CORRECT output: 'Attendance is below class average, focus on regularity to improve consistency.'",
+        "Example of INCORRECT output: 'Attendance class average se neeche hai, regularity pe focus karein.'",
+      ].join("\n");
       userPrompt = `Generate an action plan for a class teacher based on the live metrics below.
 
 CONTEXT:
@@ -205,19 +218,19 @@ Generate 4-5 specific actions. Each action must:
 - Be completable in 1-2 weeks
 - Be concrete and trackable
 
-Return ONLY this JSON:
+Return ONLY this JSON. ALL text fields must be in clear professional English (no Hindi or Hinglish):
 {
   "diagnosis": [
-    { "type": "good", "text": "Hinglish text — what is working with specific numbers" },
-    { "type": "concern", "text": "Hinglish text — biggest issue with data" },
-    { "type": "note", "text": "Hinglish text — pattern, context, or callout (optional)" }
+    { "type": "good", "text": "English — what is working, with specific numbers" },
+    { "type": "concern", "text": "English — biggest issue, with the data" },
+    { "type": "note", "text": "English — pattern, context, or callout (optional)" }
   ],
   "actions": [
     {
       "id": "a1",
       "num": "01",
       "title": "Short English action title with target",
-      "reason": "Hinglish 1-2 sentence reason with data",
+      "reason": "English 1-2 sentence reason citing the data",
       "tracking": "auto" | "auto_pct" | "manual",
       "status": "pending",
       "subStatus": "Short English label like '0 / 5 sessions' or '72% → 85%'"
@@ -225,7 +238,19 @@ Return ONLY this JSON:
   ]
 }`;
     } else if (type === "student_action_plan") {
-      systemPrompt = "You are a teacher coach helping a teacher plan interventions for a specific student. Generate empathetic, concrete interventions. Use Hinglish in reasons, English in titles. Never shame. Respond ONLY in valid JSON.";
+      systemPrompt = [
+        "You are a teacher coach helping a teacher plan interventions for a specific student.",
+        "Generate empathetic, concrete interventions. Never shame. Respond ONLY in valid JSON.",
+        "",
+        "CRITICAL LANGUAGE RULE — MUST FOLLOW:",
+        "Write EVERY text field in clear professional English ONLY.",
+        "DO NOT use Hindi, Urdu, Hinglish, transliteration, or any Devanagari script.",
+        "DO NOT use words like: hai, nahi, kar, karein, ke liye, achha, thoda, bhi, jo, ki, ka, ke, mein, par, se, ko, ya.",
+        "If you catch yourself writing Hinglish, restart the sentence in pure English.",
+        "",
+        "Example of CORRECT: 'Schedule weekly check-ins to address the attendance gap and discuss her well-being.'",
+        "Example of INCORRECT: 'Attendance gap ko tackle karne ke liye weekly check-ins schedule karo.'",
+      ].join("\n");
       userPrompt = `Generate a personalised intervention plan for one student.
 
 CONTEXT:
@@ -233,19 +258,19 @@ ${payloadJson}
 
 Generate 4-5 SPECIFIC interventions targeting this student's worst metrics and weakest subjects.
 
-Return ONLY this JSON:
+Return ONLY this JSON. ALL text fields must be in clear professional English (no Hindi or Hinglish):
 {
   "diagnosis": [
-    { "type": "concern", "text": "Hinglish — biggest issue with student-specific data" },
-    { "type": "concern", "text": "Hinglish — secondary issue (optional)" },
-    { "type": "note", "text": "Hinglish — pattern or recommendation context (optional)" }
+    { "type": "concern", "text": "English — biggest issue with student-specific data" },
+    { "type": "concern", "text": "English — secondary issue (optional)" },
+    { "type": "note", "text": "English — pattern or recommendation context (optional)" }
   ],
   "actions": [
     {
       "id": "s1",
       "num": "01",
       "title": "Short English action title",
-      "reason": "Hinglish 1-2 sentence reason citing student metrics",
+      "reason": "English 1-2 sentence reason citing student metrics",
       "tracking": "auto" | "manual",
       "status": "pending",
       "subStatus": "Short English label"
@@ -461,7 +486,20 @@ Return ONLY this JSON:
         "Then produce the JSON exactly as specified, with all fields filled honestly and specifically.",
       ].join("\n");
     } else if (type === "teacher_self_action_plan") {
-      systemPrompt = "You are a senior educator performance coach. Give honest, constructive feedback to a teacher to help them improve their professional metrics. Use Hinglish naturally in diagnosis and action reasons. Keep action titles in English. Never demoralize. Respond ONLY in valid JSON.";
+      systemPrompt = [
+        "You are a senior educator performance coach.",
+        "Give honest, constructive feedback to a teacher to help them improve their professional metrics.",
+        "Never demoralize. Respond ONLY in valid JSON.",
+        "",
+        "CRITICAL LANGUAGE RULE — MUST FOLLOW:",
+        "Write EVERY text field in clear professional English ONLY.",
+        "DO NOT use Hindi, Urdu, Hinglish, transliteration, or any Devanagari script.",
+        "DO NOT use words like: hai, nahi, kar, karein, ke liye, achha, thoda, bhi, jo, ki, ka, ke, mein, par, se, ko, ya.",
+        "If you catch yourself writing Hinglish, restart the sentence in pure English.",
+        "",
+        "Example of CORRECT: 'Your strongest class is 10A; consider applying its routine to your weaker sections.'",
+        "Example of INCORRECT: 'Aapki strongest class 10A hai; iska routine weaker sections pe apply karein.'",
+      ].join("\n");
       userPrompt = `Generate self-improvement actions for a teacher based on their composite metrics across classes.
 
 CONTEXT:
@@ -469,19 +507,19 @@ ${payloadJson}
 
 Generate 4-5 self-improvement actions targeting their weakest classes or biggest gaps.
 
-Return ONLY this JSON:
+Return ONLY this JSON. ALL text fields must be in clear professional English (no Hindi or Hinglish):
 {
   "diagnosis": [
-    { "type": "good", "text": "Hinglish — what is working with specifics" },
-    { "type": "concern", "text": "Hinglish — biggest weakness with numbers" },
-    { "type": "note", "text": "Hinglish — class-specific concern or callout (optional)" }
+    { "type": "good", "text": "English — what is working, with specifics" },
+    { "type": "concern", "text": "English — biggest weakness with numbers" },
+    { "type": "note", "text": "English — class-specific concern or callout (optional)" }
   ],
   "actions": [
     {
       "id": "t1",
       "num": "01",
       "title": "Short English action title",
-      "reason": "Hinglish 1-2 sentence reason with data",
+      "reason": "English 1-2 sentence reason citing the data",
       "tracking": "auto" | "auto_pct" | "manual",
       "status": "pending",
       "subStatus": "Short English label"
@@ -500,6 +538,16 @@ Return ONLY this JSON:
       type === "teacher_self_action_plan" ? 1500 :
       1024;
 
+    // Per-type model selection. Leaderboard action plans are reasoning-heavy
+    // (analysing class metrics, ranking gaps, recommending interventions) and
+    // are Firestore-cached weekly per (teacher + context + ISO week), so the
+    // higher per-call cost of gpt-4o is amortised across 7 days.
+    const model =
+      type === "class_action_plan" ? "gpt-4o" :
+      type === "student_action_plan" ? "gpt-4o" :
+      type === "teacher_self_action_plan" ? "gpt-4o" :
+      "gpt-4.1-mini";
+
     // Vision types attach base64 page images to the user message so the
     // model can actually look at the scanned paper. Everything else stays
     // on the simple text-only path.
@@ -516,7 +564,7 @@ Return ONLY this JSON:
 
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },

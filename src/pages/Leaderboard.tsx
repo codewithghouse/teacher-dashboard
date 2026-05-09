@@ -19,17 +19,26 @@ import {
   useClassAIPlan,
   useStudentAIPlan,
   useTeacherSelfAIPlan,
+  useStudentTrajectory,
+  useClassTrajectory,
   type LeaderboardStudent,
   type BranchTeacherEntry,
   type AIPlan,
   type AIAction,
   type AIDiagnosis,
+  type TrajectoryPoint,
+  type ClassTrajectoryPoint,
 } from "@/hooks/useLeaderboardData";
 
 // ============================================================
 // EDULLENT DESIGN TOKENS — locked, do not change
 // ============================================================
 const FONT = "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif";
+
+// Hoisted once at module level — avoids re-injecting the same <style> on every render.
+const SPIN_KEYFRAME = (
+  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+);
 
 const T = {
   pageBg: "#EEF4FF",
@@ -239,7 +248,7 @@ const DiagnosisCard = ({ items }: { items: AIDiagnosis[] }) => {
         }}>
           {item.type !== "note" && (
             <strong style={{ color: colorMap[item.type] }}>
-              {item.type === "good" ? "Achhi khabar:" : "Issue:"}{" "}
+              {item.type === "good" ? "Good news:" : "Issue:"}{" "}
             </strong>
           )}
           {renderText(item.text)}
@@ -333,7 +342,7 @@ const LockedSection = ({ eyebrow, title, message }: { eyebrow: string; title: st
         <Lock size={16} color={T.B1} strokeWidth={2.2} />
       </div>
       <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px" }}>Activates with weekly snapshots</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px" }}>Available soon</p>
         <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.5 }}>{message}</p>
       </div>
     </div>
@@ -344,7 +353,6 @@ const ScreenLoader = ({ label }: { label?: string }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", gap: 12 }}>
     <Loader2 size={28} color={T.B1} style={{ animation: "spin 1s linear infinite" }} />
     {label && <p style={{ fontSize: 12, fontWeight: 700, color: T.T3, margin: 0 }}>{label}</p>}
-    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
   </div>
 );
 
@@ -354,6 +362,137 @@ const ScreenEmpty = ({ title, message }: { title: string; message: string }) => 
     <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0 }}>{message}</p>
   </div>
 );
+
+// ============================================================
+// TRAJECTORY CHART — inline SVG sparkline for 8-week composite history
+// ============================================================
+const TrajectoryChart = ({
+  points,
+  yField,
+  yLabel = "Composite",
+  loading,
+}: {
+  points: Array<{ weekKey: string; weekStartIso: string; value: number; rank?: number; total?: number; hasData: boolean }>;
+  yField: "composite" | "rank" | "classAverage";
+  yLabel?: string;
+  loading?: boolean;
+}) => {
+  if (loading) {
+    return (
+      <div style={{
+        background: T.cardBg, border: T.BORDER, borderRadius: 22, padding: 22,
+        boxShadow: T.SH, marginBottom: 32, display: "flex", alignItems: "center", gap: 14,
+      }}>
+        <Loader2 size={18} color={T.B1} style={{ animation: "spin 1s linear infinite" }} />
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.T3, margin: 0 }}>Computing weekly history</p>
+      </div>
+    );
+  }
+
+  const dataPoints = points.filter(p => p.hasData);
+  if (dataPoints.length === 0) {
+    return (
+      <div style={{
+        background: T.cardBg, border: T.BORDER, borderRadius: 22, padding: 22,
+        boxShadow: T.SH, marginBottom: 32,
+      }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: T.T1, margin: "0 0 4px", letterSpacing: "-0.2px" }}>No history yet</p>
+        <p style={{ fontSize: 12, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.5 }}>
+          The 8-week trend will appear here once a few weeks of data have been recorded.
+        </p>
+      </div>
+    );
+  }
+
+  const W = 720, H = 180;
+  const padL = 36, padR = 16, padT = 16, padB = 30;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  // Y-axis domain
+  const isRank = yField === "rank";
+  const values = dataPoints.map(p => p.value);
+  let yMin = isRank ? 1 : Math.min(0, Math.min(...values));
+  let yMax = isRank ? Math.max(...values, dataPoints[0]?.total || 10) : 100;
+  if (yMin === yMax) { yMin -= 5; yMax += 5; }
+
+  const xFor = (i: number) => padL + (i / Math.max(points.length - 1, 1)) * innerW;
+  const yFor = (v: number) => {
+    const t = (v - yMin) / (yMax - yMin);
+    return isRank ? padT + t * innerH : padT + (1 - t) * innerH; // rank: 1 at top, larger = lower
+  };
+
+  // Build polyline only over points that have data; gaps become broken segments
+  const segments: string[] = [];
+  let currentPath = "";
+  points.forEach((p, i) => {
+    if (!p.hasData) {
+      if (currentPath) segments.push(currentPath);
+      currentPath = "";
+      return;
+    }
+    const cmd = currentPath === "" ? "M" : "L";
+    currentPath += `${cmd}${xFor(i).toFixed(1)},${yFor(p.value).toFixed(1)} `;
+  });
+  if (currentPath) segments.push(currentPath);
+
+  // Y-axis grid + labels (3 lines)
+  const yTicks = isRank
+    ? [1, Math.ceil((dataPoints[0]?.total || 10) / 2), dataPoints[0]?.total || 10]
+    : [0, 50, 100];
+
+  return (
+    <div style={{
+      background: T.cardBg, border: T.BORDER, borderRadius: 22, padding: 18,
+      boxShadow: T.SH_LG, marginBottom: 32,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: T.T3, margin: 0, letterSpacing: "-0.1px" }}>
+          {yLabel} · last {points.length} weeks
+        </p>
+        <p style={{ fontSize: 10, fontWeight: 700, color: T.T4, margin: 0, letterSpacing: "0.6px", textTransform: "uppercase" }}>
+          {dataPoints.length} of {points.length} weeks tracked
+        </p>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
+        {/* Grid */}
+        {yTicks.map((tick, i) => (
+          <g key={i}>
+            <line x1={padL} y1={yFor(tick)} x2={W - padR} y2={yFor(tick)} stroke="rgba(0,85,255,0.08)" strokeWidth={1} strokeDasharray="2 4" />
+            <text x={padL - 8} y={yFor(tick) + 3} fontSize={9} fill={T.T4} textAnchor="end" fontWeight={700} fontFamily={FONT}>{tick}</text>
+          </g>
+        ))}
+        {/* Line segments */}
+        {segments.map((d, i) => (
+          <path key={i} d={d} fill="none" stroke={T.B1} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+        {/* Data points */}
+        {points.map((p, i) => p.hasData && (
+          <g key={p.weekKey}>
+            <circle cx={xFor(i)} cy={yFor(p.value)} r={3.5} fill="#FFF" stroke={T.B1} strokeWidth={2} />
+            <title>{`${p.weekKey} · ${isRank ? `Rank #${p.value} of ${p.total}` : `${yLabel} ${p.value.toFixed(1)}`}`}</title>
+          </g>
+        ))}
+        {/* X-axis labels (compact, every other point if too many) */}
+        {points.map((p, i) => {
+          const showEvery = points.length > 6 ? 2 : 1;
+          if (i % showEvery !== 0 && i !== points.length - 1) return null;
+          const label = p.weekStartIso.slice(5); // MM-DD
+          return (
+            <text key={`x${i}`} x={xFor(i)} y={H - 10} fontSize={9} fill={T.T4} textAnchor="middle" fontWeight={500} fontFamily={FONT}>
+              {label}
+            </text>
+          );
+        })}
+      </svg>
+      {dataPoints.length < points.length && (
+        <p style={{ fontSize: 10, fontWeight: 500, color: T.T4, margin: "6px 0 0", textAlign: "center" }}>
+          Gaps indicate weeks with no recorded events.
+        </p>
+      )}
+    </div>
+  );
+};
 
 // ============================================================
 // SCREEN 1: STUDENT LEADERBOARD (TEACHER VIEW)
@@ -380,7 +519,7 @@ const StudentLeaderboardScreen = () => {
   if (!classes || classes.length === 0) {
     return (
       <div style={{ padding: "28px 18px" }}>
-        <ScreenEmpty title="No assigned classes yet" message="Aapko abhi koi class assign nahi hui hai. Apne school admin se contact karein." />
+        <ScreenEmpty title="No assigned classes yet" message="No classes are assigned to your account yet. Please contact your school admin." />
       </div>
     );
   }
@@ -410,7 +549,7 @@ const StudentLeaderboardScreen = () => {
               boxShadow: T.SH_LG, padding: 6, minWidth: 200,
             }}>
               {classes.map(c => (
-                <button key={c.classId} onClick={() => { setSearchParams({ c: c.classId }); setDropdownOpen(false); }} style={{
+                <button key={c.classId} onClick={() => { setSearchParams({ c: c.classId }, { replace: true }); setDropdownOpen(false); }} style={{
                   display: "block", width: "100%", textAlign: "left", padding: "10px 12px",
                   borderRadius: 10, background: c.classId === activeClassId ? "rgba(0,85,255,0.06)" : "transparent",
                   border: "none", cursor: "pointer", fontFamily: FONT,
@@ -439,7 +578,7 @@ const StudentLeaderboardScreen = () => {
       {classLoading || !cls ? (
         <ScreenLoader label="Calculating rankings" />
       ) : cls.totalStudents === 0 ? (
-        <ScreenEmpty title="No students in this class yet" message="Enrollments add hone ke baad rankings yahaan dikhenge." />
+        <ScreenEmpty title="No students in this class yet" message="Rankings will appear here once enrollments are added." />
       ) : (
         <>
           <div style={{
@@ -500,7 +639,7 @@ const StudentLeaderboardScreen = () => {
                   <div style={{ flex: 1, height: 0.5, background: "rgba(255,136,0,0.30)" }} />
                 </div>
 
-                {cls.needAttentionStudents.map((s, i) => {
+                {cls.needAttentionStudents.filter(s => s.status !== "no_data").map((s, i) => {
                   const isRed = s.status === "at_risk";
                   return (
                     <div key={s.studentId} onClick={() => navigate(`/leaderboard/student/${encodeURIComponent(s.studentId)}?c=${cls.classId}`)} style={{
@@ -525,11 +664,37 @@ const StudentLeaderboardScreen = () => {
                 })}
               </>
             )}
+
+            {cls.noDataStudents.length > 0 && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", margin: "6px 0" }}>
+                  <div style={{ flex: 1, height: 0.5, background: "rgba(0,85,255,0.18)" }} />
+                  <span style={{ fontSize: 9, fontWeight: 700, color: T.T4, letterSpacing: "1.2px", textTransform: "uppercase" }}>Awaiting data</span>
+                  <div style={{ flex: 1, height: 0.5, background: "rgba(0,85,255,0.18)" }} />
+                </div>
+                {cls.noDataStudents.map((s, i) => (
+                  <div key={s.studentId} style={{
+                    display: "flex", alignItems: "center", gap: 14, padding: "12px 10px",
+                    borderRadius: 14, borderTop: i > 0 ? T.BORDER_SOFT : "none", opacity: 0.6,
+                  }}>
+                    <RankBadge rank="—" variant="default" size={32} />
+                    <Avatar initials={s.initials} bg="rgba(0,85,255,0.08)" color={T.T3} size={32} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: "-0.2px" }}>{s.name}</p>
+                      <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>
+                        No scores or attendance yet
+                      </p>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.T4, letterSpacing: "0.2px" }}>—</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
 
           <div style={{ textAlign: "center", marginTop: 18 }}>
             <p style={{ fontSize: 10, fontWeight: 500, color: T.T4, margin: 0, letterSpacing: "0.2px" }}>
-              {cls.totalStudents} students · Live · Composite = 60% marks + 40% attendance
+              {cls.totalStudents} students · Updated live · Composite = 40% Marks + 25% Attendance + 20% Behaviour + 15% Participation
             </p>
           </div>
         </>
@@ -537,6 +702,19 @@ const StudentLeaderboardScreen = () => {
     </div>
   );
 };
+
+const PendingPill = () => (
+  <span title="Behaviour rating pending — composite uses neutral default" style={{
+    display: "inline-flex", alignItems: "center", gap: 4,
+    padding: "1px 6px", borderRadius: 999,
+    background: "rgba(123,63,244,0.08)", border: "0.5px solid rgba(123,63,244,0.18)",
+    fontSize: 8, fontWeight: 700, color: T.VIOLET, letterSpacing: "0.6px", textTransform: "uppercase",
+    marginLeft: 6, verticalAlign: "middle",
+  }}>
+    <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.VIOLET }} />
+    Rate pending
+  </span>
+);
 
 const StudentRow = ({ s, idx, onClick }: { s: LeaderboardStudent; idx: number; onClick: () => void }) => (
   <div onClick={onClick} style={{
@@ -551,7 +729,9 @@ const StudentRow = ({ s, idx, onClick }: { s: LeaderboardStudent; idx: number; o
     )}
     <Avatar initials={s.initials} bg="rgba(0,85,255,0.10)" color={T.B1} size={s.rank <= 3 ? 38 : 34} />
     <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ fontSize: s.rank <= 3 ? 15 : 14, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: s.rank <= 3 ? "-0.3px" : "-0.2px" }}>{s.name}</p>
+      <p style={{ fontSize: s.rank <= 3 ? 15 : 14, fontWeight: 700, margin: 0, color: T.T1, letterSpacing: s.rank <= 3 ? "-0.3px" : "-0.2px" }}>
+        {s.name}{s.behaviourFromDefault && <PendingPill />}
+      </p>
       <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: "1px 0 0" }}>
         Marks {s.avgScorePct.toFixed(0)} · Att {s.attendancePct.toFixed(0)}%
       </p>
@@ -594,7 +774,7 @@ const TeacherLeaderboardScreen = () => {
       </div>
 
       {isLoading ? <ScreenLoader label="Loading your metrics" /> : !self ? (
-        <ScreenEmpty title="No data yet" message="Apne classes mein attendance ya scores enter karne ke baad metrics yahaan dikhenge." />
+        <ScreenEmpty title="No data yet" message="Your metrics will appear here once you enter attendance or scores in your classes." />
       ) : (
         <>
           <div style={{
@@ -638,14 +818,14 @@ const TeacherLeaderboardScreen = () => {
           ) : branchError ? (
             <LockedSection
               eyebrow="Branch rankings"
-              title="Couldn't load branch teachers"
-              message="Branch-wide rankings ko abhi access nahi mil paya — Firestore rules cross-teacher reads block kar rahi ho sakti hain. Aapka apna composite upar live hai."
+              title="Branch rankings unavailable"
+              message="We couldn't load other teachers in this branch right now. Your own composite is shown above."
             />
           ) : !branchBoard || branchBoard.length === 0 ? (
             <LockedSection
               eyebrow="Branch rankings"
               title="No other teachers yet"
-              message="Is branch mein abhi sirf aap ho ya doosre teachers ne attendance / scores enter nahi ki hain."
+              message="No other teachers in this branch are teaching assigned classes yet."
             />
           ) : (
             <BranchTeacherList rows={branchBoard} />
@@ -674,7 +854,7 @@ const BranchTeacherList = ({ rows }: { rows: BranchTeacherEntry[] }) => {
       {ranked.length === 0 ? (
         <div style={{ padding: "26px 12px", textAlign: "center" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: T.T3, margin: 0 }}>
-            Koi teacher abhi tak scores ya attendance enter nahi kiya — composite calculate karne ke liye data chahiye.
+            No teacher in this branch has entered scores or attendance yet — composites need at least some data to compute.
           </p>
         </div>
       ) : (
@@ -711,7 +891,7 @@ const BranchTeacherList = ({ rows }: { rows: BranchTeacherEntry[] }) => {
 
       <div style={{ textAlign: "center", padding: "14px 0 4px" }}>
         <p style={{ fontSize: 10, fontWeight: 500, color: T.T4, margin: 0, letterSpacing: "0.2px" }}>
-          Live · Composite = 60% marks + 40% attendance
+          Updated live · Composite = 40% Marks + 25% Attendance + 20% Behaviour + 15% Participation · last 90 days
         </p>
       </div>
     </div>
@@ -757,6 +937,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
   const { teacherData } = useAuth();
   const { data: cls, isLoading } = useClassLeaderboard(classId);
   const { data: aiPlan, isLoading: aiLoading, error: aiError } = useClassAIPlan(cls, teacherData?.name);
+  const { data: classTrajectory, isLoading: trajLoading } = useClassTrajectory(classId);
 
   // Build student tiers from real data
   const tiers = useMemo(() => {
@@ -771,7 +952,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
   }, [cls]);
 
   if (isLoading) return <ScreenLoader label="Loading class data" />;
-  if (!cls) return <ScreenEmpty title="Class not found" message="Ye class aapko assigned nahi hai ya data load nahi hua." />;
+  if (!cls) return <ScreenEmpty title="Class not found" message="This class isn't assigned to you, or its data couldn't be loaded." />;
 
   return (
     <div style={{ background: T.pageBg, padding: "20px 16px 32px", borderRadius: 28, fontFamily: FONT }}>
@@ -832,7 +1013,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
                   {composite.toFixed(1)}
                 </p>
                 <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.65)", margin: "5px 0 0", letterSpacing: "-0.1px" }}>
-                  60% marks · 40% attendance
+                  Marks · Attendance · Behaviour · Participation
                 </p>
               </div>
 
@@ -916,7 +1097,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
               range={`Rank 1-${tiers.top.length}`}
               avgScore={tiers.top.reduce((a, s) => a + s.composite, 0) / Math.max(tiers.top.length, 1)}
               students={tiers.top.slice(0, 5).map(s => s.name.split(" ")[0]).join(", ")}
-              insight="Advanced problems do — engagement bana rahega."
+              insight="Stretch them with advanced problems to keep engagement high."
             />
             {tiers.middle.length > 0 && (
               <TierCard
@@ -926,7 +1107,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
                 count={tiers.middle.length}
                 range={`Rank ${tiers.top.length + 1}-${tiers.top.length + tiers.middle.length}`}
                 avgScore={tiers.middle.reduce((a, s) => a + s.composite, 0) / Math.max(tiers.middle.length, 1)}
-                insight={`${tiers.middle.length} students. In mein se half ko bhi 5 points improve karayein, class avg jump karega.`}
+                insight={`${tiers.middle.length} students. Lifting even half of them by 5 points moves the class average noticeably.`}
               />
             )}
             <TierCard
@@ -937,7 +1118,7 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
               range={`Bottom ${tiers.risk.length}`}
               avgScore={tiers.risk.reduce((a, s) => a + s.composite, 0) / Math.max(tiers.risk.length, 1)}
               students={tiers.risk.map(s => s.name.split(" ")[0]).join(", ")}
-              insight="Har student alag intervention chahiye — individual insights mein details dekhein."
+              insight="Each student needs a tailored intervention — open individual insights for specifics."
             />
           </div>
         </>
@@ -945,17 +1126,17 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
 
       {/* AI Diagnosis */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ flex: 1 }}><SectionHead eyebrow="03 · Diagnosis" title="AI-powered analysis" subtitle="Hinglish read of your class data" /></div>
+        <div style={{ flex: 1 }}><SectionHead eyebrow="03 · Diagnosis" title="AI-powered analysis" subtitle="Honest read of your class data" /></div>
         <AIBadge />
       </div>
       {aiLoading ? (
         <AISectionLoading label="Analysing class metrics" />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.diagnosis.length > 0 ? (
         <DiagnosisCard items={aiPlan.diagnosis} />
       ) : (
-        <LockedSection eyebrow="" title="No diagnosis yet" message="AI ne is class ke liye diagnosis generate nahi kiya. Thode aur scores/attendance data ke baad retry karein." />
+        <LockedSection eyebrow="" title="No diagnosis yet" message="Diagnosis will become available once more scores and attendance are recorded for this class." />
       )}
 
       {/* AI Action Plan */}
@@ -966,25 +1147,33 @@ const ClassActionPlanScreen = ({ classId }: { classId: string }) => {
       {aiLoading ? (
         <AISectionLoading label="Generating action plan" />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.actions.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
           {aiPlan.actions.map(a => <ActionCard key={a.id} action={a} />)}
         </div>
       ) : (
-        <LockedSection eyebrow="" title="No actions generated" message="AI ne actions generate nahi kiye. Retry karein ya backend logs check karein." />
+        <LockedSection eyebrow="" title="No actions generated" message="The action plan will become available once more class data is recorded." />
       )}
 
-      <LockedSection
-        eyebrow="05 · Trajectory"
-        title="8-week trend chart"
-        message="Trajectory chart ke liye weekly snapshots store karne padenge (cron job). Pehla snapshot is hafte se start hoga."
+      <SectionHead eyebrow="05 · Trajectory" title="8-week trend" subtitle="Class composite, week by week" />
+      <TrajectoryChart
+        loading={trajLoading}
+        yField="classAverage"
+        yLabel="Class composite"
+        points={(classTrajectory ?? []).map((p: ClassTrajectoryPoint) => ({
+          weekKey: p.weekKey,
+          weekStartIso: p.weekStartIso,
+          value: p.classAverage,
+          total: p.totalStudents,
+          hasData: p.hasData,
+        }))}
       />
 
       <LockedSection
         eyebrow="06 · Forecast"
         title="Next-week prediction"
-        message="Forecast model ke liye historical data chahiye. 4+ weeks of snapshots accumulate hone ke baad activate hoga."
+        message="Forecasts activate once 4+ weeks of class history is available."
       />
     </div>
   );
@@ -1033,9 +1222,10 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
   const classId = searchParams.get("c") || null;
   const { data: student, isLoading } = useStudentDetail(studentId, classId);
   const { data: aiPlan, isLoading: aiLoading, error: aiError } = useStudentAIPlan(student, teacherData?.name, teacherData?.subject as string | undefined);
+  const { data: studentTrajectory, isLoading: trajLoading } = useStudentTrajectory(studentId, classId);
 
   if (isLoading) return <ScreenLoader label="Loading student details" />;
-  if (!student) return <ScreenEmpty title="Student not found" message="Ye student aapki class mein nahi hai ya data load nahi hua." />;
+  if (!student) return <ScreenEmpty title="Student not found" message="This student isn't in your class, or their data couldn't be loaded." />;
 
   const isAtRisk = student.status === "at_risk";
 
@@ -1105,13 +1295,35 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
           severity={student.metrics.attendance.severity}
         />
         <MetricCard
-          label="Tests taken"
-          value={student.metrics.assignments.value}
-          suffix="%"
-          vs={`${student.metrics.assignments.gap >= 0 ? "+" : ""}${student.metrics.assignments.gap.toFixed(1)} vs class`}
-          severity={student.metrics.assignments.severity}
+          label={`Behaviour${student.metrics.behaviour.ratingCount > 0 ? ` (${student.metrics.behaviour.ratingCount} rating${student.metrics.behaviour.ratingCount === 1 ? "" : "s"})` : student.metrics.behaviour.fromDefault ? " (neutral default)" : ""}`}
+          value={student.metrics.behaviour.value}
+          suffix="/100"
+          vs={student.metrics.behaviour.ratingCount > 0
+            ? `${student.metrics.behaviour.gap >= 0 ? "+" : ""}${student.metrics.behaviour.gap.toFixed(1)} vs class`
+            : student.metrics.behaviour.fromDefault ? "No rating yet — using neutral 60/100" : "Not included"}
+          severity={student.metrics.behaviour.ratingCount > 0 ? student.metrics.behaviour.severity : "okay"}
         />
-        <MetricCard label="Composite" value={student.composite} severity={isAtRisk ? "critical" : student.status === "attention" ? "warning" : "okay"} />
+        <MetricCard
+          label="Test participation"
+          value={student.metrics.participation.value}
+          suffix="%"
+          vs={`${student.metrics.participation.gap >= 0 ? "+" : ""}${student.metrics.participation.gap.toFixed(1)} vs class`}
+          severity={student.metrics.participation.severity}
+        />
+      </div>
+      <div style={{
+        background: T.cardBg, border: T.BORDER, borderRadius: 18, padding: 16,
+        boxShadow: T.SH, marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14,
+      }}>
+        <div>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", color: T.T4, margin: "0 0 4px", textTransform: "uppercase" }}>Composite</p>
+          <p style={{ fontSize: 11, fontWeight: 500, color: T.T3, margin: 0, lineHeight: 1.4 }}>
+            40% Marks · 25% Attendance · 20% Behaviour · 15% Participation
+          </p>
+        </div>
+        <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-1px", color: isAtRisk ? T.RED : student.status === "attention" ? T.ORANGE : T.T1, margin: 0, lineHeight: 1 }}>
+          {student.composite.toFixed(1)}
+        </p>
       </div>
 
       {student.subjects.length > 0 && (
@@ -1153,11 +1365,11 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
       {aiLoading ? (
         <AISectionLoading label={`Analysing ${student.name.split(" ")[0]}'s data`} />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.diagnosis.length > 0 ? (
         <DiagnosisCard items={aiPlan.diagnosis} />
       ) : (
-        <LockedSection eyebrow="" title="No diagnosis yet" message="AI ne diagnosis generate nahi kiya. More data add karke retry karein." />
+        <LockedSection eyebrow="" title="No diagnosis yet" message="A diagnosis will appear once more data is available for this student." />
       )}
 
       {/* AI Action Plan */}
@@ -1168,19 +1380,28 @@ const IndividualStudentScreen = ({ studentId }: { studentId: string }) => {
       {aiLoading ? (
         <AISectionLoading label="Generating interventions" />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.actions.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
           {aiPlan.actions.map(a => <ActionCard key={a.id} action={a} />)}
         </div>
       ) : (
-        <LockedSection eyebrow="" title="No actions generated" message="AI ne interventions generate nahi kiye. Retry karein." />
+        <LockedSection eyebrow="" title="No actions generated" message="Interventions will appear once more data is available for this student." />
       )}
 
-      <LockedSection
-        eyebrow="05 · Trajectory"
-        title="8-week rank history"
-        message="Rank history ke liye weekly snapshots store karne padenge. Pehla snapshot is week se start hoga."
+      <SectionHead eyebrow="05 · Trajectory" title="8-week rank history" subtitle="Lower number = better rank" />
+      <TrajectoryChart
+        loading={trajLoading}
+        yField="rank"
+        yLabel="Class rank"
+        points={(studentTrajectory ?? []).map((p: TrajectoryPoint) => ({
+          weekKey: p.weekKey,
+          weekStartIso: p.weekStartIso,
+          value: p.rank,
+          rank: p.rank,
+          total: p.totalInClass,
+          hasData: p.hasData,
+        }))}
       />
     </div>
   );
@@ -1200,7 +1421,7 @@ const TeacherSelfInsightsScreen = () => {
       <div style={{ padding: "28px 18px" }}>
         <BackButton onClick={() => navigate("/leaderboard/teachers")} />
         <div style={{ marginTop: 20 }}>
-          <ScreenEmpty title="No data yet" message="Apne classes mein attendance/scores enter karne ke baad metrics yahaan dikhenge." />
+          <ScreenEmpty title="No data yet" message="Your metrics will appear here once you enter attendance or scores in your classes." />
         </div>
       </div>
     );
@@ -1266,7 +1487,7 @@ const TeacherSelfInsightsScreen = () => {
                   {composite.toFixed(1)}
                 </p>
                 <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.65)", margin: "5px 0 0", letterSpacing: "-0.1px" }}>
-                  60% marks · 40% attendance
+                  Marks · Attendance · Behaviour · Participation
                 </p>
               </div>
 
@@ -1324,7 +1545,7 @@ const TeacherSelfInsightsScreen = () => {
         {[
           { label: "Students avg score", value: self.classAvgScore, sub: "Mean of all student marks across your classes" },
           { label: "Average attendance", value: self.classAvgAttendance, sub: "Mean attendance across all your students" },
-          { label: "Composite", value: self.composite, sub: "60% marks + 40% attendance, weighted" },
+          { label: "Composite", value: self.composite, sub: "Weighted: 40% marks + 25% attendance + 20% behaviour + 15% participation" },
         ].map((row, i, arr) => (
           <div key={row.label} style={{ marginBottom: i < arr.length - 1 ? 18 : 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
@@ -1373,11 +1594,11 @@ const TeacherSelfInsightsScreen = () => {
       {aiLoading ? (
         <AISectionLoading label="Analysing your performance" />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.diagnosis.length > 0 ? (
         <DiagnosisCard items={aiPlan.diagnosis} />
       ) : (
-        <LockedSection eyebrow="" title="No diagnosis yet" message="More class data ke baad AI diagnosis generate hogi." />
+        <LockedSection eyebrow="" title="No diagnosis yet" message="A diagnosis will appear once more class data is available." />
       )}
 
       {/* AI Action Plan */}
@@ -1388,25 +1609,25 @@ const TeacherSelfInsightsScreen = () => {
       {aiLoading ? (
         <AISectionLoading label="Generating self-improvement plan" />
       ) : aiError ? (
-        <AISectionError message={(aiError as Error).message || "Cloud Function call failed"} />
+        <AISectionError message={(aiError as Error).message || "AI service is temporarily unavailable."} />
       ) : aiPlan && aiPlan.actions.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
           {aiPlan.actions.map(a => <ActionCard key={a.id} action={a} />)}
         </div>
       ) : (
-        <LockedSection eyebrow="" title="No actions generated" message="AI ne actions generate nahi kiye. Retry karein." />
+        <LockedSection eyebrow="" title="No actions generated" message="An improvement plan will appear once more class data is available." />
       )}
 
       <LockedSection
         eyebrow="05 · Branch comparison"
         title="You vs top teacher"
-        message="Branch-wide comparison ke liye sabhi teachers ke metrics ka weekly aggregation chahiye."
+        message="Activates once branch-wide rankings have enough data to compare."
       />
 
       <LockedSection
         eyebrow="06 · Forecast"
         title="Next-week projection"
-        message="Forecast model ke liye 4+ weeks of historical data chahiye. Snapshots is week se start honge."
+        message="Forecasts activate once 4+ weeks of teaching history is available."
       />
     </div>
   );
@@ -1436,6 +1657,7 @@ const Leaderboard = () => {
 
   return (
     <div style={{ minHeight: "100vh", background: T.pageBg, padding: "20px 0", fontFamily: FONT }}>
+      {SPIN_KEYFRAME}
       <div>
         {screen}
       </div>

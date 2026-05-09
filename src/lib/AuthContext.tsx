@@ -191,8 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       await signInWithPopup(auth, provider);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Sign-in failed. Please try again.";
-      setError(message);
+      // User-cancellation paths are not errors — closing the popup or starting
+      // a second one is intentional. Surfacing a red banner for those would
+      // make the system look broken.
+      const code = (err as { code?: string } | null)?.code;
+      const userCancelled =
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request" ||
+        code === "auth/popup-blocked";
+      if (!userCancelled) {
+        const message = err instanceof Error ? err.message : "Sign-in failed. Please try again.";
+        setError(message);
+      }
       throw err;
     }
   };

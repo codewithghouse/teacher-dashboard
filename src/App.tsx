@@ -113,8 +113,8 @@ const AppRoutes = () => {
           <GraduationCap className="w-8 h-8" />
         </div>
         <div className="flex flex-col items-center gap-1">
-          <Loader2 className="w-6 h-6 animate-spin text-[#1e3272]" />
-          <p className="text-xs font-bold text-[#1e294b] uppercase tracking-widest mt-2">Checking Access</p>
+          <Loader2 className="w-6 h-6 animate-spin text-[#0055FF]" />
+          <p className="text-xs font-bold text-[#001040] uppercase tracking-widest mt-2">Checking access</p>
         </div>
       </div>
     );
