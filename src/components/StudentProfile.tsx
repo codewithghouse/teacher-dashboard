@@ -3,7 +3,7 @@ import {
   ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, TrendingUp, MessageSquare,
   FileText, BookOpen, Calendar, BarChart3, Activity, AlertCircle, RefreshCw,
   Award, GraduationCap, Sparkles, ClipboardList, ShieldAlert,
-  Users, Send, Pencil, Check, X as XIcon,
+  Users, Send, Pencil, Check, X as XIcon, Trash2, Loader2,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import { doc, collection, query, where, onSnapshot, getDocs, serverTimestamp, type Unsubscribe } from "firebase/firestore";
+import { doc, collection, query, where, onSnapshot, getDocs, deleteDoc, serverTimestamp, type Unsubscribe } from "firebase/firestore";
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "sonner";
@@ -213,6 +213,15 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
   const [rollDraft, setRollDraft]     = useState("");
   const [rollSaving, setRollSaving]   = useState(false);
 
+  // Teacher's own enrollments for this student — used by the "Remove from
+  // class" action. Only enrollments stamped with the current teacher's email
+  // (post-2026-05-21 invite writer) are removable per Firestore rules; older
+  // ones require admin (principal/owner) and won't appear here.
+  type MyEnrollmentRow = { id: string; classId: string; className: string };
+  const [myEnrollments, setMyEnrollments] = useState<MyEnrollmentRow[]>([]);
+  const [removeOpen, setRemoveOpen]       = useState(false);
+  const [removingId, setRemovingId]       = useState<string | null>(null);
+
   const sid = student.id || student.studentId || "";
   const email = (student.email || student.studentEmail || "").toLowerCase();
 
@@ -341,8 +350,36 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
       errH("enrollments", { critical: false }),
     ));
 
+    // Teacher's own enrollments for this student — drives the "Remove from
+    // class" picker. Filtered to the current teacher's email so we only
+    // expose enrollments the rule will actually let us delete.
+    const myEmailLower = (teacherData?.email || "").toLowerCase();
+    if (myEmailLower) {
+      unsubs.push(onSnapshot(
+        query(collection(db, "enrollments"),
+          where("schoolId", "==", schoolId),
+          where("studentId", "==", sid),
+          where("teacherEmail", "==", myEmailLower),
+        ),
+        snap => {
+          if (cancelled) return;
+          setMyEnrollments(snap.docs.map(d => {
+            const dt = d.data() as any;
+            return {
+              id: d.id,
+              classId: (dt.classId as string) || "",
+              className: (dt.className as string) || "",
+            };
+          }));
+        },
+        // Silent — pre-2026-05-21 enrollments lack teacherEmail; the picker
+        // will be empty for those students and the user can ask their admin.
+        errH("enrollments-mine", { critical: false }),
+      ));
+    }
+
     return () => { cancelled = true; unsubs.forEach(u => u()); };
-  }, [sid, email, teacherData?.schoolId, refreshKey]);
+  }, [sid, email, teacherData?.schoolId, teacherData?.email, refreshKey]);
 
   useEffect(() => {
     if (!classId || !teacherData?.schoolId) return;
@@ -632,6 +669,39 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
     setSending(false);
   };
 
+  // Remove this student from a specific class the teacher owns. Deletes ONLY
+  // the enrollment doc — the student's master record (and other teachers'
+  // enrollments) stay intact. Cross-dashboard impact: parent-dashboard's
+  // class roster shrinks for that student; principal's roster aggregator
+  // recomputes on next load.
+  const handleRemoveFromClass = async (enrollmentId: string, className: string) => {
+    if (!enrollmentId) return;
+    setRemovingId(enrollmentId);
+    try {
+      await deleteDoc(doc(db, "enrollments", enrollmentId));
+      toast.success(`${sName} removed from ${className || "class"}.`);
+      // Optimistic local update so the picker shrinks immediately even
+      // before the snapshot listener fires
+      setMyEnrollments(prev => prev.filter(e => e.id !== enrollmentId));
+      // If the teacher just removed their last enrollment for this student,
+      // close the dialog and bounce back to the roster.
+      if (myEnrollments.length <= 1) {
+        setRemoveOpen(false);
+        if (onBack) onBack();
+      }
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      console.error("[StudentProfile] remove enrollment failed:", err);
+      if (err?.code === "permission-denied") {
+        toast.error("Not allowed. Only the class teacher (or principal) can remove this enrollment.");
+      } else {
+        toast.error("Couldn't remove from class. Try again.");
+      }
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   const today = new Date();
   const fmtPct = (v: number | null) => v != null ? `${Math.round(v)}%` : "—";
 
@@ -699,6 +769,14 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
                 style={{ background: T.white, border: `0.5px solid ${T.bdr}`, color: T.ink2, boxShadow: "0 0 0 0.5px rgba(0,85,255,0.09), 0 2px 10px rgba(0,85,255,0.10)" }}>
                 EXPORT
               </button>
+              {myEnrollments.length > 0 && (
+                <button type="button" onClick={() => setRemoveOpen(true)}
+                  aria-label="Remove this student from one of your classes"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-[12px] font-bold active:scale-[0.96] transition-transform"
+                  style={{ background: T.white, border: "0.5px solid rgba(255,69,58,0.30)", color: "#C71F2D", boxShadow: "0 0 0 0.5px rgba(255,69,58,0.10), 0 2px 10px rgba(255,69,58,0.10)" }}>
+                  <Trash2 size={13} /> REMOVE
+                </button>
+              )}
               <button type="button" onClick={handleContact}
                 aria-label="Contact student's parent"
                 className="px-3 sm:px-4 py-2 rounded-[10px] text-white text-[12px] font-bold active:scale-[0.96] transition-transform"
@@ -1321,6 +1399,116 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
           </div>
         )}
       </div>
+
+      {/* Remove-from-class dialog. Lists every enrollment owned by this teacher
+          for this student. Each row has its own delete action so multi-class
+          students can be removed one class at a time. Hard delete — student
+          record + other teachers' enrollments stay intact. */}
+      {removeOpen && (
+        <div role="dialog" aria-modal="true" aria-labelledby="remove-dialog-title"
+          onClick={() => { if (!removingId) setRemoveOpen(false); }}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,16,64,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16, zIndex: 50, backdropFilter: "blur(4px)",
+          }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{
+              background: "#FFFFFF", borderRadius: 22, padding: 24,
+              maxWidth: 460, width: "100%",
+              boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 24px 60px rgba(0,16,64,0.30)",
+            }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: "rgba(255,69,58,0.10)", color: "#C71F2D",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <Trash2 size={18} strokeWidth={2.4} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 id="remove-dialog-title" style={{
+                  fontSize: 16, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: "-0.3px",
+                }}>
+                  Remove {sName} from class?
+                </h3>
+                <p style={{ fontSize: 12, fontWeight: 500, color: T.ink2, margin: "4px 0 0", lineHeight: 1.5 }}>
+                  This removes the student from the selected class only. Their
+                  master record and other teachers' enrollments are not affected.
+                </p>
+              </div>
+              <button type="button"
+                onClick={() => { if (!removingId) setRemoveOpen(false); }}
+                aria-label="Close"
+                disabled={!!removingId}
+                style={{
+                  background: "transparent", border: "none", cursor: removingId ? "not-allowed" : "pointer",
+                  padding: 4, color: T.ink3, opacity: removingId ? 0.4 : 1,
+                }}>
+                <XIcon size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {myEnrollments.length === 0 ? (
+                <p style={{ fontSize: 12, color: T.ink3, margin: 0, textAlign: "center", padding: "12px 0" }}>
+                  No enrollments owned by you for this student.
+                </p>
+              ) : (
+                myEnrollments.map(en => {
+                  const isRemoving = removingId === en.id;
+                  return (
+                    <div key={en.id} style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 14px", borderRadius: 12,
+                      background: "rgba(0,85,255,0.04)", border: "0.5px solid rgba(0,85,255,0.10)",
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: "-0.2px" }}>
+                          {en.className || "Class"}
+                        </p>
+                        <p style={{ fontSize: 10, fontWeight: 500, color: T.ink3, margin: "1px 0 0", letterSpacing: "0.2px", textTransform: "uppercase" }}>
+                          Your enrollment
+                        </p>
+                      </div>
+                      <button type="button"
+                        onClick={() => handleRemoveFromClass(en.id, en.className)}
+                        disabled={!!removingId}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "7px 12px", borderRadius: 10,
+                          background: isRemoving ? "rgba(255,69,58,0.10)" : "#C71F2D",
+                          color: isRemoving ? "#C71F2D" : "#FFFFFF",
+                          border: "none",
+                          fontSize: 11, fontWeight: 700, letterSpacing: "0.4px",
+                          cursor: removingId ? "not-allowed" : "pointer",
+                          opacity: removingId && !isRemoving ? 0.4 : 1,
+                          textTransform: "uppercase",
+                        }}>
+                        {isRemoving ? (
+                          <>
+                            <Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} />
+                            Removing…
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 size={11} />
+                            Remove
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <p style={{ fontSize: 10, fontWeight: 500, color: T.ink3, margin: "16px 0 0", lineHeight: 1.5, textAlign: "center" }}>
+              The student can be re-invited later from the Students page.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -472,6 +472,10 @@ export default function Students() {
         className:    cls?.name || '',
         teacherId:    teacherData.id,
         teacherName:  teacherData.name || '',
+        // teacherEmail enables the owning teacher to delete this enrollment
+        // later (per firestore.rules: enrollments delete check). Lowercased
+        // to match the auth-token email format the rule compares against.
+        teacherEmail: (teacherData.email || '').toLowerCase(),
         rollNo:       inv.rollNo.trim(),
         schoolId,
         branchId,
