@@ -115,27 +115,42 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
             const gradeMap = new Map<string, DocumentData>();
             gradeSnap.docs.forEach(d => gradeMap.set(d.data().studentId, d.data()));
 
-            // DUAL LOOKUP — homeworkId wins over assignmentId (older records).
+            // DUAL LOOKUP — submissions are keyed under EVERY identifier they
+            // carry (studentId AND studentEmail in lowercase). Previously this
+            // used `data.studentId || data.studentEmail`: studentId is always
+            // truthy in the parent-writer payload, so the email key never
+            // landed in the map and the email fallback below never matched.
+            // Memory: `bug_pattern_dual_id_writer_or_short_circuit` +
+            // `dual_query_pattern_studentid_email`.
             const subMap = new Map<string, DocumentData & { _docId: string }>();
-            subSnapByHomework.docs.forEach(d => {
-                const data = d.data();
-                const key = data.studentId || data.studentEmail;
-                if (key) subMap.set(key, { ...data, _docId: d.id });
-            });
-            subSnapByAssign.docs.forEach(d => {
-                const data = d.data();
-                const key = data.studentId || data.studentEmail;
-                if (key && !subMap.has(key)) subMap.set(key, { ...data, _docId: d.id });
-            });
+            const ingestSub = (snap: typeof subSnapByHomework) => {
+                snap.docs.forEach(d => {
+                    const data = d.data();
+                    const value = { ...data, _docId: d.id } as DocumentData & { _docId: string };
+                    if (data.studentId) {
+                        const k = String(data.studentId);
+                        if (!subMap.has(k)) subMap.set(k, value);
+                    }
+                    if (data.studentEmail) {
+                        const k = String(data.studentEmail).toLowerCase();
+                        if (!subMap.has(k)) subMap.set(k, value);
+                    }
+                });
+            };
+            ingestSub(subSnapByHomework);
+            ingestSub(subSnapByAssign);
 
 
             const roster = rosterSnap.docs.map(d => {
                 const data = d.data() as any;
                 const sId = data.studentId || d.id;
-                const sEmail = data.studentEmail || "";
+                const sEmail = String(data.studentEmail || "").toLowerCase();
                 const existing = gradeMap.get(sId);
-                // Check by studentId OR by email (student may be keyed differently)
-                const sub = subMap.get(sId) || subMap.get(sEmail) || subMap.get(sEmail.toLowerCase());
+                // Try id, then email (lowercase). The submission key map above
+                // stores both shapes, so a parent writing with the canonical
+                // `students/{doc_id}` still resolves against an enrollment row
+                // whose only stable field is the email.
+                const sub = subMap.get(sId) || (sEmail ? subMap.get(sEmail) : undefined);
                 
                 // Calculate latency status
                 let status = "Not Submitted";
