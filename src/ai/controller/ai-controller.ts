@@ -181,6 +181,39 @@ export const AIController = {
     });
   },
 
+  // PRE-RESULT PREDICTOR — heavy reasoning, gpt-4o backed, daily-cached.
+  //   data.paperText      — extracted question paper text (PDF or pasted)
+  //   data.syllabusText   — extracted syllabus PDF text (optional)
+  //   data.subject, data.className, data.totalMarks, data.passPct
+  //   data.students[]     — per-student history bundle (id, name, recentTests,
+  //                         avgScore, attendancePct, behaviourRating, weakTopics)
+  // Long timeout (3 min) — gpt-4o per-student reasoning over a full class.
+  async getResultPrediction(data: {
+    paperText: string;
+    syllabusText?: string;
+    subject?: string;
+    className?: string;
+    totalMarks?: number;
+    passPct?: number;
+    students: unknown[];
+  }): Promise<AIResult> {
+    if (!data?.paperText?.trim()) {
+      return { status: "no_data", message: "Add the question paper text first." };
+    }
+    if (!data?.students?.length) {
+      return { status: "no_data", message: "No students enrolled in this class." };
+    }
+    if (import.meta.env.DEV) console.debug("[ResultPredictor] dispatching", {
+      students: data.students.length,
+      paperChars: data.paperText.length,
+      syllabusChars: data.syllabusText?.length || 0,
+    });
+    return callAIInsights("predict_exam_results", data as unknown as AIPayload, {
+      timeoutMs: 180_000,
+      logPrefix: "ResultPredictor",
+    });
+  },
+
   // PAPER CORRECTION — vision call over scanned student exam pages.
   //   data.images: data:image/jpeg;base64,... array (one per page)
   //   data.subject, data.grade, data.totalMarks, data.studentName, data.answerKey, data.notes

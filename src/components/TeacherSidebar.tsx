@@ -24,6 +24,7 @@ import {
   ScanText,
   Award,
   Calendar,
+  TrendingUp,
 } from "lucide-react";
 
 // Sidebar nav grouped into logical sections so the long flat list reads as
@@ -65,6 +66,7 @@ const navSections: {
   {
     title: "AI & Insights",
     items: [
+      { title: "Result Predictor",  path: "/result-predictor", icon: TrendingUp    },
       { title: "AI Lesson Planner", path: "/lesson-planner",   icon: Sparkles      },
       { title: "Summarize Lesson",  path: "/summarize-lesson", icon: ScrollText    },
       { title: "Risks & Alerts",    path: "/risks-alerts",     icon: AlertTriangle },
