@@ -8,6 +8,7 @@ import {
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { tilt3D, tilt3DStyle, BLUE_SHADOW, BLUE_SHADOW_LG } from '../lib/use3DTilt';
+import { dedupAttendanceByDay } from '../lib/attendanceDedup';
 
 // ── Score normalization (canonical) ───────────────────────────────────────────
 // Returns 0-100 percentage from any score doc shape, or null if no data.
@@ -709,7 +710,11 @@ const Dashboard = () => {
         return false;
       };
 
-      const sAtt = attendanceLogs.filter(matchesStudent);
+      // Dedup per-student across (student, day) before counting — see
+      // lib/attendanceDedup. Multi-class students with separate docs per
+      // class for the same day would otherwise inflate sAtt.length and
+      // skew the attendance % used to classify risk levels below.
+      const sAtt = dedupAttendanceByDay(attendanceLogs.filter(matchesStudent));
       const sScores = recentScoreDocs.filter(matchesStudent);
 
       const sA = sAtt.length > 0

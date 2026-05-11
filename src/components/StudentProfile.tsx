@@ -14,6 +14,7 @@ import { db } from "../lib/firebase";
 import { doc, collection, query, where, onSnapshot, getDocs, deleteDoc, serverTimestamp, type Unsubscribe } from "firebase/firestore";
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
+import { dedupAttendanceByDay } from "../lib/attendanceDedup";
 import { toast } from "sonner";
 
 // ── Canonical score normalizer (matches Dashboard / MyClasses / ClassDetail / Students).
@@ -294,7 +295,10 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
     };
 
     const attCache = { byId: [] as any[], byEmail: [] as any[] };
-    subscribePair("attendance", setAttendance, attCache);
+    // Dedup across (student, day) — see lib/attendanceDedup. Same student
+    // in multiple classes can have separate docs per class for the same
+    // day; aggregations (attendance %, monthly trend) would double-count.
+    subscribePair("attendance", (docs) => setAttendance(dedupAttendanceByDay(docs)), attCache);
 
     const tsCache = { byId: [] as any[], byEmail: [] as any[] };
     const gsCache = { byId: [] as any[], byEmail: [] as any[] };
