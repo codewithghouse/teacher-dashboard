@@ -59,6 +59,8 @@ import {
   type FirestoreCacheCoords,
   type TenantContext,
 } from "../lib/resultPredictorCache";
+import { buildReport, openReportWindow, type ReportSection } from "../lib/reportTemplate";
+import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
 import type { GeneratedPaper, GeneratedSection, GeneratedQuestion } from "./exam-types";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -335,7 +337,11 @@ const ResultPredictor = () => {
   const [scores, setScores] = useState<RawScoreDoc[]>([]);
   const [attendance, setAttendance] = useState<RawAttDoc[]>([]);
   const [ratings, setRatings] = useState<RawRatingDoc[]>([]);
-  const [autoSyllabusText, setAutoSyllabusText] = useState<string>("");
+  // Auto-resolved syllabus carries ONLY the storage path + filename. The
+  // cloud function downloads + extracts the PDF server-side (admin SDK,
+  // bypasses browser CORS entirely). Override-uploaded syllabus extracts
+  // text client-side because the user provided the File object directly.
+  const [autoSyllabusPath, setAutoSyllabusPath] = useState<string>("");
   const [autoSyllabusName, setAutoSyllabusName] = useState<string>("");
   const [resolvingSyllabus, setResolvingSyllabus] = useState(false);
 
@@ -450,11 +456,13 @@ const ResultPredictor = () => {
     return () => unsub();
   }, [teacherData?.schoolId, classId]);
 
-  // ── Auto-resolve syllabus PDF: query `syllabi` by classId + (optional)
-  //     subject from selected test. Take latest active doc, extract text. ──
+  // ── Auto-resolve syllabus PDF: query `syllabi` by classId, take latest
+  //     active doc, hand the storage path to the cloud function which will
+  //     download + extract text server-side (admin SDK = no CORS, no browser
+  //     bucket config required). The client never touches the PDF bytes. ──
   useEffect(() => {
     setAutoSyllabusName("");
-    setAutoSyllabusText("");
+    setAutoSyllabusPath("");
     if (!teacherData?.schoolId || !classId) return;
     let cancelled = false;
     const run = async () => {
@@ -468,10 +476,7 @@ const ResultPredictor = () => {
         const snap = await getDocs(q1);
         const docs = snap.docs.map(d => d.data() as DocumentData)
           .filter(d => d.isActive !== false);
-        if (docs.length === 0) {
-          if (!cancelled) setAutoSyllabusName("");
-          return;
-        }
+        if (docs.length === 0 || cancelled) return;
         // Newest active syllabus first
         docs.sort((a, b) => {
           const at = a.uploadedAt?.toDate?.()?.getTime?.() || 0;
@@ -479,23 +484,9 @@ const ResultPredictor = () => {
           return bt - at;
         });
         const top = docs[0];
-        const url = top.fileUrl;
-        if (!url || typeof url !== "string") return;
-        // Stream the PDF and extract text (CORS allowed — Storage public URLs)
-        const res = await fetch(url);
-        const buf = await res.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-        let text = "";
-        const pageCap = Math.min(pdf.numPages, 30); // cap pages — keep payload <= 12 KB-ish
-        for (let i = 1; i <= pageCap; i++) {
-          const page = await pdf.getPage(i);
-          const c = await page.getTextContent();
-          text += c.items.map((it: any) => (it as { str?: string }).str || "").join(" ") + "\n";
-          page.cleanup();
-        }
-        pdf.destroy();
-        if (cancelled) return;
-        setAutoSyllabusText(text.trim());
+        const path = top.filePath as string | undefined;
+        if (!path) return;
+        setAutoSyllabusPath(path);
         setAutoSyllabusName(String(top.fileName || top.title || "Syllabus.pdf"));
       } catch (err) {
         console.warn("[ResultPredictor] syllabus auto-resolve failed", err);
@@ -526,8 +517,11 @@ const ResultPredictor = () => {
     return pastedText;
   }, [inputMode, selectedTestId, tests, uploadedPaperText, pastedText]);
 
-  // Resolved syllabus text (override beats auto)
-  const resolvedSyllabusText = overrideSyllabusText || autoSyllabusText;
+  // Override-uploaded syllabus = client-side text (already extracted on
+  // upload). Auto-resolved syllabus = storage path that the cloud function
+  // will download + extract. Override beats auto when both present.
+  const resolvedSyllabusText = overrideSyllabusText;
+  const resolvedSyllabusPath = overrideSyllabusText ? "" : autoSyllabusPath;
   const resolvedSyllabusName = overrideSyllabusName || autoSyllabusName;
 
   // Selected class object + subject
@@ -619,7 +613,11 @@ const ResultPredictor = () => {
         fetchFn: async () => {
           const r = await AIController.getResultPrediction({
             paperText: resolvedPaperText,
+            // Override-uploaded syllabus is sent as already-extracted text;
+            // auto-resolved syllabus is sent as a storage path so the cloud
+            // function downloads + extracts server-side (no CORS).
             syllabusText: resolvedSyllabusText,
+            syllabusPath: resolvedSyllabusPath,
             subject,
             className,
             totalMarks,
@@ -671,10 +669,113 @@ const ResultPredictor = () => {
     [prediction, selectedStudentId],
   );
 
-  // ── Print / export ──
+  // ── Export — proper structured report (hero + tier tables + class actions)
+  // via reportTemplate.ts. Replaces the earlier `window.print()` which dumped
+  // the entire app chrome (sidebar, hero gradients, hover states) and looked
+  // ugly. Now produces an Edullent-branded printable HTML report opened in a
+  // secure blob: popup window.
   const handleExport = () => {
     if (!prediction) return;
-    window.print();
+    try {
+      const sections: ReportSection[] = [];
+
+      // 1. Class headline (text)
+      sections.push({
+        title: "Class Forecast",
+        type: "text",
+        text: prediction.class_forecast.headline,
+      });
+
+      // 2. Paper overview + topics
+      sections.push({
+        title: "Paper Overview",
+        type: "text",
+        text: prediction.paper_summary.questions_overview
+          + (prediction.paper_summary.topics_detected.length
+            ? `\n\nTopics tested: ${prediction.paper_summary.topics_detected.join(", ")}`
+            : ""),
+      });
+
+      // 3. Where the class will struggle (list)
+      if (prediction.class_forecast.expected_top_struggle_questions.length > 0) {
+        sections.push({
+          title: "Expected Class Struggles",
+          type: "list",
+          items: prediction.class_forecast.expected_top_struggle_questions,
+        });
+      }
+
+      // 4. Pre-exam class actions (list)
+      if (prediction.class_forecast.pre_exam_class_actions.length > 0) {
+        sections.push({
+          title: "Recommended Pre-Exam Class Actions",
+          type: "list",
+          items: prediction.class_forecast.pre_exam_class_actions,
+        });
+      }
+
+      // 5-7. Tier tables — Pass / Borderline / Fail
+      const tiers: { label: string; band: StudentPrediction["predicted_band"]; students: StudentPrediction[] }[] = [
+        { label: "On Track to Pass", band: "pass", students: grouped.pass },
+        { label: "Borderline — Need Attention", band: "borderline", students: grouped.borderline },
+        { label: "Fail Risk — Urgent Intervention", band: "fail", students: grouped.fail },
+      ];
+      tiers.forEach(({ label, students }) => {
+        if (students.length === 0) return;
+        sections.push({
+          title: `${label} (${students.length})`,
+          type: "table",
+          headers: ["#", "Student", "Predicted", "Confidence", "Recommended Action"],
+          rows: students.map((s, i) => ({
+            cells: [
+              i + 1,
+              s.name,
+              `${s.predicted_score_min}–${s.predicted_score_max}%`,
+              confLabel(s.confidence),
+              s.recommended_pre_exam_action || "—",
+            ],
+          })),
+        });
+      });
+
+      // 8. Per-student deep reasoning (text per student) — keep tight for print
+      const allWithReasoning = prediction.students.filter(s => s.reasoning?.trim());
+      if (allWithReasoning.length > 0) {
+        sections.push({
+          title: "Per-Student Reasoning",
+          type: "text",
+          text: allWithReasoning.map(s =>
+            `▸ ${s.name} (${tierStyle(s.predicted_band).label}, ${s.predicted_score_min}–${s.predicted_score_max}%)\n${s.reasoning}`
+          ).join("\n\n"),
+        });
+      }
+
+      const branchName = (teacherData as any)?.branchName
+        || (teacherData as any)?.branch
+        || teacherData?.schoolId
+        || "Edullent";
+
+      const html = buildReport({
+        title: "Pre-Result Forecast",
+        subtitle: `${className}${subject ? ` · ${subject}` : ""} · ${prediction.students.length} students`,
+        badge: prediction.paper_summary.difficulty_estimate.toUpperCase(),
+        heroStats: [
+          { label: "Expected pass", value: `${prediction.class_forecast.expected_pass_pct}%` },
+          { label: "Predicted avg", value: `${prediction.class_forecast.predicted_class_average}%` },
+          { label: "Topics tested", value: prediction.paper_summary.topics_detected.length },
+          { label: "Total marks", value: totalMarks },
+        ],
+        sections,
+        schoolName: branchName,
+        generatedBy: teacherData?.name || "Teacher",
+        // Edullent brand defaults — buildReport uses these when not overridden.
+      });
+
+      openReportWindow(html);
+    } catch (err) {
+      console.error("[ResultPredictor] export failed", err);
+      toast.error("Could not open report. Please try again.");
+    }
   };
 
   // ── Render shell ──
@@ -703,8 +804,8 @@ const ResultPredictor = () => {
         </div>
 
         {/* ── SETUP CARD ── */}
-        <div className="bg-white rounded-[22px] p-6 mb-5 relative overflow-hidden"
-          style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}` }}>
+        <div {...tilt3D} className="bg-white rounded-[22px] p-6 mb-5 relative overflow-hidden"
+          style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
           <div className="absolute -top-[40px] -right-[20px] w-[180px] h-[180px] rounded-full pointer-events-none"
             style={{ background: "radial-gradient(circle, rgba(0,85,255,0.05) 0%, transparent 70%)" }} />
 
@@ -824,7 +925,9 @@ const ResultPredictor = () => {
                 {resolvingSyllabus
                   ? "Looking up syllabus PDF for this class…"
                   : resolvedSyllabusName
-                    ? <>Using <strong>{resolvedSyllabusName}</strong> ({resolvedSyllabusText.length.toLocaleString()} chars)</>
+                    ? overrideSyllabusText
+                      ? <>Using <strong>{resolvedSyllabusName}</strong> ({overrideSyllabusText.length.toLocaleString()} chars, uploaded)</>
+                      : <>Using <strong>{resolvedSyllabusName}</strong> · AI will read the PDF directly</>
                     : "No syllabus PDF found for this class. Predictions still work, but adding one improves accuracy."}
               </div>
             </div>
@@ -874,8 +977,8 @@ const ResultPredictor = () => {
         {prediction && (
           <>
             {/* Class forecast hero */}
-            <div className="rounded-[26px] px-7 py-6 mb-5 relative overflow-hidden"
-              style={{ background: T.HERO_GRAD, boxShadow: "0 8px 30px rgba(0,51,204,0.34), 0 0 0 0.5px rgba(255,255,255,0.14)" }}>
+            <div {...tilt3D} className="rounded-[26px] px-7 py-6 mb-5 relative overflow-hidden"
+              style={{ background: T.HERO_GRAD, boxShadow: "0 8px 30px rgba(0,51,204,0.34), 0 0 0 0.5px rgba(255,255,255,0.14)", ...tilt3DStyle }}>
               <div className="absolute -top-[40px] -right-[30px] w-[260px] h-[260px] rounded-full pointer-events-none"
                 style={{ background: "radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 65%)" }} />
               <div className="relative z-10">
@@ -930,8 +1033,8 @@ const ResultPredictor = () => {
 
             {/* Pre-exam class actions */}
             {prediction.class_forecast.pre_exam_class_actions.length > 0 && (
-              <div className="bg-white rounded-[20px] p-5 mb-5"
-                style={{ boxShadow: T.SH, border: `0.5px solid ${T.BLUE_BDR}` }}>
+              <div {...tilt3D} className="bg-white rounded-[20px] p-5 mb-5"
+                style={{ boxShadow: T.SH, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4" style={{ color: T.B1 }} strokeWidth={2.3} />
                   <span className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: T.B1 }}>
@@ -970,8 +1073,8 @@ const ResultPredictor = () => {
 
         {/* Empty state when no prediction yet */}
         {!prediction && !predicting && (
-          <div className="bg-white rounded-[22px] p-10 flex flex-col items-center justify-center text-center relative overflow-hidden"
-            style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}` }}>
+          <div {...tilt3D} className="bg-white rounded-[22px] p-10 flex flex-col items-center justify-center text-center relative overflow-hidden"
+            style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
             <div className="absolute -top-[60px] -right-[40px] w-[220px] h-[220px] rounded-full pointer-events-none"
               style={{ background: "radial-gradient(circle, rgba(0,85,255,0.05) 0%, transparent 70%)" }} />
             <div className="w-[80px] h-[80px] rounded-[24px] flex items-center justify-center mb-4 relative z-10"
@@ -1016,8 +1119,8 @@ const HeroStat: React.FC<{ icon: any; label: string; value: string }> = ({ icon:
 );
 
 const InfoCard: React.FC<{ title: string; tint: string; children: React.ReactNode }> = ({ title, tint, children }) => (
-  <div className="bg-white rounded-[20px] p-5"
-    style={{ boxShadow: T.SH, border: `0.5px solid ${T.BLUE_BDR}` }}>
+  <div {...tilt3D} className="bg-white rounded-[20px] p-5"
+    style={{ boxShadow: T.SH, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
     <div className="flex items-center gap-2 mb-3">
       <span className="w-[6px] h-[6px] rounded-full" style={{ background: tint, boxShadow: `0 0 0 3px ${tint}22` }} />
       <span className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: tint }}>
@@ -1037,8 +1140,8 @@ const TierColumn: React.FC<{
   const t = tierStyle(band);
   const Icon = t.icon;
   return (
-    <div className="bg-white rounded-[22px] overflow-hidden"
-      style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}` }}>
+    <div {...tilt3D} className="bg-white rounded-[22px] overflow-hidden"
+      style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
       <div className="px-5 py-4 flex items-center justify-between"
         style={{ background: t.bg, borderBottom: `0.5px solid ${t.bdr}` }}>
         <div className="flex items-center gap-2">

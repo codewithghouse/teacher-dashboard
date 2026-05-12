@@ -191,6 +191,10 @@ export const AIController = {
   async getResultPrediction(data: {
     paperText: string;
     syllabusText?: string;
+    /** Firebase Storage path to the syllabus PDF. The cloud function will
+     *  download + extract text server-side (admin SDK = no CORS, no client
+     *  bucket config needed). Use this OR `syllabusText`, not both. */
+    syllabusPath?: string;
     subject?: string;
     className?: string;
     totalMarks?: number;

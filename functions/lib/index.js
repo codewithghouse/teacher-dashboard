@@ -6,7 +6,15 @@ const functions = require("firebase-functions");
 const params_1 = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const openai_1 = require("openai");
+// pdf-parse is server-side PDF text extractor used by the Pre-Result
+// Predictor to read the school's syllabus PDF (downloaded via admin SDK from
+// Firebase Storage, no client-side fetch / no CORS issue).
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParse = require("pdf-parse");
 admin.initializeApp();
+// Cap extracted syllabus text to keep total payload under MAX_PAYLOAD_CHARS.
+// 30 KB of syllabus text is plenty (≈ 6000 words / 30 pages of dense PDF).
+const MAX_SYLLABUS_CHARS = 30000;
 // Key stored in Firebase Secret Manager. Set via:
 //   firebase secrets:set OPENAI_API_KEY
 const openaiApiKey = (0, params_1.defineSecret)("OPENAI_API_KEY");
@@ -475,6 +483,125 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
             "Then produce the JSON exactly as specified, with all fields filled honestly and specifically.",
         ].join("\n");
     }
+    else if (type === "predict_exam_results") {
+        // PRE-RESULT PREDICTOR — read the question paper, syllabus context, and
+        // each student's full history (test scores + gradebook + attendance +
+        // behaviour ratings + concept strengths/weaknesses). Predict per-student
+        // pass/borderline/fail with score range, per-question topic mapping, and
+        // a recommended pre-exam intervention. This is the headline USP feature
+        // — heavy reasoning, gpt-4o, daily Firestore-cached so cost amortises.
+        // ── Server-side syllabus PDF extraction ───────────────────────────────
+        // The client previously tried to fetch the syllabus PDF from Firebase
+        // Storage directly and extract text in the browser — but that hits
+        // CORS unless the bucket has an explicit cross-origin config. Doing
+        // the extraction server-side via the Firebase Admin SDK download path
+        // bypasses CORS entirely AND keeps the syllabus content out of the
+        // client bundle. Result: the "AI reads your syllabus PDF" USP works
+        // for every school out of the box, no per-bucket setup.
+        const syllabusPath = payload?.syllabusPath;
+        if (syllabusPath && typeof syllabusPath === "string" && !payload?.syllabusText) {
+            try {
+                const file = admin.storage().bucket().file(syllabusPath);
+                const [buf] = await file.download();
+                const data = await pdfParse(buf);
+                let text = String(data?.text || "").trim();
+                if (text.length > MAX_SYLLABUS_CHARS) {
+                    // Take the first MAX_SYLLABUS_CHARS — syllabus headers + early
+                    // chapters carry the topic list we need; later pages are rote
+                    // exercises that don't influence the prediction much.
+                    text = text.slice(0, MAX_SYLLABUS_CHARS);
+                }
+                payload.syllabusText = text;
+                console.log(`[predict_exam_results] syllabus extracted ${text.length} chars from ${syllabusPath}`);
+            }
+            catch (err) {
+                console.warn(`[predict_exam_results] syllabus extraction failed for ${syllabusPath}:`, err?.message || err);
+                // Non-fatal — predictor still works without syllabus context.
+            }
+        }
+        systemPrompt = [
+            "You are a senior exam-results forecasting analyst with 20+ years of",
+            "Indian school examination experience.",
+            "",
+            "Your job: BEFORE the exam, predict how each student is likely to",
+            "perform on a specific question paper, citing concrete evidence from",
+            "their academic history. The teacher will use your predictions to run",
+            "targeted interventions while there is still time to engineer a better",
+            "outcome.",
+            "",
+            "Do NOT be vague. Cite specific past scores, attendance percentages,",
+            "and topic gaps by name. The teacher must trust every prediction.",
+            "Respond ONLY in valid JSON.",
+            "",
+            "CRITICAL LANGUAGE RULE — MUST FOLLOW:",
+            "Write EVERY text field in clear professional English ONLY.",
+            "DO NOT use Hindi, Urdu, Hinglish, transliteration, or any Devanagari script.",
+            "DO NOT use words like: hai, nahi, kar, karein, ke liye, achha, thoda, bhi, jo, ki, ka, ke, mein, par, se, ko, ya.",
+            "If you catch yourself writing Hinglish, restart the sentence in pure English.",
+            "",
+            "Example of CORRECT: 'Tanveer scored 88% on algebra in the last unit test, but Q2/Q5/Q8 of this paper test geometry where her average across the last three attempts is 38%. Recommended: a focused 1-hour geometry review before the exam.'",
+            "Example of INCORRECT: 'Tanveer ka algebra strong hai par geometry mein thoda gap hai, isliye revision karna chahiye.'",
+            "",
+            "PREDICTION DISCIPLINE:",
+            "- predicted_band must be one of exactly: 'pass' | 'borderline' | 'fail'.",
+            "- 'pass' = predicted score >= 60% with high or medium confidence.",
+            "- 'borderline' = predicted score 40-59% OR low confidence on a higher score.",
+            "- 'fail' = predicted score < 40% based on at least 2 historical signals.",
+            "- Never invent data. If a student has too few past records, set",
+            "  predicted_band to 'borderline', confidence to 'low', and say so honestly.",
+        ].join("\n");
+        userPrompt = `Forecast results for an upcoming exam. Use the question paper, syllabus context (if any), and each student's history.
+
+QUESTION PAPER (text extracted from PDF or pasted by teacher):
+${payload?.paperText || "(empty — only history available)"}
+
+SYLLABUS CONTEXT (text extracted from the school syllabus PDF; may be partial):
+${payload?.syllabusText || "(no syllabus PDF available)"}
+
+EXAM META:
+- Subject: ${payload?.subject || "Unknown"}
+- Class: ${payload?.className || "Unknown"}
+- Total marks: ${payload?.totalMarks || "Unknown"}
+- Pass mark percentage: ${payload?.passPct ?? 40}
+
+STUDENT HISTORY (one object per student in the class):
+${JSON.stringify(payload?.students || [], null, 2)}
+
+Identify the topics this paper tests (parse the question paper). For each student, map their history (subject avg, last 3 test scores, attendance %, behaviour rating, weak topics) to those question topics. Then produce a prediction.
+
+Return ONLY this JSON. ALL text fields must be in clear professional English (no Hindi or Hinglish):
+{
+  "paper_summary": {
+    "topics_detected": ["string array of distinct topics the paper tests"],
+    "difficulty_estimate": "easy" | "medium" | "hard",
+    "questions_overview": "1-2 sentence English summary of what the paper covers and weights"
+  },
+  "class_forecast": {
+    "expected_pass_pct": 0-100 integer,
+    "predicted_class_average": 0-100 integer,
+    "expected_top_struggle_questions": ["e.g. Q3 (geometry construction), Q7 (trigonometric identities)"],
+    "headline": "1 sentence English headline summarising the class outlook",
+    "pre_exam_class_actions": [
+      "Concrete English action 1 the teacher should run before the exam",
+      "Concrete English action 2"
+    ]
+  },
+  "students": [
+    {
+      "studentId": "must match the studentId provided in the input",
+      "name": "student name",
+      "predicted_band": "pass" | "borderline" | "fail",
+      "predicted_score_min": 0-100 integer,
+      "predicted_score_max": 0-100 integer,
+      "confidence": "high" | "medium" | "low",
+      "top_strengths_for_paper": ["English bullet citing the specific topic and the past score that supports it"],
+      "gaps_for_paper": ["English bullet citing the specific topic and the past score / missed concept that supports it"],
+      "reasoning": "2-4 sentence English explanation tying the predicted band to the historical evidence. Cite numbers (past scores, attendance %, weak-concept names). NO Hinglish.",
+      "recommended_pre_exam_action": "1 concrete English action the teacher should take with this student before the exam (eg 'Run a 1-hour geometry construction practice with worked examples on Friday')."
+    }
+  ]
+}`;
+    }
     else if (type === "teacher_self_action_plan") {
         systemPrompt = [
             "You are a senior educator performance coach.",
@@ -524,15 +651,28 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
                     type === "class_action_plan" ? 1500 :
                         type === "student_action_plan" ? 1500 :
                             type === "teacher_self_action_plan" ? 1500 :
-                                1024;
+                                // Pre-Result Predictor: per-student JSON for up to 50 students plus the
+                                // class-forecast block — the largest text-only output we ship. 4096 keeps
+                                // it under the gpt-4o response cap; the cloud function's safeJsonParse
+                                // surfaces a clean error if the model truncates.
+                                type === "predict_exam_results" ? 4096 :
+                                    1024;
     // Per-type model selection. Leaderboard action plans are reasoning-heavy
     // (analysing class metrics, ranking gaps, recommending interventions) and
     // are Firestore-cached weekly per (teacher + context + ISO week), so the
-    // higher per-call cost of gpt-4o is amortised across 7 days.
+    // higher per-call cost of gpt-4o is amortised across 7 days. The Pre-Result
+    // Predictor is the same shape — heavy reasoning, daily-cached per paper.
+    //
+    // ⚠️ predict_exam_results uses gpt-4.1-mini because the project's OpenAI
+    // key currently lacks gpt-4o access (caught in production logs:
+    // "Project ... does not have access to model 'gpt-4o'"). The other
+    // _action_plan types kept gpt-4o because they were already deployed
+    // under it — flip them too if model_not_found surfaces for them.
     const model = type === "class_action_plan" ? "gpt-4o" :
         type === "student_action_plan" ? "gpt-4o" :
             type === "teacher_self_action_plan" ? "gpt-4o" :
-                "gpt-4.1-mini";
+                type === "predict_exam_results" ? "gpt-4.1-mini" :
+                    "gpt-4.1-mini";
     // Vision types attach base64 page images to the user message so the
     // model can actually look at the scanned paper. Everything else stays
     // on the simple text-only path.

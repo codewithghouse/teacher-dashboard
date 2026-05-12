@@ -3,8 +3,17 @@ import * as functions from "firebase-functions";
 import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import OpenAI from "openai";
+// pdf-parse is server-side PDF text extractor used by the Pre-Result
+// Predictor to read the school's syllabus PDF (downloaded via admin SDK from
+// Firebase Storage, no client-side fetch / no CORS issue).
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParse = require("pdf-parse");
 
 admin.initializeApp();
+
+// Cap extracted syllabus text to keep total payload under MAX_PAYLOAD_CHARS.
+// 30 KB of syllabus text is plenty (≈ 6000 words / 30 pages of dense PDF).
+const MAX_SYLLABUS_CHARS = 30_000;
 
 // Key stored in Firebase Secret Manager. Set via:
 //   firebase secrets:set OPENAI_API_KEY
@@ -492,6 +501,36 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
       // pass/borderline/fail with score range, per-question topic mapping, and
       // a recommended pre-exam intervention. This is the headline USP feature
       // — heavy reasoning, gpt-4o, daily Firestore-cached so cost amortises.
+
+      // ── Server-side syllabus PDF extraction ───────────────────────────────
+      // The client previously tried to fetch the syllabus PDF from Firebase
+      // Storage directly and extract text in the browser — but that hits
+      // CORS unless the bucket has an explicit cross-origin config. Doing
+      // the extraction server-side via the Firebase Admin SDK download path
+      // bypasses CORS entirely AND keeps the syllabus content out of the
+      // client bundle. Result: the "AI reads your syllabus PDF" USP works
+      // for every school out of the box, no per-bucket setup.
+      const syllabusPath = (payload as any)?.syllabusPath;
+      if (syllabusPath && typeof syllabusPath === "string" && !(payload as any)?.syllabusText) {
+        try {
+          const file = admin.storage().bucket().file(syllabusPath);
+          const [buf] = await file.download();
+          const data = await pdfParse(buf);
+          let text = String(data?.text || "").trim();
+          if (text.length > MAX_SYLLABUS_CHARS) {
+            // Take the first MAX_SYLLABUS_CHARS — syllabus headers + early
+            // chapters carry the topic list we need; later pages are rote
+            // exercises that don't influence the prediction much.
+            text = text.slice(0, MAX_SYLLABUS_CHARS);
+          }
+          (payload as any).syllabusText = text;
+          console.log(`[predict_exam_results] syllabus extracted ${text.length} chars from ${syllabusPath}`);
+        } catch (err: any) {
+          console.warn(`[predict_exam_results] syllabus extraction failed for ${syllabusPath}:`, err?.message || err);
+          // Non-fatal — predictor still works without syllabus context.
+        }
+      }
+
       systemPrompt = [
         "You are a senior exam-results forecasting analyst with 20+ years of",
         "Indian school examination experience.",
@@ -638,11 +677,17 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
     // are Firestore-cached weekly per (teacher + context + ISO week), so the
     // higher per-call cost of gpt-4o is amortised across 7 days. The Pre-Result
     // Predictor is the same shape — heavy reasoning, daily-cached per paper.
+    //
+    // ⚠️ predict_exam_results uses gpt-4.1-mini because the project's OpenAI
+    // key currently lacks gpt-4o access (caught in production logs:
+    // "Project ... does not have access to model 'gpt-4o'"). The other
+    // _action_plan types kept gpt-4o because they were already deployed
+    // under it — flip them too if model_not_found surfaces for them.
     const model =
       type === "class_action_plan" ? "gpt-4o" :
       type === "student_action_plan" ? "gpt-4o" :
       type === "teacher_self_action_plan" ? "gpt-4o" :
-      type === "predict_exam_results" ? "gpt-4o" :
+      type === "predict_exam_results" ? "gpt-4.1-mini" :
       "gpt-4.1-mini";
 
     // Vision types attach base64 page images to the user message so the
