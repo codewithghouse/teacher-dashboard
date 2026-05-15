@@ -402,27 +402,89 @@ export default function Gradebook() {
 
     let cancelled = false;
 
-    const ut = onSnapshot(
+    // Dual listener for tests:
+    //   (a) tests where classId == targetClassId — the canonical class join.
+    //   (b) tests where teacherId == me — defensive: catches every test this
+    //       teacher created even if (a) misses due to classId mismatch
+    //       between writer (CreateTest) and reader (this dropdown's
+    //       resolved sel.classId). The user reported "test create kare to
+    //       Gradebook me show nahi hora" — this guarantees their own tests
+    //       always surface for the selected class, regardless of the join.
+    // Both snapshots merge into one deduped list, filtered client-side to
+    // the current class (matches by sel.classId OR selectedClassId so both
+    // teaching_assignment-keyed and legacy-keyed pickers work).
+    const teacherId = teacherData.id;
+    let testsByClass: TestDoc[] = [];
+    let testsByTeacher: TestDoc[] = [];
+    const flushTests = () => {
+      if (cancelled) return;
+      const dedup = new Map<string, TestDoc>();
+      testsByClass.forEach(t => dedup.set(t.id, t));
+      // For teacherId-keyed tests, filter to ones whose classId matches the
+      // current selection — otherwise tests for OTHER classes would leak.
+      testsByTeacher.forEach(t => {
+        const tid = (t as { classId?: unknown }).classId;
+        if (tid === targetClassId || tid === selectedClassId) {
+          if (!dedup.has(t.id)) dedup.set(t.id, t);
+        }
+      });
+      const list = Array.from(dedup.values())
+        .sort((a, b) => String(b.testDate || "").localeCompare(String(a.testDate || "")));
+      setClassTests(list);
+    };
+    const ut1 = onSnapshot(
       query(collection(db, "tests"), ...SC_RES, where("classId", "==", targetClassId)),
       (snap) => {
-        if (cancelled) return;
-        const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as TestDoc);
-        list.sort((a, b) => String(b.testDate || "").localeCompare(String(a.testDate || "")));
-        setClassTests(list);
+        testsByClass = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as TestDoc);
+        flushTests();
       },
-      onListenerErr("tests"),
+      onListenerErr("tests (by class)"),
     );
+    const ut2 = onSnapshot(
+      query(collection(db, "tests"), ...SC_RES, where("teacherId", "==", teacherId)),
+      (snap) => {
+        testsByTeacher = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as TestDoc);
+        flushTests();
+      },
+      onListenerErr("tests (by teacher)"),
+    );
+    const ut = () => { ut1(); ut2(); };
 
-    const ua = onSnapshot(
+    // Dual listener for assignments — mirrors tests. Same rationale: catches
+    // assignments the teacher created even if classId join fails.
+    let asgnByClass: AssignmentDoc[] = [];
+    let asgnByTeacher: AssignmentDoc[] = [];
+    const flushAsgn = () => {
+      if (cancelled) return;
+      const dedup = new Map<string, AssignmentDoc>();
+      asgnByClass.forEach(a => dedup.set(a.id, a));
+      asgnByTeacher.forEach(a => {
+        const cid = (a as { classId?: unknown }).classId;
+        if (cid === targetClassId || cid === selectedClassId) {
+          if (!dedup.has(a.id)) dedup.set(a.id, a);
+        }
+      });
+      const list = Array.from(dedup.values())
+        .sort((a, b) => String(b.dueDate || "").localeCompare(String(a.dueDate || "")));
+      setClassAssignments(list);
+    };
+    const ua1 = onSnapshot(
       query(collection(db, "assignments"), ...SC_RES, where("classId", "==", targetClassId)),
       (snap) => {
-        if (cancelled) return;
-        const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as AssignmentDoc);
-        list.sort((a, b) => String(b.dueDate || "").localeCompare(String(a.dueDate || "")));
-        setClassAssignments(list);
+        asgnByClass = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as AssignmentDoc);
+        flushAsgn();
       },
-      onListenerErr("assignments"),
+      onListenerErr("assignments (by class)"),
     );
+    const ua2 = onSnapshot(
+      query(collection(db, "assignments"), ...SC_RES, where("teacherId", "==", teacherId)),
+      (snap) => {
+        asgnByTeacher = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as AssignmentDoc);
+        flushAsgn();
+      },
+      onListenerErr("assignments (by teacher)"),
+    );
+    const ua = () => { ua1(); ua2(); };
 
     // test_scores by class — count per testId. Powers the "X of Y graded" chip
     // on each test row + the activities-section progress.
