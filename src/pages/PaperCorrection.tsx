@@ -748,13 +748,41 @@ const PaperCorrection = () => {
     return Math.floor(base64Len * 0.75);
   };
 
+  // Lenient PDF detection — macOS Safari + drag-from-Preview + some
+  // Windows builds report the MIME as empty string OR "application/x-pdf"
+  // instead of "application/pdf", which the old strict equality check
+  // rejected. Accept any of: known PDF MIMEs, .pdf extension, or magic-byte
+  // signature check (sniffs the first 4 bytes for "%PDF").
+  const isPdfFile = async (f: File): Promise<boolean> => {
+    const okMimes = new Set(["application/pdf", "application/x-pdf", "application/acrobat", "text/pdf"]);
+    if (okMimes.has((f.type || "").toLowerCase())) return true;
+    if (/\.pdf$/i.test(f.name || "")) return true;
+    // Final sanity check — sniff the magic header.
+    try {
+      const head = await f.slice(0, 5).arrayBuffer();
+      const bytes = new Uint8Array(head);
+      // %PDF = 0x25 0x50 0x44 0x46
+      return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+    } catch {
+      return false;
+    }
+  };
+
   const handleFile = useCallback(async (selectedFile: File) => {
-    if (!selectedFile || selectedFile.type !== "application/pdf") {
-      setError("Only PDF files are allowed.");
+    if (!selectedFile) {
+      setError("No file selected.");
+      return;
+    }
+    if (!(await isPdfFile(selectedFile))) {
+      setError("Only PDF files are allowed. Drag or pick a .pdf file.");
       return;
     }
     if (selectedFile.size > MAX_FILE_MB * 1024 * 1024) {
       setError(`File size must be under ${MAX_FILE_MB} MB.`);
+      return;
+    }
+    if (selectedFile.size === 0) {
+      setError("This file is empty (0 bytes). Re-export and try again.");
       return;
     }
     setError(null);
@@ -763,11 +791,23 @@ const PaperCorrection = () => {
     setExtracting(true);
     try {
       const imgs = await renderPdfToImages(selectedFile);
+      if (imgs.length === 0) throw new Error("PDF has no readable pages.");
       setPageImages(imgs);
       setPageCount(imgs.length);
     } catch (e) {
       console.error("[PaperCorrection] PDF render failed", e);
-      setError("Could not read PDF. Try a different file or re-scan.");
+      const msg = (e as { message?: string })?.message || "";
+      // Surface the actionable cause when we can detect it. Two macOS-
+      // specific failure modes worth naming:
+      //   1. Password-protected PDFs (Preview-encrypted exports)
+      //   2. Pages with embedded fonts pdf.js can't decode
+      if (/password|encrypted/i.test(msg)) {
+        setError("This PDF is password-protected. Open it in Preview and export as a new unprotected PDF.");
+      } else if (/invalid|corrupt|malformed/i.test(msg)) {
+        setError("PDF appears corrupt. Re-scan or re-export and try again.");
+      } else {
+        setError("Could not read PDF. Try a different file or re-scan as a clean PDF.");
+      }
       setFile(null);
       setPageImages([]);
     }
@@ -1190,7 +1230,10 @@ const PaperCorrection = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/pdf"
+                // Accept both MIME and extension — macOS file picker
+                // sometimes greys out PDFs when only the MIME is listed.
+                // Adding ".pdf" makes the picker always enable PDF files.
+                accept="application/pdf,.pdf"
                 className="hidden"
                 onChange={onPickFile}
               />
