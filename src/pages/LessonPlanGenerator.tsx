@@ -174,6 +174,65 @@ const LessonPlanGenerator = () => {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Subjects this teacher is authorized to plan for. Union of:
+  //   1) teaching_assignments rows (canonical — set by principal/owner) and
+  //   2) teachers/{id}.subject (legacy single-field on the teacher doc, may
+  //      be comma/slash-separated).
+  // Dedupe case-insensitively, preserve first-seen casing for display.
+  const [assignedSubjects, setAssignedSubjects] = useState<string[]>(() => {
+    return (teacherData?.subject || "")
+      .split(/[,;/]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  });
+  useEffect(() => {
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    const seed = (teacherData.subject || "")
+      .split(/[,;/]/).map(s => s.trim()).filter(Boolean);
+    const unsub = onSnapshot(
+      query(
+        collection(db, "teaching_assignments"),
+        where("schoolId", "==", teacherData.schoolId),
+        where("teacherId", "==", teacherData.id),
+      ),
+      (snap) => {
+        const fromAssignments = snap.docs
+          .map(d => {
+            const data = d.data() as { status?: string; subjectName?: string; subjectId?: string; subject?: string };
+            const status = data.status;
+            if (status && typeof status === "string" && status.toLowerCase() !== "active") return null;
+            return data.subjectName || data.subjectId || data.subject || null;
+          })
+          .filter((x): x is string => !!x && x.trim().length > 0)
+          .map(s => s.trim());
+        const seen = new Set<string>();
+        const merged: string[] = [];
+        [...seed, ...fromAssignments].forEach(s => {
+          const k = s.toLowerCase();
+          if (seen.has(k)) return;
+          seen.add(k);
+          merged.push(s);
+        });
+        setAssignedSubjects(merged);
+      },
+      (err) => console.warn("[LessonPlanGenerator] teaching_assignments:", err),
+    );
+    return () => unsub();
+  }, [teacherData?.id, teacherData?.schoolId, teacherData?.subject]);
+
+  // Keep form.subject inside the assigned list. If empty / stale, snap to the
+  // first allowed subject so the form is always valid for assigned teachers.
+  useEffect(() => {
+    if (assignedSubjects.length === 0) return;
+    const current = (form.subject || "").trim().toLowerCase();
+    const inList = assignedSubjects.some(s => s.toLowerCase() === current);
+    if (!current || !inList) {
+      setForm(prev => ({ ...prev, subject: assignedSubjects[0] }));
+    }
+    // form.subject intentionally omitted — we only react to the source-of-truth list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignedSubjects]);
+
   // ── Firebase: lesson plan history ───────────────────────────────────────
   useEffect(() => {
     if (!teacherData?.id || !teacherData?.schoolId) return;
@@ -342,7 +401,7 @@ const LessonPlanGenerator = () => {
   const handleReset = () => {
     setPlan(null); setError(null); setSaved(false); setSavedId(null); setCachedAt(null);
     setForceShowForm(false);
-    setForm({ ...defaultForm, subject: teacherData?.subject || "" });
+    setForm({ ...defaultForm, subject: assignedSubjects[0] || "" });
   };
 
   // P1-4: resilient text-to-clipboard helper. Async API first, falls back to
@@ -575,6 +634,7 @@ const LessonPlanGenerator = () => {
           onLoadHistory={loadFromHistory}
           onDeleteHistory={handleDeleteHistory}
           onReset={handleReset}
+          assignedSubjects={assignedSubjects}
         />
       )}
 
@@ -592,6 +652,7 @@ const LessonPlanGenerator = () => {
           onLoadHistory={loadFromHistory}
           onDeleteHistory={handleDeleteHistory}
           onReset={handleReset}
+          assignedSubjects={assignedSubjects}
         />
       )}
 
@@ -1365,15 +1426,22 @@ interface MobileLessonPlannerProps {
   onLoadHistory: (h: HistoryItem) => void;
   onDeleteHistory: (h: HistoryItem) => void;
   onReset: () => void;
+  assignedSubjects: string[];
 }
 
-const SUBJECT_CHIPS = [
-  { key: "English",     label: "English",  emoji: "📝" },
-  { key: "Mathematics", label: "Math",     emoji: "🔢" },
-  { key: "Science",     label: "Science",  emoji: "🔬" },
-  { key: "Social",      label: "Social",   emoji: "🌍" },
-  { key: "Computer",    label: "Computer", emoji: "💻" },
-];
+const subjectEmoji = (name: string): string => {
+  const n = (name || "").toLowerCase();
+  if (n.includes("math")) return "🔢";
+  if (n.includes("english") || n.includes("hindi") || n.includes("urdu") || n.includes("arabic") || n.includes("language") || n.includes("literature")) return "📝";
+  if (n.includes("phys") || n.includes("chem") || n.includes("bio") || n.includes("science")) return "🔬";
+  if (n.includes("social") || n.includes("history") || n.includes("geog") || n.includes("civic") || n.includes("econ")) return "🌍";
+  if (n.includes("computer") || n.includes("ict") || n.includes("code") || n.includes("tech")) return "💻";
+  if (n.includes("art") || n.includes("draw") || n.includes("paint")) return "🎨";
+  if (n.includes("music")) return "🎵";
+  if (n.includes("sport") || n.includes("physical edu") || /\bpe\b/.test(n)) return "⚽";
+  if (n.includes("moral") || n.includes("value")) return "🧭";
+  return "📘";
+};
 const CLASS_OPTIONS = ["6", "7", "8", "9", "10", "11", "12"];
 const BOARD_OPTIONS = ["CBSE", "ICSE", "State Board"];
 const PLAN_INCLUSIONS = [
@@ -1399,13 +1467,11 @@ const minToDuration = (n: number): string => `${n} minutes`;
 const MobileLessonPlanner = ({
   form, upd, loading, error, history,
   activeTab, setActiveTab, onGenerate, onLoadHistory, onDeleteHistory, onReset,
+  assignedSubjects,
 }: MobileLessonPlannerProps) => {
   const [inclusions, setInclusions] = useState<Set<string>>(new Set(["objectives", "activities", "quiz"]));
   const selectedClass = parseClassLabel(form.grade);
   const durationMin = parseDurationMin(form.duration_per_lesson);
-
-  // Derive selected subject chip if it matches any chip key, else custom
-  const matchedSubject = SUBJECT_CHIPS.find(s => (form.subject || "").toLowerCase().includes(s.key.toLowerCase()) || s.label.toLowerCase() === (form.subject || "").toLowerCase());
 
   // Board filtering — mockup shows 3 chips, our backend supports 6. Show 3 main chips + fallback to form.board if it's something else.
   const boardActive = (b: string) => {
@@ -1628,96 +1694,49 @@ const MobileLessonPlanner = ({
               boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
-              {/* Header row — label on left, persistent "+ Custom" button on
-                  the right. The button never disappears once a custom subject
-                  is set — it just stays in place so the teacher can edit. */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
                   Subject
                   <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const customActive = !!form.subject.trim() && !matchedSubject;
-                    const v = window.prompt("Enter subject:", customActive ? form.subject : "");
-                    if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
-                  }}
-                  className="lp-press"
-                  style={{
-                    padding: "6px 12px", borderRadius: 100,
-                    background: "#F4F7FE",
-                    color: "#0055FF",
-                    fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px",
-                    display: "flex", alignItems: "center", gap: 5,
-                    border: "0.5px dashed rgba(0,85,255,.35)",
-                    cursor: "pointer", fontFamily: "inherit",
-                    transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                  }}
-                >
-                  <span style={{ fontSize: 12, lineHeight: 1 }}>+</span>
-                  Custom
-                </button>
               </div>
-              <div className="lp-scroll" style={{ display: "flex", gap: 6, overflowX: "auto", margin: "0 -4px", padding: "2px 4px 4px" }}>
-                {SUBJECT_CHIPS.map(sc => {
-                  const active = matchedSubject?.key === sc.key;
-                  return (
-                    <button
-                      key={sc.key}
-                      type="button"
-                      onClick={() => upd("subject", sc.key)}
-                      className="lp-press"
-                      style={{
-                        flexShrink: 0, padding: "9px 14px", borderRadius: 100,
-                        background: active ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
-                        color: active ? "#fff" : "#002080",
-                        fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
-                        display: "flex", alignItems: "center", gap: 6,
-                        border: active ? "0.5px solid #0055FF" : "0.5px solid rgba(0,85,255,.07)",
-                        cursor: "pointer", fontFamily: "inherit",
-                        boxShadow: active ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
-                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>{sc.emoji}</span>
-                      {sc.label}
-                    </button>
-                  );
-                })}
-                {/* Active custom-subject chip — appears in the chip row when
-                    the teacher has typed something that doesn't match any
-                    preset. Renders highlighted (blue gradient) so the
-                    selection is visually obvious. Tap to edit. */}
-                {(() => {
-                  const customActive = !!form.subject.trim() && !matchedSubject;
-                  if (!customActive) return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = window.prompt("Edit subject:", form.subject);
-                        if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
-                      }}
-                      className="lp-press"
-                      style={{
-                        flexShrink: 0, padding: "9px 14px", borderRadius: 100,
-                        background: "linear-gradient(135deg, #0055FF, #1166FF)",
-                        color: "#fff",
-                        fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
-                        display: "flex", alignItems: "center", gap: 6,
-                        border: "0.5px solid #0055FF",
-                        cursor: "pointer", fontFamily: "inherit",
-                        boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)",
-                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>✏️</span>
-                      {form.subject}
-                    </button>
-                  );
-                })()}
-              </div>
+              {assignedSubjects.length === 0 ? (
+                <div style={{
+                  padding: "12px 14px", borderRadius: 14, background: "#F4F7FE",
+                  border: "0.5px dashed rgba(0,85,255,.22)", color: "#5070B0",
+                  fontSize: 11, fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5,
+                }}>
+                  No subjects assigned yet. Please ask your principal or admin to assign a subject to your account.
+                </div>
+              ) : (
+                <div className="lp-scroll" style={{ display: "flex", gap: 6, overflowX: "auto", margin: "0 -4px", padding: "2px 4px 4px" }}>
+                  {assignedSubjects.map(sub => {
+                    const active = (form.subject || "").trim().toLowerCase() === sub.toLowerCase();
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => upd("subject", sub)}
+                        className="lp-press"
+                        style={{
+                          flexShrink: 0, padding: "9px 14px", borderRadius: 100,
+                          background: active ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
+                          color: active ? "#fff" : "#002080",
+                          fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+                          display: "flex", alignItems: "center", gap: 6,
+                          border: active ? "0.5px solid #0055FF" : "0.5px solid rgba(0,85,255,.07)",
+                          cursor: "pointer", fontFamily: "inherit",
+                          boxShadow: active ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                          transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                        }}
+                      >
+                        <span style={{ fontSize: 13, lineHeight: 1 }}>{subjectEmoji(sub)}</span>
+                        {sub}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Class + Board */}
@@ -2181,15 +2200,11 @@ const MobileLessonPlanner = ({
 const DesktopLessonPlanner = ({
   form, upd, loading, error, history,
   activeTab, setActiveTab, onGenerate, onLoadHistory, onDeleteHistory, onReset,
+  assignedSubjects,
 }: MobileLessonPlannerProps) => {
   const [inclusions, setInclusions] = useState<Set<string>>(new Set(["objectives", "activities", "quiz"]));
   const selectedClass = parseClassLabel(form.grade);
   const durationMin = parseDurationMin(form.duration_per_lesson);
-
-  const matchedSubject = SUBJECT_CHIPS.find(s =>
-    (form.subject || "").toLowerCase().includes(s.key.toLowerCase()) ||
-    s.label.toLowerCase() === (form.subject || "").toLowerCase()
-  );
 
   const boardActive = (b: string) => {
     if (form.board === b) return true;
@@ -2432,95 +2447,49 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  {/* Header row — label on left, persistent "+ Custom" button
-                      on the right. Button never disappears once a custom
-                      subject is set — stays in place so the teacher can
-                      always start a new custom subject from one stable spot. */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
                       Subject
                       <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const customActive = !!form.subject.trim() && !matchedSubject;
-                        const v = window.prompt("Enter subject:", customActive ? form.subject : "");
-                        if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
-                      }}
-                      className="lpd-press"
-                      style={{
-                        padding: "7px 14px", borderRadius: 100,
-                        background: "#F4F7FE",
-                        color: "#0055FF",
-                        fontSize: 12, fontWeight: 700, letterSpacing: "-0.1px",
-                        display: "flex", alignItems: "center", gap: 6,
-                        border: "0.5px dashed rgba(0,85,255,.35)",
-                        cursor: "pointer", fontFamily: "inherit",
-                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
-                      Custom
-                    </button>
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {SUBJECT_CHIPS.map(sc => {
-                      const active = matchedSubject?.key === sc.key;
-                      return (
-                        <button
-                          key={sc.key}
-                          type="button"
-                          onClick={() => upd("subject", sc.key)}
-                          className="lpd-press"
-                          style={{
-                            padding: "10px 18px", borderRadius: 100,
-                            background: active ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
-                            color: active ? "#fff" : "#002080",
-                            fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
-                            display: "flex", alignItems: "center", gap: 7,
-                            border: active ? "0.5px solid #0055FF" : "0.5px solid rgba(0,85,255,.07)",
-                            cursor: "pointer", fontFamily: "inherit",
-                            boxShadow: active ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
-                            transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                          }}
-                        >
-                          <span style={{ fontSize: 14, lineHeight: 1 }}>{sc.emoji}</span>
-                          {sc.label}
-                        </button>
-                      );
-                    })}
-                    {/* Active custom-subject chip — see mobile parallel for
-                        rationale. Renders highlighted to show selection. */}
-                    {(() => {
-                      const customActive = !!form.subject.trim() && !matchedSubject;
-                      if (!customActive) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const v = window.prompt("Edit subject:", form.subject);
-                            if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
-                          }}
-                          className="lpd-press"
-                          style={{
-                            padding: "10px 18px", borderRadius: 100,
-                            background: "linear-gradient(135deg, #0055FF, #1166FF)",
-                            color: "#fff",
-                            fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
-                            display: "flex", alignItems: "center", gap: 7,
-                            border: "0.5px solid #0055FF",
-                            cursor: "pointer", fontFamily: "inherit",
-                            boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)",
-                            transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                          }}
-                        >
-                          <span style={{ fontSize: 14, lineHeight: 1 }}>✏️</span>
-                          {form.subject}
-                        </button>
-                      );
-                    })()}
-                  </div>
+                  {assignedSubjects.length === 0 ? (
+                    <div style={{
+                      padding: "14px 16px", borderRadius: 16, background: "#F4F7FE",
+                      border: "0.5px dashed rgba(0,85,255,.22)", color: "#5070B0",
+                      fontSize: 13, fontWeight: 500, letterSpacing: "-0.1px", lineHeight: 1.5,
+                    }}>
+                      No subjects assigned yet. Please ask your principal or admin to assign a subject to your account.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {assignedSubjects.map(sub => {
+                        const active = (form.subject || "").trim().toLowerCase() === sub.toLowerCase();
+                        return (
+                          <button
+                            key={sub}
+                            type="button"
+                            onClick={() => upd("subject", sub)}
+                            className="lpd-press"
+                            style={{
+                              padding: "10px 18px", borderRadius: 100,
+                              background: active ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
+                              color: active ? "#fff" : "#002080",
+                              fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
+                              display: "flex", alignItems: "center", gap: 7,
+                              border: active ? "0.5px solid #0055FF" : "0.5px solid rgba(0,85,255,.07)",
+                              cursor: "pointer", fontFamily: "inherit",
+                              boxShadow: active ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                              transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                            }}
+                          >
+                            <span style={{ fontSize: 14, lineHeight: 1 }}>{subjectEmoji(sub)}</span>
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Class */}
