@@ -499,7 +499,13 @@ const ParentNotes = () => {
           </button>
         </div>
       )}
-      {selectedStudent ? <ChatView /> : <ListView />}
+      {/* Call as functions, not as <Component /> — these are defined inside
+          the parent's body, so React would treat each render's new function
+          reference as a NEW component type and unmount + remount the whole
+          subtree on every keystroke. Result: input loses focus after 1-2
+          letters and send button can't bind. Memory:
+          bug_pattern_inline_component_remount_flicker. */}
+      {selectedStudent ? ChatView() : ListView()}
       {showCompose && (
         <>
           {/* Desktop modal (unchanged) */}
