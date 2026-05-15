@@ -44,8 +44,13 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [roster, setRoster] = useState<any[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [isSent, setIsSent] = useState(false);
+  // Per-target send state. Previously a single `isSending` + `isSent` pair
+  // meant clicking "Send to Parent" disabled AND visually marked BOTH the
+  // Parent button and the Principal button as sent — making it look like one
+  // click fired both portals. Splitting into target-scoped state lets the
+  // teacher send to parent, then independently send to principal afterwards.
+  const [sendingTarget, setSendingTarget] = useState<null | "parent" | "principal" | "both">(null);
+  const [sentTargets, setSentTargets] = useState<Set<"parent" | "principal">>(new Set());
   const [params, setParams] = useState({
     classId: "",
     grade: "",
@@ -57,7 +62,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
   useEffect(() => {
     if (isOpen) {
       setReportResult(null);
-      setIsSent(false);
+      setSentTargets(new Set());
       setCurrentReportId(null);
       // Reset per-modal-open: scope defaults to 'class' for the attendance
       // toggle; clear student so the picker placeholder shows fresh.
@@ -534,7 +539,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
 
        const docRef = await auditedAdd(collection(db, "reports"), firestorePayload);
        setCurrentReportId(docRef.id);
-       setIsSent(false);
+       setSentTargets(new Set());
 
        // For per-student reports (individual_progress + attendance_summary
        // with individual scope), the modal is the wrong surface — the rich
@@ -611,7 +616,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
 
   const handleSendToPortal = async (portal: "parent" | "principal" | "both") => {
     if (!currentReportId) return;
-    setIsSending(true);
+    setSendingTarget(portal);
     try {
        const isToParent = portal === "parent" || portal === "both";
        const isToPrincipal = portal === "principal" || portal === "both";
@@ -644,13 +649,21 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
           await auditedAdd(collection(db, "principal_reports"), prPayload);
        }
 
-       setIsSent(true);
+       // Record which target(s) succeeded — incremental so Parent then
+       // Principal (or vice versa) can both reach "sent" without blocking
+       // each other. The "both" button updates both flags at once.
+       setSentTargets(prev => {
+          const next = new Set(prev);
+          if (isToParent) next.add("parent");
+          if (isToPrincipal) next.add("principal");
+          return next;
+       });
        toast.success(portal === "both" ? "Sent to Parent and Principal." : portal === "parent" ? "Sent to Parent." : "Sent to Principal.");
     } catch (e: unknown) {
        console.error("[GenerateReport] portal sync failed", e);
        toast.error("Failed to send. Try again.");
     } finally {
-       setIsSending(false);
+       setSendingTarget(null);
     }
   };
 
@@ -1013,10 +1026,14 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                       if (gradePart) tail.push(`Grade ${gradePart}`);
                       const fullLabel = tail.length > 0 ? `${c.name} — ${tail.join(" · ")}` : c.name;
                       return (
+                        // data-[highlighted]:* overrides shadcn SelectItem's
+                        // default dark "accent" highlight that was making the
+                        // text invisible on hover. Force a light blue bg with
+                        // navy text to stay readable + on-theme.
                         <SelectItem
                           key={c.id}
                           value={c.classId}
-                          className="hover:bg-[#EEF4FF]"
+                          className="hover:bg-[#EEF4FF] data-[highlighted]:bg-[#EEF4FF] data-[highlighted]:text-[#001040] focus:bg-[#EEF4FF] focus:text-[#001040]"
                           style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 600, color: "#001040" }}
                         >
                           {fullLabel}
@@ -1135,7 +1152,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                           <>
                             <SelectItem
                               value="all"
-                              className="hover:bg-[#EEF4FF]"
+                              className="hover:bg-[#EEF4FF] data-[highlighted]:bg-[#EEF4FF] data-[highlighted]:text-[#0055FF] focus:bg-[#EEF4FF] focus:text-[#0055FF]"
                               style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 700, color: "#0055FF" }}
                             >
                               All students in class
@@ -1144,7 +1161,7 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                               <SelectItem
                                 key={s.id}
                                 value={s.studentId}
-                                className="hover:bg-[#EEF4FF]"
+                                className="hover:bg-[#EEF4FF] data-[highlighted]:bg-[#EEF4FF] data-[highlighted]:text-[#001040] focus:bg-[#EEF4FF] focus:text-[#001040]"
                                 style={{ borderRadius: 10, padding: "10px 12px", marginBottom: 2, fontSize: 13, fontWeight: 600, color: "#001040" }}
                               >
                                 {s.studentName || "Unnamed student"}
@@ -1367,54 +1384,85 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                  </div>
                ) : null}
 
-               {/* Action buttons — Blue Apple themed, compact */}
+               {/* Action buttons — Blue Apple themed, compact. Each button's
+                   loading/disabled/sent state is scoped to its own target so
+                   clicking Parent no longer locks/marks Principal (and vice
+                   versa). The "both" button is special — it disables ALL
+                   other buttons while in flight, and a successful Parent OR
+                   Principal send by itself doesn't lock the other from being
+                   sent later. */}
                <div className="print:hidden" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                 {(report.id === "at_risk" || report.id === "attendance_summary") && (
-                   <button
-                     type="button"
-                     onClick={() => handleSendToPortal('both')}
-                     disabled={isSending || isSent}
-                     style={{
-                       gridColumn: "1 / -1",
-                       height: 52, borderRadius: 14,
-                       background: "linear-gradient(135deg,#001040 0%,#0033CC 70%,#0055FF 100%)",
-                       color: "#fff",
-                       fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
-                       border: "none",
-                       boxShadow: "0 6px 18px rgba(0,16,64,.32), 0 2px 5px rgba(0,16,64,.18)",
-                       cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
-                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                       transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                       opacity: (isSending || isSent) ? 0.6 : 1,
-                     }}
-                   >
-                     {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><Sparkles className="w-4 h-4" /> Send to Parent and Principal</>}
-                   </button>
-                 )}
-                 <button
-                   type="button"
-                   onClick={() => handleSendToPortal('parent')}
-                   disabled={isSending || isSent}
-                   style={{
-                     gridColumn: (report.id === "at_risk" || report.id === "attendance_summary") ? "1" : "1 / -1",
-                     height: 52, borderRadius: 14,
-                     background: "linear-gradient(135deg,#00A746 0%,#00C853 100%)",
-                     color: "#fff",
-                     fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
-                     border: "none",
-                     boxShadow: "0 6px 18px rgba(0,200,83,.32), 0 2px 5px rgba(0,200,83,.18)",
-                     cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
-                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                     transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                     opacity: (isSending || isSent) ? 0.6 : 1,
-                   }}
-                 >
-                   {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><CheckCircle2 className="w-4 h-4" /> Send to Parent</>}
-                 </button>
+                 {(report.id === "at_risk" || report.id === "attendance_summary") && (() => {
+                   const parentSent = sentTargets.has("parent");
+                   const principalSent = sentTargets.has("principal");
+                   const bothSent = parentSent && principalSent;
+                   const thisSending = sendingTarget === "both";
+                   const disabled = thisSending || bothSent || sendingTarget !== null;
+                   return (
+                     <button
+                       type="button"
+                       onClick={() => handleSendToPortal('both')}
+                       disabled={disabled}
+                       style={{
+                         gridColumn: "1 / -1",
+                         height: 52, borderRadius: 14,
+                         background: "linear-gradient(135deg,#001040 0%,#0033CC 70%,#0055FF 100%)",
+                         color: "#fff",
+                         fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                         border: "none",
+                         boxShadow: "0 6px 18px rgba(0,16,64,.32), 0 2px 5px rgba(0,16,64,.18)",
+                         cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit",
+                         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                         transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                         opacity: disabled ? 0.6 : 1,
+                       }}
+                     >
+                       {thisSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                        : bothSent ? <><CheckCircle2 className="w-4 h-4" /> Sent to both</>
+                        : <><Sparkles className="w-4 h-4" /> Send to Parent and Principal</>}
+                     </button>
+                   );
+                 })()}
+                 {(() => {
+                   const parentSent = sentTargets.has("parent");
+                   const thisSending = sendingTarget === "parent";
+                   // Disabled if Parent already sent, OR this button is in
+                   // flight, OR a "both" send is in flight (no parallel work).
+                   const disabled = thisSending || parentSent || sendingTarget === "both";
+                   return (
+                     <button
+                       type="button"
+                       onClick={() => handleSendToPortal('parent')}
+                       disabled={disabled}
+                       style={{
+                         gridColumn: (report.id === "at_risk" || report.id === "attendance_summary") ? "1" : "1 / -1",
+                         height: 52, borderRadius: 14,
+                         background: "linear-gradient(135deg,#00A746 0%,#00C853 100%)",
+                         color: "#fff",
+                         fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
+                         border: "none",
+                         boxShadow: "0 6px 18px rgba(0,200,83,.32), 0 2px 5px rgba(0,200,83,.18)",
+                         cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit",
+                         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                         transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                         opacity: disabled ? 0.6 : 1,
+                       }}
+                     >
+                       {thisSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                        : parentSent ? <><CheckCircle2 className="w-4 h-4" /> Sent to Parent</>
+                        : <><CheckCircle2 className="w-4 h-4" /> Send to Parent</>}
+                     </button>
+                   );
+                 })()}
+                 {(() => {
+                   const principalSent = sentTargets.has("principal");
+                   const thisSending = sendingTarget === "principal";
+                   const disabled = thisSending || principalSent || sendingTarget === "both";
+                   return (
                  <button
                    type="button"
                    onClick={() => handleSendToPortal('principal')}
-                   disabled={isSending || isSent}
+                   disabled={disabled}
                    style={{
                      gridColumn: (report.id === "at_risk" || report.id === "attendance_summary") ? "2" : "1 / -1",
                      height: 52, borderRadius: 14,
@@ -1423,14 +1471,18 @@ const GenerateReport = ({ isOpen, onOpenChange, report }: GenerateReportProps) =
                      fontSize: 13, fontWeight: 700, letterSpacing: "-0.1px",
                      border: "none",
                      boxShadow: "0 6px 18px rgba(0,85,255,.32), 0 2px 5px rgba(0,85,255,.18)",
-                     cursor: (isSending || isSent) ? "not-allowed" : "pointer", fontFamily: "inherit",
+                     cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit",
                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                      transition: "all .22s cubic-bezier(.2,.9,.3,1)",
-                     opacity: (isSending || isSent) ? 0.6 : 1,
+                     opacity: disabled ? 0.6 : 1,
                    }}
                  >
-                   {isSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><ShieldCheck className="w-4 h-4" /> Send to Principal</>}
+                   {thisSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                    : principalSent ? <><ShieldCheck className="w-4 h-4" /> Sent to Principal</>
+                    : <><ShieldCheck className="w-4 h-4" /> Send to Principal</>}
                  </button>
+                   );
+                 })()}
                  <button
                    type="button"
                    onClick={handleDownload}
