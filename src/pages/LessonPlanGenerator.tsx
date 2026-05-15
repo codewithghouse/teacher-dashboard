@@ -211,8 +211,12 @@ const LessonPlanGenerator = () => {
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleGenerate = async (forceFresh = false) => {
-    if (!form.subject.trim() || !form.topic.trim()) {
-      setError("Subject and Topic are required.");
+    // Only Subject is required now — Topic + Description are optional. When
+    // Topic is empty the AI picks an appropriate topic for the subject + grade
+    // + (optional) learning goals. This unlocks "generate me anything for
+    // Class 8 Math" flows where the teacher doesn't yet know what to teach.
+    if (!form.subject.trim()) {
+      setError("Subject is required.");
       return;
     }
 
@@ -701,10 +705,10 @@ const LessonPlanGenerator = () => {
                 <input style={inputStyle} value={form.subject} onChange={e => upd("subject", e.target.value)} placeholder="e.g. English" />
               </div>
 
-              {/* Topic */}
+              {/* Topic — now optional. AI picks an appropriate one when blank. */}
               <div style={{ padding: "13px 14px", borderBottom: `1px solid ${T.s2}` }}>
-                <div style={labelStyle}>Topic / chapter <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.red }} /></div>
-                <input style={inputStyle} value={form.topic} onChange={e => upd("topic", e.target.value)} placeholder="e.g. Parts of speech" />
+                <div style={labelStyle}>Topic / chapter <span style={{ fontSize: 9, color: T.ink3, opacity: 0.6, fontStyle: "italic", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></div>
+                <input style={inputStyle} value={form.topic} onChange={e => upd("topic", e.target.value)} placeholder="Leave blank to let AI pick" />
               </div>
 
               {/* Grade + Board */}
@@ -1410,7 +1414,7 @@ const MobileLessonPlanner = ({
     return false;
   };
 
-  const canGenerate = !!form.subject.trim() && !!form.topic.trim() && !loading;
+  const canGenerate = !!form.subject.trim() && !loading;
 
   const fmtDate = (ts: any): string => {
     const d: Date | null = ts?.toDate?.() || (ts instanceof Date ? ts : null);
@@ -1654,6 +1658,37 @@ const MobileLessonPlanner = ({
                     </button>
                   );
                 })}
+                {/* Custom subject — for any subject not in the preset chip row
+                    (Hindi, Sanskrit, EVS, Sports, Music, etc.). Shows the
+                    teacher's actual value when typed, so they can see + tap
+                    again to edit. */}
+                {(() => {
+                  const customActive = !!form.subject.trim() && !matchedSubject;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                        if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
+                      }}
+                      className="lp-press"
+                      style={{
+                        flexShrink: 0, padding: "9px 14px", borderRadius: 100,
+                        background: customActive ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
+                        color: customActive ? "#fff" : "#0055FF",
+                        fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
+                        display: "flex", alignItems: "center", gap: 6,
+                        border: customActive ? "0.5px solid #0055FF" : "0.5px dashed rgba(0,85,255,.35)",
+                        cursor: "pointer", fontFamily: "inherit",
+                        boxShadow: customActive ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                      }}
+                    >
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>{customActive ? "✏️" : "+"}</span>
+                      {customActive ? form.subject : "Custom"}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1751,13 +1786,13 @@ const MobileLessonPlanner = ({
             }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                 Lesson Topic
-                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
+                <span style={{ color: "#99AACC", fontSize: 10, fontWeight: 600, letterSpacing: 0, textTransform: "none" }}>(optional)</span>
               </div>
               <input
                 type="text"
                 value={form.topic}
                 onChange={e => upd("topic", e.target.value.slice(0, 120))}
-                placeholder="e.g. Understanding Parts of Speech"
+                placeholder="Leave blank to let AI pick"
                 maxLength={120}
                 style={{
                   width: "100%", padding: "12px 14px",
@@ -1772,7 +1807,7 @@ const MobileLessonPlanner = ({
                 onBlur={e => { e.currentTarget.style.background = form.topic ? "#fff" : "#F4F7FE"; e.currentTarget.style.borderColor = "rgba(0,85,255,.07)"; e.currentTarget.style.boxShadow = "none"; }}
               />
               <div style={{ fontSize: 11, color: "#99AACC", marginTop: 6, fontWeight: 500, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span>What should the AI teach?</span>
+                <span>{form.topic ? "Specific topic for the AI" : "AI will choose for you"}</span>
                 <span style={{ color: "#5070B0", fontWeight: 600 }}>{form.topic.length} / 120</span>
               </div>
             </div>
@@ -2134,7 +2169,7 @@ const DesktopLessonPlanner = ({
     return false;
   };
 
-  const canGenerate = !!form.subject.trim() && !!form.topic.trim() && !loading;
+  const canGenerate = !!form.subject.trim() && !loading;
 
   const fmtDate = (ts: any): string => {
     const d: Date | null = ts?.toDate?.() || (ts instanceof Date ? ts : null);
@@ -2399,6 +2434,34 @@ const DesktopLessonPlanner = ({
                         </button>
                       );
                     })}
+                    {/* Custom subject — see mobile parallel for rationale. */}
+                    {(() => {
+                      const customActive = !!form.subject.trim() && !matchedSubject;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                            if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
+                          }}
+                          className="lpd-press"
+                          style={{
+                            padding: "10px 18px", borderRadius: 100,
+                            background: customActive ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
+                            color: customActive ? "#fff" : "#0055FF",
+                            fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
+                            display: "flex", alignItems: "center", gap: 7,
+                            border: customActive ? "0.5px solid #0055FF" : "0.5px dashed rgba(0,85,255,.35)",
+                            cursor: "pointer", fontFamily: "inherit",
+                            boxShadow: customActive ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                            transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                          }}
+                        >
+                          <span style={{ fontSize: 14, lineHeight: 1 }}>{customActive ? "✏️" : "+"}</span>
+                          {customActive ? form.subject : "Custom"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -2496,13 +2559,13 @@ const DesktopLessonPlanner = ({
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Lesson Topic
-                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
+                    <span style={{ color: "#99AACC", fontSize: 11, fontWeight: 600, letterSpacing: 0, textTransform: "none" }}>(optional)</span>
                   </div>
                   <input
                     type="text"
                     value={form.topic}
                     onChange={e => upd("topic", e.target.value.slice(0, 120))}
-                    placeholder="e.g. Understanding Parts of Speech"
+                    placeholder="Leave blank to let AI pick a topic for you"
                     maxLength={120}
                     style={{
                       width: "100%", padding: "14px 16px",
@@ -2517,7 +2580,7 @@ const DesktopLessonPlanner = ({
                     onBlur={e => { e.currentTarget.style.background = form.topic ? "#fff" : "#F4F7FE"; e.currentTarget.style.borderColor = "rgba(0,85,255,.07)"; e.currentTarget.style.boxShadow = "none"; }}
                   />
                   <div style={{ fontSize: 12, color: "#99AACC", marginTop: 8, fontWeight: 500, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>What should the AI teach?</span>
+                    <span>{form.topic ? "Specific topic for the AI" : "AI will choose for you"}</span>
                     <span style={{ color: "#5070B0", fontWeight: 600 }}>{form.topic.length} / 120</span>
                   </div>
                 </div>

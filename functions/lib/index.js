@@ -84,10 +84,17 @@ exports.getTeacherAIInsights = functions
     }
     else if (type === "lesson_plan_generation") {
         systemPrompt = "You are an expert curriculum designer and master teacher. Generate structured, classroom-ready lesson plans.";
+        // Topic is now optional. When the teacher leaves it blank, instruct the
+        // model to pick an appropriate topic for the given subject + grade +
+        // board (and any learning goals provided), and write the chosen topic
+        // into `plan_title` so the teacher sees what was selected.
+        const topicLine = (payload?.topic && String(payload.topic).trim())
+            ? `TOPIC: ${payload.topic}`
+            : "TOPIC: (not specified — choose a grade-appropriate, board-aligned topic for the subject yourself and surface it in `plan_title`)";
         userPrompt = `Generate a comprehensive lesson plan for:
 SUBJECT: ${payload?.subject}
 GRADE: ${payload?.grade}
-TOPIC: ${payload?.topic}
+${topicLine}
 BOARD: ${payload?.board}
 DURATION PER LESSON: ${payload?.duration_per_lesson}
 NUMBER OF LESSONS: ${payload?.num_lessons}
