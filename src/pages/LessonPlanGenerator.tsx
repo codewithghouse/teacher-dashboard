@@ -1628,9 +1628,36 @@ const MobileLessonPlanner = ({
               boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
               border: "0.5px solid rgba(0,85,255,.07)",
             }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                Subject
-                <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
+              {/* Header row — label on left, persistent "+ Custom" button on
+                  the right. The button never disappears once a custom subject
+                  is set — it just stays in place so the teacher can edit. */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+                  Subject
+                  <span style={{ color: "#FF3355", fontSize: 11, fontWeight: 700 }}>*</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const customActive = !!form.subject.trim() && !matchedSubject;
+                    const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                    if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
+                  }}
+                  className="lp-press"
+                  style={{
+                    padding: "6px 12px", borderRadius: 100,
+                    background: "#F4F7FE",
+                    color: "#0055FF",
+                    fontSize: 11, fontWeight: 700, letterSpacing: "-0.1px",
+                    display: "flex", alignItems: "center", gap: 5,
+                    border: "0.5px dashed rgba(0,85,255,.35)",
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                  }}
+                >
+                  <span style={{ fontSize: 12, lineHeight: 1 }}>+</span>
+                  Custom
+                </button>
               </div>
               <div className="lp-scroll" style={{ display: "flex", gap: 6, overflowX: "auto", margin: "0 -4px", padding: "2px 4px 4px" }}>
                 {SUBJECT_CHIPS.map(sc => {
@@ -1658,34 +1685,35 @@ const MobileLessonPlanner = ({
                     </button>
                   );
                 })}
-                {/* Custom subject — for any subject not in the preset chip row
-                    (Hindi, Sanskrit, EVS, Sports, Music, etc.). Shows the
-                    teacher's actual value when typed, so they can see + tap
-                    again to edit. */}
+                {/* Active custom-subject chip — appears in the chip row when
+                    the teacher has typed something that doesn't match any
+                    preset. Renders highlighted (blue gradient) so the
+                    selection is visually obvious. Tap to edit. */}
                 {(() => {
                   const customActive = !!form.subject.trim() && !matchedSubject;
+                  if (!customActive) return null;
                   return (
                     <button
                       type="button"
                       onClick={() => {
-                        const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                        const v = window.prompt("Edit subject:", form.subject);
                         if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
                       }}
                       className="lp-press"
                       style={{
                         flexShrink: 0, padding: "9px 14px", borderRadius: 100,
-                        background: customActive ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
-                        color: customActive ? "#fff" : "#0055FF",
+                        background: "linear-gradient(135deg, #0055FF, #1166FF)",
+                        color: "#fff",
                         fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px",
                         display: "flex", alignItems: "center", gap: 6,
-                        border: customActive ? "0.5px solid #0055FF" : "0.5px dashed rgba(0,85,255,.35)",
+                        border: "0.5px solid #0055FF",
                         cursor: "pointer", fontFamily: "inherit",
-                        boxShadow: customActive ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                        boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)",
                         transition: "all .22s cubic-bezier(.2,.9,.3,1)",
                       }}
                     >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>{customActive ? "✏️" : "+"}</span>
-                      {customActive ? form.subject : "Custom"}
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>✏️</span>
+                      {form.subject}
                     </button>
                   );
                 })()}
@@ -2404,9 +2432,37 @@ const DesktopLessonPlanner = ({
                   boxShadow: "0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)",
                   border: "0.5px solid rgba(0,85,255,.07)",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                    Subject
-                    <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
+                  {/* Header row — label on left, persistent "+ Custom" button
+                      on the right. Button never disappears once a custom
+                      subject is set — stays in place so the teacher can
+                      always start a new custom subject from one stable spot. */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#5070B0", letterSpacing: "1.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+                      Subject
+                      <span style={{ color: "#FF3355", fontSize: 12, fontWeight: 700 }}>*</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const customActive = !!form.subject.trim() && !matchedSubject;
+                        const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                        if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
+                      }}
+                      className="lpd-press"
+                      style={{
+                        padding: "7px 14px", borderRadius: 100,
+                        background: "#F4F7FE",
+                        color: "#0055FF",
+                        fontSize: 12, fontWeight: 700, letterSpacing: "-0.1px",
+                        display: "flex", alignItems: "center", gap: 6,
+                        border: "0.5px dashed rgba(0,85,255,.35)",
+                        cursor: "pointer", fontFamily: "inherit",
+                        transition: "all .22s cubic-bezier(.2,.9,.3,1)",
+                      }}
+                    >
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
+                      Custom
+                    </button>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {SUBJECT_CHIPS.map(sc => {
@@ -2434,31 +2490,33 @@ const DesktopLessonPlanner = ({
                         </button>
                       );
                     })}
-                    {/* Custom subject — see mobile parallel for rationale. */}
+                    {/* Active custom-subject chip — see mobile parallel for
+                        rationale. Renders highlighted to show selection. */}
                     {(() => {
                       const customActive = !!form.subject.trim() && !matchedSubject;
+                      if (!customActive) return null;
                       return (
                         <button
                           type="button"
                           onClick={() => {
-                            const v = window.prompt("Enter subject:", customActive ? form.subject : "");
+                            const v = window.prompt("Edit subject:", form.subject);
                             if (v !== null && v.trim()) upd("subject", v.trim().slice(0, 60));
                           }}
                           className="lpd-press"
                           style={{
                             padding: "10px 18px", borderRadius: 100,
-                            background: customActive ? "linear-gradient(135deg, #0055FF, #1166FF)" : "#F4F7FE",
-                            color: customActive ? "#fff" : "#0055FF",
+                            background: "linear-gradient(135deg, #0055FF, #1166FF)",
+                            color: "#fff",
                             fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px",
                             display: "flex", alignItems: "center", gap: 7,
-                            border: customActive ? "0.5px solid #0055FF" : "0.5px dashed rgba(0,85,255,.35)",
+                            border: "0.5px solid #0055FF",
                             cursor: "pointer", fontFamily: "inherit",
-                            boxShadow: customActive ? "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)" : "none",
+                            boxShadow: "0 1px 2px rgba(0,85,255,.22), 0 3px 10px rgba(0,85,255,.28)",
                             transition: "all .22s cubic-bezier(.2,.9,.3,1)",
                           }}
                         >
-                          <span style={{ fontSize: 14, lineHeight: 1 }}>{customActive ? "✏️" : "+"}</span>
-                          {customActive ? form.subject : "Custom"}
+                          <span style={{ fontSize: 14, lineHeight: 1 }}>✏️</span>
+                          {form.subject}
                         </button>
                       );
                     })()}
