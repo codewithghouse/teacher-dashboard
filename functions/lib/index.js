@@ -671,22 +671,15 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
                                 // surfaces a clean error if the model truncates.
                                 type === "predict_exam_results" ? 4096 :
                                     1024;
-    // Per-type model selection. Leaderboard action plans are reasoning-heavy
-    // (analysing class metrics, ranking gaps, recommending interventions) and
-    // are Firestore-cached weekly per (teacher + context + ISO week), so the
-    // higher per-call cost of gpt-4o is amortised across 7 days. The Pre-Result
-    // Predictor is the same shape — heavy reasoning, daily-cached per paper.
-    //
-    // ⚠️ predict_exam_results uses gpt-4.1-mini because the project's OpenAI
-    // key currently lacks gpt-4o access (caught in production logs:
-    // "Project ... does not have access to model 'gpt-4o'"). The other
-    // _action_plan types kept gpt-4o because they were already deployed
-    // under it — flip them too if model_not_found surfaces for them.
-    const model = type === "class_action_plan" ? "gpt-4o" :
-        type === "student_action_plan" ? "gpt-4o" :
-            type === "teacher_self_action_plan" ? "gpt-4o" :
-                type === "predict_exam_results" ? "gpt-4.1-mini" :
-                    "gpt-4.1-mini";
+    // Per-type model selection. ALL types use gpt-4.1-mini because the
+    // project's OpenAI key currently lacks gpt-4o access (caught in production
+    // logs: "Project ... does not have access to model 'gpt-4o'"). The action
+    // plans were originally on gpt-4o but surfaced the same model_not_found
+    // failure as Pre-Result Predictor — flipped to gpt-4.1-mini 2026-05-15.
+    // Memory: bug_pattern_openai_model_not_found. Action plans are Firestore-
+    // cached weekly so the slight reasoning-quality drop is acceptable and
+    // re-checked-quality is amortised across 7 days per teacher+context.
+    const model = "gpt-4.1-mini";
     // Vision types attach base64 page images to the user message so the
     // model can actually look at the scanned paper. Everything else stays
     // on the simple text-only path.
