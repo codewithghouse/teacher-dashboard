@@ -172,29 +172,34 @@ const Assignments = () => {
     // subsequent snapshot fires while the previous batch is still in flight.
     let cancelled = false;
 
-    // Branch scoping for RESOLUTION entities only (teaching_assignments,
-    // classes, assignments, enrollments). NEVER on event streams
-    // (submissions, results) — see bug_pattern_branch_filter_on_event_streams
-    // memory: writes lag the enforceBranchId trigger by 1-2s, and a
-    // branchId filter on events would silently drop fresh records.
-    const branchScope = branchId ? [where("branchId", "==", branchId)] : [];
+    // branchScope intentionally DROPPED from resolution-entity queries
+    // (teaching_assignments / classes). Writers across principal + owner
+    // dashboards stamp branchId inconsistently — a class doc without
+    // branchId silently fails a `where branchId == X` filter and the teacher
+    // sees ZERO classes (even though the class roster + their teaching
+    // assignment exist). School-scoped is sufficient: each teacher belongs
+    // to exactly one school, so cross-school leak isn't possible.
+    // `status == "active"` filter also dropped — moved to client-side so
+    // legacy teaching_assignments docs without a status field still resolve.
+    void branchId;
 
     const unsub = onSnapshot(
       query(
         collection(db, "teaching_assignments"),
         where("schoolId", "==", schoolId),
-        ...branchScope,
         where("teacherId", "==", teacherData.id),
-        where("status", "==", "active")
       ),
       async (assignSnap) => {
         try {
-          const teachingAssignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+          const activeDocs = assignSnap.docs.filter(d => {
+            const s = (d.data() as { status?: unknown }).status;
+            return !s || (typeof s === "string" && s.toLowerCase() === "active");
+          });
+          const teachingAssignments = activeDocs.map(d => ({ id: d.id, ...d.data() } as any));
           const assignedClassIds    = teachingAssignments.map((t: any) => t.classId).filter(Boolean);
           const legacySnap          = await getDocs(query(
             collection(db, "classes"),
             where("schoolId", "==", schoolId),
-            ...branchScope,
             where("teacherId", "==", teacherData.id),
           ));
           if (cancelled) return;
@@ -208,17 +213,21 @@ const Assignments = () => {
             return;
           }
 
-          // Bulk-fetch assignments per classId. classIds capped at ~30 per `in`
-          // chunk; each teacher rarely has more so this is typically 1 chunk.
-          // assignments IS a resolution entity — branchId filter is allowed
-          // and tightens scope.
-          const classChunks = chunked(allClassIds, 30);
+          // Bulk-fetch assignments by classId — the canonical join. The prior
+          // query also required `teacherId == teacherData.id` and a branchScope
+          // filter, but BOTH suppressed legitimate matches: a freshly-onboarded
+          // teacher's own newly-created assignment carries teacherId == new
+          // teacher's id (matches), yet branchId on `assignments` was sometimes
+          // empty when the principal's class doc had no branchId, so the
+          // assignment's branchId-stamp inherited the empty value and the
+          // branchScope filter dropped it. Schools we ship to are single-
+          // tenant (one school per teacher), so school-scoped + classId is
+          // sufficient. Firestore `in` caps at 10 — chunk by 10, not 30.
+          const classChunks = chunked(allClassIds, 10);
           const aSnaps = await Promise.all(classChunks.map(ch => getDocs(query(
             collection(db, "assignments"),
             where("schoolId", "==", schoolId),
-            ...branchScope,
             where("classId", "in", ch),
-            where("teacherId", "==", teacherData.id),
           ))));
           if (cancelled) return;
           const map = new Map<string, any>();
@@ -238,11 +247,15 @@ const Assignments = () => {
           // of per-assignment fetches. Was 4N round trips for N assignments
           // (e.g., 80 for 20 assignments); now ~4 × ceil(N/30) — usually 4.
           const aIds = raw.map(a => a.id);
-          const aChunks = chunked(aIds, 30);
-          const cChunks = chunked(allClassIds, 30);
-          // Event streams (submissions, results) deliberately stay schoolId-only
-          // — adding branchId would risk silent drops during the inference-lag
-          // window. Enrollments IS a resolution entity → branchId allowed.
+          // Firestore `in` caps at 10 — chunk by 10 across all lookups, not
+          // 30. The prior code's 30-cap would silently truncate when more
+          // than 10 ids landed in a chunk (the API would return only the
+          // first 10's worth of hits — the rest of the chunk became invisible).
+          const aChunks = chunked(aIds, 10);
+          const cChunks = chunked(allClassIds, 10);
+          // School-scoped only for ALL these lookups. branchScope dropped on
+          // enrollments to match the rest of this file — see resolution-entity
+          // rationale above.
           const [
             subsByAid, subsByHid,
             resultsByAid,
@@ -251,7 +264,7 @@ const Assignments = () => {
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("homeworkId",   "in", ch))))),
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
-            Promise.all(cChunks.map(ch => getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), ...branchScope, where("classId", "in", ch))))),
+            Promise.all(cChunks.map(ch => getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("classId", "in", ch))))),
           ]);
           if (cancelled) return;
 

@@ -196,8 +196,10 @@ export default function TestsExams() {
           const classIds = Array.from(new Set(raw.map(t => t.classId).filter((c): c is string => !!c)));
           const enrollCount = new Map<string, number>();
           if (classIds.length > 0) {
+            // Firestore `in` caps at 10 — chunks of 30 silently dropped any
+            // values past the first 10 in each chunk.
             const chunks: string[][] = [];
-            for (let i = 0; i < classIds.length; i += 30) chunks.push(classIds.slice(i, i + 30));
+            for (let i = 0; i < classIds.length; i += 10) chunks.push(classIds.slice(i, i + 10));
             const snaps = await Promise.all(chunks.map(ch => getDocs(query(
               collection(db, "enrollments"),
               where("schoolId", "==", schoolId),
