@@ -185,6 +185,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // ── Live school-name subscription ────────────────────────────────────
+  // Header reads `teacherData.schoolName`. Subscribing to schools/{schoolId}
+  // as the source of truth means rename events from the principal (or any
+  // other dashboard / tab) flow into the header within ~1s without
+  // depending on the cascade trigger's denormalized writes catching up.
+  useEffect(() => {
+    const schoolId = teacherData?.schoolId;
+    if (!schoolId) return;
+    const unsub = onSnapshot(
+      doc(db, "schools", schoolId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const liveName = String((snap.data() as { name?: string })?.name || "").trim();
+        if (!liveName) return;
+        setTeacherData((prev) => {
+          if (!prev) return prev;
+          if (prev.schoolName === liveName && (prev as { branchName?: string }).branchName === liveName) return prev;
+          return { ...prev, schoolName: liveName, branchName: liveName } as TeacherDoc;
+        });
+      },
+      (err) => console.warn("[AuthContext] live school-name listener failed:", err),
+    );
+    return () => unsub();
+  }, [teacherData?.schoolId]);
+
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
