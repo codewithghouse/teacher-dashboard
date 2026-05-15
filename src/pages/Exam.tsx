@@ -1,10 +1,15 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Loader2, Printer, Copy, RefreshCw, Check, Sparkles, BookmarkPlus } from "lucide-react";
+import { Loader2, Printer, Copy, RefreshCw, Check, Sparkles, BookmarkPlus, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { AIController } from "../ai/controller/ai-controller";
 import SaveAsTestModal from "../components/SaveAsTestModal";
+import { db } from "../lib/firebase";
+import {
+  collection, query, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp,
+  type Timestamp,
+} from "firebase/firestore";
 import {
   examCacheKey,
   getInflight,
@@ -15,6 +20,18 @@ import {
   type ExamFormFields,
 } from "../lib/examPaperCache";
 import type { GeneratedPaper } from "./exam-types";
+
+// History item — mirrors LessonPlanGenerator's HistoryItem shape so the
+// listener + UI patterns are identical across the two generators.
+interface ExamHistoryItem extends ExamFormFields {
+  id: string;
+  paper: GeneratedPaper;
+  teacherId: string;
+  schoolId: string;
+  schoolName?: string;
+  teacherName?: string;
+  createdAt?: Timestamp;
+}
 
 // ── Mobile tokens (matches Students page) ────────────────────────────────────
 const MA = {
@@ -109,6 +126,46 @@ const Exam = () => {
   // whenever we render a freshly-generated paper.
   const [cachedAt, setCachedAt] = useState<number | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  // History — mirrors LessonPlanGenerator. Auto-saves every successful AI
+  // generation to Firestore `examPapers` collection scoped by teacherId so
+  // each teacher gets their own private archive.
+  const [history, setHistory] = useState<ExamHistoryItem[]>([]);
+  const [activeTab, setActiveTab] = useState<"generate" | "history">("generate");
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // Firestore history listener — scoped by schoolId + teacherId so a
+  // misconfigured rule can't leak another teacher's papers into this list.
+  useEffect(() => {
+    if (!teacherData?.id || !teacherData?.schoolId) return;
+    setHistoryError(null);
+    let cancelled = false;
+    const q = query(
+      collection(db, "examPapers"),
+      where("schoolId", "==", teacherData.schoolId),
+      where("teacherId", "==", teacherData.id),
+    );
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        if (cancelled) return;
+        const docs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ExamHistoryItem));
+        // Newest-first sort with a robust timestamp resolver — handles the
+        // brief window where serverTimestamp() is still pending (toMillis
+        // throws on null) by treating those as "now".
+        docs.sort((a, b) => (b.createdAt?.toMillis?.() || Date.now()) - (a.createdAt?.toMillis?.() || Date.now()));
+        setHistory(docs);
+      },
+      (err) => {
+        console.error("[Exam] history listener failed", err);
+        setHistoryError(
+          (err as { code?: string })?.code === "permission-denied"
+            ? "Permission denied — check your access."
+            : "Could not load exam paper history."
+        );
+      },
+    );
+    return () => { cancelled = true; unsub(); };
+  }, [teacherData?.id, teacherData?.schoolId]);
 
   // P0-5: AuthContext loads teacherData async, so the lazy initializer above
   // captures `subject = ""` on first mount. When teacherData arrives, sync
@@ -259,6 +316,25 @@ const Exam = () => {
       setPaper(generated);
       setShowAnswers(false);
       lsWrite(key, generated);
+      // Persist to Firestore history. Wrapped in its own try so a write
+      // failure (permission, quota) doesn't surface as "generate failed" —
+      // the paper is already rendered + cached locally, so the user's
+      // primary action succeeded even if archive fails.
+      if (teacherData?.id && teacherData?.schoolId) {
+        try {
+          await addDoc(collection(db, "examPapers"), {
+            ...cacheableForm,
+            paper: generated,
+            teacherId: teacherData.id,
+            schoolId: teacherData.schoolId,
+            schoolName: teacherData.schoolName || "",
+            teacherName: teacherData.name || "",
+            createdAt: serverTimestamp(),
+          });
+        } catch (saveErr) {
+          console.warn("[Exam] history archive failed (non-fatal)", saveErr);
+        }
+      }
       toast.success(forceFresh ? "Paper regenerated." : "Paper generated successfully.");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Something went wrong — please try again.";
@@ -273,6 +349,43 @@ const Exam = () => {
     setPaper(null);
     setCachedAt(null);
     setShowAnswers(false);
+  };
+
+  // Load a saved paper from history. Refills the form so "Regenerate" works
+  // on the same parameters, and switches back to the Generate tab so the user
+  // immediately sees the rendered paper.
+  const handleLoadHistory = (h: ExamHistoryItem) => {
+    setForm({
+      subject: h.subject,
+      grade: h.grade,
+      board: h.board,
+      topics: h.topics,
+      difficulty: h.difficulty,
+      duration: h.duration,
+      totalMarks: h.totalMarks,
+      numQuestions: h.numQuestions,
+      types: h.types || [],
+      instructions: h.instructions || "",
+    });
+    setPaper(h.paper);
+    setShowAnswers(false);
+    setCachedAt(h.createdAt?.toMillis?.() || null);
+    setActiveTab("generate");
+    toast.success("Loaded from history.");
+  };
+
+  // Delete one history item. Optimistic-friendly: the listener will reflect
+  // the removal as soon as Firestore confirms. Confirm before write since the
+  // action isn't undoable from the UI.
+  const handleDeleteHistory = async (h: ExamHistoryItem) => {
+    if (!window.confirm("Delete this saved exam paper? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "examPapers", h.id));
+      toast.success("Removed from history.");
+    } catch (err) {
+      console.error("[Exam] history delete failed", err);
+      toast.error("Could not delete. Please try again.");
+    }
   };
 
   const handlePrint = () => window.print();
@@ -327,11 +440,32 @@ const Exam = () => {
             <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
             Teacher Dashboard · Exam
           </div>
-          <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
-            Exam Generator
-          </h1>
-          <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
-            Generate a custom exam paper with AI based on your requirements.
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[28px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+                Exam Generator
+              </h1>
+              <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+                Generate a custom exam paper with AI based on your requirements.
+              </div>
+            </div>
+            {/* History tab pill — mirrors LessonPlanGenerator pattern. Tap to
+                open the saved-papers list. */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className="shrink-0 flex items-center gap-[6px] px-3 py-[7px] rounded-full text-[11px] font-bold active:scale-95 transition-transform"
+              style={{
+                background: "rgba(0,85,255,0.10)",
+                color: MA.P,
+                border: "0.5px solid rgba(0,85,255,0.20)",
+                letterSpacing: "-0.1px",
+                marginTop: 2,
+              }}
+            >
+              <Clock size={13} strokeWidth={2.4} />
+              History ({history.length})
+            </button>
           </div>
         </div>
 
@@ -582,15 +716,32 @@ const Exam = () => {
         <div className="max-w-[1500px] mx-auto px-8 pt-8 pb-12">
 
           {/* Header */}
-          <div className="exam-no-print mb-6">
-            <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
-              <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
-              Teacher Dashboard · Exam
+          <div className="exam-no-print mb-6 flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[8px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+                <span className="w-[6px] h-[6px] rounded-[2px]" style={{ background: MA.P }} />
+                Teacher Dashboard · Exam
+              </div>
+              <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Exam Generator</h1>
+              <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+                Generate a custom exam paper with AI based on your requirements.
+              </div>
             </div>
-            <h1 className="text-[40px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.4px" }}>Exam Generator</h1>
-            <div className="text-[14px] font-medium mt-[8px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
-              Generate a custom exam paper with AI based on your requirements.
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className="shrink-0 flex items-center gap-[7px] px-[14px] py-[9px] rounded-full text-[12px] font-bold transition-transform hover:scale-[1.02]"
+              style={{
+                background: "rgba(0,85,255,0.10)",
+                color: MA.P,
+                border: "0.5px solid rgba(0,85,255,0.22)",
+                letterSpacing: "-0.1px",
+                marginTop: 28,
+              }}
+            >
+              <Clock size={14} strokeWidth={2.4} />
+              History ({history.length})
+            </button>
           </div>
 
           {/* Hero banner */}
@@ -927,6 +1078,118 @@ const Exam = () => {
           .exam-section > div { page-break-inside: avoid; }
         }
       `}</style>
+
+      {/* ═══════════════════ HISTORY OVERLAY ═══════════════════
+          Full-screen modal triggered by the "History" pill in either view's
+          header. Mirrors LessonPlanGenerator's history list but rendered as
+          an overlay to keep the existing generator JSX untouched. */}
+      {activeTab === "history" && (
+        <div
+          className="exam-no-print fixed inset-0 z-[120] overflow-y-auto"
+          style={{
+            background: "#EEF4FF",
+            fontFamily: MA.FONT,
+          }}
+          role="dialog"
+          aria-label="Exam paper history"
+        >
+          <div className="max-w-[1000px] mx-auto px-5 pt-6 pb-12 sm:px-8 sm:pt-10">
+
+            {/* Header row — title + Close */}
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div>
+                <div className="flex items-center gap-[7px] text-[10px] font-bold uppercase mb-[6px]" style={{ color: MA.T3, letterSpacing: "1.8px" }}>
+                  <span className="w-[5px] h-[5px] rounded-[2px]" style={{ background: MA.P }} />
+                  Teacher Dashboard · History
+                </div>
+                <h1 className="text-[28px] sm:text-[32px] font-bold leading-[1.05]" style={{ color: MA.T1, letterSpacing: "-1.1px" }}>
+                  Saved exam papers
+                </h1>
+                <div className="text-[12px] font-medium mt-[6px]" style={{ color: MA.T3, letterSpacing: "-0.15px" }}>
+                  Every generated paper is archived here automatically.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("generate")}
+                className="shrink-0 px-4 py-[10px] rounded-full text-[12px] font-bold transition-transform hover:scale-[1.02] active:scale-95"
+                style={{
+                  background: MA.P,
+                  color: "#fff",
+                  boxShadow: "0 4px 14px rgba(0,85,255,0.36)",
+                  letterSpacing: "-0.1px",
+                }}
+              >
+                ← Back to generator
+              </button>
+            </div>
+
+            {/* Error banner */}
+            {historyError && (
+              <div className="rounded-[14px] p-4 mb-4 text-[13px] font-medium"
+                style={{ background: "rgba(255,51,85,0.08)", border: "0.5px solid rgba(255,51,85,0.25)", color: MA.RED }}>
+                {historyError}
+              </div>
+            )}
+
+            {/* List */}
+            {history.length === 0 ? (
+              <div className="rounded-[22px] p-10 text-center" style={{ background: MA.CARD, boxShadow: MA.SH_SM, border: MA.BDR }}>
+                <div className="text-[15px] font-bold mb-1" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>No saved papers yet</div>
+                <div className="text-[12px]" style={{ color: MA.T3 }}>Generate your first paper — it'll appear here.</div>
+              </div>
+            ) : (
+              <div className="grid gap-[12px] sm:grid-cols-2">
+                {history.map(h => {
+                  const ts = h.createdAt?.toMillis?.() ? new Date(h.createdAt.toMillis()) : null;
+                  const when = ts ? ts.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Just now";
+                  return (
+                    <div
+                      key={h.id}
+                      className="rounded-[18px] p-[16px] relative group"
+                      style={{ background: MA.CARD, boxShadow: MA.SH_SM, border: MA.BDR }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleLoadHistory(h)}
+                        className="w-full text-left active:scale-[0.99] transition-transform"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="px-[9px] py-[4px] rounded-full text-[10px] font-bold"
+                            style={{ background: "rgba(0,85,255,0.10)", color: MA.P, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                            {h.subject || "Subject"}
+                          </div>
+                          <div className="text-[10px] font-semibold" style={{ color: MA.T3, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                            {h.grade} · {h.board}
+                          </div>
+                        </div>
+                        <div className="text-[15px] font-bold mb-1 truncate" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>
+                          {h.paper?.title || `${h.subject} · ${h.grade}`}
+                        </div>
+                        <div className="text-[11px] font-medium truncate" style={{ color: MA.T3 }}>
+                          {h.numQuestions} Q · {h.totalMarks} marks · {h.duration} · {h.difficulty}
+                        </div>
+                        <div className="text-[10px] font-medium mt-[6px]" style={{ color: MA.T4 }}>
+                          {when}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHistory(h)}
+                        aria-label="Delete from history"
+                        className="absolute top-[12px] right-[12px] w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                        style={{ background: "rgba(255,51,85,0.08)", border: "0.5px solid rgba(255,51,85,0.18)", color: MA.RED }}
+                      >
+                        <Trash2 size={13} strokeWidth={2.2} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

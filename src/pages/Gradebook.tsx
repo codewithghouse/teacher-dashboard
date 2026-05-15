@@ -442,29 +442,32 @@ export default function Gradebook() {
       onListenerErr("test scores"),
     );
 
-    // submissions by class — counts graded ones (where `score` is set OR
-    // status === "graded") per assignmentId. Submissions doc shape varies
-    // across CreateAssignment writers (some set `homeworkId` instead of
-    // `assignmentId`), so we tally both keys.
+    // Graded-assignment count — reads `results` collection, NOT `submissions`.
+    // Reason: the GradeAssignment writer creates a doc in `results` (with
+    // score + homeworkId + classId stamped) but DOES NOT update the original
+    // submission's status to "graded". The previous code counted submissions
+    // where status === "graded" — that status was never set → always 0.
+    // Memory parallel: bug_pattern_dual_id_writer_or_short_circuit.
     const usu = onSnapshot(
-      query(collection(db, "submissions"), ...SC_EVT, where("classId", "==", targetClassId)),
+      query(collection(db, "results"), ...SC_EVT, where("classId", "==", targetClassId)),
       (snap) => {
         if (cancelled) return;
         const m = new Map<string, number>();
         snap.docs.forEach(d => {
-          const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown; marks?: unknown; status?: unknown };
-          const isGraded =
-            data.score != null ||
-            data.marks != null ||
-            String(data.status || "").toLowerCase() === "graded";
-          if (!isGraded) return;
-          const aid = (typeof data.assignmentId === "string" ? data.assignmentId : "") ||
-                      (typeof data.homeworkId   === "string" ? data.homeworkId   : "");
+          const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown };
+          // Each results doc represents one graded student × assignment.
+          // Require a numeric score to filter out partial / failed writes.
+          if (data.score == null) return;
+          // Prefer homeworkId (the actual assignment doc id) over
+          // assignmentId (which falls back to literal "legacy" — useless as
+          // a key). Memory: bug_pattern_dual_id_writer_or_short_circuit.
+          const aid = (typeof data.homeworkId === "string" && data.homeworkId !== "legacy" ? data.homeworkId : "") ||
+                      (typeof data.assignmentId === "string" && data.assignmentId !== "legacy" ? data.assignmentId : "");
           if (aid) m.set(aid, (m.get(aid) || 0) + 1);
         });
         setAssignmentGradeCounts(m);
       },
-      onListenerErr("submissions"),
+      onListenerErr("results"),
     );
 
     return () => { cancelled = true; ut(); ua(); usc(); usu(); };
