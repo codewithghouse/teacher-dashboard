@@ -699,7 +699,10 @@ export default function Gradebook() {
   // P1-2: include valid zero scores in the column average (a student who
   // scored 0 IS a data point and should drag the average down). Old filter
   // `v > 0` silently excluded zeros and over-stated class performance.
-  const colAvgs = columns.map(col => {
+  // colAvgs is `(number | null)[]` — null means "no student has scored this
+  // column yet". Distinguishes "no data" from a legit 0.0 class average
+  // (memory: bug_pattern_score_zero_no_data).
+  const colAvgs: (number | null)[] = columns.map(col => {
     const vals = filtered
       .map(stu => {
         const raw = localScores[`${(stu.email || stu.id).toLowerCase()}_${col.id}`];
@@ -707,13 +710,30 @@ export default function Gradebook() {
         return Number(raw);
       })
       .filter(v => Number.isFinite(v));
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   });
 
-  const totalAvgEarned = colAvgs.reduce((a, b) => a + b, 0);
+  // Class average: weighted average across ONLY data-bearing columns.
+  // Otherwise a brand-new teacher with one scored unit out of five sees an
+  // artificially low % (empty cols dilute the numerator to ~0).
+  const totalAvgEarned = columns.reduce(
+    (acc, _, idx) => acc + (colAvgs[idx] ?? 0),
+    0,
+  );
+  const totalMaxOfScoredCols = columns.reduce(
+    (acc, c, idx) => acc + (colAvgs[idx] != null ? c.maxMarks : 0),
+    0,
+  );
+  // Used by per-student row earned/maxMarks denominators — needs ALL cols
+  // (legacy behavior) so a student who scored on 2 of 5 units still divides
+  // by 5×maxMarks to reflect their partial completion. Hero card uses the
+  // scored-cols-only variant above instead.
   const totalMax = columns.reduce((a, c) => a + c.maxMarks, 0);
-  const classAvgPct = totalMax > 0 ? (totalAvgEarned / totalMax) * 100 : 0;
-  const avgGradeLabel = simpleGrade(classAvgPct);
+  const hasScoredData = colAvgs.some(v => v != null);
+  const classAvgPct: number | null = hasScoredData && totalMaxOfScoredCols > 0
+    ? (totalAvgEarned / totalMaxOfScoredCols) * 100
+    : null;
+  const avgGradeLabel = simpleGrade(classAvgPct ?? 0);
 
   // P0-3: dirty check uses Number-coerced comparison so the input field's
   // string "85" matches the snapshot's Number 85. The old JSON.stringify
@@ -862,7 +882,11 @@ export default function Gradebook() {
             const rawVal = localScores[key];
             const numVal = rawVal !== undefined && rawVal !== '' ? Number(rawVal) : null;
             const pct = numVal !== null ? Math.min(100, (numVal / col.maxMarks) * 100) : 0;
-            const grd = simpleGrade(numVal !== null ? pct : 0);
+            // Student hasn't been scored on this column yet → neutral chip,
+            // not the misleading red "F". Per bug_pattern_score_zero_no_data.
+            const grd = numVal !== null
+              ? simpleGrade(pct)
+              : { label: '—', color: '#99AACC', bg: '#E2E5EE', tone: 'd' as const };
 
             return (
               <div key={stu.email || stu.id} style={{ background: T.s0, border: `1px solid ${T.bdr}`, borderRadius: 16, overflow: 'hidden' }}>
@@ -1380,21 +1404,21 @@ export default function Gradebook() {
             <tr>
               <td className="col-sticky-left">Class Avg</td>
               {colAvgs.map((avg, i) => (
-                <td key={i} style={{ textAlign: 'center', color: '#FF8800' }}>
-                  {avg > 0 ? avg.toFixed(1) : '—'}
+                <td key={i} style={{ textAlign: 'center', color: avg != null ? '#FF8800' : '#99AACC' }}>
+                  {avg != null ? avg.toFixed(1) : '—'}
                 </td>
               ))}
               <td className="col-sticky-right">
-                <span className="total-num" style={{ color: avgLetter.color }}>
-                  {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                <span className="total-num" style={{ color: classAvgPct != null ? avgLetter.color : '#99AACC' }}>
+                  {classAvgPct != null ? classAvgPct.toFixed(1) : '—'}
                   <span style={{ fontSize: 10.5, color: '#99AACC', fontWeight: 700, marginLeft: 2 }}>
                     / 100
                   </span>
                 </span>
               </td>
               <td className="col-sticky-right" style={{ right: 0, paddingLeft: 0 }}>
-                <span className="grade-badge" style={{ background: avgLetter.color, color: '#fff' }}>
-                  {avgLetter.label}
+                <span className="grade-badge" style={{ background: classAvgPct != null ? avgLetter.color : '#E2E5EE', color: classAvgPct != null ? '#fff' : '#99AACC' }}>
+                  {classAvgPct != null ? avgLetter.label : '—'}
                 </span>
               </td>
             </tr>
@@ -1404,16 +1428,41 @@ export default function Gradebook() {
     );
   };
 
-  const lowest = filtered.length && columns.length ? Math.min(...filtered.map(stu => columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0))) : 0;
-  const highest = filtered.length && columns.length ? Math.max(...filtered.map(stu => columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0))) : 0;
-  const avgBand = band(classAvgPct);
-  const avgLetter = letterGrade(classAvgPct);
-  const passingCount = filtered.filter(stu => {
-    const earned = columns.reduce((acc, c) => acc + (Number(localScores[`${(stu.email || stu.id).toLowerCase()}_${c.id}`]) || 0), 0);
-    const pct = totalMax > 0 ? (earned / totalMax) * 100 : 0;
-    return pct >= 50;
-  }).length;
-  const atRiskCount = filtered.length - passingCount;
+  // Per-student %, computed ONLY for students with at least one numeric score.
+  // Students with no scores are excluded from passing/atRisk counts so they
+  // don't get silently labelled "at risk" just because nothing was entered
+  // yet (memory: bug_pattern_score_zero_no_data).
+  const scoredStudentPcts: number[] = [];
+  const scoredStudentEarned: number[] = [];
+  for (const stu of filtered) {
+    const key = (stu.email || stu.id).toLowerCase();
+    let earned = 0;
+    let max = 0;
+    for (const c of columns) {
+      const raw = localScores[`${key}_${c.id}`];
+      if (raw === "" || raw == null) continue;
+      const n = Number(raw);
+      if (!Number.isFinite(n)) continue;
+      earned += n;
+      max += c.maxMarks;
+    }
+    if (max > 0) {
+      scoredStudentPcts.push((earned / max) * 100);
+      scoredStudentEarned.push(earned);
+    }
+  }
+  // Lowest/highest are earned-mark totals (preserves old card semantics),
+  // computed only over students who have at least one score.
+  const lowest: number | null = scoredStudentEarned.length ? Math.min(...scoredStudentEarned) : null;
+  const highest: number | null = scoredStudentEarned.length ? Math.max(...scoredStudentEarned) : null;
+  const avgBand = band(classAvgPct ?? 0);
+  const avgLetter = letterGrade(classAvgPct ?? 0);
+  const passingCount: number | null = hasScoredData
+    ? scoredStudentPcts.filter(p => p >= 50).length
+    : null;
+  const atRiskCount: number | null = hasScoredData
+    ? scoredStudentPcts.filter(p => p < 50).length
+    : null;
 
   return (
     <div style={{ fontFamily: 'inherit', minHeight: '100vh' }} className="text-left pb-24">
@@ -1563,22 +1612,35 @@ export default function Gradebook() {
                 </div>
                 <div style={{
                   marginLeft: 'auto', width: 44, height: 44,
-                  background: `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`,
+                  background: hasScoredData
+                    ? `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`
+                    : 'rgba(255,255,255,.12)',
                   color: '#fff', borderRadius: 14,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px',
-                  boxShadow: `0 1px 2px ${avgLetter.color}55, 0 6px 14px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`,
+                  boxShadow: hasScoredData
+                    ? `0 1px 2px ${avgLetter.color}55, 0 6px 14px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`
+                    : 'inset 0 1px 0 rgba(255,255,255,.18)',
+                  border: hasScoredData ? 'none' : '0.5px solid rgba(255,255,255,.18)',
                 }}>
-                  {avgLetter.label}
+                  {hasScoredData ? avgLetter.label : '—'}
                 </div>
               </div>
               <div style={{ fontSize: 56, fontWeight: 700, color: '#fff', letterSpacing: '-2.6px', lineHeight: 1, marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                {hasScoredData && classAvgPct != null ? classAvgPct.toFixed(1) : '—'}
                 <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.4px' }}>/ 100</span>
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,.72)', marginBottom: 20, fontWeight: 500, letterSpacing: '-0.15px' }}>
-                <b style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label} performance</b>
-                {atRiskCount > 0 ? ` — ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} need${atRiskCount === 1 ? 's' : ''} remediation.` : ' — all students on track.'}
+                {hasScoredData ? (
+                  <>
+                    <b style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label} performance</b>
+                    {(atRiskCount ?? 0) > 0 ? ` — ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} need${atRiskCount === 1 ? 's' : ''} remediation.` : ' — all students on track.'}
+                  </>
+                ) : (
+                  <b style={{ color: '#fff', fontWeight: 700 }}>
+                    {columns.length === 0 ? 'Add a unit to start grading.' : 'No scores entered yet — enter marks to see class analytics.'}
+                  </b>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, overflow: 'hidden' }}>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
@@ -1586,11 +1648,11 @@ export default function Gradebook() {
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>Students</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.5px' }}>{passingCount}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.5px' }}>{passingCount ?? '—'}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>Passing</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '12px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.5px' }}>{atRiskCount}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.5px' }}>{atRiskCount ?? '—'}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 3 }}>At Risk</div>
                 </div>
               </div>
@@ -1791,7 +1853,7 @@ export default function Gradebook() {
           <div style={{ height: 14 }} />
 
           {/* Class Avg Card */}
-          {!loading && filtered.length > 0 && columns.length > 0 && (
+          {!loading && filtered.length > 0 && columns.length > 0 && hasScoredData && (
             <div
               className="gb-card3d"
               role="button"
@@ -1841,8 +1903,8 @@ export default function Gradebook() {
                       {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px' }}>{col.name} avg</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#FF8800', letterSpacing: '-0.2px', padding: '7px 12px' }}>
-                      {colAvgs[idx] > 0 ? colAvgs[idx].toFixed(1) : '—'}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: colAvgs[idx] != null ? '#FF8800' : '#99AACC', letterSpacing: '-0.2px', padding: '7px 12px' }}>
+                      {colAvgs[idx] != null ? colAvgs[idx]!.toFixed(1) : '—'}
                     </div>
                   </div>
                 ))}
@@ -1859,8 +1921,8 @@ export default function Gradebook() {
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0055FF' }} />
                   Overall Avg
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
-                  {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3, color: (classAvgPct ?? 0) >= 70 ? '#00C853' : (classAvgPct ?? 0) >= 50 ? '#FF8800' : '#FF3355' }}>
+                  {classAvgPct != null ? classAvgPct.toFixed(1) : '—'}
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ 100</span>
                 </div>
               </div>
@@ -1868,7 +1930,7 @@ export default function Gradebook() {
           )}
 
           {/* AI Intelligence */}
-          {!loading && filtered.length > 0 && columns.length > 0 && (
+          {!loading && filtered.length > 0 && columns.length > 0 && hasScoredData && (
             <div
               className="gb-card3d"
               role="button"
@@ -1890,23 +1952,23 @@ export default function Gradebook() {
                 <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '4px 10px', borderRadius: 100, fontSize: 9, fontWeight: 700, letterSpacing: '0.5px' }}>Insight</div>
               </div>
               <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(255,255,255,.85)', letterSpacing: '-0.15px', marginBottom: 14, position: 'relative', zIndex: 2 }}>
-                Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{classAvgPct.toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
-                {atRiskCount > 0
+                Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{(classAvgPct ?? 0).toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
+                {(atRiskCount ?? 0) > 0
                   ? ` ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} scored below 50 — schedule a `
                   : ' All students are on track — consider '}
-                <strong style={{ color: '#fff', fontWeight: 700 }}>{atRiskCount > 0 ? 'remediation session' : 'enrichment activities'}</strong> before the next unit.
+                <strong style={{ color: '#fff', fontWeight: 700 }}>{(atRiskCount ?? 0) > 0 ? 'remediation session' : 'enrichment activities'}</strong> before the next unit.
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: 1, gap: 1, overflow: 'hidden', position: 'relative', zIndex: 2 }}>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{lowest}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.4px' }}>{lowest ?? '—'}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Lowest</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.4px' }}>{classAvgPct.toFixed(1)}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.4px' }}>{(classAvgPct ?? 0).toFixed(1)}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Avg</div>
                 </div>
                 <div style={{ background: 'rgba(0,20,80,.55)', padding: '11px 4px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{highest}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.4px' }}>{highest ?? '—'}</div>
                   <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1px', textTransform: 'uppercase', marginTop: 3 }}>Highest</div>
                 </div>
               </div>
@@ -2045,24 +2107,37 @@ export default function Gradebook() {
                 </div>
                 <div style={{
                   marginLeft: 'auto', width: 56, height: 56,
-                  background: `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`,
+                  background: hasScoredData
+                    ? `linear-gradient(145deg, ${avgLetter.color}, ${avgLetter.color}DD)`
+                    : 'rgba(255,255,255,.12)',
                   color: '#fff', borderRadius: 16,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 28, fontWeight: 700, letterSpacing: '-0.6px',
-                  boxShadow: `0 1px 2px ${avgLetter.color}55, 0 8px 18px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`,
+                  boxShadow: hasScoredData
+                    ? `0 1px 2px ${avgLetter.color}55, 0 8px 18px ${avgLetter.color}55, inset 0 1px 0 rgba(255,255,255,.25)`
+                    : 'inset 0 1px 0 rgba(255,255,255,.18)',
+                  border: hasScoredData ? 'none' : '0.5px solid rgba(255,255,255,.18)',
                 }}>
-                  {avgLetter.label}
+                  {hasScoredData ? avgLetter.label : '—'}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: 84, fontWeight: 700, color: '#fff', letterSpacing: '-3.8px', lineHeight: 1, marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                    {hasScoredData && classAvgPct != null ? classAvgPct.toFixed(1) : '—'}
                     <span style={{ fontSize: 32, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '-0.6px' }}>/ 100</span>
                   </div>
                   <div style={{ fontSize: 14, color: 'rgba(255,255,255,.72)', fontWeight: 500, letterSpacing: '-0.15px' }}>
-                    <b style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label} performance</b>
-                    {atRiskCount > 0 ? ` — ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} need${atRiskCount === 1 ? 's' : ''} remediation.` : ' — all students on track.'}
+                    {hasScoredData ? (
+                      <>
+                        <b style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label} performance</b>
+                        {(atRiskCount ?? 0) > 0 ? ` — ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} need${atRiskCount === 1 ? 's' : ''} remediation.` : ' — all students on track.'}
+                      </>
+                    ) : (
+                      <b style={{ color: '#fff', fontWeight: 700 }}>
+                        {columns.length === 0 ? 'Add a unit to start grading.' : 'No scores entered yet — enter marks to see class analytics.'}
+                      </b>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, overflow: 'hidden', minWidth: 380 }}>
@@ -2071,11 +2146,11 @@ export default function Gradebook() {
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Students</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.8px' }}>{passingCount}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.8px' }}>{passingCount ?? '—'}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Passing</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.8px' }}>{atRiskCount}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.8px' }}>{atRiskCount ?? '—'}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.58)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>At Risk</div>
                   </div>
                 </div>
@@ -2272,7 +2347,7 @@ export default function Gradebook() {
           </div>
 
           {/* 2-column: Class Avg + AI Intelligence */}
-          {!loading && filtered.length > 0 && columns.length > 0 && (
+          {!loading && filtered.length > 0 && columns.length > 0 && hasScoredData && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
 
               {/* Class Avg Card */}
@@ -2325,8 +2400,8 @@ export default function Gradebook() {
                         {col.name.startsWith('Unit ') ? `U${col.name.replace(/\D/g, '') || idx + 1}` : col.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#002080', letterSpacing: '-0.15px' }}>{col.name} avg</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#FF8800', letterSpacing: '-0.2px', padding: '8px 14px' }}>
-                        {colAvgs[idx] > 0 ? colAvgs[idx].toFixed(1) : '—'}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: colAvgs[idx] != null ? '#FF8800' : '#99AACC', letterSpacing: '-0.2px', padding: '8px 14px' }}>
+                        {colAvgs[idx] != null ? colAvgs[idx]!.toFixed(1) : '—'}
                       </div>
                     </div>
                   ))}
@@ -2343,8 +2418,8 @@ export default function Gradebook() {
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0055FF' }} />
                     Overall Avg
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: classAvgPct >= 70 ? '#00C853' : classAvgPct >= 50 ? '#FF8800' : '#FF3355' }}>
-                    {classAvgPct > 0 ? classAvgPct.toFixed(1) : '0.0'}
+                  <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.9px', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 4, color: (classAvgPct ?? 0) >= 70 ? '#00C853' : (classAvgPct ?? 0) >= 50 ? '#FF8800' : '#FF3355' }}>
+                    {classAvgPct != null ? classAvgPct.toFixed(1) : '—'}
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#99AACC', letterSpacing: '-0.2px' }}>/ 100</span>
                   </div>
                 </div>
@@ -2372,23 +2447,23 @@ export default function Gradebook() {
                   <div style={{ marginLeft: 'auto', background: 'rgba(123,63,244,.3)', border: '0.5px solid rgba(155,95,255,.5)', color: '#DCC8FF', padding: '5px 11px', borderRadius: 100, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px' }}>Insight</div>
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,.85)', letterSpacing: '-0.15px', marginBottom: 20, position: 'relative', zIndex: 2 }}>
-                  Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{classAvgPct.toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
-                  {atRiskCount > 0
+                  Class average is <strong style={{ color: '#fff', fontWeight: 700 }}>{(classAvgPct ?? 0).toFixed(1)}%</strong> — in the <strong style={{ color: '#fff', fontWeight: 700 }}>{avgBand.label}</strong> band.
+                  {(atRiskCount ?? 0) > 0
                     ? ` ${atRiskCount} student${atRiskCount === 1 ? '' : 's'} scored below 50 — schedule a `
                     : ' All students are on track — consider '}
-                  <strong style={{ color: '#fff', fontWeight: 700 }}>{atRiskCount > 0 ? 'remediation session' : 'enrichment activities'}</strong> before the next unit.
+                  <strong style={{ color: '#fff', fontWeight: 700 }}>{(atRiskCount ?? 0) > 0 ? 'remediation session' : 'enrichment activities'}</strong> before the next unit.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: 1, gap: 1, overflow: 'hidden', position: 'relative', zIndex: 2 }}>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.6px' }}>{lowest}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#FF9AA9', letterSpacing: '-0.6px' }}>{lowest ?? '—'}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Lowest</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.6px' }}>{classAvgPct.toFixed(1)}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.6px' }}>{(classAvgPct ?? 0).toFixed(1)}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Avg</div>
                   </div>
                   <div style={{ background: 'rgba(0,20,80,.55)', padding: '16px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.6px' }}>{highest}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#6FFFAA', letterSpacing: '-0.6px' }}>{highest ?? '—'}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.6)', letterSpacing: '1.1px', textTransform: 'uppercase', marginTop: 4 }}>Highest</div>
                   </div>
                 </div>
