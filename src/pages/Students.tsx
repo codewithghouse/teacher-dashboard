@@ -489,14 +489,14 @@ export default function Students() {
         teacherName: teacherData.name || '',
       }).catch(err => {
         console.error('Invite email failed:', err);
-        toast.warning('Student enroll ho gaya, par email nahi gayi.');
+        toast.warning('Student enrolled, but invite email could not be sent.');
       });
 
-      toast.success(`${name} ko invite bhej diya!`);
+      toast.success(`Invite sent to ${name}.`);
       setInviteOpen(false);
     } catch (e) {
       console.error('Invite failed:', e);
-      toast.error('Invite fail ho gaya. Dubara try karo.');
+      toast.error('Could not send invite. Please try again.');
     } finally {
       setInviting(false);
     }

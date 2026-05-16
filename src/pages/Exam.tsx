@@ -120,6 +120,7 @@ const Exam = () => {
   const [loading, setLoading] = useState(false);
   const [paper, setPaper] = useState<GeneratedPaper | null>(null);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [copied, setCopied] = useState(false);
   // When the displayed paper came from the cache, hold its age so the UI can
   // show a "Cached · 2h ago" badge + a "Regenerate (fresh)" button. Cleared
@@ -349,6 +350,39 @@ const Exam = () => {
     setPaper(null);
     setCachedAt(null);
     setShowAnswers(false);
+    setEditMode(false);
+  };
+
+  // Commit-on-toggle: when the teacher exits edit mode, persist their changes
+  // to the local cache so a page refresh / tab switch keeps the edits. The
+  // Firestore archive doc keeps the AI's ORIGINAL output (audit trail);
+  // edits live client-side until the teacher hits "Save as Test".
+  const toggleEditMode = () => {
+    setEditMode((prev) => {
+      const next = !prev;
+      if (prev && paper) {
+        // We were editing — now saving back into cache.
+        try {
+          const key = examCacheKey({
+            subject: form.subject.trim(),
+            grade: form.grade,
+            board: form.board,
+            topics: form.topics.trim(),
+            difficulty: form.difficulty,
+            duration: form.duration,
+            totalMarks: form.totalMarks,
+            numQuestions: form.numQuestions,
+            types: form.types,
+            instructions: form.instructions.trim(),
+          });
+          lsWrite(key, paper);
+        } catch (e) {
+          console.warn("[Exam] edit-mode cache write failed:", e);
+        }
+        toast.success("Paper updated.");
+      }
+      return next;
+    });
   };
 
   // Load a saved paper from history. Refills the form so "Regenerate" works
@@ -675,8 +709,9 @@ const Exam = () => {
               {drift && (
                 <DriftBanner drift={drift} onRegenerate={() => handleGenerate(true)} loading={loading} compact />
               )}
-              <div className="exam-no-print flex gap-[8px] mb-[10px]">
+              <div className="exam-no-print flex gap-[8px] mb-[10px] flex-wrap">
                 <ActionBtn onClick={() => setShowAnswers((p) => !p)} primary={showAnswers} label={showAnswers ? "Hide Answers" : "Show Answers"} />
+                <ActionBtn onClick={toggleEditMode} primary={editMode} label={editMode ? "Done Editing" : "Edit Paper"} />
                 <ActionBtn onClick={handleCopy} label={copied ? "Copied" : "Copy"} icon={copied ? <Check className="w-[13px] h-[13px]" /> : <Copy className="w-[13px] h-[13px]" />} />
                 <ActionBtn onClick={handlePrint} label="Print / PDF" icon={<Printer className="w-[13px] h-[13px]" />} />
               </div>
@@ -693,7 +728,7 @@ const Exam = () => {
                 Save as Test
               </button>
 
-              <PaperBody paper={paper} showAnswers={showAnswers} />
+              <PaperBody paper={paper} showAnswers={showAnswers} editMode={editMode} setPaper={setPaper} />
 
               <button type="button"
                 onClick={handleReset}
@@ -965,8 +1000,9 @@ const Exam = () => {
                     {drift && (
                       <DriftBanner drift={drift} onRegenerate={() => handleGenerate(true)} loading={loading} />
                     )}
-                    <div className="exam-no-print flex gap-2 mb-3">
+                    <div className="exam-no-print flex gap-2 mb-3 flex-wrap">
                       <ActionBtn onClick={() => setShowAnswers((p) => !p)} primary={showAnswers} label={showAnswers ? "Hide Answers" : "Show Answers"} />
+                      <ActionBtn onClick={toggleEditMode} primary={editMode} label={editMode ? "Done Editing" : "Edit Paper"} />
                       <ActionBtn onClick={handleCopy} label={copied ? "Copied" : "Copy"} icon={copied ? <Check className="w-[14px] h-[14px]" /> : <Copy className="w-[14px] h-[14px]" />} />
                       <ActionBtn onClick={handlePrint} label="Print / PDF" icon={<Printer className="w-[14px] h-[14px]" />} />
                     </div>
@@ -983,7 +1019,7 @@ const Exam = () => {
                       Save as Test
                     </button>
 
-                    <PaperBody paper={paper} showAnswers={showAnswers} desktop />
+                    <PaperBody paper={paper} showAnswers={showAnswers} editMode={editMode} setPaper={setPaper} desktop />
 
                     <button type="button"
                       onClick={handleReset}
@@ -1358,8 +1394,26 @@ const PaperHeader = ({ paper, form }: { paper: GeneratedPaper; form: FormData })
   </div>
 );
 
-const PaperBody = ({ paper, showAnswers, desktop }:
-  { paper: GeneratedPaper; showAnswers: boolean; desktop?: boolean }) => {
+// Inline edit input — shared style for question text / answer / solution.
+const editInputStyle = (desktop: boolean): React.CSSProperties => ({
+  width: "100%",
+  padding: desktop ? "8px 10px" : "7px 9px",
+  fontSize: desktop ? 13 : 12,
+  fontWeight: 600,
+  color: desktop ? T.ink0 : MA.T1,
+  fontFamily: "inherit",
+  border: `1px dashed ${desktop ? T.blue : MA.P}`,
+  borderRadius: 8,
+  outline: "none",
+  background: desktop ? T.blueL : "rgba(0,85,255,0.04)",
+  resize: "vertical",
+  minHeight: 32,
+  boxSizing: "border-box",
+});
+
+const PaperBody = ({ paper, showAnswers, desktop, editMode, setPaper }:
+  { paper: GeneratedPaper; showAnswers: boolean; desktop?: boolean; editMode?: boolean;
+    setPaper?: React.Dispatch<React.SetStateAction<GeneratedPaper | null>> }) => {
   if (!paper.sections?.length) {
     return (
       <div className="text-[12px] font-medium" style={{ color: MA.T3 }}>
@@ -1367,6 +1421,50 @@ const PaperBody = ({ paper, showAnswers, desktop }:
       </div>
     );
   }
+
+  // Mutation helpers — only used in editMode. Each one calls setPaper with a
+  // structural update so React rerenders the affected slice.
+  const updateSection = (si: number, patch: Partial<GeneratedSection>) => {
+    setPaper?.((p) => {
+      if (!p?.sections) return p;
+      const sections = [...p.sections];
+      sections[si] = { ...sections[si], ...patch };
+      return { ...p, sections };
+    });
+  };
+  const updateQuestion = (si: number, qi: number, patch: Partial<GeneratedQuestion>) => {
+    setPaper?.((p) => {
+      if (!p?.sections) return p;
+      const sections = [...p.sections];
+      const qs = [...(sections[si].questions ?? [])];
+      qs[qi] = { ...qs[qi], ...patch };
+      sections[si] = { ...sections[si], questions: qs };
+      return { ...p, sections };
+    });
+  };
+  const removeQuestion = (si: number, qi: number) => {
+    setPaper?.((p) => {
+      if (!p?.sections) return p;
+      const sections = [...p.sections];
+      const qs = (sections[si].questions ?? []).filter((_, i) => i !== qi);
+      sections[si] = { ...sections[si], questions: qs };
+      return { ...p, sections };
+    });
+  };
+  const addQuestion = (si: number) => {
+    setPaper?.((p) => {
+      if (!p?.sections) return p;
+      const sections = [...p.sections];
+      const qs = [...(sections[si].questions ?? []), {
+        question: "",
+        marks: 1,
+        options: [] as string[],
+        answer: "",
+      }];
+      sections[si] = { ...sections[si], questions: qs };
+      return { ...p, sections };
+    });
+  };
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -1387,22 +1485,50 @@ const PaperBody = ({ paper, showAnswers, desktop }:
 
       {paper.sections.map((section, si) => (
         <div key={si} className="exam-section">
-          <div className="flex items-baseline justify-between mb-[8px]">
-            <div className={`${desktop ? "text-[14px]" : "text-[13px]"} font-bold`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.2px" }}>
-              {section.title || `Section ${si + 1}`}
-            </div>
-            {section.marks != null && (
+          <div className="flex items-baseline justify-between mb-[8px] gap-2">
+            {editMode ? (
+              <input
+                type="text"
+                value={section.title || ""}
+                onChange={(e) => updateSection(si, { title: e.target.value })}
+                placeholder={`Section ${si + 1}`}
+                style={{ ...editInputStyle(!!desktop), flex: 1, minHeight: 0, padding: desktop ? "6px 10px" : "5px 9px" }}
+              />
+            ) : (
+              <div className={`${desktop ? "text-[14px]" : "text-[13px]"} font-bold`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.2px" }}>
+                {section.title || `Section ${si + 1}`}
+              </div>
+            )}
+            {editMode ? (
+              <input
+                type="number"
+                value={section.marks ?? ""}
+                onChange={(e) => updateSection(si, { marks: e.target.value === "" ? undefined : Number(e.target.value) })}
+                placeholder="marks"
+                className="exam-no-print"
+                style={{ ...editInputStyle(!!desktop), width: 80, minHeight: 0, padding: desktop ? "6px 10px" : "5px 9px" }}
+              />
+            ) : (section.marks != null && (
               <div className="text-[10px] font-bold px-[8px] py-[3px] rounded-full"
                 style={{ background: desktop ? T.blueL : "rgba(9,87,247,0.1)", color: desktop ? T.blue : MA.P, letterSpacing: "0.3px" }}>
                 {section.marks} marks
               </div>
-            )}
+            ))}
           </div>
-          {section.instructions && (
+          {editMode ? (
+            <input
+              type="text"
+              value={section.instructions || ""}
+              onChange={(e) => updateSection(si, { instructions: e.target.value })}
+              placeholder="Section instructions (optional)"
+              className="exam-no-print"
+              style={{ ...editInputStyle(!!desktop), marginBottom: 10, minHeight: 0, padding: desktop ? "6px 10px" : "5px 9px", fontStyle: "italic" }}
+            />
+          ) : (section.instructions && (
             <div className="text-[11px] font-medium italic mb-[10px]" style={{ color: desktop ? T.ink2 : MA.T3 }}>
               {section.instructions}
             </div>
-          )}
+          ))}
           <div className="flex flex-col gap-[10px]">
             {section.questions?.map((q, qi) => (
               <div key={qi} className={desktop ? "border-l-2 pl-4 py-1" : "rounded-[12px] p-[12px]"}
@@ -1415,16 +1541,75 @@ const PaperBody = ({ paper, showAnswers, desktop }:
                     {q.number ?? qi + 1}.
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className={`${desktop ? "text-[13.5px]" : "text-[12.5px]"} font-semibold leading-[1.55]`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.1px" }}>
-                      {q.question || "—"}
-                      {q.marks != null && (
-                        <span className="text-[10px] font-bold ml-[6px] px-[6px] py-[1px] rounded-[5px]"
-                          style={{ background: desktop ? T.s2 : "rgba(9,87,247,0.08)", color: desktop ? T.ink2 : MA.P }}>
-                          {q.marks}m
-                        </span>
-                      )}
-                    </div>
-                    {q.options && q.options.length > 0 && (
+                    {editMode ? (
+                      <div className="flex items-start gap-2">
+                        <textarea
+                          value={q.question || ""}
+                          onChange={(e) => updateQuestion(si, qi, { question: e.target.value })}
+                          placeholder="Question text"
+                          rows={2}
+                          style={{ ...editInputStyle(!!desktop), flex: 1 }}
+                        />
+                        <input
+                          type="number"
+                          value={q.marks ?? ""}
+                          onChange={(e) => updateQuestion(si, qi, { marks: e.target.value === "" ? undefined : Number(e.target.value) })}
+                          placeholder="m"
+                          className="exam-no-print"
+                          style={{ ...editInputStyle(!!desktop), width: 60, minHeight: 0, padding: desktop ? "6px 8px" : "5px 8px" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeQuestion(si, qi)}
+                          className="exam-no-print"
+                          aria-label="Remove question"
+                          style={{
+                            background: "rgba(255,51,85,0.10)",
+                            border: "1px solid rgba(255,51,85,0.30)",
+                            borderRadius: 8,
+                            padding: desktop ? "6px 8px" : "5px 7px",
+                            color: MA.RED,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={`${desktop ? "text-[13.5px]" : "text-[12.5px]"} font-semibold leading-[1.55]`} style={{ color: desktop ? T.ink0 : MA.T1, letterSpacing: "-0.1px" }}>
+                        {q.question || "—"}
+                        {q.marks != null && (
+                          <span className="text-[10px] font-bold ml-[6px] px-[6px] py-[1px] rounded-[5px]"
+                            style={{ background: desktop ? T.s2 : "rgba(9,87,247,0.08)", color: desktop ? T.ink2 : MA.P }}>
+                            {q.marks}m
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {/* Options: edit mode shows a single textarea (one option per line) */}
+                    {editMode ? (
+                      ((q.options && q.options.length > 0) || (q.type || "").toLowerCase().includes("mcq")) ? (
+                        <div className="mt-[8px] exam-no-print">
+                          <div className="text-[10px] font-bold uppercase mb-[4px]" style={{ color: desktop ? T.ink2 : MA.T3, letterSpacing: "1px" }}>
+                            Options (one per line)
+                          </div>
+                          <textarea
+                            value={(q.options || []).join("\n")}
+                            onChange={(e) =>
+                              updateQuestion(si, qi, {
+                                options: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                              })
+                            }
+                            rows={Math.max(3, (q.options || []).length)}
+                            style={{ ...editInputStyle(!!desktop) }}
+                            placeholder={"Option A\nOption B\nOption C\nOption D"}
+                          />
+                        </div>
+                      ) : null
+                    ) : (q.options && q.options.length > 0 && (
                       <div className="mt-[8px] flex flex-col gap-[4px] pl-[4px]">
                         {q.options.map((op, oi) => (
                           <div key={oi} className={`${desktop ? "text-[13px]" : "text-[12px]"} font-medium`} style={{ color: desktop ? T.ink1 : MA.T2 }}>
@@ -1435,8 +1620,32 @@ const PaperBody = ({ paper, showAnswers, desktop }:
                           </div>
                         ))}
                       </div>
-                    )}
-                    {showAnswers && (q.answer || q.solution) && (
+                    ))}
+                    {/* Answer + Solution: visible in edit mode regardless of showAnswers */}
+                    {editMode ? (
+                      <div className="mt-[8px] exam-no-print flex flex-col gap-[6px]">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase mb-[4px]" style={{ color: desktop ? T.ink2 : MA.T3, letterSpacing: "1px" }}>Answer</div>
+                          <input
+                            type="text"
+                            value={q.answer || ""}
+                            onChange={(e) => updateQuestion(si, qi, { answer: e.target.value })}
+                            placeholder="Correct answer"
+                            style={{ ...editInputStyle(!!desktop), minHeight: 0, padding: desktop ? "6px 10px" : "5px 9px" }}
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase mb-[4px]" style={{ color: desktop ? T.ink2 : MA.T3, letterSpacing: "1px" }}>Solution (optional)</div>
+                          <textarea
+                            value={q.solution || ""}
+                            onChange={(e) => updateQuestion(si, qi, { solution: e.target.value })}
+                            placeholder="Step-by-step solution"
+                            rows={2}
+                            style={{ ...editInputStyle(!!desktop) }}
+                          />
+                        </div>
+                      </div>
+                    ) : (showAnswers && (q.answer || q.solution) && (
                       <div className={`exam-answer-block exam-no-print mt-[8px] rounded-[8px] px-[10px] py-[7px] ${desktop ? "text-[12.5px]" : "text-[11.5px]"} font-medium`}
                         style={{
                           background: desktop ? T.greenL : "rgba(0,200,83,0.08)",
@@ -1447,11 +1656,33 @@ const PaperBody = ({ paper, showAnswers, desktop }:
                         {q.answer && <span>{q.answer}</span>}
                         {q.solution && <div className="mt-[3px] font-medium" style={{ color: desktop ? T.ink1 : MA.T2 }}>{q.solution}</div>}
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </div>
             ))}
+            {editMode && (
+              <button
+                type="button"
+                onClick={() => addQuestion(si)}
+                className="exam-no-print"
+                style={{
+                  alignSelf: "flex-start",
+                  marginTop: 4,
+                  padding: desktop ? "8px 14px" : "7px 12px",
+                  background: "rgba(0,85,255,0.08)",
+                  border: "1px dashed rgba(0,85,255,0.35)",
+                  borderRadius: 10,
+                  color: desktop ? T.blue : MA.P,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                + Add question to {section.title || `Section ${si + 1}`}
+              </button>
+            )}
           </div>
         </div>
       ))}

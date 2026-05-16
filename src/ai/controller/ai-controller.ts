@@ -120,7 +120,7 @@ export const AIController = {
   //   `notImplemented` helper kept for any future stub need.
   // ─────────────────────────────────────────────────────────────────────────
 
-  // LEADERBOARD: Class action plan (Hinglish diagnosis + 4-5 actions)
+  // LEADERBOARD: Class action plan (English diagnosis + 4-5 actions)
   async getClassActionPlan(data: unknown): Promise<AIResult> {
     if (!hasData(data)) return { status: "no_data", message: NO_DATA_MSG };
     return callAIInsights("class_action_plan", data, { logPrefix: "ClassActionPlan", timeoutMs: 60_000 });
