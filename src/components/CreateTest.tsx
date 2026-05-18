@@ -54,6 +54,40 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
   type ExamCategoryConfig = { maxMarks?: number; passingMarks?: number; weightPct?: number; applicableClasses?: string };
   const [examCategories, setExamCategories] = useState<string[]>(DEFAULT_EXAM_CATEGORIES);
   const [examCategoryConfig, setExamCategoryConfig] = useState<Map<string, ExamCategoryConfig>>(new Map());
+
+  // Custom-category inline editor — fires when user picks the "+ Add custom
+  // category" option in either the mobile or desktop assessment-type dropdown.
+  // The custom value is NOT persisted into examCategories (school-level
+  // taxonomy stays in the principal's exam_structure collection); it just
+  // overrides this single test/exam's category.
+  const CUSTOM_OPTION = '__custom__';
+  const [customCatOpen, setCustomCatOpen] = useState(false);
+  const [customCatText, setCustomCatText] = useState('');
+  const isPreset = (c: string) => examCategories.includes(c);
+  const onPickCategory = (value: string) => {
+    if (value === CUSTOM_OPTION) {
+      setCustomCatOpen(true);
+      setCustomCatText(isPreset(formData.category) ? '' : formData.category);
+      return;
+    }
+    setCustomCatOpen(false);
+    setFormData(prev => {
+      const cfg = examCategoryConfig.get(value);
+      const shouldAutoFillMarks =
+        cfg?.maxMarks != null && (!prev.marks || prev.marks.trim() === '');
+      return {
+        ...prev,
+        category: value,
+        ...(shouldAutoFillMarks ? { marks: String(cfg!.maxMarks) } : {}),
+      };
+    });
+  };
+  const saveCustomCategory = () => {
+    const val = customCatText.trim();
+    if (!val) return;
+    setFormData(prev => ({ ...prev, category: val }));
+    setCustomCatOpen(false);
+  };
   
   const [settings, setSettings] = useState({
      immediateResults: true,
@@ -466,29 +500,64 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
               </div>
               <div className="text-[22px] font-normal -mt-[3px]" style={{ color: MA.T4 }}>›</div>
               <select aria-label="Test category"
-                value={formData.category}
-                onChange={e => {
-                  const newCategory = e.target.value;
-                  setFormData(prev => {
-                    const cfg = examCategoryConfig.get(newCategory);
-                    // Auto-fill marks ONLY if the user hasn't already typed a
-                    // value. Don't clobber a manual override.
-                    const shouldAutoFillMarks =
-                      cfg?.maxMarks != null && (!prev.marks || prev.marks.trim() === "");
-                    return {
-                      ...prev,
-                      category: newCategory,
-                      ...(shouldAutoFillMarks ? { marks: String(cfg!.maxMarks) } : {}),
-                    };
-                  });
-                }}
+                value={isPreset(formData.category) ? formData.category : CUSTOM_OPTION}
+                onChange={e => onPickCategory(e.target.value)}
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 style={{ fontFamily: MA.FONT }}>
                 {examCategories.map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
+                <option value={CUSTOM_OPTION}>+ Add custom category…</option>
               </select>
             </div>
+            {customCatOpen && (
+              <div className="mt-[10px] flex items-center gap-[8px]">
+                <input
+                  type="text"
+                  value={customCatText}
+                  onChange={e => setCustomCatText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveCustomCategory(); } }}
+                  placeholder="Type your category…"
+                  maxLength={60}
+                  autoFocus
+                  className="flex-1 outline-none"
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: '#fff',
+                    border: '0.5px solid rgba(9,87,247,0.25)',
+                    fontSize: 13, fontWeight: 600, color: MA.T1, letterSpacing: '-0.15px',
+                    fontFamily: MA.FONT,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={saveCustomCategory}
+                  disabled={!customCatText.trim()}
+                  style={{
+                    padding: '10px 14px', borderRadius: 10,
+                    background: MA.P, color: '#fff',
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.02em',
+                    border: 'none', cursor: 'pointer', flexShrink: 0,
+                    opacity: customCatText.trim() ? 1 : 0.5,
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomCatOpen(false)}
+                  style={{
+                    padding: '10px 12px', borderRadius: 10,
+                    background: MA.SURFACE, color: MA.T3,
+                    fontSize: 12, fontWeight: 600,
+                    border: '0.5px solid rgba(9,87,247,0.08)', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
           <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
             <label htmlFor="test-subject-mobile" className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
@@ -1138,27 +1207,64 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                   </div>
                   <div className="text-[20px] font-normal -mt-[3px]" style={{ color: MA.T4 }}>›</div>
                   <select aria-label="Test category"
-                    value={formData.category}
-                    onChange={e => {
-                      const newCategory = e.target.value;
-                      setFormData(prev => {
-                        const cfg = examCategoryConfig.get(newCategory);
-                        const shouldAutoFillMarks =
-                          cfg?.maxMarks != null && (!prev.marks || prev.marks.trim() === "");
-                        return {
-                          ...prev,
-                          category: newCategory,
-                          ...(shouldAutoFillMarks ? { marks: String(cfg!.maxMarks) } : {}),
-                        };
-                      });
-                    }}
+                    value={isPreset(formData.category) ? formData.category : CUSTOM_OPTION}
+                    onChange={e => onPickCategory(e.target.value)}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     style={{ fontFamily: MA.FONT }}>
                     {examCategories.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
+                    <option value={CUSTOM_OPTION}>+ Add custom category…</option>
                   </select>
                 </div>
+                {customCatOpen && (
+                  <div className="mt-4 flex items-center gap-[10px]">
+                    <input
+                      type="text"
+                      value={customCatText}
+                      onChange={e => setCustomCatText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveCustomCategory(); } }}
+                      placeholder="Type your category…"
+                      maxLength={60}
+                      autoFocus
+                      className="flex-1 outline-none"
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 12,
+                        background: '#fff',
+                        border: '0.5px solid rgba(9,87,247,0.25)',
+                        fontSize: 14, fontWeight: 600, color: MA.T1, letterSpacing: '-0.2px',
+                        fontFamily: MA.FONT,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={saveCustomCategory}
+                      disabled={!customCatText.trim()}
+                      style={{
+                        padding: '12px 16px', borderRadius: 12,
+                        background: MA.P, color: '#fff',
+                        fontSize: 13, fontWeight: 700, letterSpacing: '0.02em',
+                        border: 'none', cursor: 'pointer', flexShrink: 0,
+                        opacity: customCatText.trim() ? 1 : 0.5,
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCatOpen(false)}
+                      style={{
+                        padding: '12px 14px', borderRadius: 12,
+                        background: MA.SURFACE, color: MA.T3,
+                        fontSize: 13, fontWeight: 600,
+                        border: '0.5px solid rgba(9,87,247,0.08)', cursor: 'pointer', flexShrink: 0,
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="ct-card3d rounded-[22px] p-6"
                 {...tilt3D}

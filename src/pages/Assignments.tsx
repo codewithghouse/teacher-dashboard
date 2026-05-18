@@ -256,14 +256,22 @@ const Assignments = () => {
           // School-scoped only for ALL these lookups. branchScope dropped on
           // enrollments to match the rest of this file — see resolution-entity
           // rationale above.
+          // DUAL-KEY READ on `results` — GradeAssignment writer stamps
+          // `homeworkId: assignment.id` (canonical) and `assignmentId: <teaching_assignment_id || "legacy">`.
+          // If the assignment doc has no `assignmentId` field, every result
+          // lands with assignmentId="legacy" → a single-key query by
+          // assignmentId silently misses every graded record, leaving the
+          // status pill stuck on "N To Grade" forever. Mirror the dual
+          // pattern already used for submissions above. See bug_pattern_dual_id_writer_or_short_circuit.
           const [
             subsByAid, subsByHid,
-            resultsByAid,
+            resultsByAid, resultsByHid,
             enrollByCid,
           ] = await Promise.all([
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "submissions"), where("schoolId", "==", schoolId), where("homeworkId",   "in", ch))))),
             Promise.all(aChunks.map(ch => getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("assignmentId", "in", ch))))),
+            Promise.all(aChunks.map(ch => getDocs(query(collection(db, "results"),     where("schoolId", "==", schoolId), where("homeworkId",   "in", ch))))),
             Promise.all(cChunks.map(ch => getDocs(query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("classId", "in", ch))))),
           ]);
           if (cancelled) return;
@@ -281,12 +289,25 @@ const Assignments = () => {
           subsByAid.forEach(snap => ingestSubs(snap, "assignmentId"));
           subsByHid.forEach(snap => ingestSubs(snap, "homeworkId"));
 
+          // Dedupe results across both query paths by docId before counting.
+          // Per-doc canonical key = homeworkId (matches assignment.id);
+          // assignmentId="legacy" never matches a real assignment id so we
+          // skip those entries explicitly.
+          const resultDocsByAssign = new Map<string, Set<string>>();
+          const ingestResults = (snap: any) => snap.docs.forEach((d: any) => {
+            const data = d.data();
+            const aid = data.homeworkId || data.assignmentId;
+            if (!aid || aid === "legacy") return;
+            if (!resultDocsByAssign.has(aid)) resultDocsByAssign.set(aid, new Set());
+            resultDocsByAssign.get(aid)!.add(d.id);
+          });
+          resultsByAid.forEach(ingestResults);
+          resultsByHid.forEach(ingestResults);
+
           const resultsCount = new Map<string, number>();
-          resultsByAid.forEach(snap => snap.docs.forEach(d => {
-            const aid = d.data().assignmentId;
-            if (!aid) return;
-            resultsCount.set(aid, (resultsCount.get(aid) || 0) + 1);
-          }));
+          for (const [aid, set] of resultDocsByAssign) {
+            resultsCount.set(aid, set.size);
+          }
 
           const enrollCount = new Map<string, number>();
           enrollByCid.forEach(snap => snap.docs.forEach(d => {
