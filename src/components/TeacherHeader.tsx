@@ -237,24 +237,37 @@ const TeacherHeader = ({ onMenuClick }: HeaderProps) => {
           </button>
 
           {/* Unified notification popup.
-              `right-0` on a small viewport could push the panel under or past
-              the page-content margin, making it look cramped. Use
-              `right-0 mr-2 sm:mr-0` so it always sits with breathing room
-              from the viewport edge, and bump the desktop width up so the
-              chip + title + timestamp don't collide. */}
+              POSITIONING: `fixed` anchored to viewport with explicit inline
+              `top` so panel always sits just below the sticky topbar
+              (regardless of ancestor overflow/transform).
+              CLASSNAME GOTCHA: NO Tailwind `rounded-2xl` class — global
+              index.css rule `div[class*="rounded-2xl"]:hover { transform:
+              translate3d(0,-5px,0) !important; }` was matching this panel
+              (and possibly nested divs), shifting content and visually
+              clipping the header above the viewport. Inline `borderRadius`
+              skips the class-name substring match. */}
           {panelOpen && (
             <div
-              className="absolute right-0 mr-2 sm:mr-0 mt-2 w-[min(420px,calc(100vw-1.5rem))] rounded-2xl overflow-hidden bg-white"
+              className="fixed right-3 sm:right-6 w-[min(420px,calc(100vw-1.5rem))] overflow-hidden bg-white flex flex-col notif-panel"
               style={{
+                top: 72,
+                borderRadius: 16,
                 border: "0.5px solid rgba(0,85,255,0.12)",
                 boxShadow: "0 0 0 0.5px rgba(0,85,255,0.10), 0 4px 16px rgba(0,85,255,0.10), 0 18px 44px rgba(0,85,255,0.18)",
                 zIndex: 60,
+                maxHeight: "calc(100vh - 92px)",
+                // Defensive: opt out of any inherited hover-transform from the
+                // global rounded-card rules.
+                transform: "none",
               }}
               role="dialog"
               aria-label="Notifications"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100" style={{ background: "#EEF4FF" }}>
+              {/* Header — explicit shrink-0 + min-height prevents flex collapse */}
+              <div
+                className="flex items-center justify-between px-4 py-3 border-b border-slate-100"
+                style={{ background: "#EEF4FF", flexShrink: 0, minHeight: 56 }}
+              >
                 <div>
                   <p className="text-[14px] font-bold text-[#001040] tracking-tight">Notifications</p>
                   <p className="text-[11px] font-medium text-[#5070B0] mt-0.5">
@@ -272,8 +285,9 @@ const TeacherHeader = ({ onMenuClick }: HeaderProps) => {
                 </button>
               </div>
 
-              {/* List */}
-              <div className="max-h-[60vh] overflow-y-auto">
+              {/* List — fills remaining flex space; scrolls internally so
+                  header + footer stay pinned regardless of notification count. */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="py-12 text-center px-6">
                     <div
