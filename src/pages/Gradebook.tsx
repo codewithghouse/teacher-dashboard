@@ -487,77 +487,100 @@ export default function Gradebook() {
     );
     const ua = () => { ua1(); ua2(); };
 
-    // test_scores by teacher — count per testId. Powers the "X of Y graded"
-    // chip on each test row + the activities-section progress.
-    // SCOPE CHANGE 2026-05-19: was `where("classId", "==", targetClassId)`,
-    // mirror reason as the `results` listener below — the activities list is
-    // teacher-scoped (every test the teacher created, across all classes),
-    // but strict class filter on scores broke the count for any test whose
-    // `test.classId` doesn't match the currently-selected class. Now scoped
-    // by teacherId so the listener captures every score this teacher has
-    // saved; the testId key is what matters for the counter map.
-    const usc = onSnapshot(
-      query(collection(db, "test_scores"), ...SC_EVT, where("teacherId", "==", teacherId)),
-      (snap) => {
-        if (cancelled) return;
-        const m = new Map<string, number>();
-        const seenDocIds = new Set<string>();
-        snap.docs.forEach(d => {
-          if (seenDocIds.has(d.id)) return;
-          seenDocIds.add(d.id);
-          const data = d.data() as { testId?: unknown; score?: unknown };
-          if (typeof data.testId === "string" && data.score != null) {
-            m.set(data.testId, (m.get(data.testId) || 0) + 1);
-          }
-        });
-        setTestScoreCounts(m);
-      },
-      onListenerErr("test scores"),
-    );
-
-    // Graded-assignment count — reads `results` collection, NOT `submissions`.
-    // Reason: the GradeAssignment writer creates a doc in `results` (with
-    // score + homeworkId + classId stamped) but DOES NOT update the original
-    // submission's status to "graded". The previous code counted submissions
-    // where status === "graded" — that status was never set → always 0.
-    // Memory parallel: bug_pattern_dual_id_writer_or_short_circuit.
-    // SCOPE CHANGE 2026-05-19: was `where("classId", "==", targetClassId)`,
-    // which broke the count for any teacher-created assignment whose
-    // `assignment.classId` doesn't exactly match the currently-selected
-    // class. The assignments-list above is teacher-scoped (it shows every
-    // assignment the teacher created — see flushAsgn comment line ~405),
-    // but the strict class filter here meant grading those orphan-class
-    // assignments left "0/N graded" forever. Switching to `teacherId`
-    // captures every result this teacher has saved; the assignment-id key
-    // (`homeworkId`) is what matters for the counter map, not the classId
-    // path. Dedupe by docId in case docs match both legacy paths.
-    const usu = onSnapshot(
-      query(collection(db, "results"), ...SC_EVT, where("teacherId", "==", teacherId)),
-      (snap) => {
-        if (cancelled) return;
-        const m = new Map<string, number>();
-        const seenDocIds = new Set<string>();
-        snap.docs.forEach(d => {
-          if (seenDocIds.has(d.id)) return;
-          seenDocIds.add(d.id);
-          const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown };
-          // Each results doc represents one graded student × assignment.
-          // Require a numeric score to filter out partial / failed writes.
-          if (data.score == null) return;
-          // Prefer homeworkId (the actual assignment doc id) over
-          // assignmentId (which falls back to literal "legacy" — useless as
-          // a key). Memory: bug_pattern_dual_id_writer_or_short_circuit.
-          const aid = (typeof data.homeworkId === "string" && data.homeworkId !== "legacy" ? data.homeworkId : "") ||
-                      (typeof data.assignmentId === "string" && data.assignmentId !== "legacy" ? data.assignmentId : "");
-          if (aid) m.set(aid, (m.get(aid) || 0) + 1);
-        });
-        setAssignmentGradeCounts(m);
-      },
-      onListenerErr("results"),
-    );
-
-    return () => { cancelled = true; ut(); ua(); usc(); usu(); };
+    return () => { cancelled = true; ut(); ua(); };
   }, [teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes, refreshKey]);
+
+  // ── test_scores + results counts via chunked classId-IN listeners ────────
+  // Why a separate effect: the activities list (classTests + classAssignments)
+  // is teacher-scoped (every test/assignment the teacher created across ALL
+  // their classes — see flushAsgn comment ~line 405). The previous
+  // class-equals listener missed cross-class scores; switching to teacherId
+  // also failed for any writer that didn't stamp teacherId. classId-IN over
+  // the FULL union of classIds caught from classTests + classAssignments is
+  // the resilient option — dedupe by Firestore doc id across chunks.
+  useEffect(() => {
+    if (!teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId as string;
+    const ids = new Set<string>();
+    classTests.forEach(t => { const c = (t as { classId?: unknown }).classId; if (typeof c === "string" && c) ids.add(c); });
+    classAssignments.forEach(a => { const c = (a as { classId?: unknown }).classId; if (typeof c === "string" && c) ids.add(c); });
+    if (ids.size === 0) {
+      setTestScoreCounts(new Map());
+      setAssignmentGradeCounts(new Map());
+      return;
+    }
+    const chunks: string[][] = [];
+    const arr = Array.from(ids);
+    for (let i = 0; i < arr.length; i += 10) chunks.push(arr.slice(i, i + 10));
+
+    let cancelled = false;
+    // Per-chunk doc accumulators; rebuilt-then-flushed on each snapshot.
+    const scoreChunkDocs = new Map<number, Map<string, string>>(); // chunkIdx → (docId → testId)
+    const resultChunkDocs = new Map<number, Map<string, string>>(); // chunkIdx → (docId → assignmentId)
+
+    const flushScores = () => {
+      if (cancelled) return;
+      const seen = new Set<string>();
+      const m = new Map<string, number>();
+      scoreChunkDocs.forEach(perChunk => {
+        perChunk.forEach((testId, docId) => {
+          if (seen.has(docId)) return;
+          seen.add(docId);
+          m.set(testId, (m.get(testId) || 0) + 1);
+        });
+      });
+      setTestScoreCounts(m);
+    };
+    const flushResults = () => {
+      if (cancelled) return;
+      const seen = new Set<string>();
+      const m = new Map<string, number>();
+      resultChunkDocs.forEach(perChunk => {
+        perChunk.forEach((assignmentId, docId) => {
+          if (seen.has(docId)) return;
+          seen.add(docId);
+          m.set(assignmentId, (m.get(assignmentId) || 0) + 1);
+        });
+      });
+      setAssignmentGradeCounts(m);
+    };
+
+    const unsubs: Array<() => void> = [];
+    chunks.forEach((chunk, idx) => {
+      unsubs.push(onSnapshot(
+        query(collection(db, "test_scores"), where("schoolId", "==", schoolId), where("classId", "in", chunk)),
+        snap => {
+          const perChunk = new Map<string, string>();
+          snap.docs.forEach(d => {
+            const data = d.data() as { testId?: unknown; score?: unknown };
+            if (typeof data.testId !== "string" || data.score == null) return;
+            perChunk.set(d.id, data.testId);
+          });
+          scoreChunkDocs.set(idx, perChunk);
+          flushScores();
+        },
+        err => console.warn("[Gradebook/test_scores]", err.code),
+      ));
+      unsubs.push(onSnapshot(
+        query(collection(db, "results"), where("schoolId", "==", schoolId), where("classId", "in", chunk)),
+        snap => {
+          const perChunk = new Map<string, string>();
+          snap.docs.forEach(d => {
+            const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown };
+            if (data.score == null) return;
+            const aid = (typeof data.homeworkId === "string" && data.homeworkId !== "legacy" ? data.homeworkId : "") ||
+                        (typeof data.assignmentId === "string" && data.assignmentId !== "legacy" ? data.assignmentId : "");
+            if (aid) perChunk.set(d.id, aid);
+          });
+          resultChunkDocs.set(idx, perChunk);
+          flushResults();
+        },
+        err => console.warn("[Gradebook/results]", err.code),
+      ));
+    });
+
+    return () => { cancelled = true; unsubs.forEach(u => u()); };
+  }, [teacherData?.schoolId, classTests, classAssignments]);
 
   // ── Per-classId enrollment counts (denominator for activity rows) ─────────
   // Chunked listener over all unique classIds present in classTests +
