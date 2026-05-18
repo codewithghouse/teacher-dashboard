@@ -213,6 +213,13 @@ export default function Gradebook() {
   const [classAssignments, setClassAssignments] = useState<AssignmentDoc[]>([]);
   const [testScoreCounts, setTestScoreCounts] = useState<Map<string, number>>(new Map());
   const [assignmentGradeCounts, setAssignmentGradeCounts] = useState<Map<string, number>>(new Map());
+  // Per-classId enrollment count — denominator for "N/M graded" chip on
+  // EACH activity row. Was using current-class roster (`students.length`) as
+  // a one-size-fits-all denominator, which lied for cross-class assignments
+  // (teacher-scoped activities list includes assignments belonging to OTHER
+  // classes the teacher teaches — see flushAsgn comment ~line 405). Now
+  // each row uses its own assignment.classId roster size.
+  const [enrollByClass, setEnrollByClass] = useState<Map<string, number>>(new Map());
 
   // P2-1: surface listener failures to the user with a retry banner instead
   // of silently console.warn'ing. Bumping `refreshKey` forces every listener
@@ -541,6 +548,59 @@ export default function Gradebook() {
 
     return () => { cancelled = true; ut(); ua(); usc(); usu(); };
   }, [teacherData?.schoolId, teacherData?.branchId, selectedClassId, classes, refreshKey]);
+
+  // ── Per-classId enrollment counts (denominator for activity rows) ─────────
+  // Chunked listener over all unique classIds present in classTests +
+  // classAssignments. Counts unique students per class via dedupe by
+  // studentId/studentEmail key (matches the dedupe discipline in line ~342).
+  useEffect(() => {
+    if (!teacherData?.schoolId) return;
+    const schoolId = teacherData.schoolId as string;
+    const ids = new Set<string>();
+    classTests.forEach(t => { const c = (t as { classId?: unknown }).classId; if (typeof c === "string" && c) ids.add(c); });
+    classAssignments.forEach(a => { const c = (a as { classId?: unknown }).classId; if (typeof c === "string" && c) ids.add(c); });
+    if (ids.size === 0) { setEnrollByClass(new Map()); return; }
+    const chunks: string[][] = [];
+    const arr = Array.from(ids);
+    for (let i = 0; i < arr.length; i += 10) chunks.push(arr.slice(i, i + 10));
+
+    let cancelled = false;
+    // Hold per-chunk results so different chunks don't clobber each other.
+    const chunkResults: Map<number, Map<string, Set<string>>> = new Map();
+    const flush = () => {
+      if (cancelled) return;
+      const merged = new Map<string, number>();
+      chunkResults.forEach(perChunk => {
+        perChunk.forEach((studentSet, cid) => {
+          // Different chunks should never share classIds (chunks are
+          // disjoint), so straight assignment is safe.
+          merged.set(cid, studentSet.size);
+        });
+      });
+      setEnrollByClass(merged);
+    };
+    const unsubs = chunks.map((chunk, idx) =>
+      onSnapshot(
+        query(collection(db, "enrollments"), where("schoolId", "==", schoolId), where("classId", "in", chunk)),
+        snap => {
+          const perClass = new Map<string, Set<string>>();
+          snap.docs.forEach(d => {
+            const data = d.data() as { classId?: unknown; studentId?: unknown; studentEmail?: unknown };
+            const cid = typeof data.classId === "string" ? data.classId : "";
+            if (!cid) return;
+            const sId = (typeof data.studentId === "string" && data.studentId) ||
+                        (typeof data.studentEmail === "string" && data.studentEmail.toLowerCase()) || d.id;
+            if (!perClass.has(cid)) perClass.set(cid, new Set());
+            perClass.get(cid)!.add(sId as string);
+          });
+          chunkResults.set(idx, perClass);
+          flush();
+        },
+        err => console.warn("[Gradebook/enrollByClass]", err.code),
+      ),
+    );
+    return () => { cancelled = true; unsubs.forEach(u => u()); };
+  }, [teacherData?.schoolId, classTests, classAssignments]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -1143,7 +1203,7 @@ export default function Gradebook() {
             name={t.testName || t.title || 'Untitled test'}
             sub={subParts.join(' · ')}
             scoredCount={testScoreCounts.get(t.id) || 0}
-            total={totalEnrolled}
+            total={enrollByClass.get(String((t as { classId?: unknown }).classId || "")) ?? totalEnrolled}
             badge={badge.slice(0, 8)}
             badgeColor={badgeColor}
             onOpen={() => { setActiveTest(t); setView('enter-test'); }}
@@ -1189,7 +1249,7 @@ export default function Gradebook() {
             name={a.title || 'Untitled assignment'}
             sub={subParts.join(' · ')}
             scoredCount={assignmentGradeCounts.get(a.id) || 0}
-            total={totalEnrolled}
+            total={enrollByClass.get(String((a as { classId?: unknown }).classId || "")) ?? totalEnrolled}
             badge="ASGN"
             badgeColor="#FF8800"
             onOpen={() => { setActiveAssignment(a); setView('grade-assignment'); }}
