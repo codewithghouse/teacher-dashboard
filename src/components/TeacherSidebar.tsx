@@ -14,6 +14,7 @@ import {
   School,
   BarChart3,
   Settings,
+  LifeBuoy,
   LogOut,
   Sparkles,
   ScrollText,
@@ -85,6 +86,7 @@ const navSections: {
   {
     title: "Account",
     items: [
+      { title: "Help & Support", path: "/help", icon: LifeBuoy },
       { title: "Settings", path: "/settings", icon: Settings },
     ],
   },

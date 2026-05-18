@@ -62,6 +62,7 @@ const AlumniPage         = lazyWithRetry(() => import("./pages/AlumniPage"));
 const Timetable          = lazyWithRetry(() => import("./pages/Timetable"));
 const Leaderboard        = lazyWithRetry(() => import("./pages/Leaderboard"));
 const StudentBehaviour   = lazyWithRetry(() => import("./pages/StudentBehaviour"));
+const Help               = lazyWithRetry(() => import("./pages/Help"));
 const NotFound           = lazyWithRetry(() => import("./pages/NotFound"));
 const Login              = lazyWithRetry(() => import("./pages/Login"));
 
@@ -158,6 +159,7 @@ const AppRoutes = () => {
           <Route path="/timetable" element={<Timetable />} />
           <Route path="/leaderboard/*" element={<Leaderboard />} />
           <Route path="/student-behaviour" element={<StudentBehaviour />} />
+          <Route path="/help" element={<Help />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
