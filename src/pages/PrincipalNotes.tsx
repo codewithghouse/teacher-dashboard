@@ -261,7 +261,7 @@ const PrincipalNotes = () => {
 
   const fmtTime = (ts: unknown) =>
     new Date((ts as { toDate?: () => Date })?.toDate?.() || Date.now())
-      .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      .toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
 
   const lastSeenStr = lastPrincipalMsg ? `Online · Last seen ${fmtTime(lastPrincipalMsg.timestamp)}` : "Offline";
 
@@ -719,7 +719,9 @@ const PrincipalNotes = () => {
                             fontWeight: 400,
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            paddingRight: isTeacher ? 56 : 44,
+                            // Reserve space for the absolutely-positioned timestamp+tick at bottom-right.
+                            // Width grew when fmtTime switched to 12h "10:51 PM" — wider than old "22:51".
+                            paddingRight: isTeacher ? 78 : 62,
                           }}>
                             {n.message}
                           </p>
@@ -1154,7 +1156,9 @@ const MobilePrincipalChat = ({
                         margin: 0,
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
-                        paddingRight: isTeacher ? 56 : 44,
+                        // Reserve space for the absolutely-positioned timestamp+tick at bottom-right.
+                        // Width grew when fmtTime switched to 12h "10:51 PM" — wider than old "22:51".
+                        paddingRight: isTeacher ? 78 : 62,
                       }}>
                         {m.message}
                       </p>

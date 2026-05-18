@@ -1,5 +1,17 @@
 /* Google Fonts loaded via <link> in index.html for non-blocking render */
 
+/* ── Mokoto — Edullent brand wordmark ──────────────────────────────────────
+   Used ONLY on the literal "Edullent" wordmark (login splash, nav). Body /
+   UI text stays Plus Jakarta Sans. The font file lives in /public/fonts/
+   so Vite serves it from the site root at runtime. */
+@font-face {
+  font-family: 'Mokoto';
+  src: url('/fonts/mokoto.regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -114,6 +126,21 @@ button, a, [role="button"] {
   *::before,
   *::after {
     font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif !important;
+    font-weight: 400 !important;
+  }
+
+  /* ── Mokoto wordmark opt-out ───────────────────────────────────
+     The universal `*` rule above beats inline style `fontFamily: 'Mokoto'`
+     because both carry `!important`, and universal-with-important loses to
+     class-with-important only at higher specificity. Carve a specific
+     escape hatch: any element tagged .font-wordmark (and its descendants)
+     uses the Mokoto brand font instead. Matches
+     bug_pattern_global_span_font_override. */
+  .font-wordmark,
+  .font-wordmark *,
+  .font-wordmark *::before,
+  .font-wordmark *::after {
+    font-family: 'Mokoto', 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     font-weight: 400 !important;
   }
 

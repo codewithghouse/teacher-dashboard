@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { GraduationCap, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 // Edullent design tokens — Blue Apple palette, locked to match the rest of
 // teacher-dashboard. Inlined here so this auth surface has no cross-file
@@ -66,7 +66,7 @@ const Login = () => {
               width: 80,
               height: 80,
               borderRadius: 24,
-              background: `linear-gradient(135deg, ${T.BLUE} 0%, ${T.BLUE_LIGHT} 100%)`,
+              background: T.CARD_BG,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -74,19 +74,27 @@ const Login = () => {
               boxShadow: '0 12px 32px rgba(0,85,255,0.32), 0 4px 12px rgba(0,85,255,0.18)',
               transform: 'rotate(3deg)',
               transition: 'transform 0.5s ease',
+              overflow: 'hidden',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'rotate(0deg)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'rotate(3deg)'; }}
           >
-            <GraduationCap style={{ width: 40, height: 40, color: '#FFFFFF' }} />
+            <img
+              src="/edullent-icon.png"
+              alt="Edullent logo"
+              width={44}
+              height={44}
+              style={{ width: 44, height: 44, objectFit: 'contain' }}
+            />
           </div>
           <h1
+            className="font-wordmark"
             style={{
               fontSize: 36,
               fontWeight: 700,
               color: T.INK,
               margin: '0 0 6px',
-              letterSpacing: '-1.2px',
+              letterSpacing: '0.12em',
               fontFamily: FONT_WORDMARK,
             }}
           >
