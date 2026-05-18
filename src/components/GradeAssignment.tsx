@@ -101,19 +101,38 @@ const GradeAssignment = ({ assignment, onBack }: GradeAssignmentProps) => {
                 ...SC,
                 where("classId", "==", assignment.classId),
             );
-            const gradesQ = query(collection(db, "results"), ...SC, where("assignmentId", "==", assignment.id));
+            // DUAL-KEY READ on `results` — this writer stamps
+            // `homeworkId: assignment.id` (canonical) + `assignmentId: "legacy"`
+            // when teaching_assignment ref is missing. Querying by assignmentId
+            // alone silently dropped EVERY previously-graded record, so the
+            // grade-inputs reloaded EMPTY and the teacher had to re-type 90.
+            // Memory: bug_pattern_dual_id_writer_or_short_circuit.
+            const gradesByAidQ = query(collection(db, "results"), ...SC, where("assignmentId", "==", assignment.id));
+            const gradesByHidQ = query(collection(db, "results"), ...SC, where("homeworkId",   "==", assignment.id));
             const subsByHomeworkQ = query(collection(db, "submissions"), ...SC, where("homeworkId", "==", assignment.id));
             const subsByAssignQ = query(collection(db, "submissions"), ...SC, where("assignmentId", "==", assignment.id));
 
-            const [rosterSnap, gradeSnap, subSnapByHomework, subSnapByAssign] = await Promise.all([
+            const [rosterSnap, gradeByAidSnap, gradeByHidSnap, subSnapByHomework, subSnapByAssign] = await Promise.all([
               getDocs(enrolQ),
-              getDocs(gradesQ),
+              getDocs(gradesByAidQ),
+              getDocs(gradesByHidQ),
               getDocs(subsByHomeworkQ),
               getDocs(subsByAssignQ),
             ]);
 
+            // Dedupe results across both query paths by Firestore doc id.
             const gradeMap = new Map<string, DocumentData>();
-            gradeSnap.docs.forEach(d => gradeMap.set(d.data().studentId, d.data()));
+            const seenGradeDocIds = new Set<string>();
+            const ingestGrade = (snap: typeof gradeByAidSnap) => {
+              snap.docs.forEach(d => {
+                if (seenGradeDocIds.has(d.id)) return;
+                seenGradeDocIds.add(d.id);
+                const data = d.data();
+                if (data?.studentId) gradeMap.set(data.studentId as string, data);
+              });
+            };
+            ingestGrade(gradeByAidSnap);
+            ingestGrade(gradeByHidSnap);
 
             // DUAL LOOKUP — submissions are keyed under EVERY identifier they
             // carry (studentId AND studentEmail in lowercase). Previously this

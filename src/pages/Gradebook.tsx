@@ -504,12 +504,25 @@ export default function Gradebook() {
     // submission's status to "graded". The previous code counted submissions
     // where status === "graded" — that status was never set → always 0.
     // Memory parallel: bug_pattern_dual_id_writer_or_short_circuit.
+    // SCOPE CHANGE 2026-05-19: was `where("classId", "==", targetClassId)`,
+    // which broke the count for any teacher-created assignment whose
+    // `assignment.classId` doesn't exactly match the currently-selected
+    // class. The assignments-list above is teacher-scoped (it shows every
+    // assignment the teacher created — see flushAsgn comment line ~405),
+    // but the strict class filter here meant grading those orphan-class
+    // assignments left "0/N graded" forever. Switching to `teacherId`
+    // captures every result this teacher has saved; the assignment-id key
+    // (`homeworkId`) is what matters for the counter map, not the classId
+    // path. Dedupe by docId in case docs match both legacy paths.
     const usu = onSnapshot(
-      query(collection(db, "results"), ...SC_EVT, where("classId", "==", targetClassId)),
+      query(collection(db, "results"), ...SC_EVT, where("teacherId", "==", teacherId)),
       (snap) => {
         if (cancelled) return;
         const m = new Map<string, number>();
+        const seenDocIds = new Set<string>();
         snap.docs.forEach(d => {
+          if (seenDocIds.has(d.id)) return;
+          seenDocIds.add(d.id);
           const data = d.data() as { assignmentId?: unknown; homeworkId?: unknown; score?: unknown };
           // Each results doc represents one graded student × assignment.
           // Require a numeric score to filter out partial / failed writes.
