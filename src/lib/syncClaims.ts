@@ -16,7 +16,8 @@ type SyncClaimsResult = {
 
 export async function syncClaimsAndRefreshToken(user: User): Promise<SyncClaimsResult | null> {
   try {
-    const call = httpsCallable<unknown, SyncClaimsResult>(functions, "syncUserClaims");
+    // Migrated 2026-05-18 to syncUserClaimsV2 — legacy function stuck on deleted India SA.
+    const call = httpsCallable<unknown, SyncClaimsResult>(functions, "syncUserClaimsV2");
     const res = await call({});
     await user.getIdToken(true);
     return res.data ?? null;
