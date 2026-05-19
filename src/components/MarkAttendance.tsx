@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, X as XIcon, PartyPopper, AlertTriangle } from "lucide-react";
+import { Loader2, X as XIcon, PartyPopper, AlertTriangle, CalendarDays } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
   collection, query, getDocs, where,
@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { auditedSet } from "../lib/auditedWrites";
+import { subscribeSchoolHolidays, type SchoolHoliday } from "../lib/schoolHolidays";
 import { toast } from "sonner";
 
 // ── Edullent v2 design tokens (shared mobile + desktop) ──────────────────────
@@ -84,6 +85,27 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   // Holiday flow: confirm modal + optional reason.
   const [holidayOpen, setHolidayOpen]       = useState(false);
   const [holidayReason, setHolidayReason]   = useState("");
+  // School-wide holidays (principal-declared). When today is one of these,
+  // the teacher sees a banner and the Save button is disabled — no need to
+  // mark attendance on a declared school holiday.
+  const [schoolHolidays, setSchoolHolidays] = useState<SchoolHoliday[]>([]);
+
+  useEffect(() => {
+    if (!teacherData?.schoolId) return;
+    const unsub = subscribeSchoolHolidays(
+      teacherData.schoolId,
+      (rows) => setSchoolHolidays(rows),
+      (err) => console.error("[MarkAttendance] school_holidays:", err),
+    );
+    return () => unsub();
+  }, [teacherData?.schoolId]);
+
+  // Today's school holiday (if any) — looked up directly so we don't rebuild
+  // a Map for a single date check.
+  const todaySchoolHoliday = useMemo(() => {
+    const today = todayStr();
+    return schoolHolidays.find(h => h.date === today) || null;
+  }, [schoolHolidays]);
 
   // Fetch classes — union of teaching_assignments + legacy classes.teacherId
   // (same pattern as MyClasses / CreateTest fix). Single classes.teacherId
@@ -436,6 +458,31 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* School-wide holiday banner (principal-declared, mobile) */}
+        {todaySchoolHoliday && (
+          <div
+            role="alert"
+            className="rounded-[16px] px-[14px] py-[12px] mb-[10px] flex items-start gap-[10px]"
+            style={{
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              boxShadow: "0 6px 18px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.18)",
+            }}
+          >
+            <CalendarDays className="w-[18px] h-[18px] text-white shrink-0 mt-[1px]" strokeWidth={2.3} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: "0.16em" }}>
+                Declared School Holiday
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginTop: 2, letterSpacing: "-0.2px" }}>
+                Today is a holiday — {todaySchoolHoliday.reason || "off-day"}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.82)", marginTop: 3, lineHeight: 1.45 }}>
+                No need to mark attendance. {todaySchoolHoliday.declaredByName ? `Declared by ${todaySchoolHoliday.declaredByName}.` : ""}
+              </div>
+            </div>
           </div>
         )}
 
