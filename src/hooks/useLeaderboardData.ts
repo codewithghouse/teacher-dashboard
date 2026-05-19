@@ -381,6 +381,9 @@ function applyAttendanceToBuckets(attSnaps: Snap[], byKey: Map<string, StudentBu
     if (!key) return;
     const b = byKey.get(key)!;
     const status = String(a.data.status ?? "").toLowerCase();
+    // Holiday days are excluded from both numerator and denominator —
+    // whole-class declared off-days don't count for or against the student.
+    if (status === "holiday") return;
     if (status === "present" || status === "late") b.presentCount += 1;
     b.attTotal += 1;
   });
@@ -1095,6 +1098,7 @@ export function useBranchTeacherLeaderboard() {
       const tch = a.data.teacherId as string | undefined;
       if (!tch || !byTid.has(tch)) return;
       const status = String(a.data.status ?? "").toLowerCase();
+      if (status === "holiday") return; // exclude class-wide off-days
       const b = byTid.get(tch)!;
       if (status === "present" || status === "late") b.presentCount += 1;
       b.attTotal += 1;

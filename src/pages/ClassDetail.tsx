@@ -245,8 +245,9 @@ const ClassDetail = () => {
         return false;
       };
 
-      // Attendance for THIS class (already class-scoped via attendanceLog listener)
-      const sAtt = attendanceLog.filter(matchesStudent);
+      // Attendance for THIS class (already class-scoped via attendanceLog listener).
+      // Exclude holiday days (whole-class off-days) so they don't deflate the %.
+      const sAtt = attendanceLog.filter(matchesStudent).filter((d: any) => d.status !== "holiday");
       const present = sAtt.filter((d: any) => d.status === "present" || d.status === "late").length;
       const atndRaw: number = sAtt.length > 0 ? (present / sAtt.length) * 100 : -1;
 

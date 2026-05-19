@@ -306,7 +306,9 @@ const Attendance = () => {
   // misleading. Includes a separate `hasAnyRecord` flag so genuine 0% turnout
   // (everyone absent today) renders as "0.0%" instead of "No data".
   const stats = useMemo(() => {
-    const todayRec = records.filter(r => r.date === todayStr && (!selectedClassId || recordMatchesSelectedClass(r)));
+    // Exclude holiday-status records — whole-class declared off-days don't
+    // belong in the rate.
+    const todayRec = records.filter(r => r.date === todayStr && r.status !== "holiday" && (!selectedClassId || recordMatchesSelectedClass(r)));
     const presentToday = todayRec.filter(r => r.status === "present").length;
     const absentToday  = todayRec.filter(r => r.status === "absent").length;
     const lateToday    = todayRec.filter(r => r.status === "late").length;
@@ -328,7 +330,7 @@ const Attendance = () => {
     const todayDate = new Date(); todayDate.setHours(0,0,0,0);
     const makeDay = (d: Date, isFuture = false) => {
       const dateStr = d.toLocaleDateString("en-CA");
-      const dayRecs = records.filter(r => r.date === dateStr && recordMatchesSelectedClass(r));
+      const dayRecs = records.filter(r => r.date === dateStr && r.status !== "holiday" && recordMatchesSelectedClass(r));
       const pres    = dayRecs.filter(r => r.status === "present" || r.status === "late").length;
       const abs     = dayRecs.filter(r => r.status === "absent").length;
       const total   = enrollments.filter(e => e.classId === selectedClassId).length || 1;

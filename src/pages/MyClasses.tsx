@@ -413,7 +413,8 @@ const MyClasses = () => {
         return false;
       };
 
-      const attArr  = attendanceRecords.filter(matches);
+      // Exclude holiday days (whole-class declared off-days) from % calc.
+      const attArr  = attendanceRecords.filter(matches).filter(r => r.status !== "holiday");
       const present = attArr.filter(r => r.status === "present" || r.status === "late").length;
       const atndRaw: number | null = attArr.length > 0 ? (present / attArr.length) * 100 : null;
 

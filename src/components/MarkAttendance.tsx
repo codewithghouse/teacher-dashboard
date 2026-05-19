@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Loader2, X as XIcon, PartyPopper, AlertTriangle } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
   collection, query, getDocs, where,
@@ -53,10 +54,14 @@ const avStyle = (name = "") => {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+// "holiday" status (added 2026-05-19) — declares the whole day off for the
+// class. Excluded from attendance % across all 4 dashboards. Writer is the
+// "Mark Day as Holiday" button below; readers consult `lib/attendanceDedup`
+// + per-page % calcs which short-circuit on this status.
 interface Student {
   id: string; enrollId: string; name: string; email: string;
   rollNo: string | number;
-  status: "present" | "absent" | "late" | "none";
+  status: "present" | "absent" | "late" | "none" | "holiday";
   note: string; initials: string; av: { bg: string; color: string };
 }
 // onBack receives the classId that was last saved so the parent page can
@@ -76,6 +81,9 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const [loading, setLoading]               = useState(true);
   const [saving, setSaving]                 = useState(false);
   const [currentPage, setCurrentPage]       = useState(1);
+  // Holiday flow: confirm modal + optional reason.
+  const [holidayOpen, setHolidayOpen]       = useState(false);
+  const [holidayReason, setHolidayReason]   = useState("");
 
   // Fetch classes — union of teaching_assignments + legacy classes.teacherId
   // (same pattern as MyClasses / CreateTest fix). Single classes.teacherId
@@ -175,8 +183,11 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     present:  students.filter(s => s.status === "present").length,
     absent:   students.filter(s => s.status === "absent").length,
     late:     students.filter(s => s.status === "late").length,
+    holiday:  students.filter(s => s.status === "holiday").length,
     unmarked: students.filter(s => s.status === "none").length,
   };
+  const existingMarksForToday = counts.present + counts.absent + counts.late;
+  const isHolidayAlready = students.length > 0 && counts.holiday === students.length;
 
   // Actions
   const setStatus = (id: string, status: Student["status"]) =>
@@ -187,6 +198,72 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const markAllPresent = () => {
     setStudents(prev => prev.map(s => ({ ...s, status: "present" })));
     toast.success("All students marked present!");
+  };
+
+  // Resolve the teacher's assignmentId for the selected class — same fallback
+  // pattern as handleSave (used to stamp the doc so cross-dashboard readers
+  // can attribute the write to the correct teaching_assignments row).
+  const resolveAssignmentId = async (): Promise<string> => {
+    if (!teacherData?.schoolId) return "legacy";
+    const SC: QueryConstraint[] = [where("schoolId", "==", teacherData.schoolId)];
+    if (teacherData.branchId) SC.push(where("branchId", "==", teacherData.branchId));
+    const aSnap = await getDocs(query(
+      collection(db, "teaching_assignments"),
+      ...SC,
+      where("teacherId", "==", teacherData.id),
+      where("classId", "==", selectedClassId),
+    ));
+    if (aSnap.empty) return "legacy";
+    const activeDoc = aSnap.docs.find(d => {
+      const s = (d.data() as { status?: unknown }).status;
+      return !s || (typeof s === "string" && s.toLowerCase() === "active");
+    });
+    return activeDoc?.id || "legacy";
+  };
+
+  // Holiday flow — declares the whole day off for the class.
+  // Writes one attendance doc per student with status:"holiday". All
+  // attendance % readers across the 4 dashboards short-circuit on this
+  // status so the day doesn't count for or against the student.
+  const saveHoliday = async () => {
+    if (!students.length) { toast.error("No students in this class."); return; }
+    if (!teacherData?.schoolId) return;
+    setSaving(true);
+    const today = todayStr();
+    const selClass = classes.find(c => c.id === selectedClassId);
+    const reason = holidayReason.trim() || "School holiday";
+    try {
+      const assignmentId = await resolveAssignmentId();
+      const results = await Promise.allSettled(
+        students.map(s =>
+          auditedSet(doc(db, "attendance", `${s.id}_${selectedClassId}_${today}`), {
+            studentId: s.id, studentName: s.name, studentEmail: s.email,
+            status: "holiday" as const,
+            note: reason,
+            date: today,
+            teacherId: teacherData.id, teacherName: teacherData.name || "",
+            schoolId: teacherData.schoolId || "", branchId: teacherData.branchId || "",
+            classId: selectedClassId, className: (selClass as { name?: string } | undefined)?.name || "",
+            assignmentId, timestamp: serverTimestamp(),
+          })
+        )
+      );
+      const failed = results.filter(r => r.status === "rejected");
+      if (failed.length > 0) {
+        console.error("[MarkAttendance] partial holiday save failure", failed);
+        toast.error(`Holiday saved for ${students.length - failed.length}/${students.length} students.`);
+        return;
+      }
+      toast.success(`Day marked as holiday — ${students.length} students excluded from attendance %.`);
+      setHolidayOpen(false);
+      setHolidayReason("");
+      onBack(selectedClassId);
+    } catch (e) {
+      console.error("[MarkAttendance] holiday save failed", e);
+      toast.error("Failed to mark holiday. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copyFromYesterday = async () => {
@@ -383,6 +460,24 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="text-[10px] font-medium" style={{ color: MA.T3, letterSpacing: "-0.1px" }}>Previous session</div>
           </button>
         </div>
+
+        {/* Mark Day as Holiday — full-width CTA below quick actions */}
+        <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length}
+          className="w-full rounded-[16px] py-[12px] px-[14px] flex items-center justify-center gap-[10px] active:scale-[0.98] transition-transform mb-[10px]"
+          style={{
+            background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+            boxShadow: "0 4px 14px rgba(123,63,244,0.32), 0 1px 3px rgba(123,63,244,0.20)",
+            fontFamily: MA.FONT,
+            opacity: loading || !students.length ? 0.6 : 1,
+            border: "none",
+            cursor: loading || !students.length ? "not-allowed" : "pointer",
+          }}
+          aria-label="Mark day as holiday">
+          <PartyPopper className="w-[18px] h-[18px] text-white" strokeWidth={2.2} />
+          <span className="text-[13px] font-bold text-white" style={{ letterSpacing: "-0.2px" }}>
+            {isHolidayAlready ? "Holiday declared for today" : "Mark day as Holiday"}
+          </span>
+        </button>
 
         {/* Live tally */}
         <div className="flex gap-[6px] py-[10px] px-[14px] rounded-[14px] mb-[14px]"
@@ -626,7 +721,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
         )}
 
         {/* Quick Actions + Live Tally row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <button type="button" onClick={markAllPresent} disabled={loading || !students.length}
             className="bg-white rounded-[18px] py-5 px-5 flex items-center gap-4 active:scale-[0.98] hover:-translate-y-0.5 transition-all text-left"
             style={{ boxShadow: MA.SH, opacity: loading || !students.length ? 0.6 : 1, fontFamily: MA.FONT, border: "none", cursor: loading || !students.length ? "not-allowed" : "pointer" }}>
@@ -650,6 +745,32 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-bold" style={{ color: MA.T1, letterSpacing: "-0.3px" }}>Copy yesterday</div>
               <div className="text-[11px] font-semibold mt-0.5" style={{ color: MA.T3 }}>Reuse last session</div>
+            </div>
+          </button>
+
+          <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length}
+            className="rounded-[18px] py-5 px-5 flex items-center gap-4 active:scale-[0.98] hover:-translate-y-0.5 transition-all text-left"
+            style={{
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              boxShadow: "0 6px 20px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.20)",
+              opacity: loading || !students.length ? 0.6 : 1,
+              fontFamily: MA.FONT,
+              border: "none",
+              cursor: loading || !students.length ? "not-allowed" : "pointer",
+              gridColumn: "span 1",
+            }}
+            aria-label="Mark day as holiday">
+            <div className="w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0"
+              style={{ background: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}>
+              <PartyPopper className="w-[22px] h-[22px] text-white" strokeWidth={2.3} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-white" style={{ letterSpacing: "-0.3px" }}>
+                {isHolidayAlready ? "Holiday today" : "Mark as Holiday"}
+              </div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.82)" }}>
+                Excludes day from attendance %
+              </div>
             </div>
           </button>
 
@@ -806,6 +927,236 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
       </div>
     </div>
     {/* ═══════════ END DESKTOP VIEW ═══════════ */}
+
+    {/* ═══════════ HOLIDAY CONFIRM MODAL (portaled to body to escape any
+       transform-using parent that would otherwise trap position:fixed —
+       per bug_pattern_fixed_modal_inside_transform_parent.md) ═══════════ */}
+    {holidayOpen && createPortal(
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mark day as holiday"
+        onClick={() => !saving && setHolidayOpen(false)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,8,40,0.45)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 100,
+          padding: 16,
+          fontFamily: MA.FONT,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: "#fff",
+            borderRadius: 22,
+            width: 420,
+            maxWidth: "100%",
+            overflow: "hidden",
+            boxShadow: "0 32px 80px rgba(0,8,40,0.32), 0 8px 24px rgba(0,8,40,0.18)",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "18px 22px",
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 55%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, position: "relative", zIndex: 1 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.18)",
+                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <PartyPopper className="w-6 h-6 text-white" strokeWidth={2.3} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "0.16em" }}>
+                  Declare Day
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginTop: 2, letterSpacing: "-0.3px" }}>
+                  Mark as Holiday?
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.82)", marginTop: 4 }}>
+                  {dateLabel} · {(selClass as { name?: string } | undefined)?.name || "—"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !saving && setHolidayOpen(false)}
+                disabled={saving}
+                aria-label="Close"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.18)",
+                  border: "none",
+                  cursor: saving ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >
+                <XIcon className="w-[14px] h-[14px] text-white" strokeWidth={2.4} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: "18px 22px 22px" }}>
+            {existingMarksForToday > 0 && (
+              <div
+                role="alert"
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  background: "rgba(255,170,0,0.10)",
+                  border: "0.5px solid rgba(255,170,0,0.30)",
+                  marginBottom: 14,
+                }}
+              >
+                <AlertTriangle className="w-[18px] h-[18px] shrink-0 mt-[1px]" style={{ color: "#B26A00" }} strokeWidth={2.2} />
+                <div style={{ fontSize: 12, lineHeight: 1.5, color: "#7A4400", fontWeight: 600 }}>
+                  {existingMarksForToday} {existingMarksForToday === 1 ? "student is" : "students are"} already marked
+                  for today. Confirming will <span style={{ fontWeight: 800 }}>overwrite</span> all marks
+                  with "Holiday".
+                </div>
+              </div>
+            )}
+
+            <label style={{ fontSize: 11, fontWeight: 700, color: MA.T3, textTransform: "uppercase", letterSpacing: "0.10em", display: "block", marginBottom: 6 }}>
+              Reason (optional)
+            </label>
+            <input
+              type="text"
+              value={holidayReason}
+              onChange={(e) => setHolidayReason(e.target.value.slice(0, 80))}
+              placeholder="e.g. Diwali, Local festival, Strike day"
+              disabled={saving}
+              maxLength={80}
+              style={{
+                width: "100%",
+                height: 42,
+                padding: "0 14px",
+                borderRadius: 12,
+                background: MA.SURFACE,
+                border: "0.5px solid rgba(0,85,255,0.14)",
+                fontSize: 13,
+                fontWeight: 500,
+                color: MA.T1,
+                fontFamily: MA.FONT,
+                outline: "none",
+                letterSpacing: "-0.1px",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = MA.VIOLET; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(123,63,244,0.18)`; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,85,255,0.14)"; e.currentTarget.style.boxShadow = "none"; }}
+            />
+
+            <div style={{ fontSize: 11, lineHeight: 1.5, color: MA.T3, marginTop: 12, fontWeight: 500 }}>
+              All {students.length} {students.length === 1 ? "student" : "students"} in this class will be
+              recorded as "Holiday" for today. This day is excluded from attendance % across all
+              dashboards (parent, teacher, principal, owner).
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button
+                type="button"
+                onClick={() => !saving && setHolidayOpen(false)}
+                disabled={saving}
+                className="active:scale-[0.98] transition-transform"
+                style={{
+                  flex: 1,
+                  height: 46,
+                  borderRadius: 13,
+                  background: MA.SURFACE,
+                  border: "0.5px solid rgba(0,85,255,0.12)",
+                  color: MA.T1,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "-0.2px",
+                  cursor: saving ? "not-allowed" : "pointer",
+                  opacity: saving ? 0.55 : 1,
+                  fontFamily: MA.FONT,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveHoliday}
+                disabled={saving || !students.length}
+                className="active:scale-[0.98] transition-transform"
+                style={{
+                  flex: 1.4,
+                  height: 46,
+                  borderRadius: 13,
+                  background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+                  boxShadow: "0 6px 18px rgba(123,63,244,0.36), 0 2px 6px rgba(123,63,244,0.20)",
+                  border: "none",
+                  color: "#fff",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "-0.2px",
+                  cursor: saving || !students.length ? "not-allowed" : "pointer",
+                  opacity: saving || !students.length ? 0.7 : 1,
+                  fontFamily: MA.FONT,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-[16px] h-[16px] animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <PartyPopper className="w-[16px] h-[16px]" strokeWidth={2.3} />
+                    Confirm Holiday
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
 
     </div>
   );

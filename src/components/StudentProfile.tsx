@@ -404,9 +404,12 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
   }, [allScoreDocs]);
 
   const m = useMemo(() => {
-    const tot = attendance.length;
-    const pres = attendance.filter(r => r.status === "present").length;
-    const late = attendance.filter(r => r.status === "late").length;
+    // Holiday days (whole-class declared off-days) excluded from % across all
+    // dashboards — they don't count for or against the student.
+    const attCountable = attendance.filter(r => r.status !== "holiday");
+    const tot = attCountable.length;
+    const pres = attCountable.filter(r => r.status === "present").length;
+    const late = attCountable.filter(r => r.status === "late").length;
     const abs = tot - pres - late;
     const attRate: number | null = tot > 0 ? ((pres + late) / tot) * 100 : null;
 
@@ -441,6 +444,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
     const monthly = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
       const mAtt = attendance.filter((r: any) => {
+        if (r.status === "holiday") return false; // exclude class-wide off-days
         const ms = writerTimeMs(r) || (r.date ? new Date(r.date).getTime() : 0);
         if (!ms) return false;
         const dt = new Date(ms);
