@@ -324,6 +324,12 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
 
   const handleSave = async () => {
     if (!students.length) return toast.error("No students in this class.");
+    // Block save if today is a school holiday — principal-declared off-day.
+    // Teacher gets a clear toast instead of silently writing over the holiday.
+    if (todaySchoolHoliday) {
+      toast.error(`Today is a declared school holiday (${todaySchoolHoliday.reason}). No need to mark attendance.`);
+      return;
+    }
     if (counts.unmarked > 0 && !window.confirm(`${counts.unmarked} students are unmarked. Save anyway?`)) return;
     setSaving(true);
     const today = todayStr();
@@ -401,8 +407,8 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
               Mark Attendance
             </div>
-            <button type="button" onClick={handleSave} disabled={saving || loading}
-              aria-label={saving ? "Saving attendance" : "Save attendance"}
+            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday}
+              aria-label={todaySchoolHoliday ? "Today is a school holiday" : saving ? "Saving attendance" : "Save attendance"}
               className="h-[34px] px-[14px] rounded-[11px] flex items-center gap-[5px] active:scale-[0.95] transition-transform"
               style={{
                 background: MA.GREEN, color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "-0.1px",
@@ -714,8 +720,8 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.8px" }}>
               Mark Attendance
             </div>
-            <button type="button" onClick={handleSave} disabled={saving || loading}
-              aria-label={saving ? "Saving attendance" : "Save attendance"}
+            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday}
+              aria-label={todaySchoolHoliday ? "Today is a school holiday" : saving ? "Saving attendance" : "Save attendance"}
               className="h-10 px-5 rounded-[12px] flex items-center gap-2 active:scale-[0.97] transition-transform"
               style={{
                 background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.15px",
@@ -764,6 +770,34 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* School-wide holiday banner (principal-declared, desktop) */}
+        {todaySchoolHoliday && (
+          <div
+            role="alert"
+            className="rounded-[18px] px-6 py-4 mb-5 flex items-center gap-4"
+            style={{
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              boxShadow: "0 8px 22px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.18)",
+            }}
+          >
+            <div className="w-12 h-12 rounded-[14px] shrink-0 flex items-center justify-center" style={{ background: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}>
+              <CalendarDays className="w-[22px] h-[22px] text-white" strokeWidth={2.3} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: "0.18em" }}>
+                Declared School Holiday
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 3, letterSpacing: "-0.3px" }}>
+                Today is a holiday — {todaySchoolHoliday.reason || "off-day"}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>
+                No need to mark attendance.{" "}
+                {todaySchoolHoliday.declaredByName ? `Declared by ${todaySchoolHoliday.declaredByName}.` : ""}
+              </div>
+            </div>
           </div>
         )}
 

@@ -8,8 +8,9 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "../lib/AuthContext";
 import { getInitials } from "../lib/initials";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarDays } from "lucide-react";
 import { tilt3D, tilt3DStyle } from "../lib/use3DTilt";
+import { subscribeSchoolHolidays, type SchoolHoliday } from "../lib/schoolHolidays";
 
 type ClassDoc = DocumentData & { id: string };
 type EnrollmentDoc = DocumentData & { id: string; classId?: string };
@@ -110,6 +111,7 @@ const Attendance = () => {
   const [classes, setClasses]               = useState<ClassDoc[]>([]);
   const [enrollments, setEnrollments]       = useState<EnrollmentDoc[]>([]);
   const [records, setRecords]               = useState<AttendanceRecord[]>([]);
+  const [schoolHolidays, setSchoolHolidays] = useState<SchoolHoliday[]>([]);
   // Bumped after MarkAttendance saves — forces the records onSnapshot to
   // tear down and re-subscribe so we never display stale "not marked" state
   // while waiting for a snapshot fire to land.
@@ -203,6 +205,21 @@ const Attendance = () => {
 
     return () => { uTa(); uLegacy(); uAll(); };
   }, [teacherData?.id, teacherData?.schoolId]);
+
+  // School-wide holidays (principal-declared) — banner + future calendar.
+  useEffect(() => {
+    if (!teacherData?.schoolId) return;
+    const unsub = subscribeSchoolHolidays(
+      teacherData.schoolId,
+      (rows) => setSchoolHolidays(rows),
+      (err) => console.error("[teacher/Attendance] school_holidays:", err),
+    );
+    return () => unsub();
+  }, [teacherData?.schoolId]);
+  const todaySchoolHoliday = useMemo(() => {
+    const today = new Date().toLocaleDateString("en-CA");
+    return schoolHolidays.find(h => h.date === today) || null;
+  }, [schoolHolidays]);
 
   // 2. Enrollments — live listener (was one-shot getDocs, which missed
   // mid-session enrollment changes). Per-class onSnapshot with a Map-based
@@ -423,6 +440,31 @@ const Attendance = () => {
 
       {/* ═══════════════════ MOBILE VIEW (EduIntellect v2) ═══════════════════ */}
       <div className="md:hidden -mt-0" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh", margin: "0 -16px", paddingBottom: 8 }}>
+
+        {/* School holiday banner — principal-declared, top of page */}
+        {todaySchoolHoliday && (
+          <div
+            role="alert"
+            className="mx-4 mt-3 mb-1 rounded-[16px] px-[14px] py-[12px] flex items-start gap-[10px]"
+            style={{
+              background: "linear-gradient(135deg, #7B3FF4 0%, #9B6FFF 100%)",
+              boxShadow: "0 6px 18px rgba(123,63,244,0.32)",
+            }}
+          >
+            <CalendarDays className="w-[18px] h-[18px] text-white shrink-0 mt-[1px]" strokeWidth={2.3} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: "0.16em" }}>
+                School Holiday Today
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginTop: 2, letterSpacing: "-0.2px" }}>
+                {todaySchoolHoliday.reason || "Declared holiday"}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.82)", marginTop: 3, lineHeight: 1.45 }}>
+                No attendance marking needed.{todaySchoolHoliday.declaredByName ? ` Declared by ${todaySchoolHoliday.declaredByName}.` : ""}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Page header */}
         <div className="px-4 pt-3 pb-[14px]">
@@ -767,6 +809,33 @@ const Attendance = () => {
       {/* ═══════════════════ DESKTOP VIEW — Mobile design, widescreen grid ═══════════════════ */}
       <div className="hidden md:block -mx-4 sm:-mx-6 md:-mx-8 md:-mt-8" style={{ fontFamily: MA.FONT, background: "#EEF4FF", minHeight: "100vh" }}>
         <div className="max-w-[1600px] mx-auto px-8 pt-8 pb-12">
+
+          {/* School holiday banner — principal-declared, top of page */}
+          {todaySchoolHoliday && (
+            <div
+              role="alert"
+              className="rounded-[18px] px-6 py-4 mb-5 flex items-center gap-4"
+              style={{
+                background: "linear-gradient(135deg, #7B3FF4 0%, #9B6FFF 100%)",
+                boxShadow: "0 8px 22px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.18)",
+              }}
+            >
+              <div className="w-12 h-12 rounded-[14px] shrink-0 flex items-center justify-center" style={{ background: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}>
+                <CalendarDays className="w-[22px] h-[22px] text-white" strokeWidth={2.3} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: "0.18em" }}>
+                  School Holiday Today
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 3, letterSpacing: "-0.3px" }}>
+                  {todaySchoolHoliday.reason || "Declared holiday"}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>
+                  No attendance marking needed today.{todaySchoolHoliday.declaredByName ? ` Declared by ${todaySchoolHoliday.declaredByName}.` : ""}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Header */}
           <div className="mb-6">
