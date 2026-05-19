@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar,
+  BarChart, Bar,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
@@ -15,6 +15,7 @@ import { doc, collection, query, where, onSnapshot, getDocs, deleteDoc, serverTi
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
 import { dedupAttendanceByDay } from "../lib/attendanceDedup";
+import { SubjectMasteryRadar } from "./SubjectMasteryRadar";
 import { toast } from "sonner";
 
 // ── Canonical score normalizer (matches Dashboard / MyClasses / ClassDetail / Students).
@@ -857,15 +858,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
               </VibeCard>
               <VibeCard tone="violet" icon={Activity} label="Subject Mastery" action={<DLink tone="violet" />}>
                 {radarData.length >= 3 ? (
-                  <div style={{ height: 160 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                        <PolarGrid stroke="rgba(123,63,244,0.18)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: T.ink2, fontSize: 9, fontWeight: 600 }} />
-                        <Radar dataKey="score" stroke={T.violet} fill={T.violet} fillOpacity={0.20} strokeWidth={2} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <SubjectMasteryRadar data={radarData} color={T.violet} height={180} labelFontSize={9} />
                 ) : subEntries.length > 0 ? (
                   <p style={{ fontSize: 11, color: T.ink3, textAlign: "center", padding: "10px 0" }}>Need 3+ subjects for radar</p>
                 ) : (
@@ -1071,15 +1064,7 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
               </VibeCard>
               <VibeCard tone="violet" icon={Activity} label="Subject Mastery" action={<DLink tone="violet" />}>
                 {radarData.length >= 3 ? (
-                  <div style={{ height: 140 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                        <PolarGrid stroke="rgba(123,63,244,0.18)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: T.ink2, fontSize: 9 }} />
-                        <Radar dataKey="score" stroke={T.violet} fill={T.violet} fillOpacity={0.20} strokeWidth={2} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <SubjectMasteryRadar data={radarData} color={T.violet} height={160} labelFontSize={9} />
                 ) : subEntries.length > 0 ? (
                   <div>
                     {subEntries.slice(0, 6).map(([sub, sc]) => (
