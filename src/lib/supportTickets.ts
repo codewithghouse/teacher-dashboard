@@ -209,10 +209,16 @@ export interface AddReplyInput {
   authorName: string;
   authorEmail: string;
   message: string;
-  reopen?: boolean; // for end-user replies on a resolved ticket
 }
 
-/** Appends a reply to a ticket. Validates length + identity. */
+/**
+ * Appends a reply to a ticket. Validates length + identity.
+ *
+ * Once support marks a ticket resolved/closed it becomes read-only for the
+ * creator — Firestore rules reject any creator update on a resolved/closed
+ * ticket. The Help UI hides the reply composer in those states; this guard
+ * is a defensive client-side mirror so callers fail fast.
+ */
 export async function addReply(input: AddReplyInput): Promise<void> {
   const message = input.message.trim();
   if (!message) throw new Error("Reply cannot be empty.");
@@ -232,28 +238,11 @@ export async function addReply(input: AddReplyInput): Promise<void> {
     createdAt: Date.now(),
   };
 
-  const updates: Record<string, unknown> = {
+  await updateDoc(doc(db, COLLECTION, input.ticketId), {
     replies: arrayUnion(reply),
     replyCount: increment(1),
     lastReplyAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  };
-  if (input.reopen) updates.status = "open";
-
-  await updateDoc(doc(db, COLLECTION, input.ticketId), updates);
-}
-
-export interface UpdateStatusInput {
-  ticketId: string;
-  status: TicketStatus;
-}
-
-/** End-user reopen helper (one-shot status flip from resolved/closed → open). */
-export async function reopenTicket(ticketId: string): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, ticketId), {
-    status: "open",
-    updatedAt: serverTimestamp(),
-    resolvedAt: null,
   });
 }
 
