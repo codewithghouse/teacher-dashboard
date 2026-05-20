@@ -107,6 +107,30 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
     return schoolHolidays.find(h => h.date === today) || null;
   }, [schoolHolidays]);
 
+  // ── S2 class-teacher gate (memory: session_2026-05-19_holiday_architecture) ──
+  // Only the designated class teacher marks daily roll-call. Subject teachers
+  // see a soft purple banner + disabled Save + disabled Holiday button.
+  //
+  // Resolution rule:
+  //   - If selected class has no `classTeacherEmail` yet → LEGACY class
+  //     (pre-migration); fall through to allow any assigned teacher to mark.
+  //     Backfill via principal-dashboard `Backfill Class Teachers` button.
+  //   - If `classTeacherEmail` is set → only the matching teacher can mark.
+  //   - Match by email (lowercased) since auth.uid != teachers doc id.
+  const selectedClassDoc = useMemo(
+    () => classes.find(c => c.id === selectedClassId) || null,
+    [classes, selectedClassId],
+  );
+  const classTeacherEmail: string = (selectedClassDoc?.classTeacherEmail || "").toLowerCase();
+  const classTeacherName: string = selectedClassDoc?.teacherName || selectedClassDoc?.classTeacherName || "";
+  const myEmailLower = (teacherData?.email || "").toLowerCase();
+  // legacy = no S2 designation on the class doc yet → graceful fallback
+  const classHasDesignation = classTeacherEmail.length > 0;
+  const isClassTeacher = !classHasDesignation || (myEmailLower.length > 0 && myEmailLower === classTeacherEmail);
+  // Subject-teacher banner shows only when the class HAS a designated class
+  // teacher AND the caller is not them. Legacy classes show no banner.
+  const showSubjectTeacherBanner = classHasDesignation && !isClassTeacher;
+
   // Fetch classes — union of teaching_assignments + legacy classes.teacherId
   // (same pattern as MyClasses / CreateTest fix). Single classes.teacherId
   // query previously missed any class the teacher was assigned to ONLY via
@@ -250,6 +274,17 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
   const saveHoliday = async () => {
     if (!students.length) { toast.error("No students in this class."); return; }
     if (!teacherData?.schoolId) return;
+    // S2 class-teacher gate — subject teachers cannot declare a holiday for
+    // a class they don't homeroom. Per-class holiday is still a class-level
+    // action and must come from the designated class teacher.
+    if (showSubjectTeacherBanner) {
+      toast.error(
+        classTeacherName
+          ? `Only ${classTeacherName} (class teacher) can mark this class on holiday.`
+          : "Only the class teacher can mark this class on holiday.",
+      );
+      return;
+    }
     setSaving(true);
     const today = todayStr();
     const selClass = classes.find(c => c.id === selectedClassId);
@@ -330,6 +365,17 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
       toast.error(`Today is a declared school holiday (${todaySchoolHoliday.reason}). No need to mark attendance.`);
       return;
     }
+    // S2 class-teacher gate — daily roll-call is class-teacher only.
+    // Subject teachers can still record incidents/notes/grades from other
+    // screens; this gate is specific to the attendance write surface.
+    if (showSubjectTeacherBanner) {
+      toast.error(
+        classTeacherName
+          ? `Only ${classTeacherName} (class teacher) marks daily attendance for this class.`
+          : "Only the designated class teacher can mark daily attendance for this class.",
+      );
+      return;
+    }
     if (counts.unmarked > 0 && !window.confirm(`${counts.unmarked} students are unmarked. Save anyway?`)) return;
     setSaving(true);
     const today = todayStr();
@@ -407,14 +453,14 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px" }}>
               Mark Attendance
             </div>
-            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday}
-              aria-label={todaySchoolHoliday ? "Today is a school holiday" : saving ? "Saving attendance" : "Save attendance"}
+            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday || showSubjectTeacherBanner}
+              aria-label={todaySchoolHoliday ? "Today is a school holiday" : showSubjectTeacherBanner ? "Only the class teacher can mark daily attendance" : saving ? "Saving attendance" : "Save attendance"}
               className="h-[34px] px-[14px] rounded-[11px] flex items-center gap-[5px] active:scale-[0.95] transition-transform"
               style={{
                 background: MA.GREEN, color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "-0.1px",
                 boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 4px 12px rgba(0,200,83,0.4)",
-                opacity: saving || loading ? 0.65 : 1,
-                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving || loading || showSubjectTeacherBanner ? 0.65 : 1,
+                cursor: saving || showSubjectTeacherBanner ? "not-allowed" : "pointer",
                 fontFamily: MA.FONT,
                 border: "none",
               }}>
@@ -492,6 +538,34 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
           </div>
         )}
 
+        {/* Subject-teacher banner (S2 — mobile) — shown when caller is NOT the class teacher */}
+        {showSubjectTeacherBanner && !todaySchoolHoliday && (
+          <div
+            role="status"
+            className="rounded-[16px] px-[14px] py-[12px] mb-[10px] flex items-start gap-[10px]"
+            style={{
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              boxShadow: "0 6px 18px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.18)",
+            }}
+          >
+            <AlertTriangle className="w-[18px] h-[18px] text-white shrink-0 mt-[1px]" strokeWidth={2.3} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: "0.16em" }}>
+                Subject Teacher View
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginTop: 2, letterSpacing: "-0.2px" }}>
+                Daily attendance is class-teacher only
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.82)", marginTop: 3, lineHeight: 1.45 }}>
+                {classTeacherName
+                  ? `${classTeacherName} handles daily roll-call for this class.`
+                  : "The designated class teacher handles daily roll-call for this class."}
+                {" "}You can still record incidents, notes, and grades from other screens.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions (2-col) */}
         <div className="grid grid-cols-2 gap-[10px] mb-[10px]">
           <button type="button" onClick={markAllPresent} disabled={loading || !students.length}
@@ -515,17 +589,17 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
         </div>
 
         {/* Mark Day as Holiday — full-width CTA below quick actions */}
-        <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length}
+        <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length || showSubjectTeacherBanner}
           className="w-full rounded-[16px] py-[12px] px-[14px] flex items-center justify-center gap-[10px] active:scale-[0.98] transition-transform mb-[10px]"
           style={{
             background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
             boxShadow: "0 4px 14px rgba(123,63,244,0.32), 0 1px 3px rgba(123,63,244,0.20)",
             fontFamily: MA.FONT,
-            opacity: loading || !students.length ? 0.6 : 1,
+            opacity: loading || !students.length || showSubjectTeacherBanner ? 0.6 : 1,
             border: "none",
-            cursor: loading || !students.length ? "not-allowed" : "pointer",
+            cursor: loading || !students.length || showSubjectTeacherBanner ? "not-allowed" : "pointer",
           }}
-          aria-label="Mark day as holiday">
+          aria-label={showSubjectTeacherBanner ? "Only the class teacher can mark holiday" : "Mark day as holiday"}>
           <PartyPopper className="w-[18px] h-[18px] text-white" strokeWidth={2.2} />
           <span className="text-[13px] font-bold text-white" style={{ letterSpacing: "-0.2px" }}>
             {isHolidayAlready ? "Holiday declared for today" : "Mark day as Holiday"}
@@ -720,13 +794,13 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             <div className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "1.8px" }}>
               Mark Attendance
             </div>
-            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday}
-              aria-label={todaySchoolHoliday ? "Today is a school holiday" : saving ? "Saving attendance" : "Save attendance"}
+            <button type="button" onClick={handleSave} disabled={saving || loading || !!todaySchoolHoliday || showSubjectTeacherBanner}
+              aria-label={todaySchoolHoliday ? "Today is a school holiday" : showSubjectTeacherBanner ? "Only the class teacher can mark daily attendance" : saving ? "Saving attendance" : "Save attendance"}
               className="h-10 px-5 rounded-[12px] flex items-center gap-2 active:scale-[0.97] transition-transform"
               style={{
                 background: MA.GREEN, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.15px",
                 boxShadow: "0 1px 2px rgba(0,200,83,0.3), 0 6px 16px rgba(0,200,83,0.42)",
-                opacity: saving || loading ? 0.65 : 1, cursor: saving ? "not-allowed" : "pointer", border: "none",
+                opacity: saving || loading || showSubjectTeacherBanner ? 0.65 : 1, cursor: saving || showSubjectTeacherBanner ? "not-allowed" : "pointer", border: "none",
               }}>
               {saving
                 ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -801,6 +875,36 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
           </div>
         )}
 
+        {/* Subject-teacher banner (S2 — desktop) — shown when caller is NOT the class teacher */}
+        {showSubjectTeacherBanner && !todaySchoolHoliday && (
+          <div
+            role="status"
+            className="rounded-[18px] px-6 py-4 mb-5 flex items-center gap-4"
+            style={{
+              background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
+              boxShadow: "0 8px 22px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.18)",
+            }}
+          >
+            <div className="w-12 h-12 rounded-[14px] shrink-0 flex items-center justify-center" style={{ background: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}>
+              <AlertTriangle className="w-[22px] h-[22px] text-white" strokeWidth={2.3} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: "0.18em" }}>
+                Subject Teacher View
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 3, letterSpacing: "-0.3px" }}>
+                Daily attendance is class-teacher only
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.85)", marginTop: 4, lineHeight: 1.5 }}>
+                {classTeacherName
+                  ? `${classTeacherName} handles daily roll-call for this class.`
+                  : "The designated class teacher handles daily roll-call for this class."}
+                {" "}You can still record incidents, notes, and grades from other screens.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions + Live Tally row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <button type="button" onClick={markAllPresent} disabled={loading || !students.length}
@@ -829,18 +933,18 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             </div>
           </button>
 
-          <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length}
+          <button type="button" onClick={() => setHolidayOpen(true)} disabled={loading || !students.length || showSubjectTeacherBanner}
             className="rounded-[18px] py-5 px-5 flex items-center gap-4 active:scale-[0.98] hover:-translate-y-0.5 transition-all text-left"
             style={{
               background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
               boxShadow: "0 6px 20px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.20)",
-              opacity: loading || !students.length ? 0.6 : 1,
+              opacity: loading || !students.length || showSubjectTeacherBanner ? 0.6 : 1,
               fontFamily: MA.FONT,
               border: "none",
-              cursor: loading || !students.length ? "not-allowed" : "pointer",
+              cursor: loading || !students.length || showSubjectTeacherBanner ? "not-allowed" : "pointer",
               gridColumn: "span 1",
             }}
-            aria-label="Mark day as holiday">
+            aria-label={showSubjectTeacherBanner ? "Only the class teacher can mark holiday" : "Mark day as holiday"}>
             <div className="w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0"
               style={{ background: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)" }}>
               <PartyPopper className="w-[22px] h-[22px] text-white" strokeWidth={2.3} />
