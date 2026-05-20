@@ -246,6 +246,21 @@ export async function addReply(input: AddReplyInput): Promise<void> {
   });
 }
 
+/**
+ * Reopen a resolved/closed ticket — flips status back to "open" and clears
+ * resolvedAt so the support team can pick it up again. Append-only path: no
+ * other fields touched. Firestore rule permits this specific transition for
+ * the ticket creator (resolved|closed → open).
+ */
+export async function reopenTicket(ticketId: string): Promise<void> {
+  if (!ticketId) throw new Error("Missing ticket id.");
+  await updateDoc(doc(db, COLLECTION, ticketId), {
+    status: "open",
+    resolvedAt: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /** Live listener for tickets owned by a single user (their /help dashboard). */
 export function subscribeUserTickets(
   uid: string,
