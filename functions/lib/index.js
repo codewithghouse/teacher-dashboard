@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTeacherAIInsights = void 0;
+exports.scanBranchAlertsCron = exports.getTeacherAIInsights = void 0;
 /* TEACHER DASHBOARD BACKEND — Master Insights Engine (hardened) */
 const functions = require("firebase-functions");
 const params_1 = require("firebase-functions/params");
@@ -726,4 +726,7 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
         throw new functions.https.HttpsError("internal", "AI call failed.");
     }
 });
+// Owner-dashboard Critical Alerts feed — auto-generation cron, every 4 hours.
+var branchAlerts_1 = require("./branchAlerts");
+Object.defineProperty(exports, "scanBranchAlertsCron", { enumerable: true, get: function () { return branchAlerts_1.scanBranchAlertsCron; } });
 //# sourceMappingURL=index.js.map

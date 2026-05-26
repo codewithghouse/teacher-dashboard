@@ -745,3 +745,6 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
       throw new functions.https.HttpsError("internal", "AI call failed.");
     }
   });
+
+// Owner-dashboard Critical Alerts feed — auto-generation cron, every 4 hours.
+export { scanBranchAlertsCron } from "./branchAlerts";
