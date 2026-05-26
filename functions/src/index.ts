@@ -748,3 +748,12 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
 
 // Owner-dashboard Critical Alerts feed — auto-generation cron, every 4 hours.
 export { scanBranchAlertsCron } from "./branchAlerts";
+
+// Owner AI insights — migrated from owner-dashboard/api/*.js to consolidate on
+// Firebase Functions + Secret Manager (single OPENAI_API_KEY surface). All
+// owner-only callables; client wires via httpsCallable(functions, "<name>").
+export {
+  getPrincipalInsight,
+  getOwnerBranchInsight,
+  getBranchWeeklyInsight,
+} from "./aiInsights";
