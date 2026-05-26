@@ -77,6 +77,9 @@ const SettingsPage = () => {
     defaultView: "Grid", gradeScale: "Percentage", dateFormat: "DD/MM/YYYY", language: "English",
   });
 
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [loginNotifs, setLoginNotifs] = useState(true);
+
   useEffect(() => {
     if (teacherData) {
       setFormData({
@@ -474,8 +477,8 @@ const SettingsPage = () => {
               <p style={{ fontSize: 10, color: T.ink3, marginTop: 2, lineHeight: 1.4 }}>Account credentials are managed by your school administrator. Contact admin to change password.</p>
             </div>
           </div>
-          <ToggleRow title="Two-factor auth" sub="Extra login protection" active={false} onClick={() => {}} />
-          <ToggleRow title="Login notifications" sub="Alert on new device login" active={true} onClick={() => {}} last />
+          <ToggleRow title="Two-factor auth" sub="Extra login protection" active={twoFactor} onClick={() => setTwoFactor(v => !v)} />
+          <ToggleRow title="Login notifications" sub="Alert on new device login" active={loginNotifs} onClick={() => setLoginNotifs(v => !v)} last />
         </SectionCard>
 
         {/* ── DANGER ZONE ──────────────────────────────────────────────── */}
@@ -706,29 +709,29 @@ const MobileSettings = ({
               </span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 3 }}>
+              <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1, marginBottom: 4 }}>
                 {formData.name || "Teacher"}
               </div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", fontWeight: 500, letterSpacing: "-0.1px", marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontSize: 12, color: "#FFFFFF", opacity: 0.95, fontWeight: 500, letterSpacing: "-0.1px", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 2px rgba(0,8,40,0.25)" }}>
                 {formData.email || "—"}
               </div>
-              <div style={{ display: "flex", gap: 5 }}>
+              <div style={{ display: "flex", gap: 6 }}>
                 <div style={{
-                  background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
-                  border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
-                  padding: "3px 9px", borderRadius: 100,
-                  fontSize: 9, fontWeight: 700, letterSpacing: "0.3px",
-                  display: "flex", alignItems: "center", gap: 4,
+                  background: "rgba(255,255,255,.18)",
+                  border: "0.5px solid rgba(255,255,255,.28)", color: "#fff",
+                  padding: "4px 10px", borderRadius: 100,
+                  fontSize: 10, fontWeight: 700, letterSpacing: "0.3px",
+                  display: "flex", alignItems: "center", gap: 5,
                 }}>
-                  <span className="st-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 6px #00E866" }} />
+                  <span className="st-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#00E866", boxShadow: "0 0 6px #00E866" }} />
                   Active
                 </div>
                 {formData.subject && (
                   <div style={{
-                    background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)",
-                    border: "0.5px solid rgba(255,255,255,.22)", color: "#fff",
-                    padding: "3px 9px", borderRadius: 100,
-                    fontSize: 9, fontWeight: 700, letterSpacing: "0.3px",
+                    background: "rgba(255,255,255,.18)",
+                    border: "0.5px solid rgba(255,255,255,.28)", color: "#fff",
+                    padding: "4px 10px", borderRadius: 100,
+                    fontSize: 10, fontWeight: 700, letterSpacing: "0.3px",
                   }}>Teacher · {formData.subject}</div>
                 )}
               </div>
@@ -1065,7 +1068,8 @@ const MobileSettings = ({
 
       </div>
 
-      {/* Sticky Save Bar */}
+      {/* Sticky Save Bar — z-30 so the sidebar drawer backdrop (z-40) covers it
+          when the mobile menu opens. Reset/Save shouldn't compete with nav. */}
       <div style={{
         position: "fixed", bottom: 88, left: 0, right: 0,
         background: "rgba(238,244,255,.94)",
@@ -1073,7 +1077,7 @@ const MobileSettings = ({
         WebkitBackdropFilter: "saturate(220%) blur(32px)",
         borderTop: "0.5px solid rgba(0,85,255,.07)",
         padding: "12px 16px 14px",
-        zIndex: 50, display: "flex", gap: 10,
+        zIndex: 30, display: "flex", gap: 10,
       }}>
         <button
           type="button"

@@ -670,9 +670,9 @@ const Attendance = () => {
                         letterSpacing: "-0.4px",
                       }}>{day.rate}</div>
                     ) : isPending ? (
-                      <div className="text-[10px] font-bold truncate" style={{ color: MA.P }}>Tap ›</div>
+                      <div className="text-[10px] font-bold truncate" style={{ color: "#FFFFFF", textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}>Tap ›</div>
                     ) : (
-                      <div className="text-[9px] font-semibold italic truncate" style={{ color: day.isFuture ? MA.P : day.isForgotten ? MA.ORANGE : MA.T4 }}>
+                      <div className="text-[9px] font-semibold truncate" style={{ color: day.isFuture ? MA.PD : day.isForgotten ? MA.ORANGE : MA.T3 }}>
                         {day.isWeekend ? "Off" : day.isFuture ? "Upcoming" : day.isForgotten ? "Not marked" : "—"}
                       </div>
                     )}
@@ -885,9 +885,17 @@ const Attendance = () => {
               </div>
               <div className="flex items-end justify-between gap-8 flex-wrap">
                 <div>
-                  <div className="text-[84px] font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px" }}>
-                    {stats.hasAnyRecord ? stats.rateNum.toFixed(1) : "—"}
-                    {stats.hasAnyRecord && <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>}
+                  <div className="font-bold text-white leading-none mb-[6px] flex items-baseline gap-[2px]" style={{ letterSpacing: "-3.8px", fontSize: stats.hasAnyRecord ? 84 : 64 }}>
+                    {stats.hasAnyRecord ? (
+                      <>
+                        {stats.rateNum.toFixed(1)}
+                        <span className="text-[40px] font-bold" style={{ color: "rgba(255,255,255,0.68)", letterSpacing: "-1px" }}>%</span>
+                      </>
+                    ) : (
+                      <span style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "-2.4px" }}>
+                        —.—<span style={{ fontSize: 32, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>%</span>
+                      </span>
+                    )}
                   </div>
                   <div className="text-[14px] font-medium" style={{ color: "rgba(255,255,255,0.72)", letterSpacing: "-0.15px" }}>
                     <b className="text-white font-bold">
@@ -1071,9 +1079,9 @@ const Attendance = () => {
                           <>
                             <div className="flex flex-col gap-[5px] mb-[10px]" style={{ minHeight: 50 }} />
                             {isPending ? (
-                              <div className="text-[11px] font-bold" style={{ color: MA.P }}>Tap to mark ›</div>
+                              <div className="text-[11px] font-bold" style={{ color: "#FFFFFF", textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}>Tap to mark ›</div>
                             ) : (
-                              <div className="text-[10px] font-semibold italic" style={{ color: day.isFuture ? MA.P : day.isForgotten ? MA.ORANGE : MA.T4, letterSpacing: "-0.1px" }}>
+                              <div className="text-[10px] font-semibold" style={{ color: day.isFuture ? MA.PD : day.isForgotten ? MA.ORANGE : MA.T3, letterSpacing: "-0.1px" }}>
                                 {day.isWeekend ? "Weekend" : day.isFuture ? "Upcoming" : day.isForgotten ? "Not marked" : "—"}
                               </div>
                             )}

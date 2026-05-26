@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ConceptMasteryDetail from "@/components/ConceptMasteryDetail";
 import { Loader2 } from "lucide-react";
@@ -172,6 +172,21 @@ const ConceptMastery = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [classPickerOpen, setClassPickerOpen] = useState(false);
+  const classPickerRefSm = useRef<HTMLDivElement>(null);
+  const classPickerRefLg = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!classPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!classPickerRefSm.current?.contains(t) && !classPickerRefLg.current?.contains(t)) {
+        setClassPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [classPickerOpen]);
 
   // P0-4: surface listener failures + give the user a one-tap retry. Bumping
   // refreshKey forces every onSnapshot useEffect to re-subscribe (memory
@@ -634,14 +649,24 @@ const ConceptMastery = () => {
           )}
 
           {/* Class picker + Search */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-              <div className="cm-card3d" style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', background: '#fff', borderRadius: 13,
-                boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
-                cursor: 'pointer', minWidth: 0,
-              }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, position: 'relative', zIndex: classPickerOpen ? 100 : 'auto' }}>
+            <div ref={classPickerRefSm} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+              <button
+                type="button"
+                onClick={() => setClassPickerOpen(o => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={classPickerOpen}
+                aria-label="Select class"
+                className="cm-card3d"
+                style={{
+                  width: '100%', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', background: '#fff', borderRadius: 13,
+                  border: 'none',
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
+                  cursor: 'pointer', minWidth: 0, fontFamily: 'inherit',
+                }}
+              >
                 <div style={{ width: 30, height: 30, borderRadius: 10, background: '#7B3FF4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
@@ -653,21 +678,47 @@ const ConceptMastery = () => {
                     {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                   </div>
                 </div>
-                <div style={{ color: '#99AACC', fontSize: 20, fontWeight: 400, lineHeight: 1, marginTop: -3, flexShrink: 0 }}>›</div>
-              </div>
-              <select
-                value={selectedClassId}
-                onChange={e => { setSelectedClassId(e.target.value); setSelectedStudent(null); }}
-                aria-label="Select class"
-                style={{
-                  position: 'absolute', inset: 0, width: '100%', height: '100%',
-                  opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent',
-                  appearance: 'none', WebkitAppearance: 'none',
-                }}
-              >
-                {classes.length === 0 && <option value="">No classes</option>}
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+                <div style={{ color: '#99AACC', fontSize: 20, fontWeight: 400, lineHeight: 1, marginTop: -3, flexShrink: 0, transform: classPickerOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .18s ease' }}>›</div>
+              </button>
+              {classPickerOpen && (
+                <div
+                  role="listbox"
+                  style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
+                    background: '#fff', borderRadius: 13, padding: 5,
+                    boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                    maxHeight: 260, overflowY: 'auto',
+                  }}
+                >
+                  {classes.length === 0 ? (
+                    <div style={{ padding: '9px 11px', color: '#5070B0', fontSize: 12, fontWeight: 600 }}>No classes</div>
+                  ) : classes.map(c => {
+                    const isActive = c.id === selectedClassId;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => { setSelectedClassId(c.id); setSelectedStudent(null); setClassPickerOpen(false); }}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '9px 11px', borderRadius: 9, border: 'none',
+                          background: isActive ? '#0055FF' : 'transparent',
+                          color: isActive ? '#fff' : '#001040',
+                          fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                          letterSpacing: '-0.2px', cursor: 'pointer',
+                          transition: 'background .12s ease',
+                        }}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -1224,7 +1275,7 @@ const ConceptMastery = () => {
           )}
 
           {/* ═══ Page Head ═══ */}
-          <div className="flex items-start justify-between gap-6 mb-6 flex-wrap">
+          <div className="flex items-start justify-between gap-6 mb-6 flex-wrap" style={{ position: 'relative', zIndex: classPickerOpen ? 100 : 'auto' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="cmd-pulse-dot" style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
@@ -1240,38 +1291,74 @@ const ConceptMastery = () => {
 
             <div className="flex items-center gap-3 flex-wrap">
               {/* Class picker — violet icon chip */}
-              <div className="relative cmd-card3d" style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 14px 8px 10px', background: '#fff', borderRadius: 14,
-                boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 16px rgba(0,85,255,.08)',
-                border: '0.5px solid rgba(0,85,255,.1)',
-                minWidth: 220,
-              }}>
-                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(123,63,244,.28)' }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                  </svg>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
-                  </div>
-                </div>
-                <span style={{ color: '#99AACC', fontSize: 20, fontWeight: 400, lineHeight: 1, marginTop: -3, flexShrink: 0 }}>›</span>
-                <select
-                  value={selectedClassId}
-                  onChange={e => { setSelectedClassId(e.target.value); setSelectedStudent(null); }}
+              <div ref={classPickerRefLg} className="cmd-card3d" style={{ position: 'relative', minWidth: 220, zIndex: classPickerOpen ? 100 : 'auto' }}>
+                <button
+                  type="button"
+                  onClick={() => setClassPickerOpen(o => !o)}
+                  aria-haspopup="listbox"
+                  aria-expanded={classPickerOpen}
                   aria-label="Select class"
                   style={{
-                    position: 'absolute', inset: 0, width: '100%', height: '100%',
-                    opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent',
-                    appearance: 'none', WebkitAppearance: 'none',
+                    width: '100%', textAlign: 'left',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 14px 8px 10px', background: '#fff', borderRadius: 14,
+                    boxShadow: '0 1px 2px rgba(0,85,255,.06), 0 4px 16px rgba(0,85,255,.08)',
+                    border: '0.5px solid rgba(0,85,255,.1)',
+                    cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
-                  {classes.length === 0 && <option value="">No classes</option>}
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                  <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg,#7B3FF4 0%,#A060FF 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(123,63,244,.28)' }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#5070B0', letterSpacing: '1.2px', textTransform: 'uppercase', lineHeight: 1 }}>Viewing</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#001040', letterSpacing: '-0.2px', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
+                    </div>
+                  </div>
+                  <span style={{ color: '#99AACC', fontSize: 20, fontWeight: 400, lineHeight: 1, marginTop: -3, flexShrink: 0, transform: classPickerOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .18s ease' }}>›</span>
+                </button>
+                {classPickerOpen && (
+                  <div
+                    role="listbox"
+                    style={{
+                      position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
+                      background: '#fff', borderRadius: 14, padding: 6,
+                      boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                      maxHeight: 300, overflowY: 'auto',
+                    }}
+                  >
+                    {classes.length === 0 ? (
+                      <div style={{ padding: '10px 12px', color: '#5070B0', fontSize: 13, fontWeight: 600 }}>No classes</div>
+                    ) : classes.map(c => {
+                      const isActive = c.id === selectedClassId;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => { setSelectedClassId(c.id); setSelectedStudent(null); setClassPickerOpen(false); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '10px 12px', borderRadius: 10, border: 'none',
+                            background: isActive ? '#0055FF' : 'transparent',
+                            color: isActive ? '#fff' : '#001040',
+                            fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+                            letterSpacing: '-0.25px', cursor: 'pointer',
+                            transition: 'background .12s ease',
+                          }}
+                          onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                          onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                        >
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Search */}

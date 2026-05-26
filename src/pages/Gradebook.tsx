@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
@@ -186,6 +186,21 @@ export default function Gradebook() {
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
+  const [classPickerOpen, setClassPickerOpen] = useState(false);
+  const classPickerRefSm = useRef<HTMLDivElement>(null);
+  const classPickerRefLg = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!classPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!classPickerRefSm.current?.contains(t) && !classPickerRefLg.current?.contains(t)) {
+        setClassPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [classPickerOpen]);
 
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [columns, setColumns] = useState<CustomColumn[]>([]);
@@ -1648,15 +1663,21 @@ export default function Gradebook() {
           )}
 
           {/* Class picker */}
-          <div style={{ position: 'relative', marginBottom: 14 }}>
-            <div
+          <div ref={classPickerRefSm} style={{ position: 'relative', marginBottom: 14, zIndex: classPickerOpen ? 100 : 'auto' }}>
+            <button
+              type="button"
+              onClick={() => setClassPickerOpen(o => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={classPickerOpen}
+              aria-label="Select class"
               className="gb-card3d"
               style={{
+                width: '100%', textAlign: 'left',
                 display: 'flex', alignItems: 'center', gap: 11,
                 padding: '12px 14px', background: '#fff',
-                borderRadius: 14,
+                borderRadius: 14, border: 'none',
                 boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
-                cursor: 'pointer',
+                cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
               <div style={{ width: 36, height: 36, borderRadius: 12, background: '#7B3FF4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1670,21 +1691,47 @@ export default function Gradebook() {
                   {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                 </div>
               </div>
-              <div style={{ color: '#99AACC', fontSize: 22, fontWeight: 400, lineHeight: 1, marginTop: -3 }}>›</div>
-            </div>
-            <select
-              value={selectedClassId}
-              onChange={e => setSelectedClassId(e.target.value)}
-              aria-label="Select class"
-              style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
-                opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent',
-                appearance: 'none', WebkitAppearance: 'none',
-              }}
-            >
-              {classes.length === 0 && <option value="">No classes available</option>}
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+              <div style={{ color: '#99AACC', fontSize: 22, fontWeight: 400, lineHeight: 1, marginTop: -3, transform: classPickerOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .18s ease' }}>›</div>
+            </button>
+            {classPickerOpen && (
+              <div
+                role="listbox"
+                style={{
+                  position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
+                  background: '#fff', borderRadius: 14, padding: 6,
+                  boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                  maxHeight: 280, overflowY: 'auto',
+                }}
+              >
+                {classes.length === 0 ? (
+                  <div style={{ padding: '10px 12px', color: '#5070B0', fontSize: 13, fontWeight: 600 }}>No classes available</div>
+                ) : classes.map(c => {
+                  const isActive = c.id === selectedClassId;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      onClick={() => { setSelectedClassId(c.id); setClassPickerOpen(false); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '10px 12px', borderRadius: 10, border: 'none',
+                        background: isActive ? '#0055FF' : 'transparent',
+                        color: isActive ? '#fff' : '#001040',
+                        fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+                        letterSpacing: '-0.2px', cursor: 'pointer',
+                        transition: 'background .12s ease',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* HERO — Class Average */}
@@ -1819,6 +1866,74 @@ export default function Gradebook() {
             </div>
           </div>
 
+          {/* Add column panel — rendered right under the Add Unit button so it
+              opens where the user clicks instead of far below. */}
+          {showAddCol && (
+            <div style={{
+              background: '#fff',
+              borderRadius: 16, padding: '14px 13px',
+              display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12,
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
+              border: '0.5px solid rgba(9,87,247,.1)',
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase' }}>
+                Add unit
+              </div>
+              <input
+                type="text"
+                value={newColName}
+                onChange={e => setNewColName(e.target.value)}
+                placeholder="Unit name (e.g. Unit 1, Quiz 1)"
+                onKeyDown={e => e.key === 'Enter' && handleAddColumn()}
+                autoFocus
+                style={{
+                  padding: '10px 12px', borderRadius: 10,
+                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
+                  fontSize: 13, color: '#001040', fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="number"
+                  value={newColMax}
+                  onChange={e => setNewColMax(e.target.value)}
+                  style={{
+                    width: 90, padding: '10px 12px', borderRadius: 10,
+                    border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
+                    fontSize: 13, color: '#001040', fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600 }}>max marks</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={handleAddColumn}
+                  className="gb-press"
+                  style={{
+                    flex: 1, padding: 10, borderRadius: 10, background: '#0055FF', border: 'none',
+                    color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 1px 2px rgba(9,87,247,.2), 0 3px 8px rgba(9,87,247,.25)',
+                  }}
+                >
+                  Add unit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddCol(false); setNewColName(''); setNewColMax('100'); }}
+                  className="gb-press"
+                  style={{
+                    padding: '10px 14px', borderRadius: 10, background: '#F4F7FE',
+                    border: 'none', color: '#5070B0',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Search + Save row */}
           <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 10 }}>
             <div style={{ position: 'relative', flex: 1 }}>
@@ -1883,72 +1998,6 @@ export default function Gradebook() {
                 </span>
               </div>
             </>
-          )}
-
-          {/* Add column panel */}
-          {showAddCol && (
-            <div style={{
-              background: '#fff',
-              borderRadius: 16, padding: '14px 13px',
-              display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-              border: '0.5px solid rgba(9,87,247,.1)',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase' }}>
-                Add unit
-              </div>
-              <input
-                type="text"
-                value={newColName}
-                onChange={e => setNewColName(e.target.value)}
-                placeholder="Unit name (e.g. Unit 1, Quiz 1)"
-                onKeyDown={e => e.key === 'Enter' && handleAddColumn()}
-                style={{
-                  padding: '10px 12px', borderRadius: 10,
-                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
-                  fontSize: 13, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  type="number"
-                  value={newColMax}
-                  onChange={e => setNewColMax(e.target.value)}
-                  style={{
-                    width: 90, padding: '10px 12px', borderRadius: 10,
-                    border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
-                    fontSize: 13, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: 11, color: '#5070B0', fontWeight: 600 }}>max marks</span>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={handleAddColumn}
-                  className="gb-press"
-                  style={{
-                    flex: 1, padding: 10, borderRadius: 10, background: '#0055FF', border: 'none',
-                    color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: '0 1px 2px rgba(9,87,247,.2), 0 3px 8px rgba(9,87,247,.25)',
-                  }}
-                >
-                  Add unit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddCol(false); setNewColName(''); setNewColMax('100'); }}
-                  className="gb-press"
-                  style={{
-                    padding: '10px 14px', borderRadius: 10, background: '#F4F7FE',
-                    border: 'none', color: '#5070B0',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
           )}
 
           {/* Custom Units — Excel-style row-per-student spreadsheet table.
@@ -2130,7 +2179,7 @@ export default function Gradebook() {
           )}
 
           {/* Header row: title + class picker */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap', position: 'relative', zIndex: classPickerOpen ? 100 : 'auto' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 2, background: '#0055FF', display: 'inline-block' }} />
@@ -2143,14 +2192,20 @@ export default function Gradebook() {
             </div>
 
             {/* Class picker */}
-            <div style={{ position: 'relative', minWidth: 280 }}>
-              <div
+            <div ref={classPickerRefLg} style={{ position: 'relative', minWidth: 280, zIndex: classPickerOpen ? 100 : 'auto' }}>
+              <button
+                type="button"
+                onClick={() => setClassPickerOpen(o => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={classPickerOpen}
+                aria-label="Select class"
                 style={{
+                  width: '100%', textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 18px', background: '#fff',
-                  borderRadius: 14,
+                  borderRadius: 14, border: 'none',
                   boxShadow: '0 0 0 0.5px rgba(0,85,255,.09), 0 2px 10px rgba(0,85,255,.10), 0 10px 26px rgba(0,85,255,.12)',
-                  cursor: 'pointer',
+                  cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 <div style={{ width: 40, height: 40, borderRadius: 13, background: '#7B3FF4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -2164,21 +2219,47 @@ export default function Gradebook() {
                     {selectedClass ? selectedClass.name : (classes.length === 0 ? 'No classes' : 'Select class')}
                   </div>
                 </div>
-                <div style={{ color: '#99AACC', fontSize: 24, fontWeight: 400, lineHeight: 1, marginTop: -3 }}>›</div>
-              </div>
-              <select
-                value={selectedClassId}
-                onChange={e => setSelectedClassId(e.target.value)}
-                aria-label="Select class"
-                style={{
-                  position: 'absolute', inset: 0, width: '100%', height: '100%',
-                  opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent',
-                  appearance: 'none', WebkitAppearance: 'none',
-                }}
-              >
-                {classes.length === 0 && <option value="">No classes available</option>}
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+                <div style={{ color: '#99AACC', fontSize: 24, fontWeight: 400, lineHeight: 1, marginTop: -3, transform: classPickerOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .18s ease' }}>›</div>
+              </button>
+              {classPickerOpen && (
+                <div
+                  role="listbox"
+                  style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
+                    background: '#fff', borderRadius: 14, padding: 6,
+                    boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                    maxHeight: 320, overflowY: 'auto',
+                  }}
+                >
+                  {classes.length === 0 ? (
+                    <div style={{ padding: '11px 14px', color: '#5070B0', fontSize: 14, fontWeight: 600 }}>No classes available</div>
+                  ) : classes.map(c => {
+                    const isActive = c.id === selectedClassId;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => { setSelectedClassId(c.id); setClassPickerOpen(false); }}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '11px 14px', borderRadius: 10, border: 'none',
+                          background: isActive ? '#0055FF' : 'transparent',
+                          color: isActive ? '#fff' : '#001040',
+                          fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+                          letterSpacing: '-0.25px', cursor: 'pointer',
+                          transition: 'background .12s ease',
+                        }}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -2308,6 +2389,71 @@ export default function Gradebook() {
             </button>
           </div>
 
+          {/* Add column panel — rendered right under the Add Unit button so it
+              opens where the user clicks instead of far below. */}
+          {showAddCol && (
+            <div style={{
+              background: '#fff',
+              borderRadius: 18, padding: 20,
+              display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16,
+              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
+              border: '0.5px solid rgba(9,87,247,.1)',
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', flexShrink: 0 }}>
+                Add unit
+              </div>
+              <input
+                type="text"
+                value={newColName}
+                onChange={e => setNewColName(e.target.value)}
+                placeholder="Unit name (e.g. Unit 1, Quiz 1)"
+                onKeyDown={e => e.key === 'Enter' && handleAddColumn()}
+                autoFocus
+                style={{
+                  flex: 1, minWidth: 240, padding: '11px 14px', borderRadius: 11,
+                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
+                  fontSize: 14, color: '#001040', fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              <input
+                type="number"
+                value={newColMax}
+                onChange={e => setNewColMax(e.target.value)}
+                style={{
+                  width: 110, padding: '11px 14px', borderRadius: 11,
+                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
+                  fontSize: 14, color: '#001040', fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              <span style={{ fontSize: 12, color: '#5070B0', fontWeight: 600 }}>max marks</span>
+              <button
+                type="button"
+                onClick={handleAddColumn}
+                className="gbd-press"
+                style={{
+                  padding: '11px 20px', borderRadius: 11, background: '#0055FF', border: 'none',
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  boxShadow: '0 1px 2px rgba(9,87,247,.2), 0 3px 8px rgba(9,87,247,.25)',
+                }}
+              >
+                Add unit
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAddCol(false); setNewColName(''); setNewColMax('100'); }}
+                className="gbd-press"
+                style={{
+                  padding: '11px 18px', borderRadius: 11, background: '#F4F7FE',
+                  border: 'none', color: '#5070B0',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* Section head: title + search + save */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
@@ -2380,69 +2526,6 @@ export default function Gradebook() {
                 </span>
               </div>
             </>
-          )}
-
-          {/* Add column panel */}
-          {showAddCol && (
-            <div style={{
-              background: '#fff',
-              borderRadius: 18, padding: 20,
-              display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16,
-              boxShadow: '0 0 0 0.5px rgba(0,85,255,.10), 0 4px 16px rgba(0,85,255,.12), 0 18px 44px rgba(0,85,255,.15)',
-              border: '0.5px solid rgba(9,87,247,.1)',
-              flexWrap: 'wrap',
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#5070B0', letterSpacing: '1.3px', textTransform: 'uppercase', flexShrink: 0 }}>
-                Add unit
-              </div>
-              <input
-                type="text"
-                value={newColName}
-                onChange={e => setNewColName(e.target.value)}
-                placeholder="Unit name (e.g. Unit 1, Quiz 1)"
-                onKeyDown={e => e.key === 'Enter' && handleAddColumn()}
-                style={{
-                  flex: 1, minWidth: 240, padding: '11px 14px', borderRadius: 11,
-                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
-                  fontSize: 14, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                }}
-              />
-              <input
-                type="number"
-                value={newColMax}
-                onChange={e => setNewColMax(e.target.value)}
-                style={{
-                  width: 110, padding: '11px 14px', borderRadius: 11,
-                  border: '0.5px solid rgba(9,87,247,.15)', background: '#F4F7FE',
-                  fontSize: 14, color: '#001040', fontFamily: 'inherit', outline: 'none',
-                }}
-              />
-              <span style={{ fontSize: 12, color: '#5070B0', fontWeight: 600 }}>max marks</span>
-              <button
-                type="button"
-                onClick={handleAddColumn}
-                className="gbd-press"
-                style={{
-                  padding: '11px 20px', borderRadius: 11, background: '#0055FF', border: 'none',
-                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: '0 1px 2px rgba(9,87,247,.2), 0 3px 8px rgba(9,87,247,.25)',
-                }}
-              >
-                Add unit
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowAddCol(false); setNewColName(''); setNewColMax('100'); }}
-                className="gbd-press"
-                style={{
-                  padding: '11px 18px', borderRadius: 11, background: '#F4F7FE',
-                  border: 'none', color: '#5070B0',
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Cancel
-              </button>
-            </div>
           )}
 
           {/* Custom Units — same Excel-style table as the mobile view above.

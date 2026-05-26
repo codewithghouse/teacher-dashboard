@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "../lib/firebase";
 import {
   collection, query, where, onSnapshot,
-  serverTimestamp, getDocs, writeBatch, doc,
+  serverTimestamp, doc,
 } from "firebase/firestore";
 import { auditedAdd, auditedUpdate } from "../lib/auditedWrites";
 import { useAuth } from "../lib/AuthContext";
@@ -68,8 +68,8 @@ const T = {
   // Edullent Blue Apple chat tokens — replaces the prior WhatsApp beige/green
   // palette so the chat surface matches the rest of the teacher dashboard.
   chatBg:  "#EEF4FF",
-  chatOut: "linear-gradient(135deg, #0055FF, #2277FF)",  // teacher (outgoing) bubble
-  chatOutInk: "#FFFFFF",
+  chatOut: "#DBE7FF",                                     // teacher (outgoing) bubble — soft blue tint
+  chatOutInk: "#001040",
   chatIn:  "#FFFFFF",                                     // parent (incoming) bubble
   chatInInk: "#08090C",
   chatPattern: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%230055FF' fill-opacity='0.08'%3E%3Ccircle cx='10' cy='10' r='1.5'/%3E%3Ccircle cx='50' cy='30' r='1.5'/%3E%3Ccircle cx='30' cy='60' r='1.5'/%3E%3Ccircle cx='70' cy='70' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
@@ -368,27 +368,6 @@ const ParentNotes = () => {
       console.error("[ParentNotes] send failed", e);
       toast.error("Failed to send.");
       setMessageContent(content);
-    }
-  };
-
-  const handleClearChat = async () => {
-    if (!selectedStudent || !confirm(`Clear chat for ${selectedStudent.studentName}?`)) return;
-    try {
-      const sId = selectedStudent.studentId;
-      const q   = query(
-        collection(db, "parent_notes"),
-        where("schoolId", "==", teacherData?.schoolId),
-        where("teacherId", "==", teacherData?.id),
-        where("studentId", "==", sId),
-      );
-      const snap = await getDocs(q);
-      const batch = writeBatch(db);
-      snap.docs.forEach(d => batch.delete(d.ref));
-      await batch.commit();
-      toast.success("Chat cleared!");
-    } catch (e) {
-      console.error("[ParentNotes] clear chat failed", e);
-      toast.error("Error clearing chat.");
     }
   };
 
@@ -876,7 +855,7 @@ const ParentNotes = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 7,
                     height: 44, padding: '0 20px', borderRadius: 14,
                     background: 'linear-gradient(135deg,#0055FF 0%,#1166FF 100%)', color: '#fff',
-                    fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    fontSize: 13, fontWeight: 700, letterSpacing: '-0.1px',
                     border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     boxShadow: '0 5px 18px rgba(0,85,255,0.34), 0 2px 5px rgba(0,85,255,0.18)',
                   }}
@@ -896,12 +875,6 @@ const ParentNotes = () => {
               const statusColor = noReplyCount > 0 ? '#FFD088' : '#6FFFAA';
               return (
                 <div
-                  className="pn-card3d"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Compose new message"
-                  onClick={() => openCompose()}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCompose(); } }}
                   style={{
                     background: 'linear-gradient(135deg,#000A33 0%,#001A66 32%,#0044CC 68%,#0055FF 100%)',
                     borderRadius: 24, padding: '28px 32px', color: '#fff',
@@ -1240,12 +1213,6 @@ const ParentNotes = () => {
                 : `Engagement is healthy — ${responsePct}% response rate across ${stats.students} parent${stats.students !== 1 ? 's' : ''}. Keep replying promptly to maintain momentum.`;
               return (
                 <div
-                  className="pn-card3d"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Compose new message"
-                  onClick={() => openCompose()}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCompose(); } }}
                   style={{
                     background: 'linear-gradient(135deg,#001040 0%,#001888 35%,#0033CC 70%,#0055FF 100%)',
                     borderRadius: 22, padding: '24px 28px', color: '#fff',
@@ -1308,8 +1275,18 @@ const ParentNotes = () => {
 
     return (
       <div
-        className="-mx-4 sm:-mx-6 md:-mx-8 md:-mt-8 -mb-4 sm:-mb-6 md:-mb-8"
-        style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 56px)", background: T.chatBg }}
+        style={{
+          display: "flex", flexDirection: "column",
+          height: "min(720px, calc(100vh - 120px))",
+          maxWidth: 1100,
+          width: "100%",
+          margin: "0 auto",
+          background: T.chatBg,
+          borderRadius: 18,
+          overflow: "hidden",
+          boxShadow: "0 1px 2px rgba(0,40,120,.06), 0 12px 32px rgba(0,40,120,.10)",
+          border: "0.5px solid rgba(0,85,255,.10)",
+        }}
       >
         {/* ── Edullent blue chat header ─────────────────────────────────────── */}
         <div style={{ padding: "12px 22px 18px", flexShrink: 0, background: T.chatHeaderGrad, boxShadow: "0 4px 16px rgba(0,85,255,0.18)" }}>
@@ -1351,27 +1328,6 @@ const ParentNotes = () => {
               </p>
             </div>
 
-            {/* Action buttons — kept ONE functional Clear Chat. The previous
-                Phone / Flag IconBtns were decorative placeholders with no
-                onClick handler and have been removed per UX feedback. */}
-            <button
-              type="button"
-              onClick={handleClearChat}
-              aria-label="Clear chat"
-              title="Clear chat"
-              style={{
-                width: 34, height: 34, borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.22)",
-                background: "rgba(255,255,255,0.12)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", marginLeft: "auto",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="2,5 11,5" /><polyline points="9,3 11,5 9,7" />
-                <line x1="5" y1="8" x2="5" y2="11.5" /><polyline points="3,9.5 5,11.5 7,9.5" />
-              </svg>
-            </button>
           </div>
 
           {/* Online status */}
@@ -1426,7 +1382,7 @@ const ParentNotes = () => {
                         justifyContent: isTeacher ? "flex-end" : "flex-start",
                       }}
                     >
-                      {/* Edullent blue bubble — gradient outgoing, white incoming */}
+                      {/* Soft chat bubble — light blue tint outgoing, white incoming */}
                       <div style={{
                         padding: "7px 12px 9px",
                         background: isTeacher ? T.chatOut : T.chatIn,
@@ -1434,11 +1390,11 @@ const ParentNotes = () => {
                         borderTopLeftRadius: isTeacher ? 14 : 4,
                         borderTopRightRadius: isTeacher ? 4 : 14,
                         boxShadow: isTeacher
-                          ? "0 2px 8px rgba(0,85,255,0.18), 0 1px 2px rgba(0,85,255,0.10)"
+                          ? "0 1px 2px rgba(0,85,255,0.08), 0 0 0 0.5px rgba(0,85,255,0.10)"
                           : "0 1px 2px rgba(11,20,26,0.06), 0 0 0 0.5px rgba(0,85,255,0.06)",
-                        maxWidth: "75%",
+                        maxWidth: "min(560px, 70%)",
                         position: "relative",
-                        minWidth: 70,
+                        minWidth: isTeacher ? 120 : 104,
                       }}>
                         <p style={{
                           fontSize: 14, lineHeight: 1.45,
@@ -1455,11 +1411,11 @@ const ParentNotes = () => {
                           display: "flex", alignItems: "center", gap: 3,
                           position: "absolute", right: 10, bottom: 5,
                         }}>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: isTeacher ? "rgba(255,255,255,0.85)" : "#5070B0" }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: isTeacher ? "#3060B0" : "#5070B0" }}>
                             {fmtTime(n.createdAt)}
                           </span>
                           {isTeacher && (
-                            <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#3060B0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="1,6 4,9 8,3" /><polyline points="6,6 9,9 15,2" />
                             </svg>
                           )}

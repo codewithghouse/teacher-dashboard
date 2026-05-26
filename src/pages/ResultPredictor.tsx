@@ -324,6 +324,22 @@ const ResultPredictor = () => {
   const [pastedText, setPastedText] = useState<string>("");
   const [extractingPdf, setExtractingPdf] = useState(false);
   const [classId, setClassId] = useState<string>(searchParams.get("classId") || "");
+  const [pickerOpen, setPickerOpen] = useState<null | "test" | "class">(null);
+  const testPickerRef = useRef<HTMLDivElement>(null);
+  const classPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      const inside =
+        (pickerOpen === "test" && testPickerRef.current?.contains(t)) ||
+        (pickerOpen === "class" && classPickerRef.current?.contains(t));
+      if (!inside) setPickerOpen(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [pickerOpen]);
 
   // Override syllabus
   const [overrideSyllabusText, setOverrideSyllabusText] = useState<string>("");
@@ -789,25 +805,105 @@ const ResultPredictor = () => {
       style={{ fontFamily: T.FONT, background: T.BG }}>
       <div className={`w-full ${padding}`}>
 
-        {/* Page Head */}
-        <div className="mb-6">
-          <div className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1 flex items-center gap-[7px]" style={{ color: T.T4 }}>
-            <span className="w-[6px] h-[6px] rounded-full" style={{ background: T.B1, boxShadow: "0 0 0 3px rgba(0,85,255,0.18)" }} />
-            Teacher Dashboard · AI Forecast
+        {/* Page header with AI pill — matches AI Lesson Planner styling */}
+        <div style={{ padding: "8px 2px 14px" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 9, fontWeight: 700, color: "#fff",
+            letterSpacing: "1.8px", textTransform: "uppercase", marginBottom: 12,
+            background: "linear-gradient(135deg, #001A66 0%, #0055FF 50%, #1166FF 100%)",
+            padding: "6px 12px 6px 8px", borderRadius: 100,
+            boxShadow: "0 1px 2px rgba(0,85,255,.25), 0 4px 12px rgba(0,85,255,.3), inset 0 0.5px 0 rgba(255,255,255,.2)",
+          }}>
+            <span style={{
+              width: 14, height: 14, display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#FFDD55", fontSize: 11, lineHeight: 1,
+              filter: "drop-shadow(0 0 3px rgba(255,221,85,.6))",
+            }}>✦</span>
+            AI Powered
           </div>
-          <h1 className={`${isMobile ? "text-[24px]" : "text-[32px]"} font-bold leading-none`} style={{ color: T.T1, letterSpacing: "-0.6px" }}>
-            Pre-Result Predictor
+          <h1 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: "#001040", letterSpacing: "-1.1px", lineHeight: 1.05, margin: 0 }}>
+            Pre-Result{" "}
+            <span style={{
+              background: "linear-gradient(135deg, #0055FF 0%, #1166FF 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}>Predictor</span>
           </h1>
-          <div className="text-[13px] font-normal mt-[6px]" style={{ color: T.T3 }}>
-            Forecast student outcomes <strong style={{ color: T.B1, fontWeight: 700 }}>before</strong> the exam — and engineer better results.
+          <div style={{ fontSize: 12, color: "#5070B0", fontWeight: 500, marginTop: 6, letterSpacing: "-0.15px" }}>
+            Forecast student outcomes before the exam — and engineer better results.
           </div>
         </div>
 
-        {/* ── SETUP CARD ── */}
-        <div {...tilt3D} className="bg-white rounded-[22px] p-6 mb-5 relative overflow-hidden"
+        {/* ── AI Hero — matches AI Lesson Planner exactly (dark gradient,
+            "Powered by Edullent engine" + Live badge, big title, stats grid) */}
+        <div
+          {...tilt3D}
+          style={{
+            background: "linear-gradient(135deg, #000A33 0%, #001A66 32%, #0044CC 68%, #0055FF 100%)",
+            borderRadius: 26, padding: 22, marginBottom: 14,
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(0,26,102,.2), 0 12px 32px rgba(0,26,102,.32)",
+            ...tilt3DStyle,
+          }}
+        >
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 45%)", pointerEvents: "none" }} />
+          <div style={{
+            position: "absolute", top: 20, right: 28,
+            width: 4, height: 4, background: "#FFDD55", borderRadius: "50%",
+            boxShadow: "-34px 22px 0 -1px rgba(255,255,255,.7), 18px 34px 0 -1px rgba(255,221,85,.85), -54px 48px 0 -2px rgba(255,255,255,.55), -16px 58px 0 -1px rgba(255,221,85,.9), -76px 14px 0 -2px rgba(255,255,255,.4)",
+            pointerEvents: "none",
+          }} />
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,.16)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)", border: "0.5px solid rgba(255,255,255,.28)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFDD55" }}>
+                <Sparkles className="w-[22px] h-[22px]" strokeWidth={2.3} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.85)", letterSpacing: "1.8px", textTransform: "uppercase" }}>Powered by Edullent engine</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2, fontWeight: 500, letterSpacing: "-0.1px" }}>Curriculum-aligned · Real-time</div>
+              </div>
+              <div style={{
+                marginLeft: "auto",
+                background: "rgba(255,255,255,.18)",
+                border: "0.5px solid rgba(255,255,255,.32)",
+                color: "#fff",
+                padding: "5px 12px", borderRadius: 100,
+                fontSize: 10, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.3px",
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFDD55", boxShadow: "0 0 8px #FFDD55" }} />
+                Live
+              </div>
+            </div>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: "#fff", letterSpacing: "-1.2px", lineHeight: 1.1, marginBottom: 8 }}>
+              Predict results in seconds ✨
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,.82)", marginBottom: 20, fontWeight: 500, letterSpacing: "-0.15px", lineHeight: 1.5 }}>
+              Pick a paper, class, and topic — <b style={{ color: "#fff", fontWeight: 700 }}>the AI forecasts each student's score</b>.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "rgba(255,255,255,.12)", borderRadius: 14, padding: 1, overflow: "hidden" }}>
+              <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{tests.length}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Tests</div>
+              </div>
+              <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFDD55", letterSpacing: "-0.5px" }}>{classes.length}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Classes</div>
+              </div>
+              <div style={{ background: "rgba(0,10,51,.7)", padding: "12px 4px", textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#6FFFAA", letterSpacing: "-0.5px" }}>{roster.length}</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "1.1px", textTransform: "uppercase", marginTop: 3 }}>Roster</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SETUP CARD — form body for picking paper source + class ── */}
+        <div {...tilt3D} className="bg-white rounded-[22px] mb-5 relative overflow-hidden"
           style={{ boxShadow: T.SH_LG, border: `0.5px solid ${T.BLUE_BDR}`, ...tilt3DStyle }}>
-          <div className="absolute -top-[40px] -right-[20px] w-[180px] h-[180px] rounded-full pointer-events-none"
-            style={{ background: "radial-gradient(circle, rgba(0,85,255,0.05) 0%, transparent 70%)" }} />
+          <div className="p-6 relative">
 
           {/* Input mode tabs */}
           <div className="text-[10px] font-bold uppercase tracking-[0.10em] mb-2 relative z-10" style={{ color: T.T4 }}>
@@ -837,27 +933,82 @@ const ResultPredictor = () => {
           </div>
 
           {/* Per-mode input */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative" style={{ zIndex: pickerOpen ? 50 : 10 }}>
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[0.08em] block mb-2" style={{ color: T.T4 }}>
                 {inputMode === "test" ? "Test" : inputMode === "upload" ? "Upload PDF" : "Paste paper text"}
               </label>
-              {inputMode === "test" && (
-                <select value={selectedTestId} onChange={e => setSelectedTestId(e.target.value)}
-                  className="custom-chrome w-full h-12 rounded-[14px] outline-none px-4 text-[13px] font-medium"
-                  style={{
-                    "--cc-padding": "12px 16px",
-                    "--cc-font-size": "13px",
-                    background: T.BG, color: T.T1, border: `0.5px solid ${T.BLUE_BDR}`,
-                  } as React.CSSProperties}>
-                  <option value="">Choose a test…</option>
-                  {tests.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.title || t.testName || "(untitled)"} · {t.className || ""} {t.testDate ? `· ${t.testDate}` : ""}
-                    </option>
-                  ))}
-                </select>
-              )}
+              {inputMode === "test" && (() => {
+                const selectedTest = tests.find(t => t.id === selectedTestId);
+                const labelFor = (t: typeof tests[number]) =>
+                  `${t.title || t.testName || "(untitled)"}${t.className ? ` · ${t.className}` : ""}${t.testDate ? ` · ${t.testDate}` : ""}`;
+                return (
+                  <div ref={testPickerRef} style={{ position: 'relative', zIndex: pickerOpen === "test" ? 60 : 'auto' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen(o => o === "test" ? null : "test")}
+                      aria-haspopup="listbox"
+                      aria-expanded={pickerOpen === "test"}
+                      className="w-full h-12 rounded-[14px] outline-none px-4 text-[13px] font-medium flex items-center justify-between gap-2"
+                      style={{ background: T.BG, color: T.T1, border: `0.5px solid ${T.BLUE_BDR}`, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedTest ? labelFor(selectedTest) : "Choose a test…"}
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.T4} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: pickerOpen === "test" ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .18s ease', flexShrink: 0 }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {pickerOpen === "test" && (
+                      <div role="listbox" style={{
+                        position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                        background: '#fff', borderRadius: 12, padding: 6, zIndex: 60,
+                        boxShadow: '0 0 0 0.5px rgba(0,85,255,.12), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                        maxHeight: 280, overflowY: 'auto',
+                      }}>
+                        <button type="button" role="option" aria-selected={!selectedTestId}
+                          onClick={() => { setSelectedTestId(""); setPickerOpen(null); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '10px 12px', borderRadius: 9, border: 'none',
+                            background: !selectedTestId ? '#0055FF' : 'transparent',
+                            color: !selectedTestId ? '#fff' : T.T3,
+                            fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                            cursor: 'pointer', fontStyle: 'italic',
+                          }}>
+                          Choose a test…
+                        </button>
+                        {tests.map(t => {
+                          const isActive = t.id === selectedTestId;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              onClick={() => { setSelectedTestId(t.id); setPickerOpen(null); }}
+                              style={{
+                                display: 'block', width: '100%', textAlign: 'left',
+                                padding: '10px 12px', borderRadius: 9, border: 'none',
+                                background: isActive ? '#0055FF' : 'transparent',
+                                color: isActive ? '#fff' : T.T1,
+                                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                                letterSpacing: '-0.15px', cursor: 'pointer',
+                                transition: 'background .12s ease',
+                              }}
+                              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                            >
+                              {labelFor(t)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {inputMode === "upload" && (
                 <div>
                   <input ref={fileInputRef} type="file" accept="application/pdf"
@@ -887,21 +1038,78 @@ const ResultPredictor = () => {
               <label className="text-[11px] font-bold uppercase tracking-[0.08em] block mb-2" style={{ color: T.T4 }}>
                 Class
               </label>
-              <select value={classId} onChange={e => setClassId(e.target.value)} disabled={inputMode === "test" && !!selectedTestId}
-                className="custom-chrome w-full h-12 rounded-[14px] outline-none px-4 text-[13px] font-medium disabled:opacity-70"
-                style={{
-                  "--cc-padding": "12px 16px",
-                  "--cc-font-size": "13px",
-                  background: T.BG, color: T.T1, border: `0.5px solid ${T.BLUE_BDR}`,
-                } as React.CSSProperties}>
-                <option value="">Choose a class…</option>
-                {classes.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.className || c.name || `Class ${c.id.slice(0, 6)}`}
-                    {c.subject ? ` · ${c.subject}` : ""}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const classDisabled = inputMode === "test" && !!selectedTestId;
+                const labelFor = (c: any) => `${c.className || c.name || `Class ${c.id.slice(0, 6)}`}${c.subject ? ` · ${c.subject}` : ""}`;
+                const selectedClassObj = classes.find((c: any) => c.id === classId);
+                return (
+                  <div ref={classPickerRef} style={{ position: 'relative', zIndex: pickerOpen === "class" ? 60 : 'auto' }}>
+                    <button
+                      type="button"
+                      onClick={() => { if (!classDisabled) setPickerOpen(o => o === "class" ? null : "class"); }}
+                      disabled={classDisabled}
+                      aria-haspopup="listbox"
+                      aria-expanded={pickerOpen === "class"}
+                      className="w-full h-12 rounded-[14px] outline-none px-4 text-[13px] font-medium flex items-center justify-between gap-2 disabled:opacity-70"
+                      style={{ background: T.BG, color: T.T1, border: `0.5px solid ${T.BLUE_BDR}`, fontFamily: 'inherit', cursor: classDisabled ? 'not-allowed' : 'pointer', textAlign: 'left' }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedClassObj ? labelFor(selectedClassObj) : "Choose a class…"}
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.T4} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: pickerOpen === "class" ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .18s ease', flexShrink: 0 }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {pickerOpen === "class" && (
+                      <div role="listbox" style={{
+                        position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                        background: '#fff', borderRadius: 12, padding: 6, zIndex: 60,
+                        boxShadow: '0 0 0 0.5px rgba(0,85,255,.12), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                        maxHeight: 280, overflowY: 'auto',
+                      }}>
+                        <button type="button" role="option" aria-selected={!classId}
+                          onClick={() => { setClassId(""); setPickerOpen(null); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '10px 12px', borderRadius: 9, border: 'none',
+                            background: !classId ? '#0055FF' : 'transparent',
+                            color: !classId ? '#fff' : T.T3,
+                            fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                            cursor: 'pointer', fontStyle: 'italic',
+                          }}>
+                          Choose a class…
+                        </button>
+                        {classes.map((c: any) => {
+                          const isActive = c.id === classId;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              onClick={() => { setClassId(c.id); setPickerOpen(null); }}
+                              style={{
+                                display: 'block', width: '100%', textAlign: 'left',
+                                padding: '10px 12px', borderRadius: 9, border: 'none',
+                                background: isActive ? '#0055FF' : 'transparent',
+                                color: isActive ? '#fff' : T.T1,
+                                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                                letterSpacing: '-0.15px', cursor: 'pointer',
+                                transition: 'background .12s ease',
+                              }}
+                              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                            >
+                              {labelFor(c)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="text-[10px] mt-1" style={{ color: T.T4 }}>
                 {inputMode === "test" && selectedTestId
                   ? "Auto-selected from the chosen test"
@@ -971,7 +1179,8 @@ const ResultPredictor = () => {
               </button>
             </div>
           )}
-        </div>
+          </div>{/* /form body */}
+        </div>{/* /SETUP CARD */}
 
         {/* ── PREDICTION RESULTS ── */}
         {prediction && (

@@ -83,6 +83,21 @@ const PrincipalNotes = () => {
   const [messageContent, setMessageContent] = useState("");
   const [listenerError, setListenerError]   = useState<string | null>(null);
   const [refreshKey, setRefreshKey]         = useState(0);
+  const [emojiOpen, setEmojiOpen]           = useState(false);
+  const emojiRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setEmojiOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [emojiOpen]);
+
+  const EMOJI_LIST = ["😊", "👍", "🙏", "👏", "🎉", "❤️", "✅", "⭐", "🎓", "📚", "✏️", "💡", "🌟", "🔥", "💯", "🙌", "👋", "🤔", "😅", "😢"];
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   // Track whether user is near the bottom so we only auto-scroll if they are.
@@ -785,26 +800,59 @@ const PrincipalNotes = () => {
             padding: '10px 16px 12px',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <button type="button" aria-label="Emoji" className="pnot-btn-press" style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: 'transparent', color: '#54656F',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: 'none', cursor: 'pointer', flexShrink: 0,
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
-              </svg>
-            </button>
-            <button type="button" aria-label="Attach" className="pnot-btn-press" style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: 'transparent', color: '#54656F',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: 'none', cursor: 'pointer', flexShrink: 0,
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-              </svg>
-            </button>
+            <div ref={emojiRef} style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                type="button"
+                aria-label="Emoji picker"
+                aria-expanded={emojiOpen}
+                onClick={() => setEmojiOpen(o => !o)}
+                className="pnot-btn-press"
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: emojiOpen ? 'rgba(37,211,102,0.14)' : 'transparent',
+                  color: emojiOpen ? '#075E54' : '#54656F',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', cursor: 'pointer',
+                  transition: 'background 160ms ease, color 160ms ease',
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
+              {emojiOpen && (
+                <div
+                  role="dialog"
+                  aria-label="Choose emoji"
+                  style={{
+                    position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
+                    background: '#fff', borderRadius: 14, padding: 8,
+                    boxShadow: '0 0 0 0.5px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.16)',
+                    display: 'grid', gridTemplateColumns: 'repeat(5, 32px)', gap: 4,
+                    zIndex: 50, width: 'fit-content',
+                  }}
+                >
+                  {EMOJI_LIST.map(em => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => { setMessageContent(prev => prev + em); setEmojiOpen(false); replyInputRef.current?.focus(); }}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: 'none',
+                        background: 'transparent', cursor: 'pointer',
+                        fontSize: 20, lineHeight: 1, padding: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background .12s ease',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#F0F2F5'}
+                      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               ref={replyInputRef}
               value={messageContent}

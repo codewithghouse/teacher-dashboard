@@ -1565,19 +1565,19 @@ const SessionPanel: React.FC<{
     <>
       {!active ? (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 sm:p-6 mb-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+            <div className="flex items-start gap-3 min-w-0 md:flex-1">
               <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
                 <ListChecks className="w-5 h-5 text-blue-700" />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-medium uppercase tracking-wider text-blue-700 mb-0.5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1">
                   Class-wise grading session
                 </div>
-                <div className="text-[15px] font-medium text-slate-900 leading-snug">
+                <div className="text-[15px] font-bold text-slate-900 leading-snug">
                   Grade a whole class for one test in one sitting
                 </div>
-                <p className="text-[12.5px] text-slate-600 mt-1 leading-[1.5]">
+                <p className="text-[12.5px] text-slate-600 mt-1.5 leading-[1.55] max-w-prose">
                   Pick a class &amp; test once, then upload each student's paper. AI corrects, one click pushes marks straight to the gradebook. No re-typing.
                 </p>
               </div>
@@ -1585,7 +1585,7 @@ const SessionPanel: React.FC<{
             <button
               type="button"
               onClick={onOpenSetup}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1e3272] hover:bg-[#152244] text-white text-[13px] font-medium shadow-sm shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1e3272] hover:bg-[#152244] text-white text-[13px] font-bold shadow-sm shrink-0 w-full md:w-auto md:self-center"
             >
               <Settings2 className="w-4 h-4" /> Start grading session
             </button>

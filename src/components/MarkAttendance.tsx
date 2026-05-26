@@ -595,7 +595,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
             boxShadow: "0 4px 14px rgba(123,63,244,0.32), 0 1px 3px rgba(123,63,244,0.20)",
             fontFamily: MA.FONT,
-            opacity: loading || !students.length || showSubjectTeacherBanner ? 0.6 : 1,
+            opacity: loading || !students.length || showSubjectTeacherBanner ? 0.82 : 1,
             border: "none",
             cursor: loading || !students.length || showSubjectTeacherBanner ? "not-allowed" : "pointer",
           }}
@@ -938,7 +938,7 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
             style={{
               background: `linear-gradient(135deg, ${MA.VIOLET} 0%, #9B6FFF 100%)`,
               boxShadow: "0 6px 20px rgba(123,63,244,0.32), 0 2px 6px rgba(123,63,244,0.20)",
-              opacity: loading || !students.length || showSubjectTeacherBanner ? 0.6 : 1,
+              opacity: loading || !students.length || showSubjectTeacherBanner ? 0.82 : 1,
               fontFamily: MA.FONT,
               border: "none",
               cursor: loading || !students.length || showSubjectTeacherBanner ? "not-allowed" : "pointer",
@@ -953,24 +953,26 @@ const MarkAttendance = ({ onBack, initialClassId }: Props) => {
               <div className="text-[14px] font-bold text-white" style={{ letterSpacing: "-0.3px" }}>
                 {isHolidayAlready ? "Holiday today" : "Mark as Holiday"}
               </div>
-              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.82)" }}>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: "#FFFFFF", textShadow: "0 1px 2px rgba(60,20,140,0.35)" }}>
                 Excludes day from attendance %
               </div>
             </div>
           </button>
 
           {/* Live tally */}
-          <div className="bg-white rounded-[18px] py-3.5 px-4 flex items-center gap-2.5"
+          <div className="bg-white rounded-[18px] py-3 px-3 flex items-stretch gap-2"
             style={{ boxShadow: MA.SH }}>
             {([
               { key: "present", label: "Present", val: counts.present, color: MA.GREEN, bg: "rgba(0,200,83,0.08)" },
               { key: "absent",  label: "Absent",  val: counts.absent,  color: MA.RED,   bg: "rgba(255,51,85,0.06)" },
               { key: "late",    label: "Late",    val: counts.late,    color: MA.ORANGE,bg: "rgba(255,136,0,0.07)" },
             ] as const).map(p => (
-              <div key={p.key} className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[10px]" style={{ background: p.bg }}>
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
-                <span className="text-[11px] font-semibold" style={{ color: MA.T3 }}>{p.label}</span>
-                <span className="ml-auto text-[16px] font-bold" style={{ color: p.color, letterSpacing: "-0.3px" }}>{p.val}</span>
+              <div key={p.key} className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-1 py-2 rounded-[10px]" style={{ background: p.bg }}>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.color }} />
+                  <span className="text-[10px] font-semibold uppercase" style={{ color: MA.T3, letterSpacing: "0.4px" }}>{p.label}</span>
+                </div>
+                <span className="text-[20px] font-bold leading-none" style={{ color: p.color, letterSpacing: "-0.4px" }}>{p.val}</span>
               </div>
             ))}
           </div>

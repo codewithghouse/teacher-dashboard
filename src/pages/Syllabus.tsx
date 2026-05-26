@@ -105,8 +105,21 @@ const Syllabus = () => {
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [classPickerOpen, setClassPickerOpen] = useState(false);
+  const classPickerRef = useRef<HTMLDivElement | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!classPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (classPickerRef.current && !classPickerRef.current.contains(e.target as Node)) {
+        setClassPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [classPickerOpen]);
 
   // ── Load teacher's assigned classes ─────────────────────────────────────────
   useEffect(() => {
@@ -1790,23 +1803,73 @@ const Syllabus = () => {
                 <label style={{ fontSize: 10, fontWeight: 700, color: '#5070B0', letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                   Class *
                 </label>
-                <select
-                  value={selClassId}
-                  onChange={(e) => setSelClassId(e.target.value)}
-                  disabled={uploading}
-                  style={{
-                    width: '100%', height: 44, padding: '0 14px',
-                    borderRadius: 12, border: '0.5px solid rgba(0,85,255,.14)',
-                    background: '#fff', fontSize: 13, fontWeight: 600, color: '#001040',
-                    outline: 'none', fontFamily: 'inherit', cursor: uploading ? 'not-allowed' : 'pointer',
-                    opacity: uploading ? 0.5 : 1,
-                    boxShadow: '0 1px 2px rgba(0,85,255,.05)',
-                  }}
-                >
-                  {classes.map((c) => (
-                    <option key={c.classId} value={c.classId}>{c.className}</option>
-                  ))}
-                </select>
+                <div ref={classPickerRef} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => !uploading && setClassPickerOpen(o => !o)}
+                    disabled={uploading}
+                    aria-haspopup="listbox"
+                    aria-expanded={classPickerOpen}
+                    style={{
+                      width: '100%', height: 44, padding: '0 14px',
+                      borderRadius: 12, border: '0.5px solid rgba(0,85,255,.14)',
+                      background: '#fff', fontSize: 13, fontWeight: 600, color: '#001040',
+                      outline: 'none', fontFamily: 'inherit',
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      opacity: uploading ? 0.5 : 1,
+                      boxShadow: '0 1px 2px rgba(0,85,255,.05)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 8, textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {classes.find(c => c.classId === selClassId)?.className || (classes.length === 0 ? 'No classes' : 'Select class')}
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5070B0" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: classPickerOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .18s ease', flexShrink: 0 }}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {classPickerOpen && (
+                    <div
+                      role="listbox"
+                      style={{
+                        position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
+                        background: '#fff', borderRadius: 12, padding: 6,
+                        boxShadow: '0 0 0 0.5px rgba(0,85,255,.12), 0 6px 22px rgba(0,40,120,.16), 0 18px 44px rgba(0,40,120,.18)',
+                        maxHeight: 240, overflowY: 'auto',
+                      }}
+                    >
+                      {classes.length === 0 ? (
+                        <div style={{ padding: '10px 12px', color: '#5070B0', fontSize: 13, fontWeight: 600 }}>No classes available</div>
+                      ) : classes.map(c => {
+                        const isActive = c.classId === selClassId;
+                        return (
+                          <button
+                            key={c.classId}
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            onClick={() => { setSelClassId(c.classId); setClassPickerOpen(false); }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left',
+                              padding: '10px 12px', borderRadius: 9, border: 'none',
+                              background: isActive ? '#0055FF' : 'transparent',
+                              color: isActive ? '#fff' : '#001040',
+                              fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                              letterSpacing: '-0.2px', cursor: 'pointer',
+                              transition: 'background .12s ease',
+                            }}
+                            onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#EEF4FF'; }}
+                            onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                          >
+                            {c.className}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Title input */}
