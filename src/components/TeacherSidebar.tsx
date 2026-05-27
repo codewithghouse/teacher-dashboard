@@ -57,6 +57,7 @@ const navSections: {
     items: [
       { title: "Assignments",     path: "/assignments",     icon: FileText        },
       { title: "Tests & Exams",   path: "/tests",           icon: GraduationCap   },
+      { title: "Class Results",   path: "/results",         icon: FileText        },
       { title: "Exam Structure",  path: "/exam-structure",  icon: Award           },
       { title: "Exam Generator",  path: "/exam",            icon: FileSpreadsheet },
       { title: "Paper Correction",path: "/paper-correction",icon: ScanText        },

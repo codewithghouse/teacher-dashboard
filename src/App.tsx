@@ -50,6 +50,7 @@ const RisksAlerts        = lazyWithRetry(() => import("./pages/RisksAlerts"));
 const ParentNotes        = lazyWithRetry(() => import("./pages/ParentNotes"));
 const PrincipalNotes     = lazyWithRetry(() => import("./pages/PrincipalNotes"));
 const Reports            = lazyWithRetry(() => import("./pages/Reports"));
+const Results            = lazyWithRetry(() => import("./pages/Results"));
 const SettingsPage       = lazyWithRetry(() => import("./pages/SettingsPage"));
 const LessonPlanGenerator = lazyWithRetry(() => import("./pages/LessonPlanGenerator"));
 const SummarizeLesson    = lazyWithRetry(() => import("./pages/SummarizeLesson"));
@@ -147,6 +148,7 @@ const AppRoutes = () => {
           <Route path="/parent-notes" element={<ParentNotes />} />
           <Route path="/principal-notes" element={<PrincipalNotes />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/results" element={<Results />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/lesson-planner" element={<LessonPlanGenerator />} />
           <Route path="/summarize-lesson" element={<SummarizeLesson />} />
