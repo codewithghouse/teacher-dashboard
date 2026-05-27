@@ -59,32 +59,57 @@ export default function Results() {
   const [loaded, setLoaded]   = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Resolve this teacher's classIds from teaching_assignments (same pattern
-  // used by MyClasses + other pages — keeps the "what classes do I teach"
-  // logic consistent across the dashboard).
+  /* Resolve this teacher's classIds from THREE sources unioned together —
+     mirrors the same 3-flag pattern used by pre-primary's useTeacherClass:
+       (1) teaching_assignments (canonical for K-12 dashboards)
+       (2) classes.teacherId == teacher.uid (some schools assign directly on
+           the class doc rather than via teaching_assignments)
+       (3) classes.teacherEmail / classTeacherEmail == teacher.email
+           (legacy + invite-by-email flows)
+     Without the (2) + (3) fallbacks, any teacher whose principal didn't
+     set up teaching_assignments rows saw an empty Results page even though
+     they were assigned to a class via the class doc directly. */
   useEffect(() => {
     if (!schoolId || !teacherId) { setClassIdsLoaded(true); return; }
     (async () => {
+      const ids = new Set<string>();
+      const email = teacherData?.email?.toLowerCase() || "";
       try {
-        const snap = await getDocs(query(
-          collection(db, "teaching_assignments"),
-          where("schoolId",  "==", schoolId),
-          where("teacherId", "==", teacherId),
-        ));
-        const ids = new Set<string>();
-        snap.docs.forEach(d => {
+        const [taSnap, classesSnap] = await Promise.all([
+          getDocs(query(
+            collection(db, "teaching_assignments"),
+            where("schoolId",  "==", schoolId),
+            where("teacherId", "==", teacherId),
+          )),
+          getDocs(query(
+            collection(db, "classes"),
+            where("schoolId", "==", schoolId),
+          )),
+        ]);
+
+        taSnap.docs.forEach(d => {
           const data = d.data();
-          if (data.active === false) return; // legacy: active flag may be missing
+          if (data.active === false) return;
           if (data.classId) ids.add(data.classId);
         });
+
+        classesSnap.docs.forEach(d => {
+          const data = d.data() as any;
+          if (data.teacherId === teacherId) ids.add(d.id);
+          if (email && (
+            (data.teacherEmail || "").toLowerCase() === email
+            || (data.classTeacherEmail || "").toLowerCase() === email
+          )) ids.add(d.id);
+        });
+
         setMyClassIds(ids);
       } catch (err) {
-        console.warn("[teacher results] teaching_assignments fetch failed:", err);
+        console.warn("[teacher results] classId resolution failed:", err);
       } finally {
         setClassIdsLoaded(true);
       }
     })();
-  }, [schoolId, teacherId]);
+  }, [schoolId, teacherId, teacherData?.email]);
 
   // Subscribe to principal_results scoped to this school. Filter by classId
   // client-side so teacher only sees published results for classes they teach.
