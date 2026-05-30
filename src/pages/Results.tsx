@@ -48,12 +48,21 @@ interface ResultDoc extends DocumentData {
   visibleToParents: boolean;
 }
 
+// Normalise a class label for tolerant matching — lowercase + strip every
+// non-alphanumeric char so "10-A", "10 A", "10a" all collapse to "10a".
+const norm = (s: any) => (s ?? "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+interface ClassMeta { name: string; section: string }
+
 export default function Results() {
   const { teacherData } = useAuth();
   const schoolId  = teacherData?.schoolId;
   const teacherId = teacherData?.id;
 
   const [myClassIds, setMyClassIds] = useState<Set<string>>(new Set());
+  // className+section of every class this teacher teaches — used as a tolerant
+  // fallback when the result's classId doesn't equal the teaching class's id.
+  const [myClassMeta, setMyClassMeta] = useState<ClassMeta[]>([]);
   const [classIdsLoaded, setClassIdsLoaded] = useState(false);
   const [results, setResults] = useState<ResultDoc[]>([]);
   const [loaded, setLoaded]   = useState(false);
@@ -87,6 +96,11 @@ export default function Results() {
           )),
         ]);
 
+        // Map every class doc by id so we can resolve name+section for the
+        // classIds that teaching_assignments hand us (those rows carry no name).
+        const classById = new Map<string, any>();
+        classesSnap.docs.forEach(d => classById.set(d.id, d.data()));
+
         taSnap.docs.forEach(d => {
           const data = d.data();
           if (data.active === false) return;
@@ -102,7 +116,15 @@ export default function Results() {
           )) ids.add(d.id);
         });
 
+        // Build className+section metadata for the resolved class set.
+        const meta: ClassMeta[] = [];
+        ids.forEach(id => {
+          const c = classById.get(id);
+          if (c) meta.push({ name: norm(c.name), section: norm(c.section) });
+        });
+
         setMyClassIds(ids);
+        setMyClassMeta(meta);
       } catch (err) {
         console.warn("[teacher results] classId resolution failed:", err);
       } finally {
@@ -123,7 +145,17 @@ export default function Results() {
     const unsub = onSnapshot(q, snap => {
       const docs = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as ResultDoc))
-        .filter(r => r.status === "published" && myClassIds.has(r.classId));
+        .filter(r => {
+          if (r.status !== "published") return false;
+          // (a) class-id match (canonical).
+          if (myClassIds.has(r.classId)) return true;
+          // (b) className + section fallback — survives a result whose classId
+          //     doesn't equal the teaching class's id (id drift across setups).
+          //     Require section match only when BOTH sides carry a section.
+          const rn = norm(r.className), rs = norm(r.section);
+          if (rn && myClassMeta.some(c => c.name === rn && (!c.section || !rs || c.section === rs))) return true;
+          return false;
+        });
       setResults(docs);
       setLoaded(true);
     }, err => {
@@ -131,7 +163,7 @@ export default function Results() {
       setLoaded(true);
     });
     return () => unsub();
-  }, [schoolId, classIdsLoaded, myClassIds]);
+  }, [schoolId, classIdsLoaded, myClassIds, myClassMeta]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1200px] mx-auto space-y-5">
