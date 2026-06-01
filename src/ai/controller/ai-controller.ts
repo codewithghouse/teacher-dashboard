@@ -204,6 +204,10 @@ export const AIController = {
      *  papers (blueprintUrl). The cloud function reads recent blueprints
      *  server-side to topic-match the new paper against past assessments. */
     pastTests?: unknown[];
+    /** Class-wide weak concepts derived from graded answer sheets
+     *  (`paper_corrections`) — grounds the "class will struggle" list in real
+     *  data. Each student also carries `correctionInsights` inside `students`. */
+    classWeakConcepts?: unknown[];
   }): Promise<AIResult> {
     if (!data?.paperText?.trim()) {
       return { status: "no_data", message: "Add the question paper text first." };

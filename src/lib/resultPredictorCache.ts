@@ -84,9 +84,9 @@ export function paperHash(paperText: string): string {
 /** Hash of the class roster + their score signatures. Includes per-student
  *  recent-test count + avg, so the prediction recomputes when fresh scores
  *  land (not just when the paper changes). */
-export function rosterHash(students: Array<{ studentId?: string; recentTests?: number; avgScore?: number }>): string {
+export function rosterHash(students: Array<{ studentId?: string; recentTests?: number; avgScore?: number; correctedPapers?: number }>): string {
   const parts = students
-    .map(s => `${safeIdPart(s.studentId || "")}:${s.recentTests ?? 0}:${Math.round((s.avgScore ?? 0) * 10) / 10}`)
+    .map(s => `${safeIdPart(s.studentId || "")}:${s.recentTests ?? 0}:${Math.round((s.avgScore ?? 0) * 10) / 10}:${s.correctedPapers ?? 0}`)
     .sort()
     .join("|");
   return djb2(parts);

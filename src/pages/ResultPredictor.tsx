@@ -316,6 +316,97 @@ function buildStudentHistory(
   });
 }
 
+// ── Corrected-answer-sheet insight builder ─────────────────────────────────
+// Turns raw `paper_corrections` docs into a compact per-student signal: which
+// concepts the student is strong/developing/weak in (from the AI's graded
+// answer-sheet analysis) + recent mistakes. This is the strongest predictor of
+// how they'll do on a new paper testing those same concepts — far stronger than
+// an overall average — so the backend treats it as the primary signal.
+interface CorrectionInsight {
+  correctedPapers: number;
+  conceptLevels: { concept: string; level: string }[];
+  weakConcepts: string[];
+  recentMistakes: string[];
+}
+
+const corrTimeMs = (d: any): number => {
+  const c = d?.createdAt;
+  if (c?.toMillis) return c.toMillis();
+  if (typeof c?.seconds === "number") return c.seconds * 1000;
+  return 0;
+};
+
+function buildCorrectionInsights(roster: RosterRow[], corrections: any[]): Map<string, CorrectionInsight> {
+  const out = new Map<string, CorrectionInsight>();
+  roster.forEach(r => {
+    const idLower = r.studentId.toLowerCase();
+    const emailLower = (r.studentEmail || "").toLowerCase();
+    const mine = corrections
+      .filter(c => {
+        const cid = String(c.studentId || "").toLowerCase();
+        const cem = String(c.studentEmail || "").toLowerCase();
+        return (cid && cid === idLower) || (emailLower && cem === emailLower);
+      })
+      .sort((a, b) => corrTimeMs(b) - corrTimeMs(a)); // most recent first
+    if (mine.length === 0) return;
+
+    const conceptMap = new Map<string, string>(); // concept → level (recent wins)
+    const weakSet = new Set<string>();
+    const mistakes: string[] = [];
+    mine.forEach(c => {
+      const res = c.result || {};
+      (res.concept_understanding || []).forEach((cu: any) => {
+        const concept = String(cu?.concept || "").trim();
+        const level = String(cu?.level || "").trim();
+        if (!concept) return;
+        if (!conceptMap.has(concept)) conceptMap.set(concept, level);
+        if (level === "weak") weakSet.add(concept);
+      });
+      (res.weaknesses || []).forEach((w: any) => {
+        const s = String(w || "").trim();
+        if (s) weakSet.add(s);
+      });
+      (res.questions || []).forEach((q: any) => {
+        const v = String(q?.verdict || "");
+        if ((v === "wrong" || v === "partial" || v === "blank") && mistakes.length < 6) {
+          const qt = String(q?.question_text || "").trim().slice(0, 80);
+          const mt = q?.mistake_type ? ` [${q.mistake_type}]` : "";
+          if (qt) mistakes.push(`${qt}${mt}`);
+        }
+      });
+    });
+    out.set(r.studentId, {
+      correctedPapers: mine.length,
+      conceptLevels: Array.from(conceptMap.entries()).slice(0, 15).map(([concept, level]) => ({ concept, level })),
+      weakConcepts: Array.from(weakSet).slice(0, 10),
+      recentMistakes: mistakes,
+    });
+  });
+  return out;
+}
+
+// Class-wide weak-concept tally — grounds the "where the class will struggle"
+// list in REAL graded data (how many students were marked weak per concept)
+// instead of a generic difficulty guess.
+function aggregateClassWeakConcepts(corrections: any[]): { concept: string; weakStudents: number }[] {
+  const tally = new Map<string, Set<string>>();
+  corrections.forEach(c => {
+    const sid = String(c.studentId || c.studentEmail || "").toLowerCase();
+    if (!sid) return;
+    (c.result?.concept_understanding || []).forEach((cu: any) => {
+      if (String(cu?.level || "") !== "weak") return;
+      const concept = String(cu?.concept || "").trim();
+      if (!concept) return;
+      if (!tally.has(concept)) tally.set(concept, new Set());
+      tally.get(concept)!.add(sid);
+    });
+  });
+  return Array.from(tally.entries())
+    .map(([concept, set]) => ({ concept, weakStudents: set.size }))
+    .sort((a, b) => b.weakStudents - a.weakStudents)
+    .slice(0, 8);
+}
+
 // ── Tier styling ─────────────────────────────────────────────────────────────
 const tierStyle = (band: StudentPrediction["predicted_band"]) => {
   if (band === "pass") return { color: T.GREEN, color2: T.GREEN2, bg: "rgba(0,200,83,0.10)", bdr: "rgba(0,200,83,0.22)", label: "Pass", icon: CheckCircle2 };
@@ -372,6 +463,11 @@ const ResultPredictor = () => {
   const [scores, setScores] = useState<RawScoreDoc[]>([]);
   const [attendance, setAttendance] = useState<RawAttDoc[]>([]);
   const [ratings, setRatings] = useState<RawRatingDoc[]>([]);
+  // AI-corrected answer-sheet analyses for this class (`paper_corrections`).
+  // The richest signal we have: per-question verdicts + per-concept mastery
+  // (strong/developing/weak) from actually-graded papers. This is what makes
+  // the prediction evidence-based instead of an average projection.
+  const [corrections, setCorrections] = useState<DocumentData[]>([]);
   // Auto-resolved syllabus carries ONLY the storage path + filename. The
   // cloud function downloads + extracts the PDF server-side (admin SDK,
   // bypasses browser CORS entirely). Override-uploaded syllabus extracts
@@ -491,6 +587,17 @@ const ResultPredictor = () => {
     return () => unsub();
   }, [teacherData?.schoolId, classId]);
 
+  // Corrected answer sheets for this class — per-question verdicts + per-concept
+  // mastery from `paper_corrections` (written by the Paper Correction feature
+  // when a teacher grades a scanned sheet in class+student session mode).
+  useEffect(() => {
+    if (!teacherData?.schoolId || !classId) { setCorrections([]); return; }
+    const q = query(collection(db, "paper_corrections"), where("schoolId", "==", teacherData.schoolId), where("classId", "==", classId));
+    const unsub = onSnapshot(q, snap => setCorrections(snap.docs.map(d => d.data())),
+      err => console.error("[ResultPredictor] corrections listener", err));
+    return () => unsub();
+  }, [teacherData?.schoolId, classId]);
+
   // ── Auto-resolve syllabus PDF: query `syllabi` by classId, take latest
   //     active doc, hand the storage path to the cloud function which will
   //     download + extract text server-side (admin SDK = no CORS, no browser
@@ -572,6 +679,18 @@ const ResultPredictor = () => {
     [roster, scores, attendance, ratings],
   );
 
+  // Per-student corrected-answer-sheet insights (concept mastery + mistakes)
+  // + class-wide weak-concept tally — the evidence layer that grounds the AI's
+  // prediction in actually-graded papers, not just averages.
+  const correctionInsights = useMemo(
+    () => buildCorrectionInsights(roster, corrections),
+    [roster, corrections],
+  );
+  const classWeakConcepts = useMemo(
+    () => aggregateClassWeakConcepts(corrections),
+    [corrections],
+  );
+
   const canPredict = !!teacherData?.id && !!teacherData?.schoolId && !!classId
     && resolvedPaperText.trim().length > 30 && roster.length > 0;
 
@@ -629,6 +748,9 @@ const ResultPredictor = () => {
         last3Scores: s.last3Scores,
         // Per-topic mastery — the backbone of the topic-weighted prediction.
         topicScores: s.topicScores,
+        // Corrected-answer-sheet analysis (concept mastery + recent mistakes
+        // from actually-graded papers) — the PRIMARY signal when present.
+        correctionInsights: correctionInsights.get(s.studentId) || null,
       }));
 
       // Past tests of THIS class — gives the AI the topic coverage history +
@@ -654,6 +776,9 @@ const ResultPredictor = () => {
         paperHash: makePaperHash(resolvedPaperText),
         rosterHash: makeRosterHash(studentsPayload.map(s => ({
           studentId: s.studentId, recentTests: s.recentTests, avgScore: s.avgScore,
+          // Bust the cache when a new corrected sheet lands for a student, even
+          // if their aggregate avg/recentTests is unchanged.
+          correctedPapers: s.correctionInsights?.correctedPapers ?? 0,
         }))),
       };
       const tenant: TenantContext = {
@@ -679,6 +804,9 @@ const ResultPredictor = () => {
             passPct: 40,
             students: studentsPayload,
             pastTests,
+            // Class-wide weak concepts from graded sheets — grounds the
+            // "where the class will struggle" list in real data.
+            classWeakConcepts,
           });
           if (r.status !== "success") {
             throw new Error(r.status === "error" || r.status === "no_data" || r.status === "not_implemented"

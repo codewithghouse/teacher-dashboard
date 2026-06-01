@@ -604,6 +604,12 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
             "Example of INCORRECT: 'Tanveer ka algebra strong hai par geometry mein thoda gap hai, isliye revision karna chahiye.'",
             "",
             "TOPIC-WEIGHTED METHOD — THIS IS THE CORE OF YOUR JOB:",
+            "0. STRONGEST SIGNAL = 'correctionInsights' on each student: the per-concept",
+            "   mastery (strong/developing/weak) and specific mistakes pulled from their",
+            "   ACTUALLY-GRADED answer sheets. When a student has correctionInsights,",
+            "   weight it ABOVE aggregate scores — it is direct evidence of how they",
+            "   handle these exact concepts. Map the paper's topics onto these graded",
+            "   concepts first; fall back to topicScores / averages only for gaps.",
             "1. Parse the question paper into TOPICS and estimate each topic's WEIGHT",
             "   as a percentage of total marks (weights sum to ~100).",
             "2. For EACH student, look up their per-topic mastery in `topicScores`",
@@ -653,6 +659,9 @@ EXAM META:
 STUDENT HISTORY (one object per student; 'topicScores' = per-topic average % with sample count 'n' — this is your primary signal):
 ${JSON.stringify(payload?.students || [], null, 2)}
 
+CLASS WEAK CONCEPTS (from graded answer sheets — 'concept: N students marked weak'. Ground the "where the class will struggle" list in THIS, not in generic difficulty):
+${((payload?.classWeakConcepts || []).map((w) => '- ' + w.concept + ': ' + w.weakStudents + ' students weak').join("\n")) || "(no graded-sheet data yet — do NOT fabricate class struggles as if data-backed; if you list struggle questions, base them only on paper difficulty and keep the class headline honest that little history exists)"}
+
 METHOD (follow exactly):
 1. Parse the NEW paper into topics; assign each a weight = % of total marks it carries (weights sum ~100). Return these in paper_summary.topic_weights.
 2. For each student, predict via a WEIGHTED BLEND of their topicScores against those topic weights — aligning past-paper / past-test topics where their score docs lack explicit topic tags. Do NOT echo the overall average: a student weak in a heavily-weighted topic must land BELOW their average, strong in heavy topics ABOVE.
@@ -669,7 +678,7 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
   "class_forecast": {
     "expected_pass_pct": 0-100 integer,
     "predicted_class_average": 0-100 integer,
-    "expected_top_struggle_questions": ["e.g. Q3 (geometry construction), Q7 (trigonometric identities)"],
+    "expected_top_struggle_questions": ["questions whose topics match CLASS WEAK CONCEPTS or low class mastery — ground in data; if no graded data exists, you may estimate from difficulty but keep the list short and the headline honest"],
     "headline": "1 sentence English headline summarising the class outlook",
     "pre_exam_class_actions": [
       "Concrete English action 1 the teacher should run before the exam",
