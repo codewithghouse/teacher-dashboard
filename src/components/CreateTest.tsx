@@ -248,6 +248,11 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
     if (status === "Upcoming" && (!Number.isFinite(numericMarks) || numericMarks <= 0)) {
       return toast.error("Total marks must be a positive number.");
     }
+    // Question paper is mandatory to PUBLISH a test — it powers the Pre-Result
+    // Predictor and the test record. Drafts may skip it (still being planned).
+    if (status === "Upcoming" && !pdfFile) {
+      return toast.error("Question paper is required to publish. Attach a PDF, or save as draft.");
+    }
 
     if (pdfFile) {
       if (pdfFile.size > MAX_UPLOAD_BYTES) {
@@ -673,7 +678,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
         {/* Attach Paper */}
         <div className="rounded-[18px] px-[14px] pt-[14px] pb-[12px] mb-[12px]" style={{ background: MA.CARD, boxShadow: MA.SH }}>
           <div className="block text-[9px] font-bold uppercase mb-[10px]" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-            Attach Paper <span className="font-semibold" style={{ color: MA.T4, letterSpacing: 0 }}>(PDF · Optional)</span>
+            Attach Paper <span className="text-[11px] font-bold" style={{ color: MA.RED }}>*</span> <span className="font-semibold" style={{ color: MA.T4, letterSpacing: 0 }}>(PDF)</span>
           </div>
           <label
             className="block rounded-[14px] px-[14px] py-[20px] text-center relative active:bg-[rgba(9,87,247,0.06)] transition-colors"
@@ -1419,7 +1424,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                 </div>
                 <div className="flex-1">
                   <div className="text-[11px] font-bold uppercase" style={{ color: MA.T3, letterSpacing: "1.5px" }}>
-                    Attach Blueprint <span className="font-semibold" style={{ color: MA.T4 }}>(Optional)</span>
+                    Attach Blueprint <span className="font-bold" style={{ color: MA.RED }}>*</span> <span className="font-semibold" style={{ color: MA.T4 }}>(PDF)</span>
                   </div>
                   <div className="text-[13px] font-bold mt-[2px]" style={{ color: MA.T1, letterSpacing: "-0.2px" }}>Upload PDF/Word/image of the question paper — max 10 MB</div>
                 </div>
@@ -1706,7 +1711,7 @@ export default function CreateTest({ onCancel, onCreate }: { onCancel: () => voi
                       { ok: !!formData.testDate, label: "Test date set", optional: true },
                       { ok: parseMarks(formData.marks) > 0, label: "Total marks chosen" },
                       { ok: parseDuration(formData.duration) > 0, label: "Duration chosen" },
-                      { ok: !!pdfFile, label: "Blueprint uploaded", optional: true },
+                      { ok: !!pdfFile, label: "Question paper attached" },
                       { ok: topics.length > 0 || qTypes.length > 0, label: "Topics tagged", optional: true },
                     ].map(item => (
                       <div key={item.label} className="flex items-center gap-[8px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "-0.1px" }}>
