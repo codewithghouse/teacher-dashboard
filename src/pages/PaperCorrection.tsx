@@ -55,7 +55,8 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
 import { AIController } from "../ai/controller/ai-controller";
 import { useAuth } from "../lib/AuthContext";
-import { db } from "../lib/firebase";
+import { db, storage } from "../lib/firebase";
+import { ref as storageRef, uploadString, getDownloadURL } from "firebase/storage";
 import { auditedAdd, auditedSet, auditedUpdate } from "../lib/auditedWrites";
 import PushToGradebookModal from "../components/PushToGradebookModal";
 import { tilt3D, tilt3DStyle, BLUE_SHADOW } from "../lib/use3DTilt";
@@ -948,6 +949,25 @@ const PaperCorrection = () => {
         ? Math.round((resolvedMarks / resolvedTotal) * 1000) / 10
         : (typeof correction.percentage === "number" ? correction.percentage : 0);
 
+      // Upload the scanned pages to Storage so the corrected paper stays
+      // ATTACHED to the student (viewable on their profile) and isn't lost
+      // after grading. Best-effort: a failed upload just means no attached
+      // scan — the analysis + score still persist below.
+      let pageUrls: string[] = [];
+      try {
+        const ts = Date.now();
+        pageUrls = await Promise.all(
+          pageImages.map(async (dataUrl, i) => {
+            const r = storageRef(storage, `paper_corrections/${teacherData.schoolId}/${teacherData.id}/${ts}_${i}`);
+            await uploadString(r, dataUrl, "data_url");
+            return await getDownloadURL(r);
+          }),
+        );
+      } catch (upErr) {
+        console.warn("[PaperCorrection] page upload failed (saving without scan):", upErr);
+        pageUrls = [];
+      }
+
       const docRef = await auditedAdd(collection(db, "paper_corrections"), {
         // Identity
         schoolId: teacherData.schoolId,
@@ -971,6 +991,8 @@ const PaperCorrection = () => {
         grade: grade.trim() || correction.grade || "",
         totalMarks: resolvedTotal,
         totalPages: pageImages.length,
+        // Scanned page image URLs (Storage) — the attached corrected paper.
+        pageUrls,
         // Headline result (denormalized for cheap list views)
         marksScored: resolvedMarks,
         percentage: resolvedPct,

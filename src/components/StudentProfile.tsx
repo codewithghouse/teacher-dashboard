@@ -196,6 +196,11 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
   const [incidents, setIncidents] = useState<any[]>([]);
   const [parentNotes, setParentNotes] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
+  // Corrected answer sheets for this student (`paper_corrections`) — the
+  // attached scanned papers + AI concept analysis, also consumed by the
+  // Result Predictor. Shown on the profile so the graded paper stays with
+  // the student.
+  const [corrections, setCorrections] = useState<any[]>([]);
   const [classId, setClassId] = useState<string | null>(
     student?.classId || student?.class_id || student?.currentClassId || null,
   );
@@ -317,6 +322,14 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
 
     const subCache = { byId: [] as any[], byEmail: [] as any[] };
     subscribePair("submissions", setSubmissions, subCache);
+
+    // Corrected answer sheets — attached scanned papers + concept analysis.
+    const pcCache = { byId: [] as any[], byEmail: [] as any[] };
+    subscribePair("paper_corrections", (docs) => {
+      if (cancelled) return;
+      const sorted = [...docs].sort((a, b) => writerTimeMs(b) - writerTimeMs(a)); // newest first
+      setCorrections(sorted);
+    }, pcCache);
 
     unsubs.push(onSnapshot(
       query(collection(db, "incidents"), where("schoolId", "==", schoolId), where("studentId", "==", sid)),
@@ -1157,6 +1170,70 @@ export default function StudentProfile({ student, onBack, embedded = false }: Pr
               </AreaChart>
             </ResponsiveContainer>
           </div>
+        </VibeCard>
+
+        {/* Corrected Papers — attached scanned sheets + AI concept analysis.
+            Same data the Result Predictor consumes; kept on the profile so the
+            graded paper stays with the student. */}
+        <VibeCard tone="violet" icon={FileText} decorIcon={ClipboardList} label={`Corrected Papers · ${corrections.length}`} style={{ marginBottom: 20 }}>
+          {corrections.length === 0 ? (
+            <p style={{ fontSize: 12, color: T.ink3, textAlign: "center", padding: "14px 0", lineHeight: 1.6 }}>
+              No corrected papers yet. Grade a scanned sheet from <b style={{ color: T.violet }}>Paper Correction</b> (pick this student) to attach it here — it also powers the Result Predictor.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 6 }}>
+              {corrections.map((c: any, idx: number) => {
+                const res = c.result || {};
+                const pct = typeof c.percentage === "number" ? c.percentage : null;
+                const concepts: any[] = Array.isArray(res.concept_understanding) ? res.concept_understanding : [];
+                const weak = concepts.filter((x: any) => String(x?.level) === "weak").slice(0, 4);
+                const strong = concepts.filter((x: any) => String(x?.level) === "strong").slice(0, 4);
+                const pages: string[] = Array.isArray(c.pageUrls) ? c.pageUrls : [];
+                const tone = pct == null ? T.ink2 : pct >= 60 ? T.grn : pct >= 40 ? T.amb : T.red;
+                return (
+                  <div key={c.id || idx} style={{ background: T.surface, border: `0.5px solid ${T.bdr2}`, borderRadius: 14, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {c.subject || res.subject || "Paper"}{c.categoryLabel ? ` · ${c.categoryLabel}` : ""}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600, marginTop: 2 }}>
+                          {timeAgo(c.createdAt)}{typeof c.totalMarks === "number" ? ` · ${c.marksScored ?? "?"}/${c.totalMarks} marks` : ""}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: tone, flexShrink: 0 }}>
+                        {pct == null ? "—" : `${pct}%`}
+                      </div>
+                    </div>
+                    {(weak.length > 0 || strong.length > 0) && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                        {strong.map((x: any, i: number) => (
+                          <span key={`s${i}`} style={{ fontSize: 10, fontWeight: 700, color: T.grn, background: T.glBg, borderRadius: 999, padding: "3px 9px" }}>
+                            ✓ {x.concept}
+                          </span>
+                        ))}
+                        {weak.map((x: any, i: number) => (
+                          <span key={`w${i}`} style={{ fontSize: 10, fontWeight: 700, color: T.red, background: T.rlBg, borderRadius: 999, padding: "3px 9px" }}>
+                            ⚠ {x.concept}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {pages.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                        {pages.map((url: string, i: number) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blBg, borderRadius: 8, padding: "5px 10px", textDecoration: "none" }}>
+                            📄 Page {i + 1}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </VibeCard>
 
         {/* Assignments + Risk */}
