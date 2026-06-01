@@ -25,7 +25,13 @@ import { db } from "@/lib/firebase";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
 const LS_PREFIX = "edul_result_pred_";
-const CACHE_VERSION = "v1";
+// v2 — topic-weighted engine: predictions now align the paper's per-topic mark
+// weight against each student's topic-level mastery (not just overall average),
+// read past test papers where attached, and downgrade confidence honestly when
+// a student's history doesn't cover the paper's topics. Bumping the version
+// invalidates all v1 (average-echo) caches so fresh topic-grounded predictions
+// are computed.
+const CACHE_VERSION = "v2";
 const FS_COLLECTION = "result_predictions";
 const LS_MAX_ENTRIES = 60;
 const INFLIGHT_RETAIN_MS = 60_000;

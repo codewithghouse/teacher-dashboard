@@ -548,6 +548,48 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
         }
       }
 
+      // ── Past question-paper enrichment ────────────────────────────────────
+      // Read the blueprint PDFs attached to this class's recent tests (direct
+      // fetch of the download URL — no client CORS) so the model can topic-match
+      // the NEW paper against papers the students actually sat, then ground each
+      // prediction in their score on the topically-closest past assessment.
+      // Capped + truncated to keep latency + token cost bounded. Fully non-fatal:
+      // the topic-metadata path still works when a test has no attached paper.
+      const MAX_PAST_PAPERS = 5;
+      const MAX_PAST_PAPER_CHARS = 3500;
+      const pastTestsArr: any[] = Array.isArray((payload as any)?.pastTests) ? (payload as any).pastTests : [];
+      let pastPapersContext = "";
+      const withPaper = pastTestsArr
+        .filter(t => t && typeof t.blueprintUrl === "string" && t.blueprintUrl)
+        .slice(0, MAX_PAST_PAPERS);
+      if (withPaper.length > 0) {
+        const chunks = await Promise.all(withPaper.map(async (t) => {
+          try {
+            const res = await fetch(t.blueprintUrl);
+            if (!res.ok) return "";
+            const isPdf = /pdf/i.test(res.headers.get("content-type") || "") || /\.pdf(\?|$)/i.test(t.blueprintUrl);
+            if (!isPdf) return ""; // only PDFs are text-extractable here; skip images/docs
+            const parsed = await pdfParse(Buffer.from(await res.arrayBuffer()));
+            let txt = String(parsed?.text || "").trim();
+            if (!txt) return "";
+            if (txt.length > MAX_PAST_PAPER_CHARS) txt = txt.slice(0, MAX_PAST_PAPER_CHARS);
+            const tags = Array.isArray(t.topics) && t.topics.length ? ` · tagged topics: ${t.topics.join(", ")}` : "";
+            const meta = `${t.testName || "Past test"}${t.subject ? ` · ${t.subject}` : ""}${t.testDate ? ` · ${t.testDate}` : ""}${tags}`;
+            return `--- PAST PAPER: ${meta} ---\n${txt}`;
+          } catch (err: any) {
+            console.warn(`[predict_exam_results] past paper read failed:`, err?.message || err);
+            return "";
+          }
+        }));
+        const ok = chunks.filter(Boolean);
+        pastPapersContext = ok.join("\n\n");
+        console.log(`[predict_exam_results] read ${ok.length}/${withPaper.length} past papers`);
+      }
+      // Compact topic-coverage list of ALL past tests (with or without a paper).
+      const pastTestsMeta = pastTestsArr.map(t =>
+        `- ${t.testName || "Test"}${t.subject ? ` (${t.subject})` : ""}${t.testDate ? ` [${t.testDate}]` : ""}: ${Array.isArray(t.topics) && t.topics.length ? t.topics.join(", ") : "no topic tags"}${t.blueprintUrl ? " · paper attached" : ""}`
+      ).join("\n");
+
       systemPrompt = [
         "You are a senior exam-results forecasting analyst with 20+ years of",
         "Indian school examination experience.",
@@ -571,13 +613,32 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
         "Example of CORRECT: 'Tanveer scored 88% on algebra in the last unit test, but Q2/Q5/Q8 of this paper test geometry where her average across the last three attempts is 38%. Recommended: a focused 1-hour geometry review before the exam.'",
         "Example of INCORRECT: 'Tanveer ka algebra strong hai par geometry mein thoda gap hai, isliye revision karna chahiye.'",
         "",
+        "TOPIC-WEIGHTED METHOD — THIS IS THE CORE OF YOUR JOB:",
+        "1. Parse the question paper into TOPICS and estimate each topic's WEIGHT",
+        "   as a percentage of total marks (weights sum to ~100).",
+        "2. For EACH student, look up their per-topic mastery in `topicScores`",
+        "   (plus the past papers / past test topics provided). Predict the score",
+        "   as a WEIGHTED BLEND: for every paper topic, take the student's average",
+        "   in that topic x that topic's weight. A student with a high OVERALL",
+        "   average but WEAK in a heavily-weighted topic MUST be predicted below",
+        "   their average; strong in the heavy topics -> above. NEVER just echo",
+        "   the overall average — that is the specific failure you must avoid.",
+        "3. For paper topics the student has NO history in, treat them as",
+        "   uncovered (do not assume mastery). Track how much of the paper's",
+        "   weight is backed by real data as paper_topic_coverage_pct.",
+        "",
         "PREDICTION DISCIPLINE:",
         "- predicted_band must be one of exactly: 'pass' | 'borderline' | 'fail'.",
         "- 'pass' = predicted score >= 60% with high or medium confidence.",
         "- 'borderline' = predicted score 40-59% OR low confidence on a higher score.",
         "- 'fail' = predicted score < 40% based on at least 2 historical signals.",
-        "- Never invent data. If a student has too few past records, set",
-        "  predicted_band to 'borderline', confidence to 'low', and say so honestly.",
+        "- CONFIDENCE MUST REFLECT DATA COVERAGE, not just the score. Use 'high'",
+        "  ONLY when paper_topic_coverage_pct is high AND recentTests >= 3.",
+        "  If coverage is thin or recentTests is 0-1, confidence is 'low' and the",
+        "  reasoning must say the forecast is weakly grounded.",
+        "- Never invent data. If a student has essentially no usable history,",
+        "  set confidence 'low', widen the predicted range, and state plainly",
+        "  'insufficient history to forecast reliably' in the reasoning.",
       ].join("\n");
 
       userPrompt = `Forecast results for an upcoming exam. Use the question paper, syllabus context (if any), and each student's history.
@@ -588,23 +649,33 @@ ${(payload as any)?.paperText || "(empty — only history available)"}
 SYLLABUS CONTEXT (text extracted from the school syllabus PDF; may be partial):
 ${(payload as any)?.syllabusText || "(no syllabus PDF available)"}
 
+PAST TESTS OF THIS CLASS (topic coverage history — map the NEW paper's topics to assessments the students already sat):
+${pastTestsMeta || "(no past tests recorded)"}
+
+PAST QUESTION PAPERS (full text of recent attached papers — topic-match the NEW paper question-by-question against what these students were actually tested on before, then use their score on the closest past assessment):
+${pastPapersContext || "(no past papers attached yet — rely on topic tags + topicScores)"}
+
 EXAM META:
 - Subject: ${(payload as any)?.subject || "Unknown"}
 - Class: ${(payload as any)?.className || "Unknown"}
 - Total marks: ${(payload as any)?.totalMarks || "Unknown"}
 - Pass mark percentage: ${(payload as any)?.passPct ?? 40}
 
-STUDENT HISTORY (one object per student in the class):
+STUDENT HISTORY (one object per student; 'topicScores' = per-topic average % with sample count 'n' — this is your primary signal):
 ${JSON.stringify((payload as any)?.students || [], null, 2)}
 
-Identify the topics this paper tests (parse the question paper). For each student, map their history (subject avg, last 3 test scores, attendance %, behaviour rating, weak topics) to those question topics. Then produce a prediction.
+METHOD (follow exactly):
+1. Parse the NEW paper into topics; assign each a weight = % of total marks it carries (weights sum ~100). Return these in paper_summary.topic_weights.
+2. For each student, predict via a WEIGHTED BLEND of their topicScores against those topic weights — aligning past-paper / past-test topics where their score docs lack explicit topic tags. Do NOT echo the overall average: a student weak in a heavily-weighted topic must land BELOW their average, strong in heavy topics ABOVE.
+3. Compute paper_topic_coverage_pct = share of the paper's weight covered by topics the student actually has history in. Set confidence honestly from this coverage + recentTests (thin coverage or 0-1 tests → 'low').
 
 Return ONLY this JSON. ALL text fields must be in clear professional English (no Hindi or Hinglish):
 {
   "paper_summary": {
     "topics_detected": ["string array of distinct topics the paper tests"],
+    "topic_weights": [{ "topic": "string", "weight_pct": 0-100 }],
     "difficulty_estimate": "easy" | "medium" | "hard",
-    "questions_overview": "1-2 sentence English summary of what the paper covers and weights"
+    "questions_overview": "1-2 sentence English summary of what the paper covers and how marks are weighted across topics"
   },
   "class_forecast": {
     "expected_pass_pct": 0-100 integer,
@@ -624,10 +695,11 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
       "predicted_score_min": 0-100 integer,
       "predicted_score_max": 0-100 integer,
       "confidence": "high" | "medium" | "low",
-      "top_strengths_for_paper": ["English bullet citing the specific topic and the past score that supports it"],
-      "gaps_for_paper": ["English bullet citing the specific topic and the past score / missed concept that supports it"],
-      "reasoning": "2-4 sentence English explanation tying the predicted band to the historical evidence. Cite numbers (past scores, attendance %, weak-concept names). NO Hinglish.",
-      "recommended_pre_exam_action": "1 concrete English action the teacher should take with this student before the exam (eg 'Run a 1-hour geometry construction practice with worked examples on Friday')."
+      "paper_topic_coverage_pct": 0-100 integer (share of the paper's mark-weight backed by this student's real topic history),
+      "top_strengths_for_paper": ["English bullet naming the SPECIFIC paper topic + its weight_pct + the past score that supports it, e.g. 'Algebra (25% of paper): 88% across last 3 tests'"],
+      "gaps_for_paper": ["English bullet naming the SPECIFIC paper topic + its weight_pct + the past score or missing history, e.g. 'Trigonometry (30% of paper): only 38% average — drags the predicted score below their overall avg'"],
+      "reasoning": "2-4 sentence English explanation tying the predicted band to TOPIC-WEIGHTED evidence. Name the heavily-weighted topics and the student's mastery in them by number, and explain why the prediction is above/below their overall average. If coverage is thin, state the forecast is weakly grounded. NO Hinglish.",
+      "recommended_pre_exam_action": "1 concrete English action targeting the student's WEAKEST high-weight topic for this paper (eg 'Run a 1-hour trigonometric-identities drill on Friday — it carries 30% of the marks and is their weakest area')."
     }
   ]
 }`;
@@ -690,10 +762,11 @@ Return ONLY this JSON. ALL text fields must be in clear professional English (no
       type === "student_action_plan" ? 1500 :
       type === "teacher_self_action_plan" ? 1500 :
       // Pre-Result Predictor: per-student JSON for up to 50 students plus the
-      // class-forecast block — the largest text-only output we ship. 4096 keeps
-      // it under the gpt-4o response cap; the cloud function's safeJsonParse
-      // surfaces a clean error if the model truncates.
-      type === "predict_exam_results" ? 4096 :
+      // class-forecast block. Bumped 4096 → 8000 for the topic-weighted engine
+      // (each student now carries topic_weights reasoning + coverage), which
+      // pushes a full class past the old cap and truncated → invalid JSON.
+      // gpt-4.1-mini supports 16k output so 8000 leaves headroom.
+      type === "predict_exam_results" ? 8000 :
       1024;
 
     // Per-type model selection. ALL types use gpt-4.1-mini because the

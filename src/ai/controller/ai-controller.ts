@@ -200,6 +200,10 @@ export const AIController = {
     totalMarks?: number;
     passPct?: number;
     students: unknown[];
+    /** Past tests of this class — topic coverage history + attached question
+     *  papers (blueprintUrl). The cloud function reads recent blueprints
+     *  server-side to topic-match the new paper against past assessments. */
+    pastTests?: unknown[];
   }): Promise<AIResult> {
     if (!data?.paperText?.trim()) {
       return { status: "no_data", message: "Add the question paper text first." };

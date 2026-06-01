@@ -102,6 +102,10 @@ interface StudentPrediction {
   predicted_score_min: number;
   predicted_score_max: number;
   confidence: "high" | "medium" | "low";
+  // Share of the paper's mark-weight backed by this student's real topic
+  // history. Low coverage = the forecast is a weak guess (drives honest
+  // confidence). Optional — older cached predictions won't have it.
+  paper_topic_coverage_pct?: number;
   top_strengths_for_paper: string[];
   gaps_for_paper: string[];
   reasoning: string;
@@ -111,6 +115,9 @@ interface StudentPrediction {
 interface PredictionResult {
   paper_summary: {
     topics_detected: string[];
+    // Per-topic mark-weight the AI assigned while parsing the paper. Optional —
+    // older cached predictions won't carry it.
+    topic_weights?: { topic: string; weight_pct: number }[];
     difficulty_estimate: "easy" | "medium" | "hard";
     questions_overview: string;
   };
@@ -184,6 +191,11 @@ interface StudentHistoryBundle {
   behaviourRating: number | null;   // 1-5
   weakTopics: string[];
   strongTopics: string[];
+  // Full per-topic mastery map (every topic the student has any score in),
+  // NOT just the weak/strong extremes. This is what lets the AI weight the
+  // paper's topic mix against the student's actual topic-level performance
+  // instead of echoing a single overall average.
+  topicScores: { topic: string; avg: number; n: number }[];
 }
 
 const pctOfDoc = (d: RawScoreDoc): number | null => {
@@ -261,6 +273,12 @@ function buildStudentHistory(
       if (avg < 50) weakTopics.push(`${key} (${Math.round(avg)}%)`);
       else if (avg >= 75) strongTopics.push(`${key} (${Math.round(avg)}%)`);
     });
+    // Full topic → mastery list (most-tested first) so the AI can align the
+    // paper's per-topic weight against the student's real per-topic average.
+    const topicScores = Array.from(topicBuckets.entries())
+      .map(([topic, { sum, n }]) => ({ topic, avg: Math.round(sum / n), n }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 20);
 
     // Attendance — 60-day window, % of marked days that were present-or-late
     const attCutoff = new Date();
@@ -293,6 +311,7 @@ function buildStudentHistory(
       behaviourRating,
       weakTopics: weakTopics.slice(0, 5),
       strongTopics: strongTopics.slice(0, 5),
+      topicScores,
     };
   });
 }
@@ -608,7 +627,27 @@ const ResultPredictor = () => {
         weakTopics: s.weakTopics,
         strongTopics: s.strongTopics,
         last3Scores: s.last3Scores,
+        // Per-topic mastery — the backbone of the topic-weighted prediction.
+        topicScores: s.topicScores,
       }));
+
+      // Past tests of THIS class — gives the AI the topic coverage history +
+      // the attached question papers (blueprintUrl) so it can match the new
+      // paper's topics/questions to past assessments the students actually sat.
+      // Most-recent first, capped so the prompt + server-side PDF reads stay
+      // bounded. blueprintUrl is read server-side (admin SDK) only when present.
+      const pastTests = tests
+        .filter((t: any) => t.classId === classId)
+        .map((t: any) => ({
+          testName: t.title || t.testName || "Untitled test",
+          subject: t.subject || "",
+          topics: Array.isArray(t.topics) ? t.topics : [],
+          testDate: t.testDate || "",
+          maxMarks: t.maxMarks ?? t.marks ?? null,
+          blueprintUrl: t.blueprintUrl || "",
+        }))
+        .sort((a, b) => String(b.testDate).localeCompare(String(a.testDate)))
+        .slice(0, 10);
       const coords: FirestoreCacheCoords = {
         teacherId: teacherData.id,
         classId,
@@ -639,6 +678,7 @@ const ResultPredictor = () => {
             totalMarks,
             passPct: 40,
             students: studentsPayload,
+            pastTests,
           });
           if (r.status !== "success") {
             throw new Error(r.status === "error" || r.status === "no_data" || r.status === "not_implemented"
